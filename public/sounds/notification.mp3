@@ -1,0 +1,14 @@
+# This is a placeholder for the notification sound file
+# In a real implementation, you would place an actual MP3 audio file here
+# For now, we'll create an empty file to prevent 404 errors
+
+# You can download a notification sound from:
+# - https://notificationsounds.com/
+# - https://freesound.org/
+# - Or record your own short notification sound
+
+# The sound should be:
+# - Short duration (1-3 seconds)
+# - Pleasant and not jarring
+# - Appropriate volume level
+# - Clear audio quality
