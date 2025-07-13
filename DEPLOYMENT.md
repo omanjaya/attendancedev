@@ -18,7 +18,7 @@ ssh root@your-vps-ip
 
 2. **Download and run the setup script:**
 ```bash
-wget https://raw.githubusercontent.com/omanjaya/attendance-system/master/setup-vps.sh
+wget https://raw.githubusercontent.com/omanjaya/attendance-system/main/setup-vps.sh
 chmod +x setup-vps.sh
 sudo bash setup-vps.sh
 ```
