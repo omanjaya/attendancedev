@@ -18,7 +18,7 @@ ssh root@your-vps-ip
 
 2. **Download and run the setup script:**
 ```bash
-wget https://raw.githubusercontent.com/your-repo/attendance-system/main/setup-vps.sh
+wget https://raw.githubusercontent.com/omanjaya/attendance-system/master/setup-vps.sh
 chmod +x setup-vps.sh
 sudo bash setup-vps.sh
 ```
@@ -38,7 +38,7 @@ sudo su - attendance
 
 2. **Clone repository:**
 ```bash
-git clone git@github.com:your-repo/attendance-system.git /var/www/attendance-system
+git clone git@github.com:omanjaya/attendance-system.git /var/www/attendance-system
 cd /var/www/attendance-system
 ```
 
