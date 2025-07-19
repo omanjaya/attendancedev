@@ -12,13 +12,13 @@ class FaceDetectionService {
       'face-api': {
         minConfidence: 0.7,
         inputSize: 416,
-        scoreThreshold: 0.5
+        scoreThreshold: 0.5,
       },
-      'mediapipe': {
+      mediapipe: {
         minDetectionConfidence: 0.7,
         minTrackingConfidence: 0.5,
-        maxNumFaces: 1
-      }
+        maxNumFaces: 1,
+      },
     }
   }
 
@@ -37,18 +37,17 @@ class FaceDetectionService {
 
       // Load models
       const MODEL_URL = '/models'
-      
+
       await Promise.all([
         faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
         faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
         faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
-        faceapi.nets.ageGenderNet.loadFromUri(MODEL_URL)
+        faceapi.nets.ageGenderNet.loadFromUri(MODEL_URL),
       ])
 
       this.faceApiLoaded = true
       console.log('Face-API.js models loaded successfully')
       return true
-
     } catch (error) {
       console.error('Failed to load Face-API.js models:', error)
       return false
@@ -71,7 +70,7 @@ class FaceDetectionService {
       const faceDetection = new FaceDetection({
         locateFile: (file) => {
           return `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`
-        }
+        },
       })
 
       faceDetection.setOptions(this.detectionConfigs.mediapipe)
@@ -80,7 +79,6 @@ class FaceDetectionService {
       this.mediaPipeLoaded = true
       console.log('MediaPipe Face Detection initialized successfully')
       return true
-
     } catch (error) {
       console.error('Failed to initialize MediaPipe:', error)
       return false
@@ -97,14 +95,17 @@ class FaceDetectionService {
 
     try {
       const detections = await faceapi
-        .detectAllFaces(videoElement, new faceapi.SsdMobilenetv1Options(this.detectionConfigs['face-api']))
+        .detectAllFaces(
+          videoElement,
+          new faceapi.SsdMobilenetv1Options(this.detectionConfigs['face-api'])
+        )
         .withFaceLandmarks()
         .withFaceDescriptors()
 
       if (detections.length > 0) {
         const detection = detections[0]
         const confidence = Math.round(detection.detection.score * 100)
-        
+
         // Calculate liveness score based on landmarks
         const landmarks = detection.landmarks
         const livenessScore = this.calculateLivenessScore(landmarks)
@@ -117,20 +118,19 @@ class FaceDetectionService {
             x: detection.detection.box.x,
             y: detection.detection.box.y,
             width: detection.detection.box.width,
-            height: detection.detection.box.height
+            height: detection.detection.box.height,
           },
           landmarks: landmarks.positions,
-          descriptor: detection.descriptor
+          descriptor: detection.descriptor,
         }
       } else {
         return {
           faceDetected: false,
           confidence: 0,
           liveness: 0,
-          boundingBox: null
+          boundingBox: null,
         }
       }
-
     } catch (error) {
       console.error('Face-API.js detection error:', error)
       return this.simulateDetection()
@@ -151,14 +151,17 @@ class FaceDetectionService {
           if (results.detections && results.detections.length > 0) {
             const detection = results.detections[0]
             const confidence = Math.round(detection.score * 100)
-            
+
             // Calculate bounding box
             const bbox = detection.boundingBox
             const boundingBox = {
-              x: bbox.xCenter * videoElement.videoWidth - (bbox.width * videoElement.videoWidth) / 2,
-              y: bbox.yCenter * videoElement.videoHeight - (bbox.height * videoElement.videoHeight) / 2,
+              x:
+                bbox.xCenter * videoElement.videoWidth - (bbox.width * videoElement.videoWidth) / 2,
+              y:
+                bbox.yCenter * videoElement.videoHeight -
+                (bbox.height * videoElement.videoHeight) / 2,
               width: bbox.width * videoElement.videoWidth,
-              height: bbox.height * videoElement.videoHeight
+              height: bbox.height * videoElement.videoHeight,
             }
 
             // Simple liveness check based on detection consistency
@@ -169,21 +172,20 @@ class FaceDetectionService {
               confidence: confidence,
               liveness: livenessScore,
               boundingBox: boundingBox,
-              keypoints: detection.landmarks
+              keypoints: detection.landmarks,
             })
           } else {
             resolve({
               faceDetected: false,
               confidence: 0,
               liveness: 0,
-              boundingBox: null
+              boundingBox: null,
             })
           }
         })
 
         this.currentModel.send({ image: videoElement })
       })
-
     } catch (error) {
       console.error('MediaPipe detection error:', error)
       return this.simulateDetection()
@@ -201,15 +203,14 @@ class FaceDetectionService {
       // In production, this would be more sophisticated
       const eyeRegion = landmarks.slice(36, 48) // Eye landmarks
       const mouthRegion = landmarks.slice(48, 68) // Mouth landmarks
-      
+
       // Calculate variance in eye and mouth regions
       const eyeVariance = this.calculateVariance(eyeRegion)
       const mouthVariance = this.calculateVariance(mouthRegion)
-      
+
       // Combine scores (simplified)
       const score = Math.min(100, (eyeVariance + mouthVariance) * 10)
       return Math.max(70, Math.floor(score)) // Minimum 70% for demo
-
     } catch (error) {
       console.error('Liveness calculation error:', error)
       return 85 // Default liveness score
@@ -224,9 +225,8 @@ class FaceDetectionService {
       // Use detection confidence and key point stability
       const baseScore = detection.score * 100
       const stabilityBonus = 15 // Bonus for stable detection
-      
-      return Math.min(100, Math.floor(baseScore + stabilityBonus))
 
+      return Math.min(100, Math.floor(baseScore + stabilityBonus))
     } catch (error) {
       console.error('MediaPipe liveness calculation error:', error)
       return 85 // Default liveness score
@@ -239,10 +239,10 @@ class FaceDetectionService {
   calculateVariance(points) {
     if (!points || points.length === 0) return 0
 
-    const values = points.map(p => p.x + p.y)
+    const values = points.map((p) => p.x + p.y)
     const mean = values.reduce((a, b) => a + b, 0) / values.length
     const variance = values.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / values.length
-    
+
     return Math.sqrt(variance)
   }
 
@@ -258,13 +258,15 @@ class FaceDetectionService {
       faceDetected,
       confidence,
       liveness,
-      boundingBox: faceDetected ? {
-        x: 150 + (Math.random() - 0.5) * 40,
-        y: 100 + (Math.random() - 0.5) * 30,
-        width: 140 + Math.random() * 20,
-        height: 160 + Math.random() * 20
-      } : null,
-      simulated: true
+      boundingBox: faceDetected
+        ? {
+            x: 150 + (Math.random() - 0.5) * 40,
+            y: 100 + (Math.random() - 0.5) * 30,
+            width: 140 + Math.random() * 20,
+            height: 160 + Math.random() * 20,
+          }
+        : null,
+      simulated: true,
     }
   }
 
@@ -276,7 +278,7 @@ class FaceDetectionService {
       blink: 'Silakan berkedip beberapa kali',
       smile: 'Silakan tersenyum',
       turnHead: 'Putar kepala ke kiri dan kanan',
-      nod: 'Anggukkan kepala naik turun'
+      nod: 'Anggukkan kepala naik turun',
     }
 
     const instruction = gestures[gestureType] || gestures.blink
@@ -290,11 +292,11 @@ class FaceDetectionService {
         detectionCount++
 
         const detection = await this.detectWithFaceAPI(videoElement)
-        
+
         if (detection.faceDetected) {
           // Simulate gesture detection
           const gestureConfidence = Math.random()
-          
+
           if (gestureConfidence > 0.7) {
             gestureDetected = true
           }
@@ -302,13 +304,13 @@ class FaceDetectionService {
 
         if (gestureDetected || detectionCount >= maxAttempts) {
           clearInterval(interval)
-          
+
           resolve({
             success: gestureDetected,
             gestureType,
             instruction,
             attempts: detectionCount,
-            livenessScore: gestureDetected ? Math.floor(85 + Math.random() * 10) : 0
+            livenessScore: gestureDetected ? Math.floor(85 + Math.random() * 10) : 0,
           })
         }
       }, 500)
@@ -321,7 +323,7 @@ class FaceDetectionService {
   async enrollFace(videoElement, employeeId, employeeName) {
     try {
       const detection = await this.detectWithFaceAPI(videoElement)
-      
+
       if (!detection.faceDetected || detection.confidence < 80) {
         throw new Error('Kualitas gambar wajah tidak mencukupi untuk pendaftaran')
       }
@@ -333,11 +335,11 @@ class FaceDetectionService {
         descriptor: detection.descriptor,
         enrollmentDate: new Date().toISOString(),
         confidence: detection.confidence,
-        imageData: this.captureImageData(videoElement)
+        imageData: this.captureImageData(videoElement),
       }
 
       // Simulate enrollment process
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      await new Promise((resolve) => setTimeout(resolve, 2000))
 
       console.log('Face enrolled successfully:', faceData)
 
@@ -345,9 +347,8 @@ class FaceDetectionService {
         success: true,
         message: `Wajah ${employeeName} berhasil didaftarkan`,
         confidence: detection.confidence,
-        faceId: `face_${Date.now()}_${employeeId}`
+        faceId: `face_${Date.now()}_${employeeId}`,
       }
-
     } catch (error) {
       console.error('Face enrollment error:', error)
       throw new Error(error.message || 'Gagal mendaftarkan wajah')
@@ -360,40 +361,41 @@ class FaceDetectionService {
   async recognizeFace(videoElement) {
     try {
       const detection = await this.detectWithFaceAPI(videoElement)
-      
+
       if (!detection.faceDetected) {
         return {
           recognized: false,
           confidence: 0,
-          employee: null
+          employee: null,
         }
       }
 
       // In production, compare descriptor with database
       // For demo, simulate recognition
-      const recognitionConfidence = detection.confidence > 85 ? 
-        Math.floor(80 + Math.random() * 15) : 0
+      const recognitionConfidence =
+        detection.confidence > 85 ? Math.floor(80 + Math.random() * 15) : 0
 
       const recognized = recognitionConfidence > 75
 
       return {
         recognized,
         confidence: recognitionConfidence,
-        employee: recognized ? {
-          id: 'emp_001',
-          name: 'John Doe',
-          department: 'IT'
-        } : null,
-        livenessScore: detection.liveness
+        employee: recognized
+          ? {
+              id: 'emp_001',
+              name: 'John Doe',
+              department: 'IT',
+            }
+          : null,
+        livenessScore: detection.liveness,
       }
-
     } catch (error) {
       console.error('Face recognition error:', error)
       return {
         recognized: false,
         confidence: 0,
         employee: null,
-        error: error.message
+        error: error.message,
       }
     }
   }
@@ -404,11 +406,11 @@ class FaceDetectionService {
   captureImageData(videoElement) {
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
-    
+
     canvas.width = videoElement.videoWidth
     canvas.height = videoElement.videoHeight
     ctx.drawImage(videoElement, 0, 0)
-    
+
     return canvas.toDataURL('image/jpeg', 0.8)
   }
 
@@ -421,9 +423,9 @@ class FaceDetectionService {
       mediaPipeLoaded: this.mediaPipeLoaded,
       supportedMethods: [
         this.faceApiLoaded ? 'face-api' : null,
-        this.mediaPipeLoaded ? 'mediapipe' : null
+        this.mediaPipeLoaded ? 'mediapipe' : null,
       ].filter(Boolean),
-      configs: this.detectionConfigs
+      configs: this.detectionConfigs,
     }
   }
 

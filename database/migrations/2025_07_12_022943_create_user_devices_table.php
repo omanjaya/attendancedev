@@ -30,7 +30,7 @@ return new class extends Migration
             $table->json('fingerprint_data'); // Store detailed fingerprint components
             $table->json('metadata')->nullable(); // Additional device info
             $table->timestamps();
-            
+
             $table->unique(['user_id', 'device_fingerprint']);
             $table->index(['user_id', 'is_trusted']);
             $table->index(['user_id', 'last_seen_at']);

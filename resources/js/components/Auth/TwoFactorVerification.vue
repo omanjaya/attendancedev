@@ -4,9 +4,9 @@
     <TwoFactorPrompt
       v-if="currentView === 'main'"
       :user="user"
-      :intended-url="intendedUrl"
-      :allow-remember-device="allowRememberDevice"
-      :sms-enabled="smsEnabled"
+      :intendedUrl="intendedUrl"
+      :allowRememberDevice="allowRememberDevice"
+      :smsEnabled="smsEnabled"
       @success="handleSuccess"
       @logout="handleLogout"
       @error="handleError"
@@ -15,8 +15,8 @@
     <!-- Backup Code Entry -->
     <BackupCodePrompt
       v-else-if="currentView === 'backup-code'"
-      :remaining-codes="remainingCodes"
-      :sms-enabled="smsEnabled"
+      :remainingCodes="remainingCodes"
+      :smsEnabled="smsEnabled"
       @success="handleSuccess"
       @switch-to-authenticator="switchToMain"
       @request-sms="requestSMS"
@@ -26,8 +26,8 @@
     <!-- Recovery Options -->
     <RecoveryOptions
       v-else-if="currentView === 'recovery'"
-      :user-phone="user.phone"
-      :sms-enabled="smsEnabled"
+      :userPhone="user.phone"
+      :smsEnabled="smsEnabled"
       @use-backup-code="switchToBackupCode"
       @request-sms="requestSMS"
       @start-emergency-recovery="handleEmergencyRecovery"
@@ -38,10 +38,10 @@
     <TwoFactorPrompt
       v-else-if="currentView === 'sms'"
       :user="user"
-      :intended-url="intendedUrl"
-      :allow-remember-device="allowRememberDevice"
-      :sms-enabled="smsEnabled"
-      verification-method="sms"
+      :intendedUrl="intendedUrl"
+      :allowRememberDevice="allowRememberDevice"
+      :smsEnabled="smsEnabled"
+      verificationMethod="sms"
       @success="handleSuccess"
       @logout="handleLogout"
       @error="handleError"
@@ -50,8 +50,10 @@
     <!-- Loading Overlay -->
     <div v-if="loading" class="loading-overlay">
       <div class="loading-content">
-        <div class="loading-spinner"></div>
-        <p class="loading-text">{{ loadingMessage }}</p>
+        <div class="loading-spinner" />
+        <p class="loading-text">
+          {{ loadingMessage }}
+        </p>
       </div>
     </div>
   </div>
@@ -69,24 +71,24 @@ import RecoveryOptions from './RecoveryOptions.vue'
 const props = defineProps({
   user: {
     type: Object,
-    required: true
+    required: true,
   },
   intendedUrl: {
     type: String,
-    default: '/dashboard'
+    default: '/dashboard',
   },
   allowRememberDevice: {
     type: Boolean,
-    default: true
+    default: true,
   },
   smsEnabled: {
     type: Boolean,
-    default: false
+    default: false,
   },
   csrfToken: {
     type: String,
-    required: true
-  }
+    required: true,
+  },
 })
 
 // Emits
@@ -155,7 +157,7 @@ const requestSMS = async () => {
 const handleEmergencyRecovery = (result) => {
   // Show success message and stay on current view
   toast.success('Emergency recovery request submitted successfully')
-  
+
   // Optionally redirect or show instructions
   setTimeout(() => {
     switchToMain()
@@ -178,19 +180,19 @@ if (props.csrfToken) {
 }
 
 .loading-overlay {
-  @apply absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50;
+  @apply absolute inset-0 z-50 flex items-center justify-center bg-white bg-opacity-90;
 }
 
 .loading-content {
-  @apply text-center space-y-4;
+  @apply space-y-4 text-center;
 }
 
 .loading-spinner {
-  @apply mx-auto w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin;
+  @apply mx-auto h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent;
 }
 
 .loading-text {
-  @apply text-sm text-gray-600 font-medium;
+  @apply text-sm font-medium text-gray-600;
 }
 
 /* Transition animations */
@@ -209,7 +211,7 @@ if (props.csrfToken) {
   .loading-spinner {
     @apply animate-none;
   }
-  
+
   .fade-enter-active,
   .fade-leave-active {
     transition: none;

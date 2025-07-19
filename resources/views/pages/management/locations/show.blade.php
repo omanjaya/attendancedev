@@ -1,279 +1,228 @@
-@extends('layouts.authenticated')
+@extends('layouts.authenticated-unified')
 
-@section('title', 'Location Details - ' . $location->name)
-
-@section('page-header')
-@section('page-pretitle', 'Location')
-@section('page-title', $location->name)
-@section('page-actions')
-    @can('manage_system')
-    <a href="{{ route('locations.edit', $location) }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-        <svg class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
-            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-            <path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1"/>
-            <path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z"/>
-            <path d="M16 5l3 3"/>
-        </svg>
-        Edit Location
-    </a>
-    @endcan
-@endsection
-@endsection
+@section('title', 'Detail Lokasi - ' . $location->name)
 
 @section('page-content')
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <!-- Location Information -->
-    <div class="lg:col-span-8">
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200-header">
-                <h3 class="bg-white rounded-lg shadow-sm border border-gray-200-title">Location Information</h3>
-            </div>
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200-body">
-                <div class="grid grid-cols-12 gap-4">
-                    <div class="md:col-span-6">
-                        <div class="mb-3">
-                            <label class="block text-sm font-medium text-gray-700">Location Name</label>
-                            <div class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm-plaintext">{{ $location->name }}</div>
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-blue-900 dark:to-indigo-900">
+    <div class="p-6 lg:p-8">
+        <x-layouts.base-page
+            title="Detail Lokasi: {{ $location->name }}"
+            subtitle="Informasi lengkap tentang lokasi ini"
+            :breadcrumbs="[
+                ['label' => 'Dashboard', 'url' => route('dashboard')],
+                ['label' => 'Manajemen'],
+                ['label' => 'Lokasi', 'url' => route('locations.index')],
+                ['label' => 'Detail Lokasi']
+            ]">
+            <x-slot name="actions">
+                @can('manage_system_settings')
+                <x-ui.button href="{{ route('locations.edit', $location) }}">
+                    <svg class="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1"/><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z"/><path d="M16 5l3 3"/></svg>
+                    Edit Lokasi
+                </x-ui.button>
+                @endcan
+            </x-slot>
+        </x-layouts.base-page>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 space-y-6">
+                <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out">
+                    <h3 class="text-xl font-semibold text-slate-800 dark:text-white mb-4">Informasi Lokasi</h3>
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <div class="space-y-2">
+                            <x-ui.label value="Nama Lokasi" class="text-slate-700 dark:text-slate-300" />
+                            <div class="p-3 bg-white/10 rounded-lg border border-white/20 text-slate-800 dark:text-white">{{ $location->name }}</div>
                         </div>
                         
-                        <div class="mb-3">
-                            <label class="block text-sm font-medium text-gray-700">Address</label>
-                            <div class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm-plaintext">
+                        <div class="space-y-2">
+                            <x-ui.label value="Alamat" class="text-slate-700 dark:text-slate-300" />
+                            <div class="p-3 bg-white/10 rounded-lg border border-white/20 text-slate-800 dark:text-white">
                                 @if($location->address)
                                     {{ $location->address }}
                                 @else
-                                    <span class="text-gray-600">Not provided</span>
+                                    <span class="text-slate-600 dark:text-slate-400">Tidak disediakan</span>
                                 @endif
                             </div>
                         </div>
                         
-                        <div class="mb-3">
-                            <label class="block text-sm font-medium text-gray-700">Status</label>
-                            <div class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm-plaintext">
+                        <div class="space-y-2">
+                            <x-ui.label value="Status" class="text-slate-700 dark:text-slate-300" />
+                            <div class="p-3 bg-white/10 rounded-lg border border-white/20">
                                 @if($location->is_active)
-                                    <span class="badge bg-green">Active</span>
+                                    <x-ui.badge variant="success">Aktif</x-ui.badge>
                                 @else
-                                    <span class="badge bg-red">Inactive</span>
+                                    <x-ui.badge variant="destructive">Tidak Aktif</x-ui.badge>
                                 @endif
                             </div>
                         </div>
-                    </div>
-                    
-                    <div class="md:col-span-6">
-                        <div class="mb-3">
-                            <label class="block text-sm font-medium text-gray-700">GPS Coordinates</label>
-                            <div class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm-plaintext">
+                        
+                        <div class="space-y-2">
+                            <x-ui.label value="Koordinat GPS" class="text-slate-700 dark:text-slate-300" />
+                            <div class="p-3 bg-white/10 rounded-lg border border-white/20 text-slate-800 dark:text-white">
                                 @if($location->latitude && $location->longitude)
                                     {{ number_format($location->latitude, 6) }}, {{ number_format($location->longitude, 6) }}
                                     <a href="https://www.google.com/maps?q={{ $location->latitude }},{{ $location->longitude }}" 
-                                       target="_blank" class="btn px-3 py-1.5 text-xs btn-outline-primary ml-2">
-                                        <svg class="icon icon-sm" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
-                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                            <circle cx="12" cy="11" r="3"/>
-                                            <path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z"/>
-                                        </svg>
-                                        View on Map
+                                       target="_blank" class="ml-2 text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300">
+                                        <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                        Lihat di Peta
                                     </a>
                                 @else
-                                    <span class="text-gray-600">Not set</span>
+                                    <span class="text-slate-600 dark:text-slate-400">Tidak diatur</span>
                                 @endif
                             </div>
                         </div>
                         
-                        <div class="mb-3">
-                            <label class="block text-sm font-medium text-gray-700">Allowed Radius</label>
-                            <div class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm-plaintext">{{ $location->radius_meters }} meters</div>
+                        <div class="space-y-2">
+                            <x-ui.label value="Radius yang Diizinkan" class="text-slate-700 dark:text-slate-300" />
+                            <div class="p-3 bg-white/10 rounded-lg border border-white/20 text-slate-800 dark:text-white">{{ $location->radius_meters }} meter</div>
                         </div>
                         
-                        <div class="mb-3">
-                            <label class="block text-sm font-medium text-gray-700">WiFi Network</label>
-                            <div class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm-plaintext">
+                        <div class="space-y-2">
+                            <x-ui.label value="Jaringan WiFi" class="text-slate-700 dark:text-slate-300" />
+                            <div class="p-3 bg-white/10 rounded-lg border border-white/20 text-slate-800 dark:text-white">
                                 @if($location->wifi_ssid)
                                     <code>{{ $location->wifi_ssid }}</code>
                                 @else
-                                    <span class="text-gray-600">Not configured</span>
+                                    <span class="text-slate-600 dark:text-slate-400">Tidak dikonfigurasi</span>
                                 @endif
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-        
-        <!-- Assigned Employees -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 mt-4">
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200-header">
-                <h3 class="bg-white rounded-lg shadow-sm border border-gray-200-title">Assigned Employees ({{ $location->employees->count() }})</h3>
-            </div>
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200-body">
-                @if($location->employees->count() > 0)
-                    <div class="min-w-full divide-y divide-gray-200-responsive">
-                        <min-w-full divide-y divide-gray-200 class="min-w-full divide-y divide-gray-200 min-w-full divide-y divide-gray-200-vcenter">
-                            <thead>
-                                <tr>
-                                    <th>Employee ID</th>
-                                    <th>Name</th>
-                                    <th>Type</th>
-                                    <th>Role</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($location->employees as $employee)
-                                <tr>
-                                    <td>{{ $employee->employee_id }}</td>
-                                    <td>
-                                        <a href="{{ route('employees.show', $employee) }}">
-                                            {{ $employee->full_name }}
-                                        </a>
-                                    </td>
-                                    <td>
-                                        @php
-                                            $colors = [
-                                                'permanent' => 'green',
-                                                'honorary' => 'blue',
-                                                'staff' => 'yellow'
-                                            ];
-                                            $color = $colors[$employee->employee_type] ?? 'secondary';
-                                        @endphp
-                                        <span class="badge bg-{{ $color }}-lt">{{ ucfirst($employee->employee_type) }}</span>
-                                    </td>
-                                    <td>
-                                        @foreach($employee->user->roles as $role)
-                                            <span class="badge bg-blue-lt">{{ ucfirst($role->name) }}</span>
-                                        @endforeach
-                                    </td>
-                                    <td>
-                                        @if($employee->is_active)
-                                            <span class="badge bg-green">Active</span>
-                                        @else
-                                            <span class="badge bg-red">Inactive</span>
-                                        @endif
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </min-w-full divide-y divide-gray-200>
+                
+                <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out">
+                    <h3 class="text-xl font-semibold text-slate-800 dark:text-white mb-4">Karyawan Ditugaskan ({{ $location->employees->count() }})</h3>
+                    <div class="overflow-x-auto">
+                        @if($location->employees->count() > 0)
+                            <table class="min-w-full divide-y divide-white/20">
+                                <thead class="bg-white/10 backdrop-blur-sm">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">ID Karyawan</th>
+                                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Nama</th>
+                                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Tipe</th>
+                                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Peran</th>
+                                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white/5 backdrop-blur-sm divide-y divide-white/10">
+                                    @foreach($location->employees as $employee)
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-800 dark:text-white">{{ $employee->employee_id }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <a href="{{ route('employees.show', $employee) }}" class="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300">
+                                                {{ $employee->full_name }}
+                                            </a>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            @php
+                                                $colors = [
+                                                    'permanent' => 'green',
+                                                    'honorary' => 'blue',
+                                                    'staff' => 'gray'
+                                                ];
+                                                $color = $colors[$employee->employee_type] ?? 'secondary';
+                                            @endphp
+                                            <x-ui.badge variant="{{ $color }}">{{ ucfirst($employee->employee_type) }}</x-ui.badge>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            @foreach($employee->user->roles as $role)
+                                                <x-ui.badge variant="info">{{ ucfirst($role->name) }}</x-ui.badge>
+                                            @endforeach
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            @if($employee->is_active)
+                                                <x-ui.badge variant="success">Aktif</x-ui.badge>
+                                            @else
+                                                <x-ui.badge variant="destructive">Tidak Aktif</x-ui.badge>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        @else
+                            <div class="text-center py-8 text-slate-600 dark:text-slate-400">
+                                <svg class="w-12 h-12 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                                <div>Tidak ada karyawan yang ditugaskan</div>
+                                <small>Karyawan dapat ditugaskan ke lokasi ini di pengaturan profil mereka</small>
+                            </div>
+                        @endif
                     </div>
-                @else
-                    <div class="text-center py-4 text-gray-600">
-                        <svg class="icon mb-2" width="48" height="48" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                            <circle cx="9" cy="7" r="4"/>
-                            <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/>
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                            <path d="M21 21v-2a4 4 0 0 0 -3 -3.85"/>
-                        </svg>
-                        <div>No employees assigned</div>
-                        <small>Employees can be assigned to this location in their profile settings</small>
+                </div>
+            </div>
+            
+            <div class="lg:col-span-1 space-y-6">
+                <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out">
+                    <h3 class="text-xl font-semibold text-slate-800 dark:text-white mb-4">Metode Verifikasi</h3>
+                    <div class="space-y-3 text-slate-600 dark:text-slate-400">
+                        @php
+                            $hasGPS = $location->latitude && $location->longitude;
+                            $hasWiFi = $location->wifi_ssid;
+                        @endphp
+                        
+                        @if($hasGPS)
+                        <div class="flex items-center mb-3">
+                            <x-ui.badge variant="info" class="mr-2">GPS</x-ui.badge>
+                            <div>
+                                <div class="font-medium text-slate-800 dark:text-white">Verifikasi berbasis lokasi</div>
+                                <div class="text-sm">Dalam radius {{ $location->radius_meters }}m</div>
+                            </div>
+                        </div>
+                        @endif
+                        
+                        @if($hasWiFi)
+                        <div class="flex items-center mb-3">
+                            <x-ui.badge variant="success" class="mr-2">WiFi</x-ui.badge>
+                            <div>
+                                <div class="font-medium text-slate-800 dark:text-white">Verifikasi berbasis jaringan</div>
+                                <div class="text-sm">Terhubung ke "{{ $location->wifi_ssid }}"</div>
+                            </div>
+                        </div>
+                        @endif
+                        
+                        @if(!$hasGPS && !$hasWiFi)
+                        <div class="text-center py-4">
+                            <svg class="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <div>Tidak ada metode verifikasi</div>
+                            <small>Konfigurasi verifikasi GPS atau WiFi</small>
+                        </div>
+                        @endif
                     </div>
-                @endif
+                </div>
+                
+                <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out">
+                    <h3 class="text-xl font-semibold text-slate-800 dark:text-white mb-4">Statistik Cepat</h3>
+                    <div class="grid grid-cols-2 gap-4 text-slate-600 dark:text-slate-400">
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-slate-800 dark:text-white">{{ $location->employees->count() }}</div>
+                            <div class="text-sm">Total Karyawan</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-slate-800 dark:text-white">{{ $location->employees->where('is_active', true)->count() }}</div>
+                            <div class="text-sm">Aktif</div>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="font-medium text-slate-800 dark:text-white">Metode Verifikasi</div>
+                        <div class="text-3xl font-bold text-blue-500">{{ ($hasGPS ? 1 : 0) + ($hasWiFi ? 1 : 0) }}</div>
+                        <div class="w-full bg-white/20 rounded-full h-2 mt-2">
+                            @php $completeness = (($hasGPS ? 50 : 0) + ($hasWiFi ? 50 : 0)); @endphp
+                            <div class="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full" style="width: {{ $completeness }}%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out">
+                    <h3 class="text-xl font-semibold text-slate-800 dark:text-white mb-4">Detail Lokasi</h3>
+                    <div class="space-y-3 text-slate-600 dark:text-slate-400">
+                        <div class="flex justify-between"><span class="font-medium">Dibuat:</span><span class="text-slate-800 dark:text-white">{{ $location->created_at->format('M j, Y') }}</span></div>
+                        <div class="flex justify-between"><span class="font-medium">Terakhir Diperbarui:</span><span class="text-slate-800 dark:text-white">{{ $location->updated_at->format('M j, Y g:i A') }}</span></div>
+                        @if($location->metadata)
+                        <div class="flex justify-between"><span class="font-medium">Data Tambahan:</span><span class="text-slate-800 dark:text-white">Tersedia</span></div>
+                        @endif
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    
-    <!-- Sidebar -->
-    <div class="lg:col-span-4">
-        <!-- Verification Methods -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200-header">
-                <h3 class="bg-white rounded-lg shadow-sm border border-gray-200-title">Verification Methods</h3>
-            </div>
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200-body">
-                @php
-                    $hasGPS = $location->latitude && $location->longitude;
-                    $hasWiFi = $location->wifi_ssid;
-                @endphp
-                
-                @if($hasGPS)
-                <div class="flex items-center mb-3">
-                    <span class="badge bg-blue mr-2">GPS</span>
-                    <div>
-                        <div class="truncate">
-                            <strong>Location-based verification</strong>
-                        </div>
-                        <div class="text-gray-600 small">
-                            Within {{ $location->radius_meters }}m radius
-                        </div>
-                    </div>
-                </div>
-                @endif
-                
-                @if($hasWiFi)
-                <div class="flex items-center mb-3">
-                    <span class="badge bg-green mr-2">WiFi</span>
-                    <div>
-                        <div class="truncate">
-                            <strong>Network-based verification</strong>
-                        </div>
-                        <div class="text-gray-600 small">
-                            Connected to "{{ $location->wifi_ssid }}"
-                        </div>
-                    </div>
-                </div>
-                @endif
-                
-                @if(!$hasGPS && !$hasWiFi)
-                <div class="text-center py-4 text-gray-600">
-                    <svg class="icon mb-2" width="48" height="48" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                        <circle cx="12" cy="12" r="9"/>
-                        <line x1="9" y1="9" x2="15" y2="15"/>
-                        <line x1="15" y1="9" x2="9" y2="15"/>
-                    </svg>
-                    <div>No verification methods</div>
-                    <small>Configure GPS or WiFi verification</small>
-                </div>
-                @endif
-            </div>
-        </div>
-        
-        <!-- Quick Stats -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 mt-4">
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200-header">
-                <h3 class="bg-white rounded-lg shadow-sm border border-gray-200-title">Quick Stats</h3>
-            </div>
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200-body">
-                <div class="grid grid-cols-12 gap-4">
-                    <div class="w-1/2 px-2">
-                        <div class="subheader">Total Employees</div>
-                        <div class="h1 m-0">{{ $location->employees->count() }}</div>
-                    </div>
-                    <div class="w-1/2 px-2">
-                        <div class="subheader">Active</div>
-                        <div class="h1 m-0">{{ $location->employees->where('is_active', true)->count() }}</div>
-                    </div>
-                </div>
-                <div class="mt-4">
-                    <div class="subheader">Verification Methods</div>
-                    <div class="h2 m-0 text-blue">{{ ($hasGPS ? 1 : 0) + ($hasWiFi ? 1 : 0) }}</div>
-                    <div class="progress progress-sm mt-2">
-                        @php $completeness = (($hasGPS ? 50 : 0) + ($hasWiFi ? 50 : 0)); @endphp
-                        <div class="progress-bar bg-blue" style="width: {{ $completeness }}%" role="progressbar" aria-valuenow="{{ $completeness }}"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Location Details -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 mt-4">
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200-header">
-                <h3 class="bg-white rounded-lg shadow-sm border border-gray-200-title">Location Details</h3>
-            </div>
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200-body">
-                <div class="mb-2">
-                    <strong>Created:</strong> {{ $location->created_at->format('M j, Y') }}
-                </div>
-                <div class="mb-2">
-                    <strong>Last Updated:</strong> {{ $location->updated_at->format('M j, Y g:i A') }}
-                </div>
-                @if($location->metadata)
-                <div class="mb-2">
-                    <strong>Additional Data:</strong> Available
-                </div>
-                @endif
-            </div>
-        </div>
-    </div>
-</div>
 @endsection

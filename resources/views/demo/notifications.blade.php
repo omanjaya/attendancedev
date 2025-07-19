@@ -178,7 +178,7 @@
     import { createApp } from 'vue'
     import NotificationCenter from '../js/components/NotificationCenter.vue'
     import ToastNotification from '../js/components/ToastNotification.vue'
-    import SecurityDashboard from '../js/components/SecurityDashboard.vue'
+    import SecurityDashboard from '../js/components/Security/SecurityDashboard.vue'
     import DeviceManagement from '../js/components/DeviceManagement.vue'
     import NotificationPreferences from '../js/components/NotificationPreferences.vue'
     import notificationService from '../js/services/NotificationService.js'

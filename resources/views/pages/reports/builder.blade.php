@@ -1,203 +1,167 @@
-@extends('layouts.authenticated')
+@extends('layouts.authenticated-unified')
 
-@section('title', 'Report Builder')
-
-@section('page-header')
-    @section('page-pretitle', 'Reports')
-    @section('page-title', 'Interactive Report Builder')
-    @section('page-actions')
-        <div class="flex items-center space-x-2">
-            <button class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" id="generateReport">
-                <svg class="icon mr-1" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                    <path d="M3 19a9 9 0 0 1 9 0a9 9 0 0 1 9 0"/>
-                    <path d="M3 6a9 9 0 0 1 9 0a9 9 0 0 1 9 0"/>
-                    <line x1="3" y1="6" x2="3" y2="19"/>
-                    <line x1="12" y1="6" x2="12" y2="19"/>
-                    <line x1="21" y1="6" x2="21" y2="19"/>
-                </svg>
-                Generate Report
-            </button>
-        </div>
-    @endsection
-@endsection
+@section('title', 'Pembuat Laporan')
 
 @section('page-content')
-<div class="max-w-7xl mx-auto px-8">
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Report Configuration -->
-        <div class="lg:col-span-4">
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-3">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h3 class="text-lg font-medium text-gray-900">Report Configuration</h3>
-                </div>
-                <div class="px-6 py-4">
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-blue-900 dark:to-indigo-900">
+    <div class="p-6 lg:p-8">
+        <x-layouts.base-page
+            title="Pembuat Laporan Interaktif"
+            subtitle="Buat laporan kustom dengan konfigurasi yang fleksibel"
+            :breadcrumbs="[
+                ['label' => 'Dashboard', 'url' => route('dashboard')],
+                ['label' => 'Laporan', 'url' => route('reports.index')],
+                ['label' => 'Pembuat Laporan']
+            ]">
+            <x-slot name="actions">
+                <x-ui.button variant="primary" id="generateReport">
+                    <svg class="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 19a9 9 0 0 1 9 0a9 9 0 0 1 9 0"/><path d="M3 6a9 9 0 0 1 9 0a9 9 0 0 1 9 0"/><line x1="3" y1="6" x2="3" y2="19"/><line x1="12" y1="6" x2="12" y2="19"/><line x1="21" y1="6" x2="21" y2="19"/></svg>
+                    Hasilkan Laporan
+                </x-ui.button>
+            </x-slot>
+        </x-layouts.base-page>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Report Configuration -->
+            <div class="lg:col-span-2 space-y-6">
+                <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out">
+                    <h3 class="text-xl font-semibold text-slate-800 dark:text-white mb-4">Konfigurasi Laporan</h3>
                     <form id="reportConfigForm">
                         <!-- Report Type -->
                         <div class="mb-3">
-                            <label class="block text-sm font-medium text-gray-700 required">Report Type</label>
-                            <select class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" id="reportType" name="report_type" required>
-                                <option value="">Select a report type</option>
-                                <option value="attendance">Attendance Report</option>
-                                <option value="leave">Leave Report</option>
-                                <option value="payroll">Payroll Report</option>
-                                <option value="employee">Employee Report</option>
-                                <option value="summary">Summary Report</option>
-                            </select>
+                            <x-ui.label for="reportType" value="Tipe Laporan" required class="text-slate-700 dark:text-slate-300" />
+                            <x-ui.select id="reportType" name="report_type" required 
+                                       class="bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300">
+                                <option value="">Pilih tipe laporan</option>
+                                <option value="attendance">Laporan Absensi</option>
+                                <option value="leave">Laporan Cuti</option>
+                                <option value="payroll">Laporan Penggajian</option>
+                                <option value="employee">Laporan Karyawan</option>
+                                <option value="summary">Laporan Ringkasan</option>
+                            </x-ui.select>
                         </div>
 
                         <!-- Date Range -->
                         <div class="mb-3">
-                            <label class="block text-sm font-medium text-gray-700 required">Date Range</label>
+                            <x-ui.label value="Rentang Tanggal" required class="text-slate-700 dark:text-slate-300" />
                             <div class="flex rounded-md shadow-sm mb-2">
-                                <input type="date" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" id="startDate" name="start_date" required>
-                                <span class="flex items-center px-3 text-sm text-gray-500">to</span>
-                                <input type="date" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" id="endDate" name="end_date" required>
+                                <x-ui.input type="date" id="startDate" name="start_date" required 
+                                           class="block w-full px-3 py-2 border border-white/40 rounded-l-md shadow-sm focus:outline-none focus:ring-blue-500/50 focus:border-blue-500/50 sm:text-sm bg-white/30 backdrop-blur-sm text-slate-800 dark:text-white" />
+                                <span class="flex items-center px-3 text-sm text-slate-600 dark:text-slate-400">hingga</span>
+                                <x-ui.input type="date" id="endDate" name="end_date" required 
+                                           class="block w-full px-3 py-2 border border-white/40 rounded-r-md shadow-sm focus:outline-none focus:ring-blue-500/50 focus:border-blue-500/50 sm:text-sm bg-white/30 backdrop-blur-sm text-slate-800 dark:text-white" />
                             </div>
                             <div class="inline-flex rounded-md shadow-sm w-full" role="group">
-                                <button type="button" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-150" onclick="setDateRange('today')">Today</button>
-                                <button type="button" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-150" onclick="setDateRange('this_week')">This Week</button>
-                                <button type="button" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-150" onclick="setDateRange('this_month')">This Month</button>
-                                <button type="button" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-150" onclick="setDateRange('last_month')">Last Month</button>
+                                <x-ui.button type="button" variant="secondary" class="flex-1 rounded-r-none" onclick="setDateRange('today')">Hari Ini</x-ui.button>
+                                <x-ui.button type="button" variant="secondary" class="flex-1 rounded-none" onclick="setDateRange('this_week')">Minggu Ini</x-ui.button>
+                                <x-ui.button type="button" variant="secondary" class="flex-1 rounded-none" onclick="setDateRange('this_month')">Bulan Ini</x-ui.button>
+                                <x-ui.button type="button" variant="secondary" class="flex-1 rounded-l-none" onclick="setDateRange('last_month')">Bulan Lalu</x-ui.button>
                             </div>
                         </div>
 
                         <!-- Grouping -->
                         <div class="mb-3">
-                            <label class="block text-sm font-medium text-gray-700">Group By</label>
-                            <select class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" id="groupBy" name="group_by">
-                                <option value="">No grouping</option>
-                                <option value="employee">Employee</option>
-                                <option value="department">Department</option>
-                                <option value="location">Location</option>
-                                <option value="date">Date</option>
-                                <option value="week">Week</option>
-                                <option value="month">Month</option>
-                            </select>
+                            <x-ui.label for="groupBy" value="Kelompokkan Berdasarkan" class="text-slate-700 dark:text-slate-300" />
+                            <x-ui.select id="groupBy" name="group_by" 
+                                       class="bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300">
+                                <option value="">Tanpa pengelompokan</option>
+                                <option value="employee">Karyawan</option>
+                                <option value="department">Departemen</option>
+                                <option value="location">Lokasi</option>
+                                <option value="date">Tanggal</option>
+                                <option value="week">Minggu</option>
+                                <option value="month">Bulan</option>
+                            </x-ui.select>
                         </div>
 
                         <!-- Export Format -->
                         <div class="mb-3">
-                            <label class="block text-sm font-medium text-gray-700">Export Format</label>
+                            <x-ui.label value="Format Ekspor" class="text-slate-700 dark:text-slate-300" />
                             <div class="flex flex-wrap gap-4">
                                 <label class="flex items-center">
-                                    <input type="radio" name="export_format" value="preview" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300" checked>
-                                    <span class="ml-2 text-sm text-gray-700">Preview</span>
+                                    <input type="radio" name="export_format" value="preview" class="form-radio h-4 w-4 text-blue-600" checked>
+                                    <span class="ml-2 text-sm text-slate-800 dark:text-white">Pratinjau</span>
                                 </label>
                                 <label class="flex items-center">
-                                    <input type="radio" name="export_format" value="pdf" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
-                                    <span class="ml-2 text-sm text-gray-700">PDF</span>
+                                    <input type="radio" name="export_format" value="pdf" class="form-radio h-4 w-4 text-blue-600">
+                                    <span class="ml-2 text-sm text-slate-800 dark:text-white">PDF</span>
                                 </label>
                                 <label class="flex items-center">
-                                    <input type="radio" name="export_format" value="csv" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
-                                    <span class="ml-2 text-sm text-gray-700">CSV</span>
+                                    <input type="radio" name="export_format" value="csv" class="form-radio h-4 w-4 text-blue-600">
+                                    <span class="ml-2 text-sm text-slate-800 dark:text-white">CSV</span>
                                 </label>
                                 <label class="flex items-center">
-                                    <input type="radio" name="export_format" value="excel" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
-                                    <span class="ml-2 text-sm text-gray-700">Excel</span>
+                                    <input type="radio" name="export_format" value="excel" class="form-radio h-4 w-4 text-blue-600">
+                                    <span class="ml-2 text-sm text-slate-800 dark:text-white">Excel</span>
                                 </label>
                             </div>
                         </div>
                     </form>
                 </div>
-            </div>
 
-            <!-- Filters -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-3">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h3 class="text-lg font-medium text-gray-900">Filters</h3>
-                </div>
-                <div class="px-6 py-4">
+                <!-- Filters -->
+                <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out">
+                    <h3 class="text-xl font-semibold text-slate-800 dark:text-white mb-4">Filter</h3>
                     <div id="filterContainer">
                         <!-- Dynamic filters will be loaded here based on report type -->
                     </div>
                 </div>
-            </div>
 
-            <!-- Columns Selection -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200" id="columnsCard" style="display: none;">
-                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                    <h3 class="text-lg font-medium text-gray-900">Select Columns</h3>
-                    <div class="flex space-x-2">
-                        <button type="button" class="text-sm text-blue-600 hover:text-blue-500" onclick="selectAllColumns()">Select All</button>
-                        <button type="button" class="text-sm text-blue-600 hover:text-blue-500" onclick="deselectAllColumns()">Deselect All</button>
+                <!-- Columns Selection -->
+                <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out" id="columnsCard" style="display: none;">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold text-slate-800 dark:text-white">Pilih Kolom</h3>
+                        <div class="flex space-x-2">
+                            <x-ui.button type="button" variant="secondary" size="sm" onclick="selectAllColumns()">Pilih Semua</x-ui.button>
+                            <x-ui.button type="button" variant="secondary" size="sm" onclick="deselectAllColumns()">Batalkan Pilihan Semua</x-ui.button>
+                        </div>
                     </div>
-                </div>
-                <div class="px-6 py-4">
                     <div id="columnsContainer">
                         <!-- Dynamic columns will be loaded here based on report type -->
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Report Preview -->
-        <div class="lg:col-span-8">
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                    <h3 class="text-lg font-medium text-gray-900">Report Preview</h3>
+            <!-- Report Preview -->
+            <div class="lg:col-span-1 group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold text-slate-800 dark:text-white">Pratinjau Laporan</h3>
                     <div class="hidden" id="previewActions">
                         <div class="relative">
-                            <button class="inline-flex items-center px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500" type="button" onclick="toggleExportDropdown()">
-                                <svg class="icon mr-1" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                    <path d="M14 3v4a1 1 0 0 0 1 1h4"/>
-                                    <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
-                                </svg>
-                                Export
-                                <svg class="ml-2 -mr-0.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                </svg>
-                            </button>
-                            <div id="export-dropdown" class="hidden absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+                            <x-ui.button variant="secondary" type="button" onclick="toggleExportDropdown()">
+                                <svg class="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/></svg>
+                                Ekspor
+                                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </x-ui.button>
+                            <div id="export-dropdown" class="hidden absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white/80 backdrop-blur-sm ring-1 ring-white/30 focus:outline-none z-50">
                                 <div class="py-1" role="menu">
-                                    <a class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="#" onclick="exportReport('pdf')">Export as PDF</a>
-                                    <a class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="#" onclick="exportReport('csv')">Export as CSV</a>
-                                    <a class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="#" onclick="exportReport('excel')">Export as Excel</a>
+                                    <a class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-white/10" href="#" onclick="exportReport('pdf')">Ekspor sebagai PDF</a>
+                                    <a class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-white/10" href="#" onclick="exportReport('csv')">Ekspor sebagai CSV</a>
+                                    <a class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-white/10" href="#" onclick="exportReport('excel')">Ekspor sebagai Excel</a>
                                 </div>
                             </div>
                         </div>
-                        <button class="inline-flex items-center px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 ml-2" onclick="scheduleReport()">
-                            <svg class="icon mr-1" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                <rect x="4" y="5" width="16" height="16" rx="2"/>
-                                <line x1="16" y1="3" x2="16" y2="7"/>
-                                <line x1="8" y1="3" x2="8" y2="7"/>
-                                <line x1="4" y1="11" x2="20" y2="11"/>
-                                <line x1="11" y1="15" x2="12" y2="15"/>
-                                <line x1="12" y1="15" x2="12" y2="18"/>
-                            </svg>
-                            Schedule
-                        </button>
+                        <x-ui.button variant="secondary" onclick="scheduleReport()">
+                            <svg class="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"/><path d="M16 3l0 4"/><path d="M8 3l0 4"/><path d="M4 11l16 0"/><path d="M11 15l1 0"/><path d="M12 15l0 3"/></svg>
+                            Jadwalkan
+                        </x-ui.button>
                     </div>
                 </div>
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200-body">
-                    <div id="reportPreview">
-                        <div class="text-center text-gray-600 py-5">
-                            <svg class="icon icon-lg mb-3" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                <path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2"/>
-                                <rect x="9" y="3" width="6" height="4" rx="2"/>
-                                <line x1="9" y1="12" x2="9.01" y2="12"/>
-                                <line x1="13" y1="12" x2="15" y2="12"/>
-                                <line x1="9" y1="16" x2="9.01" y2="16"/>
-                                <line x1="13" y1="16" x2="15" y2="16"/>
-                            </svg>
-                            <p>Configure your report settings and click "Generate Report" to preview</p>
+                <div class="bg-white/5 backdrop-blur-sm rounded-lg">
+                    <div id="reportPreviewContent">
+                        <div class="text-center text-slate-600 dark:text-slate-400 py-5">
+                            <svg class="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><line x1="9" y1="12" x2="9.01" y2="12"/><line x1="13" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="9.01" y2="16"/><line x1="13" y1="16" x2="15" y2="16"/></svg>
+                            <p>Konfigurasi pengaturan laporan Anda dan klik "Hasilkan Laporan" untuk pratinjau</p>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Report Statistics -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mt-4" id="reportStats" style="display: none;">
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200-header">
-                    <h3 class="bg-white rounded-lg shadow-sm border border-gray-200-title">Report Statistics</h3>
-                </div>
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200-body">
-                    <div class="grid grid-cols-12 gap-4" id="statsContainer">
-                        <!-- Dynamic statistics will be loaded here -->
-                    </div>
+            <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out mt-4" id="reportStats" style="display: none;">
+                <h3 class="text-xl font-semibold text-slate-800 dark:text-white mb-4">Statistik Laporan</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="statsContainer">
+                    <!-- Dynamic statistics will be loaded here -->
                 </div>
             </div>
         </div>
@@ -205,84 +169,43 @@
 </div>
 
 <!-- Schedule Report Modal -->
-<div class="modal modal-blur fade" id="scheduleModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Schedule Report</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<x-ui.modal id="scheduleModal" title="Jadwalkan Laporan" size="lg">
+    <form id="scheduleForm">
+        @csrf
+        <div class="space-y-4">
+            <div>
+                <x-ui.label for="schedule_type" value="Tipe Jadwal" class="text-slate-700 dark:text-slate-300" />
+                <x-ui.select name="schedule_type" required class="bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300">
+                    <option value="daily">Harian</option>
+                    <option value="weekly">Mingguan</option>
+                    <option value="monthly">Bulanan</option>
+                    <option value="quarterly">Triwulanan</option>
+                </x-ui.select>
             </div>
-            <form id="scheduleForm">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="block text-sm font-medium text-gray-700">Schedule Type</label>
-                        <select class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" name="schedule_type" required>
-                            <option value="daily">Daily</option>
-                            <option value="weekly">Weekly</option>
-                            <option value="monthly">Monthly</option>
-                            <option value="quarterly">Quarterly</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="block text-sm font-medium text-gray-700">Recipients (Email addresses)</label>
-                        <textarea class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" name="recipients" rows="3" placeholder="email1@example.com&#10;email2@example.com" required></textarea>
-                        <small class="form-hint">Enter one email address per line</small>
-                    </div>
-                    <div class="mb-3">
-                        <label class="block text-sm font-medium text-gray-700">Report Format</label>
-                        <select class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" name="format" required>
-                            <option value="pdf">PDF</option>
-                            <option value="csv">CSV</option>
-                            <option value="excel">Excel</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">
-                        Cancel
-                    </button>
-                    <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        Schedule Report
-                    </button>
-                </div>
-            </form>
+            <div>
+                <x-ui.label for="recipients" value="Penerima (Alamat Email)" class="text-slate-700 dark:text-slate-300" />
+                <textarea name="recipients" rows="3" placeholder="email1@example.com\nemail2@example.com" required class="w-full px-3 py-2 border border-white/40 rounded-md shadow-sm focus:outline-none focus:ring-blue-500/50 focus:border-blue-500/50 sm:text-sm bg-white/30 backdrop-blur-sm text-slate-800 dark:text-white"></textarea>
+                <small class="text-slate-600 dark:text-slate-400">Masukkan satu alamat email per baris</small>
+            </div>
+            <div>
+                <x-ui.label for="format" value="Format Laporan" class="text-slate-700 dark:text-slate-300" />
+                <x-ui.select name="format" required class="bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300">
+                    <option value="pdf">PDF</option>
+                    <option value="csv">CSV</option>
+                    <option value="excel">Excel</option>
+                </x-ui.select>
+            </div>
         </div>
-    </div>
-</div>
+    </form>
+    <x-slot name="footer">
+        <x-ui.button type="button" variant="secondary" onclick="closeModal('scheduleModal')">Batal</x-ui.button>
+        <x-ui.button type="submit" variant="primary" form="scheduleForm">
+            Jadwalkan Laporan
+        </x-ui.button>
+    </x-slot>
+</x-ui.modal>
 
-<style>
-#reportPreview {
-    min-height: 400px;
-}
-
-.filter-group {
-    margin-bottom: 1rem;
-}
-
-.columns-list {
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.stat-bg-white rounded-lg shadow-sm border border-gray-200 {
-    text-align: center;
-    padding: 1rem;
-    background: var(--tblr-bg-surface-secondary);
-    border-radius: var(--tblr-border-radius);
-}
-
-.stat-value {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: var(--tblr-primary);
-}
-
-.stat-label {
-    font-size: 0.875rem;
-    color: var(--tblr-muted);
-}
-</style>
-
+@push('scripts')
 <script type="module">
 const reportConfig = {
     attendance: {
@@ -362,8 +285,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function loadFilters(reportType) {
-    const max-w-7xl mx-auto px-4 = document.getElementById('filterContainer');
-    max-w-7xl mx-auto px-4.innerHTML = '';
+    const filterContainer = document.getElementById('filterContainer');
+    filterContainer.innerHTML = '';
     
     const filters = reportConfig[reportType].filters;
     const filterOptions = @json($filterOptions);
@@ -373,7 +296,7 @@ function loadFilters(reportType) {
         
         switch(filter) {
             case 'employees':
-                filterHtml = createMultiSelectFilter('Employees', 'employee_ids[]', 
+                filterHtml = createMultiSelectFilter('Karyawan', 'employee_ids[]', 
                     filterOptions.employees.map(e => ({value: e.id, label: `${e.first_name} ${e.last_name} (${e.employee_id})`})));
                 break;
             case 'status':
@@ -389,102 +312,79 @@ function loadFilters(reportType) {
                 }
                 break;
             case 'locations':
-                filterHtml = createMultiSelectFilter('Locations', 'location_ids[]', 
+                filterHtml = createMultiSelectFilter('Lokasi', 'location_ids[]', 
                     filterOptions.locations.map(l => ({value: l.id, label: l.name})));
                 break;
             case 'leave_types':
-                filterHtml = createMultiSelectFilter('Leave Types', 'leave_type_ids[]', 
+                filterHtml = createMultiSelectFilter('Tipe Cuti', 'leave_type_ids[]', 
                     filterOptions.leave_types.map(lt => ({value: lt.id, label: lt.name})));
                 break;
             case 'employee_type':
-                filterHtml = createMultiSelectFilter('Employee Types', 'employee_types[]', 
+                filterHtml = createMultiSelectFilter('Tipe Karyawan', 'employee_types[]', 
                     filterOptions.employee_types.map(et => ({value: et, label: et.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')})));
                 break;
             case 'is_active':
                 filterHtml = `
-                    <div class="filter-group">
-                        <label class="block text-sm font-medium text-gray-700">Status</label>
-                        <select class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" name="is_active">
-                            <option value="">All</option>
-                            <option value="1">Active</option>
-                            <option value="0">Inactive</option>
-                        </select>
+                    <div class="mb-3">
+                        <x-ui.label value="Status" class="text-slate-700 dark:text-slate-300" />
+                        <x-ui.select name="is_active" class="bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300">
+                            <option value="">Semua</option>
+                            <option value="1">Aktif</option>
+                            <option value="0">Tidak Aktif</option>
+                        </x-ui.select>
                     </div>
                 `;
                 break;
             case 'salary_range':
                 filterHtml = `
-                    <div class="filter-group">
-                        <label class="block text-sm font-medium text-gray-700">Salary Range</label>
-                        <div class="grid grid-cols-12 gap-4 g-2">
-                            <div class="col">
-                                <input type="number" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" name="min_salary" placeholder="Min">
-                            </div>
-                            <div class="col">
-                                <input type="number" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" name="max_salary" placeholder="Max">
-                            </div>
+                    <div class="mb-3">
+                        <x-ui.label value="Rentang Gaji" class="text-slate-700 dark:text-slate-300" />
+                        <div class="grid grid-cols-2 gap-4">
+                            <x-ui.input type="number" name="min_salary" placeholder="Min" class="bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300" />
+                            <x-ui.input type="number" name="max_salary" placeholder="Max" class="bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300" />
                         </div>
                     </div>
                 `;
                 break;
             case 'hire_date':
                 filterHtml = `
-                    <div class="filter-group">
-                        <label class="block text-sm font-medium text-gray-700">Hire Date Range</label>
-                        <div class="grid grid-cols-12 gap-4 g-2">
-                            <div class="col">
-                                <input type="date" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" name="hire_date_start">
-                            </div>
-                            <div class="col">
-                                <input type="date" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" name="hire_date_end">
-                            </div>
+                    <div class="mb-3">
+                        <x-ui.label value="Rentang Tanggal Rekrutmen" class="text-slate-700 dark:text-slate-300" />
+                        <div class="grid grid-cols-2 gap-4">
+                            <x-ui.input type="date" name="hire_date_start" class="bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300" />
+                            <x-ui.input type="date" name="hire_date_end" class="bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300" />
                         </div>
                     </div>
                 `;
                 break;
             case 'grouping':
                 filterHtml = `
-                    <div class="filter-group">
-                        <label class="block text-sm font-medium text-gray-700">Grouping Period</label>
-                        <select class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" name="grouping">
-                            <option value="daily">Daily</option>
-                            <option value="weekly">Weekly</option>
-                            <option value="monthly" selected>Monthly</option>
-                        </select>
+                    <div class="mb-3">
+                        <x-ui.label value="Periode Pengelompokan" class="text-slate-700 dark:text-slate-300" />
+                        <x-ui.select name="grouping" class="bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300">
+                            <option value="daily">Harian</option>
+                            <option value="weekly">Mingguan</option>
+                            <option value="monthly" selected>Bulanan</option>
+                        </x-ui.select>
                     </div>
                 `;
                 break;
             case 'metrics':
                 filterHtml = `
-                    <div class="filter-group">
-                        <label class="block text-sm font-medium text-gray-700">Include Metrics</label>
-                        <div class="form-selectgroup form-selectgroup-boxes flex flex-column">
-                            <label class="form-selectgroup-item flex-1">
-                                <input type="checkbox" name="metrics[]" value="attendance" class="form-selectgroup-input" checked>
-                                <div class="form-selectgroup-label flex items-center p-3">
-                                    <div class="mr-3">
-                                        <span class="form-selectgroup-check"></span>
-                                    </div>
-                                    <div>Attendance</div>
-                                </div>
+                    <div class="mb-3">
+                        <x-ui.label value="Sertakan Metrik" class="text-slate-700 dark:text-slate-300" />
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="checkbox" name="metrics[]" value="attendance" class="form-checkbox h-4 w-4 text-blue-600 rounded" checked>
+                                <span class="ml-2 text-sm text-slate-800 dark:text-white">Absensi</span>
                             </label>
-                            <label class="form-selectgroup-item flex-1">
-                                <input type="checkbox" name="metrics[]" value="leave" class="form-selectgroup-input" checked>
-                                <div class="form-selectgroup-label flex items-center p-3">
-                                    <div class="mr-3">
-                                        <span class="form-selectgroup-check"></span>
-                                    </div>
-                                    <div>Leave</div>
-                                </div>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="metrics[]" value="leave" class="form-checkbox h-4 w-4 text-blue-600 rounded" checked>
+                                <span class="ml-2 text-sm text-slate-800 dark:text-white">Cuti</span>
                             </label>
-                            <label class="form-selectgroup-item flex-1">
-                                <input type="checkbox" name="metrics[]" value="payroll" class="form-selectgroup-input" checked>
-                                <div class="form-selectgroup-label flex items-center p-3">
-                                    <div class="mr-3">
-                                        <span class="form-selectgroup-check"></span>
-                                    </div>
-                                    <div>Payroll</div>
-                                </div>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="metrics[]" value="payroll" class="form-checkbox h-4 w-4 text-blue-600 rounded" checked>
+                                <span class="ml-2 text-sm text-slate-800 dark:text-white">Penggajian</span>
                             </label>
                         </div>
                     </div>
@@ -492,16 +392,16 @@ function loadFilters(reportType) {
                 break;
         }
         
-        max-w-7xl mx-auto px-4.innerHTML += filterHtml;
+        filterContainer.innerHTML += filterHtml;
     });
     
     // Initialize select2 for multi-select filters
     setTimeout(() => {
-        max-w-7xl mx-auto px-4.querySelectorAll('.multi-select').forEach(select => {
+        filterContainer.querySelectorAll('.multi-select').forEach(select => {
             $(select).select2({
                 theme: 'default',
                 width: '100%',
-                placeholder: 'Select options...'
+                placeholder: 'Pilih opsi...'
             });
         });
     }, 100);
@@ -510,18 +410,18 @@ function loadFilters(reportType) {
 function createMultiSelectFilter(label, name, options) {
     const optionsHtml = options.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join('');
     return `
-        <div class="filter-group">
-            <label class="block text-sm font-medium text-gray-700">${label}</label>
-            <select class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm multi-select" name="${name}" multiple>
+        <div class="mb-3">
+            <x-ui.label value="${label}" class="text-slate-700 dark:text-slate-300" />
+            <x-ui.select name="${name}" multiple class="multi-select bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300">
                 ${optionsHtml}
-            </select>
+            </x-ui.select>
         </div>
     `;
 }
 
 function loadColumns(reportType) {
-    const max-w-7xl mx-auto px-4 = document.getElementById('columnsContainer');
-    max-w-7xl mx-auto px-4.innerHTML = '<div class="columns-list">';
+    const columnsContainer = document.getElementById('columnsContainer');
+    columnsContainer.innerHTML = '<div class="columns-list space-y-2">';
     
     const columns = reportConfig[reportType].columns;
     const defaultColumns = reportConfig[reportType].defaultColumns;
@@ -530,15 +430,15 @@ function loadColumns(reportType) {
         const isChecked = defaultColumns.includes(column);
         const label = column.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
         
-        max-w-7xl mx-auto px-4.innerHTML += `
+        columnsContainer.innerHTML += `
             <label class="flex items-center">
-                <input type="checkbox" class="flex items-center-input" name="columns[]" value="${column}" ${isChecked ? 'checked' : ''}>
-                <span class="flex items-center-label">${label}</span>
+                <input type="checkbox" class="form-checkbox h-4 w-4 text-blue-600 rounded" name="columns[]" value="${column}" ${isChecked ? 'checked' : ''}>
+                <span class="ml-2 text-sm text-slate-800 dark:text-white">${label}</span>
             </label>
         `;
     });
     
-    max-w-7xl mx-auto px-4.innerHTML += '</div>';
+    columnsContainer.innerHTML += '</div>';
 }
 
 function selectAllColumns() {
@@ -582,7 +482,7 @@ function setDateRange(range) {
 function generateReport() {
     const reportType = document.getElementById('reportType').value;
     if (!reportType) {
-        alert('Please select a report type');
+        alert('Mohon pilih tipe laporan');
         return;
     }
     
@@ -631,13 +531,11 @@ function generateReport() {
     formData.append('grouping', document.getElementById('groupBy').value);
     
     // Show loading state
-    const previewContainer = document.getElementById('reportPreview');
+    const previewContainer = document.getElementById('reportPreviewContent');
     previewContainer.innerHTML = `
         <div class="text-center py-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="mt-4">Generating report...</p>
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p class="mt-4 text-slate-600 dark:text-slate-400">Menghasilkan laporan...</p>
         </div>
     `;
     
@@ -645,7 +543,7 @@ function generateReport() {
     fetch('{{ route("reports.generate-custom") }}', {
         method: 'POST',
         headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
             'Accept': 'application/json'
         },
         body: formData
@@ -659,58 +557,58 @@ function generateReport() {
             document.getElementById('previewActions').style.display = 'block';
             document.getElementById('reportStats').style.display = 'block';
         } else {
-            throw new Error(data.error || 'Failed to generate report');
+            throw new Error(data.error || 'Gagal menghasilkan laporan');
         }
     })
     .catch(error => {
         console.error('Error:', error);
         previewContainer.innerHTML = `
-            <div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md">
-                <h4 class="font-medium text-base">Error generating report</h4>
-                <div class="text-gray-600">${error.message}</div>
+            <div class="bg-red-500/20 border border-red-500/30 text-red-800 dark:text-red-200 px-4 py-3 rounded-lg">
+                <h4 class="font-medium text-base">Error menghasilkan laporan</h4>
+                <div class="text-slate-600 dark:text-slate-400">${error.message}</div>
             </div>
         `;
     });
 }
 
 function displayReport(data) {
-    const max-w-7xl mx-auto px-4 = document.getElementById('reportPreview');
+    const reportPreviewContent = document.getElementById('reportPreviewContent');
     const reportType = data.report_config.type;
     
     if (!data.data.records || data.data.records.length === 0) {
-        max-w-7xl mx-auto px-4.innerHTML = `
-            <div class="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-md">
-                <h4 class="font-medium text-base">No data found</h4>
-                <div class="text-gray-600">No records match your selected criteria.</div>
+        reportPreviewContent.innerHTML = `
+            <div class="bg-blue-500/20 border border-blue-500/30 text-blue-800 dark:text-blue-200 px-4 py-3 rounded-lg">
+                <h4 class="font-medium text-base">Tidak ada data ditemukan</h4>
+                <div class="text-slate-600 dark:text-slate-400">Tidak ada catatan yang cocok dengan kriteria yang Anda pilih.</div>
             </div>
         `;
         return;
     }
     
-    // Build min-w-full divide-y divide-gray-200 HTML
+    // Build table HTML
     let tableHtml = `
-        <div class="min-w-full divide-y divide-gray-200-responsive">
-            <min-w-full divide-y divide-gray-200 class="min-w-full divide-y divide-gray-200 min-w-full divide-y divide-gray-200-vcenter min-w-full divide-y divide-gray-200-striped">
-                <thead>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-white/20">
+                <thead class="bg-white/10 backdrop-blur-sm">
                     <tr>
     `;
     
-    // Add min-w-full divide-y divide-gray-200 headers
+    // Add table headers
     const columns = data.report_config.columns || Object.keys(data.data.records[0]);
     columns.forEach(col => {
         const label = col.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-        tableHtml += `<th>${label}</th>`;
+        tableHtml += `<th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">${label}</th>`;
     });
     
     tableHtml += `
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="bg-white/5 backdrop-blur-sm divide-y divide-white/10">
     `;
     
-    // Add min-w-full divide-y divide-gray-200 rows
+    // Add table rows
     data.data.records.forEach(record => {
-        tableHtml += '<tr>';
+        tableHtml += '<tr class="hover:bg-white/5 transition-colors">';
         columns.forEach(col => {
             let value = getNestedValue(record, col);
             
@@ -721,32 +619,32 @@ function displayReport(data) {
                 value = '$' + parseFloat(value).toFixed(2);
             } else if (col === 'status') {
                 const statusClass = {
-                    'present': 'success',
-                    'approved': 'success',
-                    'paid': 'success',
-                    'active': 'success',
-                    'late': 'warning',
-                    'pending': 'warning',
-                    'absent': 'danger',
-                    'rejected': 'danger',
-                    'cancelled': 'danger',
-                    'inactive': 'danger'
-                }[value] || 'secondary';
-                value = `<span class="badge bg-${statusClass}">${value}</span>`;
+                    'present': 'from-green-500 to-emerald-600',
+                    'approved': 'from-green-500 to-emerald-600',
+                    'paid': 'from-green-500 to-emerald-600',
+                    'active': 'from-green-500 to-emerald-600',
+                    'late': 'from-amber-500 to-orange-600',
+                    'pending': 'from-amber-500 to-orange-600',
+                    'absent': 'from-red-500 to-rose-600',
+                    'rejected': 'from-red-500 to-rose-600',
+                    'cancelled': 'from-red-500 to-rose-600',
+                    'inactive': 'from-red-500 to-rose-600'
+                }[value] || 'from-gray-500 to-slate-600';
+                value = `<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r ${statusClass} shadow-lg">${value}</span>`;
             }
             
-            tableHtml += `<td>${value || '-'}</td>`;
+            tableHtml += `<td class="px-6 py-4 text-sm text-slate-800 dark:text-white">${value || '-'}</td>`;
         });
         tableHtml += '</tr>';
     });
     
     tableHtml += `
                 </tbody>
-            </min-w-full divide-y divide-gray-200>
+            </table>
         </div>
     `;
     
-    max-w-7xl mx-auto px-4.innerHTML = tableHtml;
+    reportPreviewContent.innerHTML = tableHtml;
 }
 
 function getNestedValue(obj, path) {
@@ -772,8 +670,8 @@ function getNestedValue(obj, path) {
 }
 
 function displayStats(data) {
-    const max-w-7xl mx-auto px-4 = document.getElementById('statsContainer');
-    max-w-7xl mx-auto px-4.innerHTML = '';
+    const statsContainer = document.getElementById('statsContainer');
+    statsContainer.innerHTML = '';
     
     if (data.data.stats) {
         Object.entries(data.data.stats).forEach(([key, value]) => {
@@ -785,14 +683,14 @@ function displayStats(data) {
             } else if (key.includes('rate') || key.includes('percentage')) {
                 displayValue = parseFloat(value).toFixed(1) + '%';
             } else if (key.includes('hours')) {
-                displayValue = parseFloat(value).toFixed(1) + ' hrs';
+                displayValue = parseFloat(value).toFixed(1) + ' jam';
             }
             
-            max-w-7xl mx-auto px-4.innerHTML += `
-                <div class="col-md-3 mb-3">
-                    <div class="stat-bg-white rounded-lg shadow-sm border border-gray-200">
-                        <div class="stat-value">${displayValue}</div>
-                        <div class="stat-label">${label}</div>
+            statsContainer.innerHTML += `
+                <div class="col-span-1">
+                    <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 ease-out">
+                        <div class="text-2xl font-bold text-slate-800 dark:text-white">${displayValue}</div>
+                        <div class="text-sm text-slate-600 dark:text-slate-400">${label}</div>
                     </div>
                 </div>
             `;
@@ -802,7 +700,7 @@ function displayStats(data) {
 
 function exportReport(format) {
     if (!reportData) {
-        alert('Please generate a report first');
+        alert('Mohon hasilkan laporan terlebih dahulu');
         return;
     }
     
@@ -814,7 +712,7 @@ function exportReport(format) {
     const csrfInput = document.createElement('input');
     csrfInput.type = 'hidden';
     csrfInput.name = '_token';
-    csrfInput.value = '{{ csrf_token() }}';
+    csrfInput.value = document.querySelector('meta[name="csrf-token"]').content;
     form.appendChild(csrfInput);
     
     // Add format
@@ -868,11 +766,11 @@ function exportReport(format) {
 
 function scheduleReport() {
     if (!reportData) {
-        alert('Please generate a report first');
+        alert('Mohon hasilkan laporan terlebih dahulu');
         return;
     }
     
-    document.getElementById('scheduleModal').classList.remove('hidden');
+    openModal('scheduleModal');
 }
 
 function submitSchedule() {
@@ -891,7 +789,7 @@ function submitSchedule() {
     fetch('{{ route("reports.schedule") }}', {
         method: 'POST',
         headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
             'Accept': 'application/json'
         },
         body: formData
@@ -899,20 +797,19 @@ function submitSchedule() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            document.getElementById('scheduleModal').classList.add('hidden');
-            alert('Report scheduled successfully!');
+            closeModal('scheduleModal');
+            alert('Laporan berhasil dijadwalkan!');
         } else {
-            throw new Error(data.message || 'Failed to schedule report');
+            throw new Error(data.message || 'Gagal menjadwalkan laporan');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Error scheduling report: ' + error.message);
+        alert('Error menjadwalkan laporan: ' + error.message);
     });
 }
 </script>
 
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<!-- Select2 theme removed - using default theme with Tailwind styling -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-@endsection
+@endpush

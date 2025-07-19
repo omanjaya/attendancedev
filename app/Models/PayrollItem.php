@@ -2,14 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class PayrollItem extends Model
 {
-    use HasFactory, SoftDeletes, HasUuids;
+    use HasFactory, HasUuids, SoftDeletes;
 
     protected $fillable = [
         'payroll_id',
@@ -24,7 +24,7 @@ class PayrollItem extends Model
         'calculation_method',
         'reference_data',
         'notes',
-        'metadata'
+        'metadata',
     ];
 
     protected $casts = [
@@ -34,42 +34,62 @@ class PayrollItem extends Model
         'is_taxable' => 'boolean',
         'is_statutory' => 'boolean',
         'reference_data' => 'array',
-        'metadata' => 'array'
+        'metadata' => 'array',
     ];
 
     /**
      * The types available for payroll items.
      */
     const TYPE_EARNING = 'earning';
+
     const TYPE_DEDUCTION = 'deduction';
+
     const TYPE_BONUS = 'bonus';
 
     /**
      * The categories available for payroll items.
      */
     const CATEGORY_BASIC_SALARY = 'basic_salary';
+
     const CATEGORY_OVERTIME = 'overtime';
+
     const CATEGORY_ALLOWANCE = 'allowance';
+
     const CATEGORY_COMMISSION = 'commission';
+
     const CATEGORY_HOLIDAY_PAY = 'holiday_pay';
+
     const CATEGORY_SICK_LEAVE = 'sick_leave';
+
     const CATEGORY_VACATION_PAY = 'vacation_pay';
+
     const CATEGORY_BONUS = 'bonus';
+
     const CATEGORY_TAX = 'tax';
+
     const CATEGORY_INSURANCE = 'insurance';
+
     const CATEGORY_RETIREMENT = 'retirement';
+
     const CATEGORY_LOAN_DEDUCTION = 'loan_deduction';
+
     const CATEGORY_UNPAID_LEAVE = 'unpaid_leave';
+
     const CATEGORY_GARNISHMENT = 'garnishment';
+
     const CATEGORY_OTHER = 'other';
 
     /**
      * The calculation methods available for payroll items.
      */
     const CALCULATION_FIXED = 'fixed';
+
     const CALCULATION_PERCENTAGE = 'percentage';
+
     const CALCULATION_HOURLY = 'hourly';
+
     const CALCULATION_DAILY = 'daily';
+
     const CALCULATION_COMPUTED = 'computed';
 
     /**
@@ -181,7 +201,7 @@ class PayrollItem extends Model
      */
     public function getFormattedAmountAttribute()
     {
-        return '$' . number_format($this->amount, 2);
+        return '$'.number_format($this->amount, 2);
     }
 
     /**
@@ -189,7 +209,7 @@ class PayrollItem extends Model
      */
     public function getFormattedRateAttribute()
     {
-        return '$' . number_format($this->rate, 2);
+        return '$'.number_format($this->rate, 2);
     }
 
     /**
@@ -197,11 +217,11 @@ class PayrollItem extends Model
      */
     public function getTypeColorAttribute()
     {
-        return match($this->type) {
+        return match ($this->type) {
             self::TYPE_EARNING => 'success',
             self::TYPE_DEDUCTION => 'danger',
             self::TYPE_BONUS => 'info',
-            default => 'secondary'
+            default => 'secondary',
         };
     }
 
@@ -210,7 +230,7 @@ class PayrollItem extends Model
      */
     public function getCategoryDisplayNameAttribute()
     {
-        return match($this->category) {
+        return match ($this->category) {
             self::CATEGORY_BASIC_SALARY => 'Basic Salary',
             self::CATEGORY_OVERTIME => 'Overtime',
             self::CATEGORY_ALLOWANCE => 'Allowance',
@@ -226,7 +246,7 @@ class PayrollItem extends Model
             self::CATEGORY_UNPAID_LEAVE => 'Unpaid Leave',
             self::CATEGORY_GARNISHMENT => 'Garnishment',
             self::CATEGORY_OTHER => 'Other',
-            default => ucwords(str_replace('_', ' ', $this->category))
+            default => ucwords(str_replace('_', ' ', $this->category)),
         };
     }
 
@@ -243,6 +263,7 @@ class PayrollItem extends Model
                 if ($baseAmount === null) {
                     throw new \InvalidArgumentException('Base amount is required for percentage calculation');
                 }
+
                 return ($baseAmount * $this->rate) / 100;
 
             case self::CALCULATION_HOURLY:
@@ -269,6 +290,7 @@ class PayrollItem extends Model
             $this->amount = $this->calculateAmount($baseAmount);
             $this->save();
         }
+
         return $this->amount;
     }
 
@@ -277,7 +299,7 @@ class PayrollItem extends Model
      */
     public static function getCategoriesForType($type)
     {
-        return match($type) {
+        return match ($type) {
             self::TYPE_EARNING => [
                 self::CATEGORY_BASIC_SALARY,
                 self::CATEGORY_OVERTIME,
@@ -286,7 +308,7 @@ class PayrollItem extends Model
                 self::CATEGORY_HOLIDAY_PAY,
                 self::CATEGORY_SICK_LEAVE,
                 self::CATEGORY_VACATION_PAY,
-                self::CATEGORY_OTHER
+                self::CATEGORY_OTHER,
             ],
             self::TYPE_DEDUCTION => [
                 self::CATEGORY_TAX,
@@ -295,14 +317,10 @@ class PayrollItem extends Model
                 self::CATEGORY_LOAN_DEDUCTION,
                 self::CATEGORY_UNPAID_LEAVE,
                 self::CATEGORY_GARNISHMENT,
-                self::CATEGORY_OTHER
+                self::CATEGORY_OTHER,
             ],
-            self::TYPE_BONUS => [
-                self::CATEGORY_BONUS,
-                self::CATEGORY_COMMISSION,
-                self::CATEGORY_OTHER
-            ],
-            default => []
+            self::TYPE_BONUS => [self::CATEGORY_BONUS, self::CATEGORY_COMMISSION, self::CATEGORY_OTHER],
+            default => [],
         };
     }
 
@@ -316,7 +334,7 @@ class PayrollItem extends Model
             self::CALCULATION_PERCENTAGE => 'Percentage',
             self::CALCULATION_HOURLY => 'Hourly Rate',
             self::CALCULATION_DAILY => 'Daily Rate',
-            self::CALCULATION_COMPUTED => 'Computed'
+            self::CALCULATION_COMPUTED => 'Computed',
         ];
     }
 
@@ -333,7 +351,7 @@ class PayrollItem extends Model
             'amount' => $amount,
             'calculation_method' => self::CALCULATION_FIXED,
             'is_taxable' => true,
-            'is_statutory' => false
+            'is_statutory' => false,
         ]);
     }
 
@@ -352,15 +370,19 @@ class PayrollItem extends Model
             'rate' => $rate,
             'calculation_method' => self::CALCULATION_HOURLY,
             'is_taxable' => true,
-            'is_statutory' => false
+            'is_statutory' => false,
         ]);
     }
 
     /**
      * Create an unpaid leave deduction item.
      */
-    public static function createUnpaidLeaveItem($payrollId, $days, $dailyRate, $description = 'Unpaid Leave')
-    {
+    public static function createUnpaidLeaveItem(
+        $payrollId,
+        $days,
+        $dailyRate,
+        $description = 'Unpaid Leave',
+    ) {
         return self::create([
             'payroll_id' => $payrollId,
             'type' => self::TYPE_DEDUCTION,
@@ -371,15 +393,19 @@ class PayrollItem extends Model
             'rate' => $dailyRate,
             'calculation_method' => self::CALCULATION_DAILY,
             'is_taxable' => false,
-            'is_statutory' => false
+            'is_statutory' => false,
         ]);
     }
 
     /**
      * Create a tax deduction item.
      */
-    public static function createTaxItem($payrollId, $taxableAmount, $taxRate, $description = 'Income Tax')
-    {
+    public static function createTaxItem(
+        $payrollId,
+        $taxableAmount,
+        $taxRate,
+        $description = 'Income Tax',
+    ) {
         return self::create([
             'payroll_id' => $payrollId,
             'type' => self::TYPE_DEDUCTION,
@@ -389,7 +415,7 @@ class PayrollItem extends Model
             'rate' => $taxRate,
             'calculation_method' => self::CALCULATION_PERCENTAGE,
             'is_taxable' => false,
-            'is_statutory' => true
+            'is_statutory' => true,
         ]);
     }
 
@@ -406,7 +432,7 @@ class PayrollItem extends Model
             'amount' => $amount,
             'calculation_method' => self::CALCULATION_FIXED,
             'is_taxable' => true,
-            'is_statutory' => false
+            'is_statutory' => false,
         ]);
     }
 }

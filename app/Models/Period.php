@@ -2,30 +2,23 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Period extends Model
 {
-    use HasFactory, SoftDeletes, HasUuids;
+    use HasFactory, HasUuids, SoftDeletes;
 
-    protected $fillable = [
-        'name',
-        'start_time',
-        'end_time',
-        'day_of_week',
-        'is_active',
-        'metadata'
-    ];
+    protected $fillable = ['name', 'start_time', 'end_time', 'day_of_week', 'is_active', 'metadata'];
 
     protected $casts = [
         'start_time' => 'datetime:H:i',
         'end_time' => 'datetime:H:i',
         'is_active' => 'boolean',
         'metadata' => 'array',
-        'day_of_week' => 'integer'
+        'day_of_week' => 'integer',
     ];
 
     /**
@@ -34,8 +27,8 @@ class Period extends Model
     public function employees()
     {
         return $this->belongsToMany(Employee::class, 'employee_schedules')
-                    ->withPivot(['effective_date', 'end_date', 'is_active', 'metadata'])
-                    ->withTimestamps();
+            ->withPivot(['effective_date', 'end_date', 'is_active', 'metadata'])
+            ->withTimestamps();
     }
 
     /**
@@ -58,9 +51,9 @@ class Period extends Model
             3 => 'Wednesday',
             4 => 'Thursday',
             5 => 'Friday',
-            6 => 'Saturday'
+            6 => 'Saturday',
         ];
-        
+
         return $days[$this->day_of_week] ?? 'Unknown';
     }
 
@@ -69,7 +62,7 @@ class Period extends Model
      */
     public function getTimeRangeAttribute()
     {
-        return $this->start_time->format('H:i') . ' - ' . $this->end_time->format('H:i');
+        return $this->start_time->format('H:i').' - '.$this->end_time->format('H:i');
     }
 
     /**

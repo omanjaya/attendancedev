@@ -7,7 +7,6 @@ use App\Models\UserDevice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Jenssegers\Agent\Agent;
-use Illuminate\Support\Str;
 
 class DeviceService
 {
@@ -15,7 +14,7 @@ class DeviceService
 
     public function __construct()
     {
-        $this->agent = new Agent();
+        $this->agent = new Agent;
     }
 
     /**
@@ -38,7 +37,7 @@ class DeviceService
 
         // Remove null values and join
         $fingerprintString = implode('|', array_filter($components));
-        
+
         return hash('sha256', $fingerprintString);
     }
 
@@ -48,7 +47,7 @@ class DeviceService
     public function collectDeviceInfo(Request $request): array
     {
         $this->agent->setUserAgent($request->userAgent());
-        
+
         return [
             'device_type' => $this->getDeviceType(),
             'browser_name' => $this->agent->browser(),
@@ -77,7 +76,7 @@ class DeviceService
     {
         $fingerprint = $this->generateFingerprint($request);
         $deviceInfo = $this->collectDeviceInfo($request);
-        
+
         $device = UserDevice::firstOrNew([
             'user_id' => $user->id,
             'device_fingerprint' => $fingerprint,
@@ -117,8 +116,8 @@ class DeviceService
     public function isNewDevice(User $user, Request $request): bool
     {
         $fingerprint = $this->generateFingerprint($request);
-        
-        return !UserDevice::where('user_id', $user->id)
+
+        return ! UserDevice::where('user_id', $user->id)
             ->where('device_fingerprint', $fingerprint)
             ->exists();
     }
@@ -129,11 +128,11 @@ class DeviceService
     public function isTrustedDevice(User $user, Request $request): bool
     {
         $fingerprint = $this->generateFingerprint($request);
-        
+
         $device = UserDevice::where('user_id', $user->id)
             ->where('device_fingerprint', $fingerprint)
             ->first();
-            
+
         return $device && $device->is_trusted;
     }
 
@@ -143,11 +142,11 @@ class DeviceService
     public function getUserDevices(User $user, bool $onlyActive = false)
     {
         $query = $user->devices()->orderBy('last_seen_at', 'desc');
-        
+
         if ($onlyActive) {
             $query->recentlyActive();
         }
-        
+
         return $query->get();
     }
 
@@ -161,15 +160,12 @@ class DeviceService
         }
 
         $device->markAsTrusted();
-        
+
         // Log the action
         if (function_exists('activity')) {
-            activity()
-                ->performedOn($device)
-                ->causedBy($user)
-                ->log('Device marked as trusted');
+            activity()->performedOn($device)->causedBy($user)->log('Device marked as trusted');
         }
-            
+
         return true;
     }
 
@@ -183,15 +179,12 @@ class DeviceService
         }
 
         $device->revokeTrust();
-        
+
         // Log the action
         if (function_exists('activity')) {
-            activity()
-                ->performedOn($device)
-                ->causedBy($user)
-                ->log('Device trust revoked');
+            activity()->performedOn($device)->causedBy($user)->log('Device trust revoked');
         }
-            
+
         return true;
     }
 
@@ -205,15 +198,12 @@ class DeviceService
         }
 
         $device->delete();
-        
+
         // Log the action
         if (function_exists('activity')) {
-            activity()
-                ->performedOn($user)
-                ->causedBy($user)
-                ->log('Device removed');
+            activity()->performedOn($user)->causedBy($user)->log('Device removed');
         }
-            
+
         return true;
     }
 
@@ -280,11 +270,11 @@ class DeviceService
     {
         try {
             $payload = decrypt($token);
-            
+
             if ($payload['expires_at'] < now()->timestamp) {
                 return null;
             }
-            
+
             return $payload;
         } catch (\Exception $e) {
             return null;

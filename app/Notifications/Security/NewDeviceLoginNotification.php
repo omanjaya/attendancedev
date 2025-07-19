@@ -41,21 +41,23 @@ class NewDeviceLoginNotification extends Notification implements ShouldQueue
             ->line('')
             ->line('**Device Details:**')
             ->line("• Device: {$device->display_name}")
-            ->line("• Type: " . ucfirst($device->device_type))
+            ->line('• Type: '.ucfirst($device->device_type))
             ->line("• Browser: {$device->browser_name}")
             ->line("• Operating System: {$device->os_name}")
             ->line("• IP Address: {$this->data['ip_address']}")
             ->line("• Location: {$location}")
             ->line("• Time: {$timestamp}")
             ->line('')
-            ->line('If this was you, you can ignore this email. If you don\'t recognize this login, please secure your account immediately.')
+            ->line(
+                'If this was you, you can ignore this email. If you don\'t recognize this login, please secure your account immediately.',
+            )
             ->action('Review Device Activity', url('/settings/security'))
             ->line('')
             ->line('For your security, consider:')
             ->line('• Changing your password if you don\'t recognize this activity')
             ->line('• Enabling two-factor authentication if not already enabled')
             ->line('• Reviewing your trusted devices regularly')
-            ->salutation('Stay secure, ' . config('app.name') . ' Security Team');
+            ->salutation('Stay secure, '.config('app.name').' Security Team');
     }
 
     /**
@@ -64,7 +66,7 @@ class NewDeviceLoginNotification extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         $device = $this->data['device'];
-        
+
         return [
             'type' => 'new_device_login',
             'title' => 'New Device Login',

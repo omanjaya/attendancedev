@@ -12,11 +12,13 @@ Complete guide for deploying the Attendance Management System to a VPS.
 ## Step 1: VPS Initial Setup
 
 1. **Connect to your VPS:**
+
 ```bash
 ssh root@your-vps-ip
 ```
 
 2. **Download and run the setup script:**
+
 ```bash
 wget https://raw.githubusercontent.com/omanjaya/attendance-system/main/setup-vps.sh
 chmod +x setup-vps.sh
@@ -24,31 +26,37 @@ sudo bash setup-vps.sh
 ```
 
 3. **Add deployment key to your Git repository:**
+
 ```bash
 cat /home/attendance/.ssh/id_ed25519.pub
 ```
+
 Copy this key and add it to your GitHub repository's Deploy Keys.
 
 ## Step 2: Clone and Configure Application
 
 1. **Switch to attendance user:**
+
 ```bash
 sudo su - attendance
 ```
 
 2. **Clone repository:**
+
 ```bash
 git clone git@github.com:omanjaya/attendance-system.git /var/www/attendance-system
 cd /var/www/attendance-system
 ```
 
 3. **Copy and configure environment:**
+
 ```bash
 cp .env.production.example .env
 nano .env
 ```
 
 Update these key values in `.env`:
+
 ```env
 APP_URL=https://your-domain.com
 DB_PASSWORD=your_secure_password
@@ -58,6 +66,7 @@ MAIL_PASSWORD=your-email-password
 ```
 
 4. **Generate application key:**
+
 ```bash
 php artisan key:generate
 ```
@@ -112,6 +121,7 @@ sudo certbot renew --dry-run
 ## Step 7: Update Nginx Configuration
 
 Edit `/etc/nginx/sites-available/attendance` and update:
+
 - Replace `your-domain.com` with your actual domain
 - Update SSL certificate paths if different
 
@@ -134,14 +144,15 @@ sudo supervisorctl restart all
 ## Step 9: Verify Deployment
 
 1. **Check health endpoint:**
+
 ```bash
 curl https://your-domain.com/api/health
 ```
 
-2. **Access the application:**
-Open `https://your-domain.com` in your browser
+2. **Access the application:** Open `https://your-domain.com` in your browser
 
 3. **Default admin login:**
+
 - Email: `admin@admin.com`
 - Password: `password`
 
@@ -150,19 +161,21 @@ Open `https://your-domain.com` in your browser
 ## Step 10: Post-Deployment Configuration
 
 1. **Create admin user:**
+
 ```bash
 php artisan make:admin-user
 ```
 
 2. **Configure queue workers:**
+
 ```bash
 sudo supervisorctl status
 ```
 
-3. **Set up log rotation:**
-Logs are automatically rotated. Check `/etc/logrotate.d/attendance`
+3. **Set up log rotation:** Logs are automatically rotated. Check `/etc/logrotate.d/attendance`
 
 4. **Configure backups:**
+
 ```bash
 # Test backup
 php artisan backup:run
@@ -246,6 +259,7 @@ php artisan backup:restore backup_name.zip
 ### Performance Optimization
 
 1. **Enable OPcache:**
+
 ```bash
 # Add to PHP configuration
 echo "opcache.enable=1" >> /etc/php/8.2/fpm/conf.d/99-opcache.ini
@@ -254,11 +268,13 @@ sudo systemctl restart php8.2-fpm
 ```
 
 2. **Optimize database:**
+
 ```bash
 php artisan optimize:db
 ```
 
 3. **Monitor resource usage:**
+
 ```bash
 htop
 iotop

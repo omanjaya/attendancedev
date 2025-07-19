@@ -9,12 +9,15 @@ use App\Models\LeaveType;
 use App\Models\Location;
 use App\Models\Payroll;
 use App\Services\ExportService;
+use App\Traits\ApiResponseTrait;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ReportsController extends Controller
 {
+    use ApiResponseTrait;
+
     protected $exportService;
 
     public function __construct(ExportService $exportService)
@@ -32,7 +35,7 @@ class ReportsController extends Controller
 
         return view('pages.reports.index', [
             'reportTypes' => $reportTypes,
-            'quickStats' => $quickStats
+            'quickStats' => $quickStats,
         ]);
     }
 
@@ -44,7 +47,7 @@ class ReportsController extends Controller
         $filterOptions = $this->getFilterOptions();
 
         return view('pages.reports.builder', [
-            'filterOptions' => $filterOptions
+            'filterOptions' => $filterOptions,
         ]);
     }
 
@@ -57,17 +60,16 @@ class ReportsController extends Controller
         $attendanceData = $this->getAttendanceReportData($filters);
 
         if ($request->wantsJson()) {
-            return response()->json([
-                'success' => true,
+            return $this->successResponse([
                 'data' => $attendanceData,
-                'filters' => $filters
-            ]);
+                'filters' => $filters,
+            ], 'Attendance report generated successfully');
         }
 
         return view('pages.reports.attendance', [
             'data' => $attendanceData,
             'filters' => $filters,
-            'filterOptions' => $this->getFilterOptions()
+            'filterOptions' => $this->getFilterOptions(),
         ]);
     }
 
@@ -80,17 +82,16 @@ class ReportsController extends Controller
         $leaveData = $this->getLeaveReportData($filters);
 
         if ($request->wantsJson()) {
-            return response()->json([
-                'success' => true,
+            return $this->successResponse([
                 'data' => $leaveData,
-                'filters' => $filters
-            ]);
+                'filters' => $filters,
+            ], 'Leave report generated successfully');
         }
 
         return view('pages.reports.leave', [
             'data' => $leaveData,
             'filters' => $filters,
-            'filterOptions' => $this->getFilterOptions()
+            'filterOptions' => $this->getFilterOptions(),
         ]);
     }
 
@@ -103,17 +104,16 @@ class ReportsController extends Controller
         $payrollData = $this->getPayrollReportData($filters);
 
         if ($request->wantsJson()) {
-            return response()->json([
-                'success' => true,
+            return $this->successResponse([
                 'data' => $payrollData,
-                'filters' => $filters
-            ]);
+                'filters' => $filters,
+            ], 'Payroll report generated successfully');
         }
 
         return view('pages.reports.payroll', [
             'data' => $payrollData,
             'filters' => $filters,
-            'filterOptions' => $this->getFilterOptions()
+            'filterOptions' => $this->getFilterOptions(),
         ]);
     }
 
@@ -126,17 +126,16 @@ class ReportsController extends Controller
         $employeeData = $this->getEmployeeReportData($filters);
 
         if ($request->wantsJson()) {
-            return response()->json([
-                'success' => true,
+            return $this->successResponse([
                 'data' => $employeeData,
-                'filters' => $filters
-            ]);
+                'filters' => $filters,
+            ], 'Employee report generated successfully');
         }
 
         return view('pages.reports.employees', [
             'data' => $employeeData,
             'filters' => $filters,
-            'filterOptions' => $this->getFilterOptions()
+            'filterOptions' => $this->getFilterOptions(),
         ]);
     }
 
@@ -149,17 +148,16 @@ class ReportsController extends Controller
         $summaryData = $this->getSummaryReportData($filters);
 
         if ($request->wantsJson()) {
-            return response()->json([
-                'success' => true,
+            return $this->successResponse([
                 'data' => $summaryData,
-                'filters' => $filters
-            ]);
+                'filters' => $filters,
+            ], 'Summary report generated successfully');
         }
 
         return view('pages.reports.summary', [
             'data' => $summaryData,
             'filters' => $filters,
-            'filterOptions' => $this->getFilterOptions()
+            'filterOptions' => $this->getFilterOptions(),
         ]);
     }
 
@@ -176,7 +174,7 @@ class ReportsController extends Controller
             'filters' => 'array',
             'columns' => 'array',
             'grouping' => 'string',
-            'sorting' => 'array'
+            'sorting' => 'array',
         ]);
 
         $reportType = $request->input('report_type');
@@ -187,10 +185,16 @@ class ReportsController extends Controller
         $sorting = $request->input('sorting', []);
 
         try {
-            $data = $this->buildCustomReport($reportType, $dateRange, $filters, $columns, $grouping, $sorting);
+            $data = $this->buildCustomReport(
+                $reportType,
+                $dateRange,
+                $filters,
+                $columns,
+                $grouping,
+                $sorting,
+            );
 
-            return response()->json([
-                'success' => true,
+            return $this->successResponse([
                 'data' => $data,
                 'report_config' => [
                     'type' => $reportType,
@@ -198,14 +202,11 @@ class ReportsController extends Controller
                     'filters' => $filters,
                     'columns' => $columns,
                     'grouping' => $grouping,
-                    'sorting' => $sorting
-                ]
-            ]);
+                    'sorting' => $sorting,
+                ],
+            ], 'Custom report generated successfully');
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Failed to generate report: ' . $e->getMessage()
-            ], 500);
+            return $this->serverErrorResponse('Failed to generate report: '.$e->getMessage());
         }
     }
 
@@ -217,8 +218,8 @@ class ReportsController extends Controller
         $filters = $this->getAttendanceFilters($request);
         $format = $request->get('format', 'csv');
 
-        if (!$this->exportService->isValidFormat($format)) {
-            return response()->json(['error' => 'Invalid export format'], 400);
+        if (! $this->exportService->isValidFormat($format)) {
+            return $this->errorResponse('Invalid export format', 400);
         }
 
         return $this->exportService->exportAttendance($filters, $format);
@@ -229,8 +230,8 @@ class ReportsController extends Controller
         $filters = $this->getLeaveFilters($request);
         $format = $request->get('format', 'csv');
 
-        if (!$this->exportService->isValidFormat($format)) {
-            return response()->json(['error' => 'Invalid export format'], 400);
+        if (! $this->exportService->isValidFormat($format)) {
+            return $this->errorResponse('Invalid export format', 400);
         }
 
         return $this->exportService->exportLeave($filters, $format);
@@ -241,23 +242,83 @@ class ReportsController extends Controller
         $filters = $this->getPayrollFilters($request);
         $format = $request->get('format', 'csv');
 
-        if (!$this->exportService->isValidFormat($format)) {
-            return response()->json(['error' => 'Invalid export format'], 400);
+        if (! $this->exportService->isValidFormat($format)) {
+            return $this->errorResponse('Invalid export format', 400);
         }
 
         return $this->exportService->exportPayroll($filters, $format);
     }
 
-    public function exportEmployees(Request $request)
+    public function exportEmployee(Request $request)
     {
         $filters = $this->getEmployeeFilters($request);
         $format = $request->get('format', 'csv');
 
-        if (!$this->exportService->isValidFormat($format)) {
-            return response()->json(['error' => 'Invalid export format'], 400);
+        if (! $this->exportService->isValidFormat($format)) {
+            return $this->errorResponse('Invalid export format', 400);
         }
 
         return $this->exportService->exportEmployees($filters, $format);
+    }
+
+    public function attendanceSummary(Request $request)
+    {
+        $filters = $this->getAttendanceFilters($request);
+        $summaryData = $this->getAttendanceSummaryData($filters);
+
+        if ($request->wantsJson()) {
+            return $this->successResponse($summaryData, 'Attendance summary generated successfully');
+        }
+
+        return view('pages.reports.attendance-summary', [
+            'data' => $summaryData,
+            'filters' => $filters,
+        ]);
+    }
+
+    public function leaveAnalytics(Request $request)
+    {
+        $filters = $this->getLeaveFilters($request);
+        $analyticsData = $this->getLeaveAnalyticsData($filters);
+
+        if ($request->wantsJson()) {
+            return $this->successResponse($analyticsData, 'Leave analytics generated successfully');
+        }
+
+        return view('pages.reports.leave-analytics', [
+            'data' => $analyticsData,
+            'filters' => $filters,
+        ]);
+    }
+
+    public function employeePerformance(Request $request)
+    {
+        $filters = $this->getEmployeeFilters($request);
+        $performanceData = $this->getEmployeePerformanceData($filters);
+
+        if ($request->wantsJson()) {
+            return $this->successResponse($performanceData, 'Employee performance data generated successfully');
+        }
+
+        return view('pages.reports.employee-performance', [
+            'data' => $performanceData,
+            'filters' => $filters,
+        ]);
+    }
+
+    public function payrollSummary(Request $request)
+    {
+        $filters = $this->getPayrollFilters($request);
+        $summaryData = $this->getPayrollSummaryData($filters);
+
+        if ($request->wantsJson()) {
+            return $this->successResponse($summaryData, 'Payroll summary generated successfully');
+        }
+
+        return view('pages.reports.payroll-summary', [
+            'data' => $summaryData,
+            'filters' => $filters,
+        ]);
     }
 
     /**
@@ -271,17 +332,15 @@ class ReportsController extends Controller
             'format' => 'required|in:csv,excel,pdf',
             'recipients' => 'required|array',
             'recipients.*' => 'email',
-            'filters' => 'array'
+            'filters' => 'array',
         ]);
 
         // In a full implementation, this would store the schedule in the database
         // and set up a cron job or queue job to generate and send reports
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Report scheduled successfully',
-            'schedule_id' => uniqid('schedule_')
-        ]);
+        return $this->successResponse([
+            'schedule_id' => uniqid('schedule_'),
+        ], 'Report scheduled successfully');
     }
 
     /**
@@ -298,14 +357,11 @@ class ReportsController extends Controller
                 'format' => 'pdf',
                 'recipients' => ['admin@company.com'],
                 'next_run' => Carbon::now()->addWeek(),
-                'status' => 'active'
-            ]
+                'status' => 'active',
+            ],
         ];
 
-        return response()->json([
-            'success' => true,
-            'data' => $scheduledReports
-        ]);
+        return $this->successResponse($scheduledReports, 'Scheduled reports retrieved successfully');
     }
 
     // Private Methods for Data Processing
@@ -318,7 +374,7 @@ class ReportsController extends Controller
             'employee_ids' => $request->get('employee_ids', []),
             'status' => $request->get('status', []),
             'location_ids' => $request->get('location_ids', []),
-            'department_ids' => $request->get('department_ids', [])
+            'department_ids' => $request->get('department_ids', []),
         ];
     }
 
@@ -330,7 +386,7 @@ class ReportsController extends Controller
             'employee_ids' => $request->get('employee_ids', []),
             'status' => $request->get('status', []),
             'leave_type_ids' => $request->get('leave_type_ids', []),
-            'approved_by' => $request->get('approved_by', [])
+            'approved_by' => $request->get('approved_by', []),
         ];
     }
 
@@ -342,7 +398,7 @@ class ReportsController extends Controller
             'employee_ids' => $request->get('employee_ids', []),
             'status' => $request->get('status', []),
             'min_salary' => $request->get('min_salary'),
-            'max_salary' => $request->get('max_salary')
+            'max_salary' => $request->get('max_salary'),
         ];
     }
 
@@ -353,7 +409,7 @@ class ReportsController extends Controller
             'is_active' => $request->get('is_active'),
             'location_ids' => $request->get('location_ids', []),
             'hire_date_start' => $request->get('hire_date_start'),
-            'hire_date_end' => $request->get('hire_date_end')
+            'hire_date_end' => $request->get('hire_date_end'),
         ];
     }
 
@@ -363,7 +419,7 @@ class ReportsController extends Controller
             'start_date' => $request->get('start_date', Carbon::now()->startOfMonth()->format('Y-m-d')),
             'end_date' => $request->get('end_date', Carbon::now()->endOfMonth()->format('Y-m-d')),
             'grouping' => $request->get('grouping', 'monthly'),
-            'metrics' => $request->get('metrics', ['attendance', 'leave', 'payroll'])
+            'metrics' => $request->get('metrics', ['attendance', 'leave', 'payroll']),
         ];
     }
 
@@ -374,11 +430,11 @@ class ReportsController extends Controller
         // Apply filters
         $query->whereBetween('date', [$filters['start_date'], $filters['end_date']]);
 
-        if (!empty($filters['employee_ids'])) {
+        if (! empty($filters['employee_ids'])) {
             $query->whereIn('employee_id', $filters['employee_ids']);
         }
 
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->whereIn('status', $filters['status']);
         }
 
@@ -391,27 +447,30 @@ class ReportsController extends Controller
             'late_count' => $records->where('status', 'late')->count(),
             'absent_count' => $records->where('status', 'absent')->count(),
             'total_hours' => $records->sum('total_hours'),
-            'average_hours' => $records->avg('total_hours')
+            'average_hours' => $records->avg('total_hours'),
         ];
 
         // Daily breakdown
-        $dailyBreakdown = $records->groupBy(function ($item) {
-            return $item->date->format('Y-m-d');
-        })->map(function ($dayRecords) {
-            return [
-                'date' => $dayRecords->first()->date->format('Y-m-d'),
-                'total' => $dayRecords->count(),
-                'present' => $dayRecords->whereIn('status', ['present', 'late'])->count(),
-                'late' => $dayRecords->where('status', 'late')->count(),
-                'absent' => $dayRecords->where('status', 'absent')->count(),
-                'total_hours' => $dayRecords->sum('total_hours')
-            ];
-        })->values();
+        $dailyBreakdown = $records
+            ->groupBy(function ($item) {
+                return $item->date->format('Y-m-d');
+            })
+            ->map(function ($dayRecords) {
+                return [
+                    'date' => $dayRecords->first()->date->format('Y-m-d'),
+                    'total' => $dayRecords->count(),
+                    'present' => $dayRecords->whereIn('status', ['present', 'late'])->count(),
+                    'late' => $dayRecords->where('status', 'late')->count(),
+                    'absent' => $dayRecords->where('status', 'absent')->count(),
+                    'total_hours' => $dayRecords->sum('total_hours'),
+                ];
+            })
+            ->values();
 
         return [
             'records' => $records,
             'stats' => $stats,
-            'daily_breakdown' => $dailyBreakdown
+            'daily_breakdown' => $dailyBreakdown,
         ];
     }
 
@@ -422,15 +481,15 @@ class ReportsController extends Controller
         // Apply filters
         $query->whereBetween('start_date', [$filters['start_date'], $filters['end_date']]);
 
-        if (!empty($filters['employee_ids'])) {
+        if (! empty($filters['employee_ids'])) {
             $query->whereIn('employee_id', $filters['employee_ids']);
         }
 
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->whereIn('status', $filters['status']);
         }
 
-        if (!empty($filters['leave_type_ids'])) {
+        if (! empty($filters['leave_type_ids'])) {
             $query->whereIn('leave_type_id', $filters['leave_type_ids']);
         }
 
@@ -443,23 +502,26 @@ class ReportsController extends Controller
             'pending_requests' => $records->where('status', 'pending')->count(),
             'rejected_requests' => $records->where('status', 'rejected')->count(),
             'total_days' => $records->sum('days_requested'),
-            'approved_days' => $records->where('status', 'approved')->sum('days_requested')
+            'approved_days' => $records->where('status', 'approved')->sum('days_requested'),
         ];
 
         // Leave type breakdown
-        $typeBreakdown = $records->groupBy('leave_type_id')->map(function ($typeRecords) {
-            return [
-                'type' => $typeRecords->first()->leaveType->name ?? 'Unknown',
-                'count' => $typeRecords->count(),
-                'total_days' => $typeRecords->sum('days_requested'),
-                'approved_count' => $typeRecords->where('status', 'approved')->count()
-            ];
-        })->values();
+        $typeBreakdown = $records
+            ->groupBy('leave_type_id')
+            ->map(function ($typeRecords) {
+                return [
+                    'type' => $typeRecords->first()->leaveType->name ?? 'Unknown',
+                    'count' => $typeRecords->count(),
+                    'total_days' => $typeRecords->sum('days_requested'),
+                    'approved_count' => $typeRecords->where('status', 'approved')->count(),
+                ];
+            })
+            ->values();
 
         return [
             'records' => $records,
             'stats' => $stats,
-            'type_breakdown' => $typeBreakdown
+            'type_breakdown' => $typeBreakdown,
         ];
     }
 
@@ -470,11 +532,11 @@ class ReportsController extends Controller
         // Apply filters
         $query->whereBetween('payroll_period_start', [$filters['start_date'], $filters['end_date']]);
 
-        if (!empty($filters['employee_ids'])) {
+        if (! empty($filters['employee_ids'])) {
             $query->whereIn('employee_id', $filters['employee_ids']);
         }
 
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->whereIn('status', $filters['status']);
         }
 
@@ -489,12 +551,12 @@ class ReportsController extends Controller
             'total_net_salary' => $records->sum('net_salary'),
             'total_hours' => $records->sum('worked_hours'),
             'total_overtime' => $records->sum('overtime_hours'),
-            'average_salary' => $records->avg('net_salary')
+            'average_salary' => $records->avg('net_salary'),
         ];
 
         return [
             'records' => $records,
-            'stats' => $stats
+            'stats' => $stats,
         ];
     }
 
@@ -503,7 +565,7 @@ class ReportsController extends Controller
         $query = Employee::with(['user', 'location']);
 
         // Apply filters
-        if (!empty($filters['employee_type'])) {
+        if (! empty($filters['employee_type'])) {
             $query->whereIn('employee_type', $filters['employee_type']);
         }
 
@@ -511,7 +573,7 @@ class ReportsController extends Controller
             $query->where('is_active', $filters['is_active']);
         }
 
-        if (!empty($filters['location_ids'])) {
+        if (! empty($filters['location_ids'])) {
             $query->whereIn('location_id', $filters['location_ids']);
         }
 
@@ -523,12 +585,12 @@ class ReportsController extends Controller
             'active_employees' => $records->where('is_active', true)->count(),
             'inactive_employees' => $records->where('is_active', false)->count(),
             'average_salary' => $records->avg('salary_amount'),
-            'total_salary_cost' => $records->sum('salary_amount')
+            'total_salary_cost' => $records->sum('salary_amount'),
         ];
 
         return [
             'records' => $records,
-            'stats' => $stats
+            'stats' => $stats,
         ];
     }
 
@@ -553,7 +615,9 @@ class ReportsController extends Controller
                 $current = $startDate->copy()->startOfWeek();
                 while ($current <= $endDate) {
                     $weekEnd = $current->copy()->endOfWeek();
-                    if ($weekEnd > $endDate) $weekEnd = $endDate;
+                    if ($weekEnd > $endDate) {
+                        $weekEnd = $endDate;
+                    }
                     $summaryData[] = $this->getWeeklySummary($current, $weekEnd);
                     $current->addWeek();
                 }
@@ -562,7 +626,9 @@ class ReportsController extends Controller
                 $current = $startDate->copy()->startOfMonth();
                 while ($current <= $endDate) {
                     $monthEnd = $current->copy()->endOfMonth();
-                    if ($monthEnd > $endDate) $monthEnd = $endDate;
+                    if ($monthEnd > $endDate) {
+                        $monthEnd = $endDate;
+                    }
                     $summaryData[] = $this->getMonthlySummary($current, $monthEnd);
                     $current->addMonth();
                 }
@@ -574,8 +640,8 @@ class ReportsController extends Controller
             'grouping' => $grouping,
             'period' => [
                 'start' => $startDate->format('Y-m-d'),
-                'end' => $endDate->format('Y-m-d')
-            ]
+                'end' => $endDate->format('Y-m-d'),
+            ],
         ];
     }
 
@@ -583,16 +649,16 @@ class ReportsController extends Controller
     {
         $attendance = Attendance::whereDate('date', $date)->get();
         $leaves = Leave::where('start_date', '<=', $date)
-                      ->where('end_date', '>=', $date)
-                      ->where('status', 'approved')
-                      ->get();
+            ->where('end_date', '>=', $date)
+            ->where('status', 'approved')
+            ->get();
 
         return [
             'date' => $date->format('Y-m-d'),
             'attendance_count' => $attendance->count(),
             'present_count' => $attendance->whereIn('status', ['present', 'late'])->count(),
             'leave_count' => $leaves->count(),
-            'total_hours' => $attendance->sum('total_hours')
+            'total_hours' => $attendance->sum('total_hours'),
         ];
     }
 
@@ -600,9 +666,9 @@ class ReportsController extends Controller
     {
         $attendance = Attendance::whereBetween('date', [$startDate, $endDate])->get();
         $leaves = Leave::where('start_date', '<=', $endDate)
-                      ->where('end_date', '>=', $startDate)
-                      ->where('status', 'approved')
-                      ->get();
+            ->where('end_date', '>=', $startDate)
+            ->where('status', 'approved')
+            ->get();
 
         return [
             'week_start' => $startDate->format('Y-m-d'),
@@ -610,7 +676,7 @@ class ReportsController extends Controller
             'attendance_count' => $attendance->count(),
             'present_count' => $attendance->whereIn('status', ['present', 'late'])->count(),
             'leave_count' => $leaves->count(),
-            'total_hours' => $attendance->sum('total_hours')
+            'total_hours' => $attendance->sum('total_hours'),
         ];
     }
 
@@ -618,9 +684,9 @@ class ReportsController extends Controller
     {
         $attendance = Attendance::whereBetween('date', [$startDate, $endDate])->get();
         $leaves = Leave::where('start_date', '<=', $endDate)
-                      ->where('end_date', '>=', $startDate)
-                      ->where('status', 'approved')
-                      ->get();
+            ->where('end_date', '>=', $startDate)
+            ->where('status', 'approved')
+            ->get();
         $payrolls = Payroll::whereBetween('payroll_period_start', [$startDate, $endDate])->get();
 
         return [
@@ -631,12 +697,18 @@ class ReportsController extends Controller
             'leave_count' => $leaves->count(),
             'payroll_count' => $payrolls->count(),
             'total_hours' => $attendance->sum('total_hours'),
-            'total_payroll_amount' => $payrolls->sum('net_salary')
+            'total_payroll_amount' => $payrolls->sum('net_salary'),
         ];
     }
 
-    private function buildCustomReport(string $reportType, array $dateRange, array $filters, array $columns, string $grouping = null, array $sorting = []): array
-    {
+    private function buildCustomReport(
+        string $reportType,
+        array $dateRange,
+        array $filters,
+        array $columns,
+        ?string $grouping = null,
+        array $sorting = [],
+    ): array {
         switch ($reportType) {
             case 'attendance':
                 return $this->getAttendanceReportData(array_merge($dateRange, $filters));
@@ -647,7 +719,9 @@ class ReportsController extends Controller
             case 'employee':
                 return $this->getEmployeeReportData($filters);
             case 'summary':
-                return $this->getSummaryReportData(array_merge($dateRange, $filters, ['grouping' => $grouping]));
+                return $this->getSummaryReportData(
+                    array_merge($dateRange, $filters, ['grouping' => $grouping]),
+                );
             default:
                 throw new \InvalidArgumentException('Invalid report type');
         }
@@ -659,28 +733,28 @@ class ReportsController extends Controller
             'attendance' => [
                 'name' => 'Attendance Reports',
                 'description' => 'Track employee attendance, punctuality, and working hours',
-                'icon' => 'calendar-check'
+                'icon' => 'calendar-check',
             ],
             'leave' => [
                 'name' => 'Leave Reports',
                 'description' => 'Analyze leave requests, approvals, and patterns',
-                'icon' => 'calendar-x'
+                'icon' => 'calendar-x',
             ],
             'payroll' => [
                 'name' => 'Payroll Reports',
                 'description' => 'Monitor salary payments, deductions, and bonuses',
-                'icon' => 'currency-dollar'
+                'icon' => 'currency-dollar',
             ],
             'employee' => [
                 'name' => 'Employee Reports',
                 'description' => 'Comprehensive employee information and statistics',
-                'icon' => 'users'
+                'icon' => 'users',
             ],
             'summary' => [
                 'name' => 'Summary Reports',
                 'description' => 'High-level overview of all system metrics',
-                'icon' => 'chart-bar'
-            ]
+                'icon' => 'chart-bar',
+            ],
         ];
     }
 
@@ -692,22 +766,132 @@ class ReportsController extends Controller
         return [
             'todays_attendance' => Attendance::whereDate('date', $today)->count(),
             'pending_leaves' => Leave::where('status', 'pending')->count(),
-            'monthly_payrolls' => Payroll::whereBetween('payroll_period_start', [$thisMonth, $today])->count(),
-            'total_employees' => Employee::where('is_active', true)->count()
+            'monthly_payrolls' => Payroll::whereBetween('payroll_period_start', [
+                $thisMonth,
+                $today,
+            ])->count(),
+            'total_employees' => Employee::where('is_active', true)->count(),
         ];
+    }
+
+    private function getAttendanceSummaryData(array $filters): array
+    {
+        $attendanceData = $this->getAttendanceReportData($filters);
+
+        // Add additional summary calculations
+        $employeeStats = $attendanceData['records']
+            ->groupBy('employee_id')
+            ->map(function ($employeeRecords) {
+                return [
+                    'employee_name' => $employeeRecords->first()->employee->full_name,
+                    'total_days' => $employeeRecords->count(),
+                    'present_days' => $employeeRecords->whereIn('status', ['present', 'late'])->count(),
+                    'late_days' => $employeeRecords->where('status', 'late')->count(),
+                    'absent_days' => $employeeRecords->where('status', 'absent')->count(),
+                    'total_hours' => $employeeRecords->sum('total_hours'),
+                    'attendance_rate' => $employeeRecords->count() > 0 ?
+                      ($employeeRecords->whereIn('status', ['present', 'late'])->count() / $employeeRecords->count()) * 100 : 0,
+                ];
+            })
+            ->values();
+
+        return array_merge($attendanceData, ['employee_stats' => $employeeStats]);
+    }
+
+    private function getLeaveAnalyticsData(array $filters): array
+    {
+        $leaveData = $this->getLeaveReportData($filters);
+
+        // Add trend analysis
+        $monthlyTrends = $leaveData['records']
+            ->groupBy(function ($leave) {
+                return $leave->start_date->format('Y-m');
+            })
+            ->map(function ($monthLeaves) {
+                return [
+                    'month' => $monthLeaves->first()->start_date->format('Y-m'),
+                    'total_requests' => $monthLeaves->count(),
+                    'approved_requests' => $monthLeaves->where('status', 'approved')->count(),
+                    'total_days' => $monthLeaves->sum('days_requested'),
+                ];
+            })
+            ->values();
+
+        return array_merge($leaveData, ['monthly_trends' => $monthlyTrends]);
+    }
+
+    private function getEmployeePerformanceData(array $filters): array
+    {
+        $employeeData = $this->getEmployeeReportData($filters);
+
+        // Add performance metrics for each employee
+        $performanceMetrics = $employeeData['records']->map(function ($employee) {
+            $attendanceCount = Attendance::where('employee_id', $employee->id)
+                ->whereDate('date', '>=', Carbon::now()->subDays(30))
+                ->count();
+
+            $presentCount = Attendance::where('employee_id', $employee->id)
+                ->whereDate('date', '>=', Carbon::now()->subDays(30))
+                ->whereIn('status', ['present', 'late'])
+                ->count();
+
+            $leaveCount = Leave::where('employee_id', $employee->id)
+                ->where('status', 'approved')
+                ->whereDate('start_date', '>=', Carbon::now()->subDays(30))
+                ->count();
+
+            return [
+                'employee_id' => $employee->id,
+                'employee_name' => $employee->full_name,
+                'attendance_days' => $attendanceCount,
+                'present_days' => $presentCount,
+                'leave_days' => $leaveCount,
+                'attendance_rate' => $attendanceCount > 0 ? ($presentCount / $attendanceCount) * 100 : 0,
+                'performance_score' => $attendanceCount > 0 ?
+                  min(100, (($presentCount / $attendanceCount) * 0.8 + (max(0, 30 - $leaveCount) / 30) * 0.2) * 100) : 0,
+            ];
+        });
+
+        return array_merge($employeeData, ['performance_metrics' => $performanceMetrics]);
+    }
+
+    private function getPayrollSummaryData(array $filters): array
+    {
+        $payrollData = $this->getPayrollReportData($filters);
+
+        // Add department-wise breakdown
+        $departmentBreakdown = $payrollData['records']
+            ->groupBy(function ($payroll) {
+                return $payroll->employee->department ?? 'Unknown';
+            })
+            ->map(function ($deptPayrolls) {
+                return [
+                    'department' => $deptPayrolls->first()->employee->department ?? 'Unknown',
+                    'employee_count' => $deptPayrolls->count(),
+                    'total_gross' => $deptPayrolls->sum('gross_salary'),
+                    'total_deductions' => $deptPayrolls->sum('total_deductions'),
+                    'total_net' => $deptPayrolls->sum('net_salary'),
+                    'average_salary' => $deptPayrolls->avg('net_salary'),
+                ];
+            })
+            ->values();
+
+        return array_merge($payrollData, ['department_breakdown' => $departmentBreakdown]);
     }
 
     private function getFilterOptions(): array
     {
         return [
-            'employees' => Employee::where('is_active', true)->select('id', 'first_name', 'last_name', 'employee_id')->get(),
+            'employees' => Employee::where('is_active', true)
+                ->select('id', 'first_name', 'last_name', 'employee_id')
+                ->get(),
             'locations' => Location::where('is_active', true)->select('id', 'name')->get(),
             'leave_types' => LeaveType::where('is_active', true)->select('id', 'name')->get(),
             'attendance_statuses' => ['present', 'late', 'absent', 'incomplete'],
             'leave_statuses' => ['pending', 'approved', 'rejected', 'cancelled'],
             'payroll_statuses' => ['draft', 'pending', 'approved', 'processed', 'paid', 'cancelled'],
             'employee_types' => ['full_time', 'part_time', 'contract', 'temporary'],
-            'export_formats' => $this->exportService->getSupportedFormats()
+            'export_formats' => $this->exportService->getSupportedFormats(),
         ];
     }
 }

@@ -2,55 +2,88 @@
 
 namespace App\Services;
 
+use App\Models\Attendance;
 use App\Models\Employee;
+use App\Models\Leave;
 use App\Models\Payroll;
 use App\Models\PayrollItem;
-use App\Models\Attendance;
-use App\Models\Leave;
-use App\Models\LeaveType;
+use App\Repositories\AttendanceRepository;
+use App\Repositories\EmployeeRepository;
+use App\Repositories\LeaveRepository;
+use App\Repositories\PayrollRepository;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 
 class PayrollCalculationService
 {
+    protected $payrollRepository;
+
+    protected $employeeRepository;
+
+    protected $attendanceRepository;
+
+    protected $leaveRepository;
+
+    public function __construct(
+        PayrollRepository $payrollRepository,
+        EmployeeRepository $employeeRepository,
+        AttendanceRepository $attendanceRepository,
+        LeaveRepository $leaveRepository
+    ) {
+        $this->payrollRepository = $payrollRepository;
+        $this->employeeRepository = $employeeRepository;
+        $this->attendanceRepository = $attendanceRepository;
+        $this->leaveRepository = $leaveRepository;
+    }
+
     /**
      * Calculate payroll for an employee for a specific period.
      */
-    public function calculatePayroll(Employee $employee, Carbon $periodStart, Carbon $periodEnd, array $options = []): Payroll
-    {
+    public function calculatePayroll(
+        Employee $employee,
+        Carbon $periodStart,
+        Carbon $periodEnd,
+        array $options = [],
+    ): Payroll {
         // Check if payroll already exists for this period
-        $existingPayroll = $employee->payrolls()
-            ->where('payroll_period_start', $periodStart->toDateString())
-            ->where('payroll_period_end', $periodEnd->toDateString())
-            ->first();
+        $existingPayroll = $this->payrollRepository->getEmployeePayrollForPeriod(
+            $employee->id,
+            $periodStart->toDateString(),
+            $periodEnd->toDateString()
+        );
 
-        if ($existingPayroll && !($options['force_recalculate'] ?? false)) {
+        if ($existingPayroll && ! ($options['force_recalculate'] ?? false)) {
             return $existingPayroll;
         }
 
         // Create or update payroll record
-        $payroll = $existingPayroll ?: new Payroll();
-        $payroll->fill([
+        $payrollData = [
             'employee_id' => $employee->id,
             'payroll_period_start' => $periodStart->toDateString(),
             'payroll_period_end' => $periodEnd->toDateString(),
             'pay_date' => $this->calculatePayDate($periodEnd),
             'status' => Payroll::STATUS_DRAFT,
-        ]);
+        ];
+
+        $payroll = $existingPayroll
+          ? $this->payrollRepository->update($existingPayroll->id, $payrollData)
+          : $this->payrollRepository->create($payrollData);
 
         // Calculate attendance data
         $attendanceData = $this->calculateAttendanceData($employee, $periodStart, $periodEnd);
-        $payroll->worked_hours = $attendanceData['worked_hours'];
-        $payroll->overtime_hours = $attendanceData['overtime_hours'];
 
         // Calculate leave data
         $leaveData = $this->calculateLeaveData($employee, $periodStart, $periodEnd);
-        $payroll->leave_days_taken = $leaveData['total_days'];
-        $payroll->leave_days_paid = $leaveData['paid_days'];
-        $payroll->leave_days_unpaid = $leaveData['unpaid_days'];
 
-        $payroll->save();
+        // Update payroll with calculated data
+        $payroll = $this->payrollRepository->update($payroll->id, [
+            'worked_hours' => $attendanceData['worked_hours'],
+            'overtime_hours' => $attendanceData['overtime_hours'],
+            'leave_days_taken' => $leaveData['total_days'],
+            'leave_days_paid' => $leaveData['paid_days'],
+            'leave_days_unpaid' => $leaveData['unpaid_days'],
+        ]);
 
         // Clear existing payroll items if recalculating
         if ($existingPayroll) {
@@ -73,12 +106,16 @@ class PayrollCalculationService
     /**
      * Calculate attendance data for the payroll period.
      */
-    protected function calculateAttendanceData(Employee $employee, Carbon $periodStart, Carbon $periodEnd): array
-    {
-        $attendances = $employee->attendances()
-            ->whereBetween('date', [$periodStart, $periodEnd])
-            ->where('status', '!=', 'absent')
-            ->get();
+    protected function calculateAttendanceData(
+        Employee $employee,
+        Carbon $periodStart,
+        Carbon $periodEnd,
+    ): array {
+        $attendances = $this->attendanceRepository->getEmployeeAttendanceForPeriod(
+            $employee->id,
+            $periodStart->toDateString(),
+            $periodEnd->toDateString()
+        )->where('status', '!=', 'absent');
 
         $workedHours = $attendances->sum('total_hours') ?? 0;
         $overtimeHours = 0;
@@ -104,20 +141,16 @@ class PayrollCalculationService
     /**
      * Calculate leave data for the payroll period.
      */
-    protected function calculateLeaveData(Employee $employee, Carbon $periodStart, Carbon $periodEnd): array
-    {
-        $leaves = $employee->leaves()
-            ->where('status', Leave::STATUS_APPROVED)
-            ->where(function ($query) use ($periodStart, $periodEnd) {
-                $query->whereBetween('start_date', [$periodStart, $periodEnd])
-                    ->orWhereBetween('end_date', [$periodStart, $periodEnd])
-                    ->orWhere(function ($q) use ($periodStart, $periodEnd) {
-                        $q->where('start_date', '<=', $periodStart)
-                          ->where('end_date', '>=', $periodEnd);
-                    });
-            })
-            ->with('leaveType')
-            ->get();
+    protected function calculateLeaveData(
+        Employee $employee,
+        Carbon $periodStart,
+        Carbon $periodEnd,
+    ): array {
+        $leaves = $this->leaveRepository->getLeavesForDateRange(
+            $periodStart->toDateString(),
+            $periodEnd->toDateString(),
+            $employee->id
+        )->where('status', Leave::STATUS_APPROVED);
 
         $totalDays = 0;
         $paidDays = 0;
@@ -148,8 +181,12 @@ class PayrollCalculationService
     /**
      * Calculate basic salary based on employee salary type.
      */
-    protected function calculateBasicSalary(Payroll $payroll, array $attendanceData, array $leaveData, array $options): void
-    {
+    protected function calculateBasicSalary(
+        Payroll $payroll,
+        array $attendanceData,
+        array $leaveData,
+        array $options,
+    ): void {
         $employee = $payroll->employee;
         $basicSalaryAmount = 0;
 
@@ -172,7 +209,7 @@ class PayrollCalculationService
             PayrollItem::createBasicSalaryItem(
                 $payroll->id,
                 $basicSalaryAmount,
-                'Basic Salary - ' . ucfirst($employee->salary_type)
+                'Basic Salary - '.ucfirst($employee->salary_type),
             );
         }
     }
@@ -180,8 +217,11 @@ class PayrollCalculationService
     /**
      * Calculate overtime pay.
      */
-    protected function calculateOvertimePay(Payroll $payroll, array $attendanceData, array $options): void
-    {
+    protected function calculateOvertimePay(
+        Payroll $payroll,
+        array $attendanceData,
+        array $options,
+    ): void {
         if ($attendanceData['overtime_hours'] <= 0) {
             return;
         }
@@ -194,7 +234,7 @@ class PayrollCalculationService
                 $payroll->id,
                 $attendanceData['overtime_hours'],
                 $overtimeRate,
-                'Overtime Pay'
+                'Overtime Pay',
             );
         }
     }
@@ -227,14 +267,18 @@ class PayrollCalculationService
 
         // Overtime rate multiplier from config
         $overtimeMultiplier = Config::get('payroll.calculations.overtime_multiplier', 1.5);
+
         return $baseRate * $overtimeMultiplier;
     }
 
     /**
      * Calculate leave adjustments (paid leave and unpaid leave deductions).
      */
-    protected function calculateLeaveAdjustments(Payroll $payroll, array $leaveData, array $options): void
-    {
+    protected function calculateLeaveAdjustments(
+        Payroll $payroll,
+        array $leaveData,
+        array $options,
+    ): void {
         $employee = $payroll->employee;
 
         // Add paid leave if applicable
@@ -246,13 +290,13 @@ class PayrollCalculationService
                 'payroll_id' => $payroll->id,
                 'type' => PayrollItem::TYPE_EARNING,
                 'category' => PayrollItem::CATEGORY_VACATION_PAY,
-                'description' => 'Paid Leave (' . $leaveData['paid_days'] . ' days)',
+                'description' => 'Paid Leave ('.$leaveData['paid_days'].' days)',
                 'amount' => $paidLeaveAmount,
                 'quantity' => $leaveData['paid_days'],
                 'rate' => $dailyRate,
                 'calculation_method' => PayrollItem::CALCULATION_DAILY,
                 'is_taxable' => true,
-                'is_statutory' => false
+                'is_statutory' => false,
             ]);
         }
 
@@ -263,7 +307,7 @@ class PayrollCalculationService
                 $payroll->id,
                 $leaveData['unpaid_days'],
                 $dailyRate,
-                'Unpaid Leave Deduction (' . $leaveData['unpaid_days'] . ' days)'
+                'Unpaid Leave Deduction ('.$leaveData['unpaid_days'].' days)',
             );
         }
     }
@@ -275,7 +319,7 @@ class PayrollCalculationService
     {
         $workingDaysPerMonth = $this->getPayrollConfig('calculations.working_days_per_month', 22);
         $standardHoursPerDay = $this->getPayrollConfig('calculations.standard_hours_per_day', 8);
-        
+
         switch ($employee->salary_type) {
             case 'monthly':
                 return ($employee->salary_amount ?? 0) / $workingDaysPerMonth;
@@ -303,7 +347,7 @@ class PayrollCalculationService
                 PayrollItem::createBonusItem(
                     $payroll->id,
                     $bonus['amount'],
-                    $bonus['description'] ?? 'Bonus'
+                    $bonus['description'] ?? 'Bonus',
                 );
             }
         }
@@ -329,18 +373,22 @@ class PayrollCalculationService
     {
         // Perfect attendance bonus
         $attendances = $payroll->attendanceRecords()->get();
-        $workingDays = $this->getWorkingDays($payroll->payroll_period_start, $payroll->payroll_period_end);
-        
+        $workingDays = $this->getWorkingDays(
+            $payroll->payroll_period_start,
+            $payroll->payroll_period_end,
+        );
+
         $perfectAttendanceBonusConfig = Config::get('payroll.bonuses.perfect_attendance');
-        
-        if ($perfectAttendanceBonusConfig['enabled'] && 
-            $attendances->count() >= $workingDays && 
-            $attendances->where('status', 'present')->count() >= $workingDays) {
-            
+
+        if (
+            $perfectAttendanceBonusConfig['enabled'] &&
+            $attendances->count() >= $workingDays &&
+            $attendances->where('status', 'present')->count() >= $workingDays
+        ) {
             PayrollItem::createBonusItem(
                 $payroll->id,
                 $perfectAttendanceBonusConfig['amount'],
-                'Perfect Attendance Bonus'
+                'Perfect Attendance Bonus',
             );
         }
     }
@@ -364,7 +412,7 @@ class PayrollCalculationService
                     'amount' => $deduction['amount'],
                     'calculation_method' => PayrollItem::CALCULATION_FIXED,
                     'is_taxable' => false,
-                    'is_statutory' => $deduction['is_statutory'] ?? false
+                    'is_statutory' => $deduction['is_statutory'] ?? false,
                 ]);
             }
         }
@@ -376,12 +424,14 @@ class PayrollCalculationService
     protected function calculateTaxDeductions(Payroll $payroll, array $options): void
     {
         // Get taxable income
-        $taxableEarnings = $payroll->payrollItems()
+        $taxableEarnings = $payroll
+            ->payrollItems()
             ->where('type', PayrollItem::TYPE_EARNING)
             ->where('is_taxable', true)
             ->sum('amount');
 
-        $taxableBonuses = $payroll->payrollItems()
+        $taxableBonuses = $payroll
+            ->payrollItems()
             ->where('type', PayrollItem::TYPE_BONUS)
             ->where('is_taxable', true)
             ->sum('amount');
@@ -391,14 +441,9 @@ class PayrollCalculationService
         if ($taxableIncome > 0) {
             // Simple tax calculation - implement your tax brackets here
             $taxRate = $this->calculateTaxRate($taxableIncome, $payroll->employee);
-            
+
             if ($taxRate > 0) {
-                PayrollItem::createTaxItem(
-                    $payroll->id,
-                    $taxableIncome,
-                    $taxRate,
-                    'Income Tax'
-                );
+                PayrollItem::createTaxItem($payroll->id, $taxableIncome, $taxRate, 'Income Tax');
             }
 
             // Add other statutory deductions (social security, etc.)
@@ -412,16 +457,16 @@ class PayrollCalculationService
     protected function calculateTaxRate(float $taxableIncome, Employee $employee): float
     {
         $taxBrackets = Config::get('payroll.tax.brackets', []);
-        
+
         foreach ($taxBrackets as $bracket) {
             $min = $bracket['min'];
             $max = $bracket['max'];
-            
+
             if ($taxableIncome >= $min && ($max === null || $taxableIncome <= $max)) {
                 return $bracket['rate'];
             }
         }
-        
+
         // Default to 0% if no bracket matches
         return 0;
     }
@@ -429,16 +474,19 @@ class PayrollCalculationService
     /**
      * Calculate statutory deductions.
      */
-    protected function calculateStatutoryDeductions(Payroll $payroll, float $taxableIncome, array $options): void
-    {
+    protected function calculateStatutoryDeductions(
+        Payroll $payroll,
+        float $taxableIncome,
+        array $options,
+    ): void {
         $statutoryDeductions = Config::get('payroll.statutory_deductions', []);
-        
+
         // Social Security
         if ($statutoryDeductions['social_security']['enabled']) {
             $socialSecurityRate = $statutoryDeductions['social_security']['rate'];
             $socialSecurityCap = $statutoryDeductions['social_security']['cap'];
-            $socialSecurityAmount = $taxableIncome * $socialSecurityRate / 100;
-            
+            $socialSecurityAmount = ($taxableIncome * $socialSecurityRate) / 100;
+
             if ($socialSecurityCap) {
                 $socialSecurityAmount = min($socialSecurityAmount, $socialSecurityCap);
             }
@@ -453,7 +501,7 @@ class PayrollCalculationService
                     'rate' => $socialSecurityRate,
                     'calculation_method' => PayrollItem::CALCULATION_PERCENTAGE,
                     'is_taxable' => false,
-                    'is_statutory' => true
+                    'is_statutory' => true,
                 ]);
             }
         }
@@ -461,7 +509,7 @@ class PayrollCalculationService
         // Medicare
         if ($statutoryDeductions['medicare']['enabled']) {
             $medicareRate = $statutoryDeductions['medicare']['rate'];
-            $medicareAmount = $taxableIncome * $medicareRate / 100;
+            $medicareAmount = ($taxableIncome * $medicareRate) / 100;
 
             if ($medicareAmount > 0) {
                 PayrollItem::create([
@@ -473,7 +521,7 @@ class PayrollCalculationService
                     'rate' => $medicareRate,
                     'calculation_method' => PayrollItem::CALCULATION_PERCENTAGE,
                     'is_taxable' => false,
-                    'is_statutory' => true
+                    'is_statutory' => true,
                 ]);
             }
         }
@@ -485,15 +533,15 @@ class PayrollCalculationService
     protected function calculatePayDate(Carbon $periodEnd): Carbon
     {
         $payDateDay = Config::get('payroll.calculations.pay_date_day', 15);
-        
+
         // Pay on the configured day of the following month, or next business day
         $payDate = $periodEnd->copy()->addMonth()->day($payDateDay);
-        
+
         // If it falls on weekend, move to next Monday
         if ($payDate->isWeekend()) {
             $payDate = $payDate->next(Carbon::MONDAY);
         }
-        
+
         return $payDate;
     }
 
@@ -514,7 +562,7 @@ class PayrollCalculationService
         $current = $startDate->copy();
 
         while ($current <= $endDate) {
-            if (!$current->isWeekend()) {
+            if (! $current->isWeekend()) {
                 $workingDays++;
             }
             $current->addDay();
@@ -526,8 +574,12 @@ class PayrollCalculationService
     /**
      * Calculate payroll for multiple employees.
      */
-    public function calculatePayrollForEmployees(Collection $employees, Carbon $periodStart, Carbon $periodEnd, array $options = []): Collection
-    {
+    public function calculatePayrollForEmployees(
+        Collection $employees,
+        Carbon $periodStart,
+        Carbon $periodEnd,
+        array $options = [],
+    ): Collection {
         $payrolls = collect();
 
         foreach ($employees as $employee) {
@@ -536,7 +588,9 @@ class PayrollCalculationService
                 $payrolls->push($payroll);
             } catch (\Exception $e) {
                 // Log error and continue with next employee
-                \Log::error("Failed to calculate payroll for employee {$employee->id}: " . $e->getMessage());
+                \Log::error(
+                    "Failed to calculate payroll for employee {$employee->id}: ".$e->getMessage(),
+                );
             }
         }
 
@@ -546,12 +600,15 @@ class PayrollCalculationService
     /**
      * Calculate monthly payroll for all active employees.
      */
-    public function calculateMonthlyPayrollForAllEmployees(int $year, int $month, array $options = []): Collection
-    {
+    public function calculateMonthlyPayrollForAllEmployees(
+        int $year,
+        int $month,
+        array $options = [],
+    ): Collection {
         $periodStart = Carbon::create($year, $month, 1)->startOfMonth();
         $periodEnd = Carbon::create($year, $month, 1)->endOfMonth();
 
-        $employees = Employee::where('is_active', true)->get();
+        $employees = $this->employeeRepository->getActiveEmployees();
 
         return $this->calculatePayrollForEmployees($employees, $periodStart, $periodEnd, $options);
     }
@@ -571,7 +628,7 @@ class PayrollCalculationService
     {
         $errors = [];
         $config = Config::get('payroll.validation', []);
-        
+
         // Validate minimum wage
         if (isset($config['minimum_wage'])) {
             $hourlyEquivalent = $payroll->gross_salary / max($payroll->worked_hours, 1);
@@ -579,17 +636,23 @@ class PayrollCalculationService
                 $errors[] = "Calculated hourly rate ({$hourlyEquivalent}) is below minimum wage ({$config['minimum_wage']})";
             }
         }
-        
+
         // Validate maximum hours
-        if (isset($config['maximum_hours_per_period']) && $payroll->worked_hours > $config['maximum_hours_per_period']) {
+        if (
+            isset($config['maximum_hours_per_period']) &&
+            $payroll->worked_hours > $config['maximum_hours_per_period']
+        ) {
             $errors[] = "Worked hours ({$payroll->worked_hours}) exceed maximum allowed ({$config['maximum_hours_per_period']})";
         }
-        
+
         // Validate overtime hours
-        if (isset($config['maximum_overtime_hours']) && $payroll->overtime_hours > $config['maximum_overtime_hours']) {
+        if (
+            isset($config['maximum_overtime_hours']) &&
+            $payroll->overtime_hours > $config['maximum_overtime_hours']
+        ) {
             $errors[] = "Overtime hours ({$payroll->overtime_hours}) exceed maximum allowed ({$config['maximum_overtime_hours']})";
         }
-        
+
         return $errors;
     }
 
@@ -598,19 +661,9 @@ class PayrollCalculationService
      */
     public function getPayrollSummary(Carbon $periodStart, Carbon $periodEnd): array
     {
-        $payrolls = Payroll::whereBetween('payroll_period_start', [$periodStart, $periodEnd])
-            ->with('employee')
-            ->get();
-
-        return [
-            'total_employees' => $payrolls->count(),
-            'total_gross_salary' => $payrolls->sum('gross_salary'),
-            'total_deductions' => $payrolls->sum('total_deductions'),
-            'total_bonuses' => $payrolls->sum('total_bonuses'),
-            'total_net_salary' => $payrolls->sum('net_salary'),
-            'total_worked_hours' => $payrolls->sum('worked_hours'),
-            'total_overtime_hours' => $payrolls->sum('overtime_hours'),
-            'payrolls' => $payrolls,
-        ];
+        return $this->payrollRepository->getPayrollSummary(
+            $periodStart->toDateString(),
+            $periodEnd->toDateString()
+        );
     }
 }

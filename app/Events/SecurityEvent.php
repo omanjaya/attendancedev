@@ -9,7 +9,7 @@ use Illuminate\Queue\SerializesModels;
 
 /**
  * Security Event
- * 
+ *
  * Fired when security-related actions occur in the system.
  */
 class SecurityEvent
@@ -22,7 +22,7 @@ class SecurityEvent
         public string $severity = 'info', // 'low', 'medium', 'high', 'critical'
         public string $ipAddress = '',
         public string $userAgent = '',
-        public array $metadata = []
+        public array $metadata = [],
     ) {}
 
     /**
@@ -32,7 +32,7 @@ class SecurityEvent
     {
         return [
             'user_id' => $this->user?->id,
-            'event_type' => 'security_' . $this->eventType,
+            'event_type' => 'security_'.$this->eventType,
             'severity' => $this->severity,
             'ip_address' => $this->ipAddress,
             'user_agent' => $this->userAgent,
@@ -40,8 +40,8 @@ class SecurityEvent
                 'user_email' => $this->user?->email,
                 'user_roles' => $this->user?->roles->pluck('name')->toArray(),
                 'timestamp' => now()->toISOString(),
-                'source' => 'web_application'
-            ])
+                'source' => 'web_application',
+            ]),
         ];
     }
 
@@ -55,7 +55,7 @@ class SecurityEvent
             'multiple_failed_logins',
             'suspicious_login_pattern',
             'privilege_escalation',
-            'data_breach_attempt'
+            'data_breach_attempt',
         ];
 
         return in_array($this->eventType, $criticalEvents) || $this->severity === 'critical';

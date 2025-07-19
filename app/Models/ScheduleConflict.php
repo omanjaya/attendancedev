@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class ScheduleConflict extends Model
 {
@@ -20,13 +20,13 @@ class ScheduleConflict extends Model
         'detected_at',
         'resolved_at',
         'resolved_by',
-        'resolution_notes'
+        'resolution_notes',
     ];
 
     protected $casts = [
         'is_resolved' => 'boolean',
         'detected_at' => 'datetime',
-        'resolved_at' => 'datetime'
+        'resolved_at' => 'datetime',
     ];
 
     // Constants
@@ -35,14 +35,14 @@ class ScheduleConflict extends Model
         'class_double_booking' => 'Kelas Double Booking',
         'room_double_booking' => 'Ruangan Double Booking',
         'subject_frequency_exceeded' => 'Frekuensi Mata Pelajaran Berlebih',
-        'teacher_max_hours_exceeded' => 'Jam Mengajar Guru Berlebih'
+        'teacher_max_hours_exceeded' => 'Jam Mengajar Guru Berlebih',
     ];
 
     const SEVERITIES = [
         'low' => 'Rendah',
         'medium' => 'Sedang',
         'high' => 'Tinggi',
-        'critical' => 'Kritis'
+        'critical' => 'Kritis',
     ];
 
     // Relationships
@@ -99,7 +99,7 @@ class ScheduleConflict extends Model
             'low' => 'green',
             'medium' => 'yellow',
             'high' => 'orange',
-            'critical' => 'red'
+            'critical' => 'red',
         ];
 
         return $colors[$this->severity] ?? 'gray';
@@ -112,7 +112,7 @@ class ScheduleConflict extends Model
             'is_resolved' => true,
             'resolved_at' => now(),
             'resolved_by' => $userId,
-            'resolution_notes' => $notes
+            'resolution_notes' => $notes,
         ]);
 
         return $this;
@@ -121,11 +121,11 @@ class ScheduleConflict extends Model
     public function getAffectedSchedules()
     {
         $schedules = collect();
-        
+
         if ($this->schedule1) {
             $schedules->push($this->schedule1);
         }
-        
+
         if ($this->schedule2) {
             $schedules->push($this->schedule2);
         }
@@ -147,10 +147,10 @@ class ScheduleConflict extends Model
                     'class' => $schedule->academicClass->full_name,
                     'subject' => $schedule->subject->display_name,
                     'teacher' => $schedule->employee->full_name,
-                    'time' => $schedule->day_name . ', ' . $schedule->timeSlot->formatted_time,
-                    'room' => $schedule->room
+                    'time' => $schedule->day_name.', '.$schedule->timeSlot->formatted_time,
+                    'room' => $schedule->room,
                 ];
-            })
+            }),
         ];
     }
 }

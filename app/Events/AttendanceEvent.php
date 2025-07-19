@@ -10,7 +10,7 @@ use Illuminate\Queue\SerializesModels;
 
 /**
  * Attendance Event
- * 
+ *
  * Fired when attendance actions occur (check-in, check-out, manual adjustments).
  */
 class AttendanceEvent
@@ -23,7 +23,7 @@ class AttendanceEvent
         public ?Attendance $attendance = null,
         public array $locationData = [],
         public array $faceData = [],
-        public array $metadata = []
+        public array $metadata = [],
     ) {}
 
     /**
@@ -34,20 +34,20 @@ class AttendanceEvent
         return [
             'user_id' => $this->employee->user_id,
             'employee_id' => $this->employee->id,
-            'event_type' => 'attendance_' . $this->action,
+            'event_type' => 'attendance_'.$this->action,
             'attendance_id' => $this->attendance?->id,
             'metadata' => array_merge($this->metadata, [
                 'employee_code' => $this->employee->employee_code,
                 'employee_name' => $this->employee->full_name,
-                'location_verified' => !empty($this->locationData['verified']),
-                'face_verified' => !empty($this->faceData['verified']),
+                'location_verified' => ! empty($this->locationData['verified']),
+                'face_verified' => ! empty($this->faceData['verified']),
                 'location_data' => $this->locationData,
                 'face_data' => array_merge($this->faceData, [
                     // Remove sensitive face embedding data from logs
-                    'face_embedding' => !empty($this->faceData['face_embedding']) ? '[REDACTED]' : null
+                    'face_embedding' => ! empty($this->faceData['face_embedding']) ? '[REDACTED]' : null,
                 ]),
-                'timestamp' => now()->toISOString()
-            ])
+                'timestamp' => now()->toISOString(),
+            ]),
         ];
     }
 
@@ -56,12 +56,12 @@ class AttendanceEvent
      */
     public function getRiskLevel(): string
     {
-        $locationVerified = !empty($this->locationData['verified']);
-        $faceVerified = !empty($this->faceData['verified']);
+        $locationVerified = ! empty($this->locationData['verified']);
+        $faceVerified = ! empty($this->faceData['verified']);
 
-        if (!$locationVerified && !$faceVerified) {
+        if (! $locationVerified && ! $faceVerified) {
             return 'high';
-        } elseif (!$locationVerified || !$faceVerified) {
+        } elseif (! $locationVerified || ! $faceVerified) {
             return 'medium';
         }
 

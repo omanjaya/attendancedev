@@ -1,4 +1,5 @@
 # 📋 Detailed Task Breakdown
+
 ## Sprint Planning & Implementation Tasks
 
 ### 🚀 Phase 1: Critical Security & Core Features (8 weeks)
@@ -8,9 +9,11 @@
 ## Sprint 1-2: Two-Factor Authentication (2FA) - 3 weeks
 
 ### Week 1: 2FA Setup Infrastructure
+
 **Sprint Goal**: Implement 2FA setup wizard with QR code generation
 
 #### Backend Tasks (8 hours)
+
 - [ ] **Task 1.1**: Enhance TwoFactorService API endpoints (4h)
   - Add QR code generation endpoint
   - Implement backup codes generation
@@ -28,7 +31,9 @@
   - Validate backup codes functionality
 
 #### Frontend Tasks (32 hours)
+
 - [ ] **Task 1.4**: Create 2FA Setup Component (12h)
+
   ```
   components/Security/TwoFactorSetup.vue
   ├── QRCodeDisplay.vue (4h)
@@ -56,6 +61,7 @@
   - Create warning messages
 
 #### Testing Tasks (8 hours)
+
 - [ ] **Task 1.8**: Component testing (4h)
   - Unit tests for all 2FA components
   - Mock QR code generation
@@ -67,9 +73,11 @@
   - Mobile responsiveness testing
 
 ### Week 2: 2FA Login Integration
+
 **Sprint Goal**: Integrate 2FA into login flow and user management
 
 #### Backend Tasks (6 hours)
+
 - [ ] **Task 2.1**: Update authentication middleware (3h)
   - Modify login controller for 2FA check
   - Add 2FA verification step
@@ -81,7 +89,9 @@
   - Create recovery audit logging
 
 #### Frontend Tasks (28 hours)
+
 - [ ] **Task 2.3**: Modify login flow (12h)
+
   ```
   pages/Auth/Login.vue
   ├── TwoFactorPrompt.vue (6h)
@@ -101,15 +111,18 @@
   - Account recovery notification
 
 #### Testing Tasks (6 hours)
+
 - [ ] **Task 2.6**: Authentication flow testing (6h)
   - Test complete login with 2FA
   - Test backup code recovery
   - Test disable/enable workflows
 
 ### Week 3: 2FA Security Hardening
+
 **Sprint Goal**: Security testing, documentation, and optimization
 
 #### Security Tasks (20 hours)
+
 - [ ] **Task 3.1**: Security audit and penetration testing (8h)
   - Test for timing attacks
   - Validate rate limiting
@@ -129,6 +142,7 @@
   - Video tutorials creation
 
 #### Deliverables:
+
 - ✅ Complete 2FA setup wizard
 - ✅ QR code generation and display
 - ✅ Backup codes management
@@ -141,9 +155,11 @@
 ## Sprint 3-6: Real Face Recognition - 4 weeks
 
 ### Week 1: Camera Integration & Face Detection
+
 **Sprint Goal**: Replace simulation with real camera and face detection
 
 #### Backend Tasks (12 hours)
+
 - [ ] **Task 4.1**: Enhance Face Detection API (6h)
   - Update face registration endpoint
   - Add face quality validation
@@ -162,7 +178,9 @@
   - Track accuracy statistics
 
 #### Frontend Tasks (32 hours)
+
 - [ ] **Task 4.4**: Real camera integration (16h)
+
   ```
   components/FaceRecognition/
   ├── CameraCapture.vue (8h)
@@ -183,6 +201,7 @@
   - Multiple face detection handling
 
 #### Testing Tasks (8 hours)
+
 - [ ] **Task 4.7**: Camera testing (8h)
   - Cross-browser camera support
   - Mobile device testing
@@ -190,9 +209,11 @@
   - Error scenario testing
 
 ### Week 2: Face Registration System
+
 **Sprint Goal**: Build comprehensive face enrollment system
 
 #### Backend Tasks (8 hours)
+
 - [ ] **Task 5.1**: Bulk face registration API (4h)
   - Multiple face enrollment endpoint
   - Batch processing for face registration
@@ -204,7 +225,9 @@
   - Face data encryption/decryption
 
 #### Frontend Tasks (32 hours)
+
 - [ ] **Task 5.3**: Face enrollment interface (20h)
+
   ```
   pages/FaceRecognition/
   ├── FaceEnrollment.vue (12h)
@@ -225,9 +248,11 @@
   - Quality score display
 
 ### Week 3: Real-time Face Verification
+
 **Sprint Goal**: Implement live face verification for attendance
 
 #### Backend Tasks (6 hours)
+
 - [ ] **Task 6.1**: Real-time verification API (4h)
   - Live face comparison endpoint
   - Confidence scoring algorithm
@@ -240,7 +265,9 @@
   - Add fallback authentication
 
 #### Frontend Tasks (32 hours)
+
 - [ ] **Task 6.3**: Live verification interface (20h)
+
   ```
   pages/Attendance/
   ├── LiveFaceVerification.vue (12h)
@@ -261,9 +288,11 @@
   - Alternative authentication options
 
 ### Week 4: Face Analytics & Optimization
+
 **Sprint Goal**: Analytics dashboard and system optimization
 
 #### Backend Tasks (8 hours)
+
 - [ ] **Task 7.1**: Face recognition analytics (6h)
   - Recognition accuracy metrics
   - Performance statistics API
@@ -276,7 +305,9 @@
   - Response time improvements
 
 #### Frontend Tasks (24 hours)
+
 - [ ] **Task 7.3**: Face analytics dashboard (16h)
+
   ```
   pages/Analytics/
   ├── FaceRecognitionStats.vue (10h)
@@ -291,6 +322,7 @@
   - Optimization recommendations
 
 #### Deliverables:
+
 - ✅ Real camera-based face recognition
 - ✅ Face enrollment and management
 - ✅ Live attendance verification
@@ -303,9 +335,11 @@
 ## Sprint 7-8: Security Dashboard & Payroll - 2 weeks
 
 ### Week 1: Security Monitoring Dashboard
+
 **Sprint Goal**: Build comprehensive security oversight interface
 
 #### Backend Tasks (8 hours)
+
 - [ ] **Task 8.1**: Security metrics API (4h)
   - Failed login tracking endpoint
   - IP whitelist management API
@@ -319,7 +353,9 @@
   - Security report generation
 
 #### Frontend Tasks (32 hours)
+
 - [ ] **Task 8.3**: Security dashboard (24h)
+
   ```
   pages/Security/
   ├── SecurityOverview.vue (8h)
@@ -335,9 +371,11 @@
   - Escalation procedures
 
 ### Week 2: Advanced Payroll Workflows
+
 **Sprint Goal**: Complete payroll calculation and approval system
 
 #### Backend Tasks (6 hours)
+
 - [ ] **Task 9.1**: Payroll workflow enhancements (6h)
   - Multi-level approval system
   - Payroll status tracking
@@ -345,7 +383,9 @@
   - Bulk processing improvements
 
 #### Frontend Tasks (32 hours)
+
 - [ ] **Task 9.2**: Payroll calculation interface (20h)
+
   ```
   pages/Payroll/
   ├── PayrollCalculator.vue (8h)
@@ -361,6 +401,7 @@
   - Notification management
 
 #### Deliverables:
+
 - ✅ Complete security monitoring dashboard
 - ✅ Real-time threat detection
 - ✅ Advanced payroll workflows
@@ -373,6 +414,7 @@
 ### Sprint 9-12: Academic Schedule Management - 4 weeks
 
 #### Week 1-2: Schedule Grid Enhancement (2 weeks)
+
 - [ ] **Task 10.1**: Advanced schedule grid (40h)
   - Complete grid-based editor
   - Drag-and-drop functionality
@@ -380,6 +422,7 @@
   - Teacher availability integration
 
 #### Week 3-4: Conflict Resolution & Analytics (2 weeks)
+
 - [ ] **Task 10.2**: Conflict resolution system (40h)
   - Conflict visualization
   - Automated resolution suggestions
@@ -389,6 +432,7 @@
 ### Sprint 13-16: Export/Import & Performance (4 weeks)
 
 #### Week 1-2: Export/Import Enhancement (2 weeks)
+
 - [ ] **Task 11.1**: Advanced export/import (40h)
   - Custom export configuration
   - Template management
@@ -396,6 +440,7 @@
   - Error handling
 
 #### Week 3-4: Performance Monitoring (2 weeks)
+
 - [ ] **Task 11.2**: Performance dashboard (40h)
   - User performance metrics
   - System status page
@@ -409,6 +454,7 @@
 ### Sprint 17-20: Audit & Analytics (4 weeks)
 
 #### Week 1-2: Audit Log Analysis (2 weeks)
+
 - [ ] **Task 12.1**: Advanced audit tools (40h)
   - Multi-criteria filtering
   - Risk assessment
@@ -416,6 +462,7 @@
   - Compliance reporting
 
 #### Week 3-4: Leave Analytics (2 weeks)
+
 - [ ] **Task 12.2**: Leave analytics dashboard (40h)
   - Pattern analysis
   - Predictive insights
@@ -425,6 +472,7 @@
 ### Sprint 21-24: Location & Optimization (4 weeks)
 
 #### Week 1-2: Location Management (2 weeks)
+
 - [ ] **Task 13.1**: Map integration (40h)
   - Interactive maps
   - Geofence management
@@ -432,6 +480,7 @@
   - Location analytics
 
 #### Week 3-4: System Optimization (2 weeks)
+
 - [ ] **Task 13.2**: Final optimization (40h)
   - Performance tuning
   - Code optimization
@@ -443,28 +492,31 @@
 ## 📊 Resource Allocation Summary
 
 ### By Role:
-| Role | Phase 1 | Phase 2 | Phase 3 | Total Hours |
-|------|---------|---------|---------|-------------|
-| Frontend Developer | 150h | 120h | 100h | 370h |
-| Backend Developer | 30h | 20h | 15h | 65h |
-| UI/UX Designer | 20h | 15h | 10h | 45h |
-| QA Tester | 40h | 30h | 25h | 95h |
+
+| Role               | Phase 1 | Phase 2 | Phase 3 | Total Hours |
+| ------------------ | ------- | ------- | ------- | ----------- |
+| Frontend Developer | 150h    | 120h    | 100h    | 370h        |
+| Backend Developer  | 30h     | 20h     | 15h     | 65h         |
+| UI/UX Designer     | 20h     | 15h     | 10h     | 45h         |
+| QA Tester          | 40h     | 30h     | 25h     | 95h         |
 
 ### By Feature Priority:
-| Feature | Hours | Priority | ROI Score |
-|---------|-------|----------|-----------|
-| 2FA Integration | 80h | Critical | 9/10 |
-| Face Recognition | 120h | Critical | 10/10 |
-| Security Dashboard | 40h | High | 8/10 |
-| Payroll Workflows | 60h | High | 9/10 |
-| Schedule Management | 80h | Medium | 7/10 |
-| Analytics Tools | 100h | Medium | 6/10 |
+
+| Feature             | Hours | Priority | ROI Score |
+| ------------------- | ----- | -------- | --------- |
+| 2FA Integration     | 80h   | Critical | 9/10      |
+| Face Recognition    | 120h  | Critical | 10/10     |
+| Security Dashboard  | 40h   | High     | 8/10      |
+| Payroll Workflows   | 60h   | High     | 9/10      |
+| Schedule Management | 80h   | Medium   | 7/10      |
+| Analytics Tools     | 100h  | Medium   | 6/10      |
 
 ---
 
 ## 🎯 Definition of Done
 
 ### For Each Task:
+
 - [ ] Code implementation complete
 - [ ] Unit tests written and passing
 - [ ] Integration tests passing
@@ -475,6 +527,7 @@
 - [ ] User acceptance criteria met
 
 ### For Each Sprint:
+
 - [ ] All tasks marked complete
 - [ ] Demo to stakeholders
 - [ ] User feedback collected
@@ -484,6 +537,7 @@
 - [ ] Deployment to staging successful
 
 ### For Each Phase:
+
 - [ ] All sprint goals achieved
 - [ ] End-to-end testing completed
 - [ ] Performance targets met
@@ -497,21 +551,25 @@
 ## 📈 Progress Tracking
 
 ### Daily Standups:
+
 - Yesterday's accomplishments
 - Today's goals
 - Blockers and impediments
 - Resource needs
 
 ### Weekly Reviews:
+
 - Sprint progress assessment
 - Quality metrics review
 - Performance benchmarks
 - Risk assessment update
 
 ### Monthly Retrospectives:
+
 - Phase completion review
 - Lessons learned
 - Process improvements
 - Resource reallocation
 
-This detailed breakdown provides clear, actionable tasks with realistic time estimates and dependencies for successful integration of all backend features into the frontend.
+This detailed breakdown provides clear, actionable tasks with realistic time estimates and
+dependencies for successful integration of all backend features into the frontend.

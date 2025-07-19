@@ -2,18 +2,18 @@
 
 namespace Tests\Unit\Listeners;
 
-use App\Events\UserLoginEvent;
 use App\Events\AttendanceEvent;
 use App\Events\SecurityEvent;
+use App\Events\UserLoginEvent;
 use App\Listeners\LogAuditEventListener;
-use App\Models\User;
-use App\Models\Employee;
 use App\Models\Attendance;
 use App\Models\AuditLog;
-use Tests\TestCase;
+use App\Models\Employee;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
+use Tests\TestCase;
 
 class LogAuditEventListenerTest extends TestCase
 {
@@ -24,8 +24,8 @@ class LogAuditEventListenerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->listener = new LogAuditEventListener();
-        
+        $this->listener = new LogAuditEventListener;
+
         // Use sync queue for testing
         Queue::fake();
     }
@@ -37,7 +37,7 @@ class LogAuditEventListenerTest extends TestCase
             user: $user,
             ipAddress: '192.168.1.1',
             userAgent: 'Mozilla/5.0 (Test Browser)',
-            deviceFingerprint: 'device_123'
+            deviceFingerprint: 'device_123',
         );
 
         $this->listener->handleUserLogin($event);
@@ -53,20 +53,15 @@ class LogAuditEventListenerTest extends TestCase
 
     public function test_handle_user_login_logs_to_file(): void
     {
-        Log::shouldReceive('channel')
-            ->with('audit')
-            ->once()
-            ->andReturnSelf();
+        Log::shouldReceive('channel')->with('audit')->once()->andReturnSelf();
 
-        Log::shouldReceive('log')
-            ->with('info', 'user_login', \Mockery::type('array'))
-            ->once();
+        Log::shouldReceive('log')->with('info', 'user_login', \Mockery::type('array'))->once();
 
         $user = User::factory()->create();
         $event = new UserLoginEvent(
             user: $user,
             ipAddress: '192.168.1.1',
-            userAgent: 'Mozilla/5.0 (Test Browser)'
+            userAgent: 'Mozilla/5.0 (Test Browser)',
         );
 
         $this->listener->handleUserLogin($event);
@@ -84,7 +79,7 @@ class LogAuditEventListenerTest extends TestCase
             action: 'check_in',
             attendance: $attendance,
             locationData: ['verified' => true],
-            faceData: ['verified' => true]
+            faceData: ['verified' => true],
         );
 
         $this->listener->handleAttendance($event);
@@ -117,7 +112,7 @@ class LogAuditEventListenerTest extends TestCase
             action: 'check_in',
             attendance: $attendance,
             locationData: ['verified' => false], // High risk - location not verified
-            faceData: ['verified' => false] // High risk - face not verified
+            faceData: ['verified' => false], // High risk - face not verified
         );
 
         $this->listener->handleAttendance($event);
@@ -132,7 +127,7 @@ class LogAuditEventListenerTest extends TestCase
             severity: 'medium',
             ipAddress: '192.168.1.1',
             userAgent: 'Mozilla/5.0 (Test Browser)',
-            metadata: ['attempted_email' => $user->email]
+            metadata: ['attempted_email' => $user->email],
         );
 
         $this->listener->handleSecurity($event);
@@ -148,23 +143,15 @@ class LogAuditEventListenerTest extends TestCase
 
     public function test_handle_security_with_critical_event_logs_to_security_channel(): void
     {
-        Log::shouldReceive('channel')
-            ->with('security')
-            ->once()
-            ->andReturnSelf();
+        Log::shouldReceive('channel')->with('security')->once()->andReturnSelf();
 
         Log::shouldReceive('critical')
             ->with('Critical security event', \Mockery::type('array'))
             ->once();
 
-        Log::shouldReceive('channel')
-            ->with('audit')
-            ->once()
-            ->andReturnSelf();
+        Log::shouldReceive('channel')->with('audit')->once()->andReturnSelf();
 
-        Log::shouldReceive('log')
-            ->once()
-            ->andReturn(true);
+        Log::shouldReceive('log')->once()->andReturn(true);
 
         $user = User::factory()->create();
         $event = new SecurityEvent(
@@ -172,7 +159,7 @@ class LogAuditEventListenerTest extends TestCase
             user: $user,
             severity: 'critical',
             ipAddress: '192.168.1.1',
-            userAgent: 'Mozilla/5.0 (Test Browser)'
+            userAgent: 'Mozilla/5.0 (Test Browser)',
         );
 
         $this->listener->handleSecurity($event);
@@ -236,7 +223,7 @@ class LogAuditEventListenerTest extends TestCase
             'metadata' => [
                 'location_verified' => false,
                 'face_verified' => false,
-            ]
+            ],
         ];
         $this->assertEquals('high', $method->invoke($this->listener, $eventData));
 
@@ -246,7 +233,7 @@ class LogAuditEventListenerTest extends TestCase
             'metadata' => [
                 'location_verified' => true,
                 'face_verified' => false,
-            ]
+            ],
         ];
         $this->assertEquals('medium', $method->invoke($this->listener, $eventData));
 
@@ -256,7 +243,7 @@ class LogAuditEventListenerTest extends TestCase
             'metadata' => [
                 'location_verified' => true,
                 'face_verified' => true,
-            ]
+            ],
         ];
         $this->assertEquals('low', $method->invoke($this->listener, $eventData));
     }
@@ -284,15 +271,13 @@ class LogAuditEventListenerTest extends TestCase
 
     public function test_failed_job_handling(): void
     {
-        Log::shouldReceive('error')
-            ->with('Audit logging failed', \Mockery::type('array'))
-            ->once();
+        Log::shouldReceive('error')->with('Audit logging failed', \Mockery::type('array'))->once();
 
         $user = User::factory()->create();
         $event = new UserLoginEvent(
             user: $user,
             ipAddress: '192.168.1.1',
-            userAgent: 'Mozilla/5.0 (Test Browser)'
+            userAgent: 'Mozilla/5.0 (Test Browser)',
         );
 
         $exception = new \Exception('Database connection failed');
@@ -303,9 +288,7 @@ class LogAuditEventListenerTest extends TestCase
     public function test_log_event_fallback_on_database_failure(): void
     {
         // Mock database failure
-        Log::shouldReceive('error')
-            ->with('Failed to log audit event', \Mockery::type('array'))
-            ->once();
+        Log::shouldReceive('error')->with('Failed to log audit event', \Mockery::type('array'))->once();
 
         // Force a database error by using invalid data
         $eventData = [
@@ -331,7 +314,7 @@ class LogAuditEventListenerTest extends TestCase
             ipAddress: '192.168.1.1',
             userAgent: 'Mozilla/5.0 (Test Browser)',
             deviceFingerprint: 'device_123',
-            metadata: ['login_method' => 'password']
+            metadata: ['login_method' => 'password'],
         );
 
         $this->listener->handleUserLogin($event);

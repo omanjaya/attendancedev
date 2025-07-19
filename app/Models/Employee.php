@@ -2,206 +2,158 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use App\Traits\Auditable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * Employee Model
+ *
+ * Optimized for performance with proper caching and eager loading
+ */
 class Employee extends Model
 {
-    use HasFactory, SoftDeletes, HasUuids, Auditable;
+    use HasFactory, HasUuids, SoftDeletes;
 
     protected $fillable = [
-        'user_id',
-        'employee_id',
-        'employee_type',
-        'first_name',
-        'last_name',
-        'phone',
-        'photo_path',
-        'hire_date',
-        'salary_type',
-        'salary_amount',
-        'hourly_rate',
-        'is_active',
-        'location_id',
-        'metadata'
+        'user_id', 'employee_id', 'full_name', 'phone',
+        'photo_path', 'employee_type', 'hire_date', 'salary_type',
+        'salary_amount', 'hourly_rate', 'location_id', 'metadata', 'is_active',
     ];
 
     protected $casts = [
         'hire_date' => 'date',
+        'salary_amount' => 'decimal:2',
+        'hourly_rate' => 'decimal:2',
         'is_active' => 'boolean',
         'metadata' => 'array',
-        'salary_amount' => 'decimal:2',
-        'hourly_rate' => 'decimal:2'
     ];
 
-    // Audit configuration
-    protected $auditExclude = ['updated_at', 'created_at'];
-    protected $auditTags = ['employee', 'personnel'];
-    protected $auditTimestamps = false;
+    protected $with = ['user']; // Always eager load user
 
-    /**
-     * Get the user that owns the employee.
-     */
-    public function user()
+    // ========== RELATIONSHIPS ==========
+
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * Get the full name attribute.
-     */
-    public function getFullNameAttribute()
-    {
-        return $this->first_name . ' ' . $this->last_name;
-    }
-
-    /**
-     * Get the location that the employee belongs to.
-     */
-    public function location()
+    public function location(): BelongsTo
     {
         return $this->belongsTo(Location::class);
     }
 
-    /**
-     * Get the periods assigned to this employee.
-     */
-    public function periods()
-    {
-        return $this->belongsToMany(Period::class, 'employee_schedules')
-                    ->withPivot(['effective_date', 'end_date', 'is_active', 'metadata'])
-                    ->withTimestamps();
-    }
-
-    /**
-     * Get the schedules for this employee.
-     */
-    public function schedules()
-    {
-        return $this->hasMany(EmployeeSchedule::class);
-    }
-
-    /**
-     * Get current active schedules.
-     */
-    public function currentSchedules()
-    {
-        return $this->schedules()->active()->current();
-    }
-
-    /**
-     * Get attendance records for this employee.
-     */
-    public function attendances()
+    public function attendances(): HasMany
     {
         return $this->hasMany(Attendance::class);
     }
 
-    /**
-     * Get today's attendance.
-     */
-    public function todayAttendance()
-    {
-        return $this->attendances()->today();
-    }
-
-    /**
-     * Check if employee is currently checked in today.
-     */
-    public function isCheckedInToday()
-    {
-        $todayAttendance = $this->attendances()->today()->first();
-        return $todayAttendance && $todayAttendance->isCheckedIn();
-    }
-
-    /**
-     * Get the photo URL attribute.
-     */
-    public function getPhotoUrlAttribute()
-    {
-        if ($this->photo_path) {
-            return asset('storage/' . $this->photo_path);
-        }
-        
-        // Generate default avatar using UI Avatars
-        return 'https://ui-avatars.com/api/?name=' . urlencode($this->full_name) . '&background=206bc4&color=fff&size=200';
-    }
-
-    /**
-     * Get leaves for this employee.
-     */
-    public function leaves()
+    public function leaves(): HasMany
     {
         return $this->hasMany(Leave::class);
     }
 
-    /**
-     * Get leave balances for this employee.
-     */
-    public function leaveBalances()
+    public function schedules(): HasMany
     {
-        return $this->hasMany(LeaveBalance::class);
+        return $this->hasMany(EmployeeSchedule::class);
+    }
+
+    // ========== SCOPES ==========
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function scopeWithTodayAttendance($query)
+    {
+        return $query->with(['attendances' => fn ($q) => $q->whereDate('created_at', today())]);
+    }
+
+    public function scopeWithLatestAttendance($query)
+    {
+        return $query->with(['attendances' => fn ($q) => $q->latest()->limit(1)]);
+    }
+
+    // ========== ACCESSORS ==========
+
+    public function getNameAttribute(): string
+    {
+        return $this->full_name ?? '';
+    }
+
+    public function getPhotoUrlAttribute(): string
+    {
+        return $this->photo_path
+            ? asset("storage/{$this->photo_path}")
+            : 'https://ui-avatars.com/api/?name='.urlencode($this->full_name);
+    }
+
+    public function getFaceRegisteredAttribute(): bool
+    {
+        return isset($this->metadata['face_recognition']['descriptor']);
+    }
+
+    // ========== OPTIMIZED QUERIES ==========
+
+    /**
+     * Get employees with minimal data for lists
+     */
+    public static function minimal()
+    {
+        return static::select(['id', 'first_name', 'last_name', 'employee_id', 'is_active'])
+            ->with(['user:id,name,email'])
+            ->orderBy('first_name');
     }
 
     /**
-     * Get leaves approved by this employee.
+     * Get employees for dashboard stats
      */
-    public function approvedLeaves()
+    public static function forStats()
     {
-        return $this->hasMany(Leave::class, 'approved_by');
+        return static::select(['id', 'is_active', 'created_at'])
+            ->withCount(['attendances', 'leaves']);
     }
 
     /**
-     * Get current year leave balance for a specific leave type.
+     * Get employees for DataTables
      */
-    public function getLeaveBalance($leaveTypeId, $year = null)
+    public static function forDataTable()
     {
-        $year = $year ?? date('Y');
-        
-        return $this->leaveBalances()
-            ->where('leave_type_id', $leaveTypeId)
-            ->where('year', $year)
+        return static::select([
+            'id', 'employee_id', 'first_name', 'last_name',
+            'employee_type', 'is_active', 'user_id', 'location_id',
+        ])->with([
+            'user:id,name,email',
+            'location:id,name',
+            'user.roles:id,name',
+        ]);
+    }
+
+    // ========== BUSINESS METHODS ==========
+
+    public function isActiveToday(): bool
+    {
+        return $this->attendances()
+            ->whereDate('created_at', today())
+            ->exists();
+    }
+
+    public function hasCheckedInToday(): bool
+    {
+        return $this->attendances()
+            ->whereDate('created_at', today())
+            ->whereNotNull('check_in_time')
+            ->exists();
+    }
+
+    public function getTodayAttendance()
+    {
+        return $this->attendances()
+            ->whereDate('created_at', today())
             ->first();
-    }
-
-    /**
-     * Get payroll records for this employee.
-     */
-    public function payrolls()
-    {
-        return $this->hasMany(Payroll::class);
-    }
-
-    /**
-     * Get current month payroll.
-     */
-    public function currentMonthPayroll()
-    {
-        $startOfMonth = now()->startOfMonth();
-        $endOfMonth = now()->endOfMonth();
-        
-        return $this->payrolls()
-            ->where('payroll_period_start', '>=', $startOfMonth)
-            ->where('payroll_period_end', '<=', $endOfMonth)
-            ->first();
-    }
-
-    /**
-     * Get approved payrolls processed by this employee.
-     */
-    public function approvedPayrolls()
-    {
-        return $this->hasMany(Payroll::class, 'approved_by');
-    }
-
-    /**
-     * Get processed payrolls processed by this employee.
-     */
-    public function processedPayrolls()
-    {
-        return $this->hasMany(Payroll::class, 'processed_by');
     }
 }

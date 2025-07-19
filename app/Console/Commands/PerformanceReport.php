@@ -67,7 +67,8 @@ class PerformanceReport extends Command
 
             return Command::SUCCESS;
         } catch (\Exception $e) {
-            $this->error("Failed to generate performance report: " . $e->getMessage());
+            $this->error('Failed to generate performance report: '.$e->getMessage());
+
             return Command::FAILURE;
         }
     }
@@ -78,11 +79,11 @@ class PerformanceReport extends Command
     private function generateTextReport(array $summary, array $alerts, int $period): string
     {
         $report = "=== PERFORMANCE REPORT ({$period}h) ===\n";
-        $report .= "Generated: " . now()->format('Y-m-d H:i:s') . "\n\n";
+        $report .= 'Generated: '.now()->format('Y-m-d H:i:s')."\n\n";
 
         // Summary
         $report .= "SUMMARY:\n";
-        $report .= "- Total Requests: " . number_format($summary['requests_count']) . "\n";
+        $report .= '- Total Requests: '.number_format($summary['requests_count'])."\n";
         $report .= "- Average Response Time: {$summary['avg_response_time']}ms\n";
         $report .= "- Max Response Time: {$summary['max_response_time']}ms\n";
         $report .= "- Average Memory Usage: {$summary['avg_memory_usage']}\n";
@@ -91,7 +92,7 @@ class PerformanceReport extends Command
         $report .= "- Error Rate: {$summary['error_rate']}%\n\n";
 
         // Alerts
-        if (!empty($alerts)) {
+        if (! empty($alerts)) {
             $report .= "ALERTS:\n";
             foreach ($alerts as $alert) {
                 $report .= "- [{$alert['severity']}] {$alert['title']}: {$alert['message']}\n";
@@ -120,7 +121,7 @@ class PerformanceReport extends Command
                 'laravel_version' => app()->version(),
                 'memory_limit' => ini_get('memory_limit'),
                 'max_execution_time' => ini_get('max_execution_time'),
-            ]
+            ],
         ];
 
         return json_encode($report, JSON_PRETTY_PRINT);
@@ -131,45 +132,46 @@ class PerformanceReport extends Command
      */
     private function generateHtmlReport(array $summary, array $alerts, int $period): string
     {
-        $html = "<!DOCTYPE html><html><head><title>Performance Report</title>";
-        $html .= "<style>body{font-family:Arial,sans-serif;margin:20px;}";
-        $html .= ".alert{padding:10px;margin:10px 0;border-left:4px solid #f39c12;}";
-        $html .= ".alert.error{border-color:#e74c3c;background:#fdf2f2;}";
-        $html .= ".alert.warning{border-color:#f39c12;background:#fefcf3;}";
-        $html .= "table{border-collapse:collapse;width:100%;}";
-        $html .= "th,td{border:1px solid #ddd;padding:8px;text-align:left;}";
-        $html .= "th{background-color:#f2f2f2;}</style></head><body>";
-        
+        $html = '<!DOCTYPE html><html><head><title>Performance Report</title>';
+        $html .= '<style>body{font-family:Arial,sans-serif;margin:20px;}';
+        $html .= '.alert{padding:10px;margin:10px 0;border-left:4px solid #f39c12;}';
+        $html .= '.alert.error{border-color:#e74c3c;background:#fdf2f2;}';
+        $html .= '.alert.warning{border-color:#f39c12;background:#fefcf3;}';
+        $html .= 'table{border-collapse:collapse;width:100%;}';
+        $html .= 'th,td{border:1px solid #ddd;padding:8px;text-align:left;}';
+        $html .= 'th{background-color:#f2f2f2;}</style></head><body>';
+
         $html .= "<h1>Performance Report ({$period}h)</h1>";
-        $html .= "<p><strong>Generated:</strong> " . now()->format('Y-m-d H:i:s') . "</p>";
+        $html .= '<p><strong>Generated:</strong> '.now()->format('Y-m-d H:i:s').'</p>';
 
         // Summary table
-        $html .= "<h2>Summary</h2>";
-        $html .= "<table>";
-        $html .= "<tr><th>Metric</th><th>Value</th></tr>";
-        $html .= "<tr><td>Total Requests</td><td>" . number_format($summary['requests_count']) . "</td></tr>";
+        $html .= '<h2>Summary</h2>';
+        $html .= '<table>';
+        $html .= '<tr><th>Metric</th><th>Value</th></tr>';
+        $html .=
+          '<tr><td>Total Requests</td><td>'.number_format($summary['requests_count']).'</td></tr>';
         $html .= "<tr><td>Average Response Time</td><td>{$summary['avg_response_time']}ms</td></tr>";
         $html .= "<tr><td>Max Response Time</td><td>{$summary['max_response_time']}ms</td></tr>";
         $html .= "<tr><td>Average Memory Usage</td><td>{$summary['avg_memory_usage']}</td></tr>";
         $html .= "<tr><td>Average Queries/Request</td><td>{$summary['avg_queries_per_request']}</td></tr>";
         $html .= "<tr><td>Slow Requests</td><td>{$summary['slow_requests']}</td></tr>";
         $html .= "<tr><td>Error Rate</td><td>{$summary['error_rate']}%</td></tr>";
-        $html .= "</table>";
+        $html .= '</table>';
 
         // Alerts
-        $html .= "<h2>Alerts</h2>";
-        if (!empty($alerts)) {
+        $html .= '<h2>Alerts</h2>';
+        if (! empty($alerts)) {
             foreach ($alerts as $alert) {
                 $class = $alert['type'] === 'error' ? 'error' : 'warning';
                 $html .= "<div class='alert {$class}'>";
                 $html .= "<strong>[{$alert['severity']}] {$alert['title']}:</strong> {$alert['message']}";
-                $html .= "</div>";
+                $html .= '</div>';
             }
         } else {
-            $html .= "<p>No alerts to report.</p>";
+            $html .= '<p>No alerts to report.</p>';
         }
 
-        $html .= "</body></html>";
+        $html .= '</body></html>';
 
         return $html;
     }
@@ -180,7 +182,7 @@ class PerformanceReport extends Command
     private function sendEmailReport(string $email, string $report, string $format, int $period): void
     {
         $subject = "Performance Report - Last {$period} Hours";
-        
+
         if ($format === 'html') {
             Mail::html($report, function ($message) use ($email, $subject) {
                 $message->to($email)->subject($subject);

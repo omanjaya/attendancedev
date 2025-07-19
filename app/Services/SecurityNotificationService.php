@@ -5,10 +5,10 @@ namespace App\Services;
 use App\Models\User;
 use App\Models\UserDevice;
 use App\Models\UserNotificationPreferences;
-use Illuminate\Support\Facades\Notification;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 
 class SecurityNotificationService
 {
@@ -32,7 +32,7 @@ class SecurityNotificationService
     public function notifyFailedLoginAttempts(User $user, int $attemptCount, Request $request): void
     {
         // Only notify after threshold is reached and not too frequently
-        if ($attemptCount >= 3 && !$this->wasRecentlyNotified($user, 'failed_login_attempts', 300)) {
+        if ($attemptCount >= 3 && ! $this->wasRecentlyNotified($user, 'failed_login_attempts', 300)) {
             $this->sendSecurityNotification($user, 'failed_login_attempts', [
                 'attempt_count' => $attemptCount,
                 'ip_address' => $request->ip(),
@@ -111,8 +111,12 @@ class SecurityNotificationService
     /**
      * Send admin access notification.
      */
-    public function notifyAdminAccess(User $user, string $action, array $details, Request $request): void
-    {
+    public function notifyAdminAccess(
+        User $user,
+        string $action,
+        array $details,
+        Request $request,
+    ): void {
         $this->sendSecurityNotification($user, 'admin_access', [
             'action' => $action,
             'details' => $details,
@@ -174,15 +178,19 @@ class SecurityNotificationService
     private function sendSecurityNotification(User $user, string $type, array $data): void
     {
         $preferences = $this->getUserPreferences($user);
-        
+
         // Check if user wants this type of notification
-        if (!$preferences->wantsEmailNotification($type) && !$preferences->wantsBrowserNotification($type)) {
+        if (
+            ! $preferences->wantsEmailNotification($type) &&
+            ! $preferences->wantsBrowserNotification($type)
+        ) {
             return;
         }
 
         // Check quiet hours for non-critical notifications
-        if (!$this->isCriticalSecurityEvent($type) && $preferences->isInQuietHours()) {
+        if (! $this->isCriticalSecurityEvent($type) && $preferences->isInQuietHours()) {
             $this->queueForDigest($user, $type, $data);
+
             return;
         }
 
@@ -195,9 +203,12 @@ class SecurityNotificationService
     private function sendSystemNotification(User $user, string $type, array $data): void
     {
         $preferences = $this->getUserPreferences($user);
-        
+
         // Check if user wants this type of notification
-        if (!$preferences->wantsEmailNotification($type) && !$preferences->wantsBrowserNotification($type)) {
+        if (
+            ! $preferences->wantsEmailNotification($type) &&
+            ! $preferences->wantsBrowserNotification($type)
+        ) {
             return;
         }
 
@@ -205,6 +216,7 @@ class SecurityNotificationService
         $digestFrequency = $preferences->getDigestFrequency('system');
         if ($digestFrequency !== 'immediate') {
             $this->queueForDigest($user, $type, $data);
+
             return;
         }
 
@@ -214,15 +226,20 @@ class SecurityNotificationService
     /**
      * Send the actual notification.
      */
-    private function sendNotification(User $user, string $type, array $data, string $category, UserNotificationPreferences $preferences): void
-    {
+    private function sendNotification(
+        User $user,
+        string $type,
+        array $data,
+        string $category,
+        UserNotificationPreferences $preferences,
+    ): void {
         try {
             $channels = [];
-            
+
             if ($preferences->wantsEmailNotification($type)) {
                 $channels[] = 'mail';
             }
-            
+
             if ($preferences->wantsBrowserNotification($type)) {
                 $channels[] = 'database';
             }
@@ -233,15 +250,15 @@ class SecurityNotificationService
 
             // Create notification class dynamically
             $notificationClass = $this->getNotificationClass($type, $category);
-            
+
             if (class_exists($notificationClass)) {
                 $notification = new $notificationClass($data);
                 $user->notify($notification);
-                
+
                 // Mark as recently notified to prevent spam
                 $this->markAsRecentlyNotified($user, $type);
-                
-                Log::info("Security notification sent", [
+
+                Log::info('Security notification sent', [
                     'user_id' => $user->id,
                     'type' => $type,
                     'category' => $category,
@@ -249,7 +266,7 @@ class SecurityNotificationService
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error("Failed to send security notification", [
+            Log::error('Failed to send security notification', [
                 'user_id' => $user->id,
                 'type' => $type,
                 'error' => $e->getMessage(),
@@ -271,7 +288,7 @@ class SecurityNotificationService
     private function createDefaultPreferences(User $user): UserNotificationPreferences
     {
         return UserNotificationPreferences::create(
-            array_merge(['user_id' => $user->id], UserNotificationPreferences::getDefaults())
+            array_merge(['user_id' => $user->id], UserNotificationPreferences::getDefaults()),
         );
     }
 
@@ -280,11 +297,7 @@ class SecurityNotificationService
      */
     private function isCriticalSecurityEvent(string $type): bool
     {
-        return in_array($type, [
-            'account_locked',
-            'suspicious_activity',
-            'admin_access',
-        ]);
+        return in_array($type, ['account_locked', 'suspicious_activity', 'admin_access']);
     }
 
     /**
@@ -293,6 +306,7 @@ class SecurityNotificationService
     private function wasRecentlyNotified(User $user, string $type, int $seconds = 3600): bool
     {
         $cacheKey = "notification_sent_{$user->id}_{$type}";
+
         return Cache::has($cacheKey);
     }
 
@@ -312,13 +326,13 @@ class SecurityNotificationService
     {
         $cacheKey = "digest_queue_{$user->id}";
         $queue = Cache::get($cacheKey, []);
-        
+
         $queue[] = [
             'type' => $type,
             'data' => $data,
             'timestamp' => now()->toISOString(),
         ];
-        
+
         Cache::put($cacheKey, $queue, 86400); // 24 hours
     }
 
@@ -328,6 +342,7 @@ class SecurityNotificationService
     private function getNotificationClass(string $type, string $category): string
     {
         $className = str_replace('_', '', ucwords($type, '_'));
+
         return "App\\Notifications\\{$category}\\{$className}Notification";
     }
 
@@ -340,12 +355,12 @@ class SecurityNotificationService
         // - MaxMind GeoIP
         // - IP-API
         // - ipstack
-        
+
         // For local development IPs, return a generic location
         if (in_array($ip, ['127.0.0.1', '::1', 'localhost'])) {
             return 'Local Development';
         }
-        
+
         return null; // Return null if no location service is configured
     }
 
@@ -355,7 +370,7 @@ class SecurityNotificationService
     public function processDigestNotifications(): void
     {
         $users = User::whereHas('notificationPreferences')->get();
-        
+
         foreach ($users as $user) {
             $this->processUserDigest($user);
         }
@@ -368,29 +383,29 @@ class SecurityNotificationService
     {
         $cacheKey = "digest_queue_{$user->id}";
         $queue = Cache::get($cacheKey, []);
-        
+
         if (empty($queue)) {
             return;
         }
-        
+
         $preferences = $this->getUserPreferences($user);
-        
+
         // Group notifications by category
         $groupedNotifications = [];
         foreach ($queue as $notification) {
             $category = $this->getCategoryForType($notification['type']);
             $groupedNotifications[$category][] = $notification;
         }
-        
+
         // Send digest for each category based on user preferences
         foreach ($groupedNotifications as $category => $notifications) {
             $frequency = $preferences->getDigestFrequency($category);
-            
+
             if ($this->shouldSendDigest($user, $category, $frequency)) {
                 $this->sendDigestNotification($user, $category, $notifications);
             }
         }
-        
+
         // Clear processed notifications
         Cache::forget($cacheKey);
     }
@@ -403,7 +418,7 @@ class SecurityNotificationService
         if (in_array($type, UserNotificationPreferences::getSecurityNotificationTypes())) {
             return 'security';
         }
-        
+
         return 'system';
     }
 
@@ -415,20 +430,21 @@ class SecurityNotificationService
         if ($frequency === 'immediate') {
             return true;
         }
-        
+
         $cacheKey = "digest_sent_{$user->id}_{$category}_{$frequency}";
-        
+
         if (Cache::has($cacheKey)) {
             return false;
         }
-        
+
         $ttl = match ($frequency) {
             'daily' => 86400,
             'weekly' => 604800,
             default => 3600,
         };
-        
+
         Cache::put($cacheKey, true, $ttl);
+
         return true;
     }
 
@@ -438,20 +454,20 @@ class SecurityNotificationService
     private function sendDigestNotification(User $user, string $category, array $notifications): void
     {
         try {
-            $notificationClass = "App\\Notifications\\Digest" . ucfirst($category) . "Notification";
-            
+            $notificationClass = 'App\\Notifications\\Digest'.ucfirst($category).'Notification';
+
             if (class_exists($notificationClass)) {
                 $notification = new $notificationClass($notifications);
                 $user->notify($notification);
-                
-                Log::info("Digest notification sent", [
+
+                Log::info('Digest notification sent', [
                     'user_id' => $user->id,
                     'category' => $category,
                     'notification_count' => count($notifications),
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error("Failed to send digest notification", [
+            Log::error('Failed to send digest notification', [
                 'user_id' => $user->id,
                 'category' => $category,
                 'error' => $e->getMessage(),

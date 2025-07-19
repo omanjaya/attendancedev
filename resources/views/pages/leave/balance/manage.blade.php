@@ -1,4 +1,4 @@
-@extends('layouts.authenticated')
+@extends('layouts.authenticated-unified')
 
 @section('title', 'Leave Balance Management')
 

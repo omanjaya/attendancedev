@@ -2,35 +2,31 @@
   <div class="2fa-setup-container">
     <!-- Step Indicator -->
     <div class="step-indicator mb-6">
-      <div class="flex justify-between items-center">
-        <div 
-          v-for="(stepInfo, index) in steps" 
+      <div class="flex items-center justify-between">
+        <div
+          v-for="(stepInfo, index) in steps"
           :key="index"
           class="flex items-center"
           :class="{ 'opacity-50': currentStep < index }"
         >
-          <div 
+          <div
             class="step-circle"
             :class="{
               'bg-blue-600 text-white': currentStep >= index,
               'bg-gray-200 text-gray-600': currentStep < index,
-              'bg-green-600': currentStep > index
+              'bg-green-600': currentStep > index,
             }"
           >
-            <Icon 
-              v-if="currentStep > index" 
-              name="check" 
-              class="w-4 h-4" 
-            />
+            <Icon v-if="currentStep > index" name="check" class="h-4 w-4" />
             <span v-else>{{ index + 1 }}</span>
           </div>
           <span class="ml-2 text-sm font-medium">{{ stepInfo.title }}</span>
-          <div 
-            v-if="index < steps.length - 1" 
+          <div
+            v-if="index < steps.length - 1"
             class="step-line ml-4"
             :class="{
               'bg-blue-600': currentStep > index,
-              'bg-gray-200': currentStep <= index
+              'bg-gray-200': currentStep <= index,
             }"
           />
         </div>
@@ -42,53 +38,51 @@
       <!-- Step 1: QR Code Display -->
       <div v-if="currentStep === 0" class="qr-step">
         <div class="text-center">
-          <h3 class="text-xl font-semibold mb-4">
+          <h3 class="mb-4 text-xl font-semibold">
             Scan QR Code with Your Authenticator App
           </h3>
-          <p class="text-gray-600 mb-6">
+          <p class="mb-6 text-gray-600">
             Use Google Authenticator, Authy, or any compatible TOTP app to scan this QR code.
           </p>
 
           <!-- QR Code Display -->
-          <div class="qr-container bg-white p-6 rounded-lg shadow-lg inline-block mb-6">
-            <div v-if="loading.qr" class="flex justify-center items-center h-48 w-48">
-              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div class="qr-container mb-6 inline-block rounded-lg bg-white p-6 shadow-lg">
+            <div v-if="loading.qr" class="flex h-48 w-48 items-center justify-center">
+              <div class="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" />
             </div>
-            <img 
-              v-else-if="qrCodeUrl" 
-              :src="qrCodeUrl" 
+            <img
+              v-else-if="qrCodeUrl"
+              :src="qrCodeUrl"
               alt="2FA QR Code"
               class="h-48 w-48"
-            />
-            <div v-else class="h-48 w-48 bg-gray-100 flex items-center justify-center rounded">
-              <Icon name="qr-code" class="w-12 h-12 text-gray-400" />
+            >
+            <div v-else class="flex h-48 w-48 items-center justify-center rounded bg-gray-100">
+              <Icon name="qr-code" class="h-12 w-12 text-gray-400" />
             </div>
           </div>
 
           <!-- Manual Entry -->
-          <div class="manual-entry bg-gray-50 p-4 rounded-lg mb-6">
-            <h4 class="font-medium mb-2">Can't scan? Enter this code manually:</h4>
+          <div class="manual-entry mb-6 rounded-lg bg-gray-50 p-4">
+            <h4 class="mb-2 font-medium">
+              Can't scan? Enter this code manually:
+            </h4>
             <div class="flex items-center justify-center space-x-2">
-              <code class="bg-white px-3 py-2 rounded border font-mono text-sm">
+              <code class="rounded border bg-white px-3 py-2 font-mono text-sm">
                 {{ secretKey || 'Loading...' }}
               </code>
-              <button
-                @click="copySecretKey"
-                class="btn-secondary"
-                :disabled="!secretKey"
-              >
-                <Icon name="copy" class="w-4 h-4" />
+              <button class="btn-secondary" :disabled="!secretKey" @click="copySecretKey">
+                <Icon name="copy" class="h-4 w-4" />
               </button>
             </div>
           </div>
 
           <!-- Instructions -->
-          <div class="instructions text-left bg-blue-50 p-4 rounded-lg mb-6">
-            <h4 class="font-medium mb-2 flex items-center">
-              <Icon name="info" class="w-4 h-4 mr-2" />
+          <div class="instructions mb-6 rounded-lg bg-blue-50 p-4 text-left">
+            <h4 class="mb-2 flex items-center font-medium">
+              <Icon name="info" class="mr-2 h-4 w-4" />
               Setup Instructions:
             </h4>
-            <ol class="list-decimal list-inside space-y-1 text-sm">
+            <ol class="list-inside list-decimal space-y-1 text-sm">
               <li>Install Google Authenticator or similar app on your mobile device</li>
               <li>Open the app and tap "Add account" or "+" button</li>
               <li>Scan the QR code above or enter the manual key</li>
@@ -99,16 +93,12 @@
 
           <!-- Actions -->
           <div class="flex justify-between">
-            <button @click="$emit('cancel')" class="btn-secondary">
+            <button class="btn-secondary" @click="$emit('cancel')">
               Cancel Setup
             </button>
-            <button 
-              @click="nextStep" 
-              class="btn-primary"
-              :disabled="!secretKey"
-            >
+            <button class="btn-primary" :disabled="!secretKey" @click="nextStep">
               I've Added the Account
-              <Icon name="arrow-right" class="w-4 h-4 ml-2" />
+              <Icon name="arrow-right" class="ml-2 h-4 w-4" />
             </button>
           </div>
         </div>
@@ -117,18 +107,16 @@
       <!-- Step 2: Verification -->
       <div v-if="currentStep === 1" class="verify-step">
         <div class="text-center">
-          <h3 class="text-xl font-semibold mb-4">
+          <h3 class="mb-4 text-xl font-semibold">
             Verify Your Setup
           </h3>
-          <p class="text-gray-600 mb-6">
+          <p class="mb-6 text-gray-600">
             Enter the 6-digit code from your authenticator app to complete setup.
           </p>
 
           <!-- Verification Code Input -->
           <div class="verification-input mb-6">
-            <label class="block text-sm font-medium mb-2">
-              Verification Code
-            </label>
+            <label class="mb-2 block text-sm font-medium"> Verification Code </label>
             <div class="flex justify-center">
               <input
                 v-model="verificationCode"
@@ -136,33 +124,33 @@
                 maxlength="6"
                 pattern="[0-9]*"
                 inputmode="numeric"
-                class="text-center text-2xl font-mono w-48 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="w-48 rounded-lg border px-4 py-3 text-center font-mono text-2xl focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                 placeholder="000000"
                 @input="handleVerificationInput"
                 @keyup.enter="verifySetup"
-              />
+              >
             </div>
-            <p class="text-xs text-gray-500 mt-2">
+            <p class="mt-2 text-xs text-gray-500">
               Enter the 6-digit code from your authenticator app
             </p>
           </div>
 
           <!-- Error Display -->
           <div v-if="error" class="alert alert-error mb-6">
-            <Icon name="x-circle" class="w-4 h-4" />
+            <Icon name="x-circle" class="h-4 w-4" />
             {{ error }}
           </div>
 
           <!-- Actions -->
           <div class="flex justify-between">
-            <button @click="previousStep" class="btn-secondary">
-              <Icon name="arrow-left" class="w-4 h-4 mr-2" />
+            <button class="btn-secondary" @click="previousStep">
+              <Icon name="arrow-left" class="mr-2 h-4 w-4" />
               Back
             </button>
-            <button 
-              @click="verifySetup" 
+            <button
               class="btn-primary"
               :disabled="verificationCode.length !== 6 || loading.verify"
+              @click="verifySetup"
             >
               <div v-if="loading.verify" class="spinner mr-2" />
               Verify & Enable 2FA
@@ -174,22 +162,25 @@
       <!-- Step 3: Backup Codes -->
       <div v-if="currentStep === 2" class="backup-step">
         <div class="text-center">
-          <h3 class="text-xl font-semibold mb-4 text-green-600">
-            <Icon name="check-circle" class="w-6 h-6 inline mr-2" />
+          <h3 class="mb-4 text-xl font-semibold text-green-600">
+            <Icon name="check-circle" class="mr-2 inline h-6 w-6" />
             2FA Enabled Successfully!
           </h3>
-          <p class="text-gray-600 mb-6">
-            Save these backup codes in a secure location. You can use them to access your account if you lose your authenticator device.
+          <p class="mb-6 text-gray-600">
+            Save these backup codes in a secure location. You can use them to access your account if
+            you lose your authenticator device.
           </p>
 
           <!-- Backup Codes Display -->
-          <div class="backup-codes bg-gray-50 p-6 rounded-lg mb-6">
-            <h4 class="font-medium mb-4">Your Backup Codes:</h4>
-            <div class="grid grid-cols-2 gap-2 max-w-md mx-auto">
-              <code 
-                v-for="(code, index) in backupCodes" 
+          <div class="backup-codes mb-6 rounded-lg bg-gray-50 p-6">
+            <h4 class="mb-4 font-medium">
+              Your Backup Codes:
+            </h4>
+            <div class="mx-auto grid max-w-md grid-cols-2 gap-2">
+              <code
+                v-for="(code, index) in backupCodes"
                 :key="index"
-                class="bg-white px-3 py-2 rounded border font-mono text-sm text-center"
+                class="rounded border bg-white px-3 py-2 text-center font-mono text-sm"
               >
                 {{ code }}
               </code>
@@ -197,12 +188,14 @@
           </div>
 
           <!-- Warning -->
-          <div class="warning bg-yellow-50 border border-yellow-200 p-4 rounded-lg mb-6">
+          <div class="warning mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
             <div class="flex items-start">
-              <Icon name="exclamation-triangle" class="w-5 h-5 text-yellow-600 mt-0.5 mr-3" />
+              <Icon name="exclamation-triangle" class="mr-3 mt-0.5 h-5 w-5 text-yellow-600" />
               <div class="text-left">
-                <h4 class="font-medium text-yellow-800 mb-1">Important:</h4>
-                <ul class="text-sm text-yellow-700 space-y-1">
+                <h4 class="mb-1 font-medium text-yellow-800">
+                  Important:
+                </h4>
+                <ul class="space-y-1 text-sm text-yellow-700">
                   <li>• Each backup code can only be used once</li>
                   <li>• Store them in a safe, secure location</li>
                   <li>• Don't share them with anyone</li>
@@ -214,16 +207,16 @@
 
           <!-- Actions -->
           <div class="flex justify-center space-x-4">
-            <button @click="downloadBackupCodes" class="btn-secondary">
-              <Icon name="download" class="w-4 h-4 mr-2" />
+            <button class="btn-secondary" @click="downloadBackupCodes">
+              <Icon name="download" class="mr-2 h-4 w-4" />
               Download Codes
             </button>
-            <button @click="copyBackupCodes" class="btn-secondary">
-              <Icon name="copy" class="w-4 h-4 mr-2" />
+            <button class="btn-secondary" @click="copyBackupCodes">
+              <Icon name="copy" class="mr-2 h-4 w-4" />
               Copy Codes
             </button>
-            <button @click="finish" class="btn-primary">
-              <Icon name="check" class="w-4 h-4 mr-2" />
+            <button class="btn-primary" @click="finish">
+              <Icon name="check" class="mr-2 h-4 w-4" />
               I've Saved My Codes
             </button>
           </div>
@@ -251,7 +244,7 @@ const error = ref('')
 
 const loading = reactive({
   qr: false,
-  verify: false
+  verify: false,
 })
 
 const { toast } = useToast()
@@ -260,17 +253,17 @@ const { toast } = useToast()
 const steps = computed(() => [
   { title: 'Scan QR Code', description: 'Add account to authenticator app' },
   { title: 'Verify Setup', description: 'Enter verification code' },
-  { title: 'Save Backup Codes', description: 'Download recovery codes' }
+  { title: 'Save Backup Codes', description: 'Download recovery codes' },
 ])
 
 // Methods
 const initializeSetup = async () => {
   loading.qr = true
   error.value = ''
-  
+
   try {
     const response = await twoFactorService.initializeSetup()
-    
+
     if (response.success) {
       secretKey.value = response.data.secret_key
       qrCodeUrl.value = response.data.qr_code_url
@@ -316,7 +309,7 @@ const verifySetup = async () => {
 
   try {
     const response = await twoFactorService.verifySetup(verificationCode.value)
-    
+
     if (response.success) {
       backupCodes.value = response.data.backup_codes || []
       nextStep()
@@ -370,14 +363,14 @@ IMPORTANT:
   link.click()
   document.body.removeChild(link)
   window.URL.revokeObjectURL(url)
-  
+
   toast.success('Backup codes downloaded')
 }
 
 const finish = () => {
   emit('success', {
     enabled: true,
-    backup_codes: backupCodes.value
+    backup_codes: backupCodes.value,
   })
 }
 
@@ -389,11 +382,11 @@ onMounted(() => {
 
 <style scoped>
 .step-indicator {
-  @apply max-w-2xl mx-auto;
+  @apply mx-auto max-w-2xl;
 }
 
 .step-circle {
-  @apply w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium;
+  @apply flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium;
 }
 
 .step-line {
@@ -401,27 +394,23 @@ onMounted(() => {
 }
 
 .btn-primary {
-  @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg 
-         transition-colors duration-200 inline-flex items-center disabled:opacity-50 
-         disabled:cursor-not-allowed;
+  @apply inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50;
 }
 
 .btn-secondary {
-  @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg 
-         transition-colors duration-200 inline-flex items-center disabled:opacity-50 
-         disabled:cursor-not-allowed;
+  @apply inline-flex items-center rounded-lg bg-gray-200 px-4 py-2 font-medium text-gray-800 transition-colors duration-200 hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50;
 }
 
 .alert {
-  @apply p-4 rounded-lg flex items-center space-x-2;
+  @apply flex items-center space-x-2 rounded-lg p-4;
 }
 
 .alert-error {
-  @apply bg-red-50 text-red-800 border border-red-200;
+  @apply border border-red-200 bg-red-50 text-red-800;
 }
 
 .spinner {
-  @apply animate-spin rounded-full h-4 w-4 border-b-2 border-white;
+  @apply h-4 w-4 animate-spin rounded-full border-b-2 border-white;
 }
 
 .verification-input input:focus {
@@ -437,11 +426,11 @@ onMounted(() => {
   .step-indicator .flex {
     @apply flex-col space-y-4;
   }
-  
+
   .step-line {
-    @apply w-0.5 h-8;
+    @apply h-8 w-0.5;
   }
-  
+
   .backup-codes .grid {
     @apply grid-cols-1;
   }

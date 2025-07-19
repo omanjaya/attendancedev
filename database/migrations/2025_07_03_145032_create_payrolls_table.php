@@ -26,7 +26,9 @@ return new class extends Migration
             $table->decimal('leave_days_taken', 5, 2)->default(0);
             $table->decimal('leave_days_paid', 5, 2)->default(0);
             $table->decimal('leave_days_unpaid', 5, 2)->default(0);
-            $table->enum('status', ['draft', 'pending', 'approved', 'processed', 'paid', 'cancelled'])->default('draft');
+            $table
+                ->enum('status', ['draft', 'pending', 'approved', 'processed', 'paid', 'cancelled'])
+                ->default('draft');
             $table->uuid('approved_by')->nullable();
             $table->timestamp('approved_at')->nullable();
             $table->uuid('processed_by')->nullable();
@@ -35,20 +37,23 @@ return new class extends Migration
             $table->jsonb('metadata')->default('{}');
             $table->timestamps();
             $table->softDeletes();
-            
+
             // Foreign keys
             $table->foreign('employee_id')->references('id')->on('employees')->onDelete('cascade');
             $table->foreign('approved_by')->references('id')->on('employees')->onDelete('set null');
             $table->foreign('processed_by')->references('id')->on('employees')->onDelete('set null');
-            
+
             // Indexes
             $table->index('employee_id');
             $table->index(['payroll_period_start', 'payroll_period_end']);
             $table->index('status');
             $table->index('pay_date');
-            
+
             // Unique constraint for employee per payroll period
-            $table->unique(['employee_id', 'payroll_period_start', 'payroll_period_end'], 'unique_employee_payroll_period');
+            $table->unique(
+                ['employee_id', 'payroll_period_start', 'payroll_period_end'],
+                'unique_employee_payroll_period',
+            );
         });
     }
 

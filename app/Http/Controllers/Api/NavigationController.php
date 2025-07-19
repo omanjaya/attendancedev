@@ -6,15 +6,44 @@ use App\Http\Controllers\Controller;
 use App\Services\NavigationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 
 class NavigationController extends Controller
 {
-    private NavigationService $navigationService;
+    /**
+     * Create a new controller instance.
+     */
+    public function __construct(
+        private NavigationService $navigationService
+    ) {}
 
-    public function __construct(NavigationService $navigationService)
+    /**
+     * Get navigation structure for authenticated user
+     */
+    public function index(): JsonResponse
     {
-        $this->navigationService = $navigationService;
+        $navigation = $this->navigationService->getNavigation();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'navigation' => $navigation,
+            ],
+        ]);
+    }
+
+    /**
+     * Get mobile navigation structure
+     */
+    public function mobile(): JsonResponse
+    {
+        $navigation = $this->navigationService->getMobileNavigation();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'navigation' => $navigation,
+            ],
+        ]);
     }
 
     /**
@@ -22,95 +51,23 @@ class NavigationController extends Controller
      */
     public function search(Request $request): JsonResponse
     {
-        try {
-            $validated = $request->validate([
-                'query' => 'required|string|min:2|max:100',
-            ]);
+        $request->validate([
+            'query' => 'required|string|min:2|max:50',
+        ]);
 
-            $results = $this->navigationService->searchNavigation(
-                $validated['query'],
-                auth()->user()
-            );
+        $query = $request->input('query');
+        $navigation = $this->navigationService->getNavigation();
 
-            return response()->json($results);
+        // Simple search implementation
+        $results = $this->searchInNavigation($navigation, $query);
 
-        } catch (ValidationException $e) {
-            return response()->json([
-                'error' => 'Invalid search query',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Search failed',
-                'message' => 'An error occurred while searching navigation'
-            ], 500);
-        }
-    }
-
-    /**
-     * Get navigation structure for current user
-     */
-    public function index(Request $request): JsonResponse
-    {
-        try {
-            $navigation = $this->navigationService->getMainNavigation(
-                user: auth()->user()
-            );
-
-            $bottomNavigation = $this->navigationService->getBottomNavigation(
-                user: auth()->user()
-            );
-
-            $favorites = $this->navigationService->getUserFavorites(
-                auth()->user()
-            );
-
-            return response()->json([
-                'main' => $navigation,
-                'bottom' => $bottomNavigation,
-                'favorites' => $favorites,
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Failed to load navigation',
-                'message' => 'An error occurred while loading navigation data'
-            ], 500);
-        }
-    }
-
-    /**
-     * Update user favorites
-     */
-    public function updateFavorites(Request $request): JsonResponse
-    {
-        try {
-            $validated = $request->validate([
-                'favorites' => 'required|array|max:10',
-                'favorites.*.name' => 'required|string|max:100',
-                'favorites.*.route' => 'required|string|max:100',
-                'favorites.*.icon' => 'required|string|max:50',
-            ]);
-
-            // In real implementation, save to database
-            // UserFavorite::updateOrCreate(...);
-
-            return response()->json([
-                'message' => 'Favorites updated successfully',
-                'favorites' => $validated['favorites']
-            ]);
-
-        } catch (ValidationException $e) {
-            return response()->json([
-                'error' => 'Invalid favorites data',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Failed to update favorites',
-                'message' => 'An error occurred while updating favorites'
-            ], 500);
-        }
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'query' => $query,
+                'results' => $results,
+            ],
+        ]);
     }
 
     /**
@@ -118,43 +75,51 @@ class NavigationController extends Controller
      */
     public function clearCache(): JsonResponse
     {
-        try {
-            $this->navigationService->clearCache(auth()->id());
+        $this->navigationService->clearCache();
 
-            return response()->json([
-                'message' => 'Navigation cache cleared successfully'
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Failed to clear cache',
-                'message' => 'An error occurred while clearing navigation cache'
-            ], 500);
-        }
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Navigation cache cleared successfully',
+        ]);
     }
 
     /**
-     * Get navigation performance metrics
+     * Search through navigation array
      */
-    public function metrics(): JsonResponse
+    private function searchInNavigation(array $navigation, string $query): array
     {
-        try {
-            // In real implementation, collect actual metrics
-            $metrics = [
-                'cache_hit_rate' => 95.5,
-                'average_load_time' => 45.2, // milliseconds
-                'total_navigation_items' => count($this->navigationService->getMainNavigation(user: auth()->user())),
-                'user_favorites_count' => count($this->navigationService->getUserFavorites(auth()->user())),
-                'last_cache_refresh' => now()->toISOString(),
-            ];
+        $results = [];
+        $query = strtolower($query);
 
-            return response()->json($metrics);
+        foreach ($navigation as $item) {
+            // Search in item name
+            if (str_contains(strtolower($item['name']), $query)) {
+                $results[] = [
+                    'id' => $item['id'],
+                    'name' => $item['name'],
+                    'icon' => $item['icon'],
+                    'route' => $item['route'] ?? null,
+                    'type' => $item['type'],
+                ];
+            }
 
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Failed to load metrics',
-                'message' => 'An error occurred while loading navigation metrics'
-            ], 500);
+            // Search in children if it's a section
+            if ($item['type'] === 'section' && isset($item['children'])) {
+                foreach ($item['children'] as $child) {
+                    if (str_contains(strtolower($child['name']), $query)) {
+                        $results[] = [
+                            'id' => $child['id'],
+                            'name' => $child['name'],
+                            'icon' => $child['icon'],
+                            'route' => $child['route'] ?? null,
+                            'type' => $child['type'],
+                            'parent' => $item['name'],
+                        ];
+                    }
+                }
+            }
         }
+
+        return $results;
     }
 }

@@ -1,22 +1,26 @@
 <template>
   <div class="schedule-grid-container">
     <!-- Header Controls -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 mb-6">
-      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+    <div
+      class="mb-6 rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800"
+    >
+      <div
+        class="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0"
+      >
         <!-- Class Selection -->
         <div class="flex items-center space-x-4">
-          <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Pilih Kelas:
-          </label>
-          <select 
+          <label class="text-sm font-medium text-gray-700 dark:text-gray-300"> Pilih Kelas: </label>
+          <select
             v-model="selectedClassId"
+            class="rounded-lg border border-gray-300 bg-white px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700"
             @change="loadScheduleGrid"
-            class="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
           >
-            <option value="">-- Pilih Kelas --</option>
-            <option 
-              v-for="academicClass in academicClasses" 
-              :key="academicClass.id" 
+            <option value="">
+              -- Pilih Kelas --
+            </option>
+            <option
+              v-for="academicClass in academicClasses"
+              :key="academicClass.id"
               :value="academicClass.id"
             >
               {{ academicClass.full_name }}
@@ -27,34 +31,34 @@
         <!-- Action Buttons -->
         <div class="flex items-center space-x-3">
           <button
-            @click="showAddModal = true"
             :disabled="!selectedClassId"
-            class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+            @click="showAddModal = true"
           >
-            <PlusIcon class="w-4 h-4 mr-2" />
+            <PlusIcon class="mr-2 h-4 w-4" />
             Tambah Jadwal
           </button>
-          
+
           <button
-            @click="exportSchedule"
             :disabled="!selectedClassId"
-            class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="inline-flex items-center rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+            @click="exportSchedule"
           >
-            <ArrowDownTrayIcon class="w-4 h-4 mr-2" />
+            <ArrowDownTrayIcon class="mr-2 h-4 w-4" />
             Export JSON
           </button>
 
           <button
-            @click="toggleConflictsView"
             :disabled="!selectedClassId"
             :class="[
-              'inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
-              showConflicts 
-                ? 'text-white bg-red-600 hover:bg-red-700' 
-                : 'text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50'
+              'inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+              showConflicts
+                ? 'bg-red-600 text-white hover:bg-red-700'
+                : 'bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50',
             ]"
+            @click="toggleConflictsView"
           >
-            <ExclamationTriangleIcon class="w-4 h-4 mr-2" />
+            <ExclamationTriangleIcon class="mr-2 h-4 w-4" />
             Konflik ({{ conflictCount }})
           </button>
         </div>
@@ -62,21 +66,26 @@
     </div>
 
     <!-- Schedule Grid -->
-    <div v-if="selectedClassId && gridData" class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div
+      v-if="selectedClassId && gridData"
+      class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
+    >
       <!-- Mobile View -->
       <div class="lg:hidden">
-        <div v-for="(dayData, dayKey) in gridData" :key="dayKey" class="border-b border-gray-200 dark:border-gray-600">
-          <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3">
-            <h3 class="font-semibold text-gray-900 dark:text-gray-100">{{ dayData.day_name }}</h3>
+        <div
+          v-for="(dayData, dayKey) in gridData"
+          :key="dayKey"
+          class="border-b border-gray-200 dark:border-gray-600"
+        >
+          <div class="bg-gray-50 px-4 py-3 dark:bg-gray-700">
+            <h3 class="font-semibold text-gray-900 dark:text-gray-100">
+              {{ dayData.day_name }}
+            </h3>
           </div>
-          
+
           <div class="divide-y divide-gray-200 dark:divide-gray-600">
-            <div 
-              v-for="(slotData, slotId) in dayData.slots" 
-              :key="slotId"
-              class="p-4"
-            >
-              <div class="flex items-center justify-between mb-2">
+            <div v-for="(slotData, slotId) in dayData.slots" :key="slotId" class="p-4">
+              <div class="mb-2 flex items-center justify-between">
                 <span class="text-sm font-medium text-gray-600 dark:text-gray-400">
                   {{ slotData.time_slot.name }}
                 </span>
@@ -84,16 +93,16 @@
                   {{ slotData.time_slot.start_time }} - {{ slotData.time_slot.end_time }}
                 </span>
               </div>
-              
-              <div 
+
+              <div
                 v-if="slotData.schedule"
                 :class="[
-                  'p-3 rounded-lg cursor-pointer transition-all duration-200',
-                  getScheduleClass(slotData.status, slotData.display?.color)
+                  'cursor-pointer rounded-lg p-3 transition-all duration-200',
+                  getScheduleClass(slotData.status, slotData.display?.color),
                 ]"
                 @click="showScheduleDetail(slotData.schedule)"
               >
-                <div class="font-medium text-sm">
+                <div class="text-sm font-medium">
                   {{ slotData.display?.subject_code }}
                 </div>
                 <div class="text-xs opacity-90">
@@ -103,14 +112,14 @@
                   {{ slotData.display?.room }}
                 </div>
               </div>
-              
-              <div 
+
+              <div
                 v-else
-                class="p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-emerald-400 dark:hover:border-emerald-500 transition-colors"
+                class="cursor-pointer rounded-lg border-2 border-dashed border-gray-300 p-3 transition-colors hover:border-emerald-400 dark:border-gray-600 dark:hover:border-emerald-500"
                 @click="addSchedule(dayKey, slotId)"
               >
                 <div class="text-center text-gray-500 dark:text-gray-400">
-                  <PlusIcon class="w-4 h-4 mx-auto mb-1" />
+                  <PlusIcon class="mx-auto mb-1 h-4 w-4" />
                   <span class="text-xs">Tambah</span>
                 </div>
               </div>
@@ -120,97 +129,116 @@
       </div>
 
       <!-- Desktop Grid View -->
-      <div class="hidden lg:block overflow-x-auto">
+      <div class="hidden overflow-x-auto lg:block">
         <table class="w-full">
           <!-- Header -->
           <thead>
             <tr class="bg-gray-50 dark:bg-gray-700">
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-32">
+              <th
+                class="w-32 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
+              >
                 Jam
               </th>
-              <th 
-                v-for="(dayData, dayKey) in gridData" 
+              <th
+                v-for="(dayData, dayKey) in gridData"
                 :key="dayKey"
-                class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
               >
                 {{ dayData.day_name }}
               </th>
             </tr>
           </thead>
-          
+
           <!-- Body -->
           <tbody class="divide-y divide-gray-200 dark:divide-gray-600">
-            <tr 
-              v-for="timeSlot in timeSlots" 
+            <tr
+              v-for="timeSlot in timeSlots"
               :key="timeSlot.id"
-              class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
             >
               <!-- Time Column -->
-              <td class="px-4 py-4 text-sm text-gray-900 dark:text-gray-100 font-medium border-r border-gray-200 dark:border-gray-600">
+              <td
+                class="border-r border-gray-200 px-4 py-4 text-sm font-medium text-gray-900 dark:border-gray-600 dark:text-gray-100"
+              >
                 <div>{{ timeSlot.name }}</div>
                 <div class="text-xs text-gray-500 dark:text-gray-400">
                   {{ timeSlot.start_time }} - {{ timeSlot.end_time }}
                 </div>
               </td>
-              
+
               <!-- Schedule Cells -->
-              <td 
-                v-for="(dayData, dayKey) in gridData" 
+              <td
+                v-for="(dayData, dayKey) in gridData"
                 :key="`${dayKey}-${timeSlot.id}`"
-                class="px-2 py-2 border-r border-gray-200 dark:border-gray-600 relative"
+                class="relative border-r border-gray-200 px-2 py-2 dark:border-gray-600"
               >
-                <div class="min-h-[80px] flex items-center justify-center">
+                <div class="flex min-h-[80px] items-center justify-center">
                   <!-- Scheduled Item -->
-                  <div 
+                  <div
                     v-if="dayData.slots[timeSlot.id]?.schedule"
                     :class="[
-                      'w-full p-3 rounded-lg cursor-pointer transition-all duration-200 group',
-                      getScheduleClass(dayData.slots[timeSlot.id].status, dayData.slots[timeSlot.id].display?.color)
+                      'group w-full cursor-pointer rounded-lg p-3 transition-all duration-200',
+                      getScheduleClass(
+                        dayData.slots[timeSlot.id].status,
+                        dayData.slots[timeSlot.id].display?.color
+                      ),
                     ]"
-                    @click="showScheduleDetail(dayData.slots[timeSlot.id].schedule)"
-                    @contextmenu.prevent="showContextMenu($event, dayData.slots[timeSlot.id].schedule, dayKey, timeSlot.id)"
                     draggable="true"
+                    @click="showScheduleDetail(dayData.slots[timeSlot.id].schedule)"
+                    @contextmenu.prevent="
+                      showContextMenu(
+                        $event,
+                        dayData.slots[timeSlot.id].schedule,
+                        dayKey,
+                        timeSlot.id
+                      )
+                    "
                     @dragstart="onDragStart($event, dayData.slots[timeSlot.id].schedule)"
                     @dragover.prevent
                     @drop="onDrop($event, dayKey, timeSlot.id)"
                   >
                     <div class="text-center">
-                      <div class="font-semibold text-sm mb-1">
+                      <div class="mb-1 text-sm font-semibold">
                         {{ dayData.slots[timeSlot.id].display?.subject_code }}
                       </div>
-                      <div class="text-xs opacity-90 mb-1">
+                      <div class="mb-1 text-xs opacity-90">
                         {{ dayData.slots[timeSlot.id].display?.teacher_name }}
                       </div>
-                      <div v-if="dayData.slots[timeSlot.id].display?.room" class="text-xs opacity-75">
+                      <div
+                        v-if="dayData.slots[timeSlot.id].display?.room"
+                        class="text-xs opacity-75"
+                      >
                         {{ dayData.slots[timeSlot.id].display?.room }}
                       </div>
                     </div>
-                    
+
                     <!-- Status Indicators -->
-                    <div class="absolute top-1 right-1 flex space-x-1">
-                      <div 
+                    <div class="absolute right-1 top-1 flex space-x-1">
+                      <div
                         v-if="dayData.slots[timeSlot.id].display?.is_locked"
-                        class="w-3 h-3 bg-red-500 rounded-full"
+                        class="h-3 w-3 rounded-full bg-red-500"
                         title="Terkunci"
-                      ></div>
-                      <div 
+                      />
+                      <div
                         v-if="dayData.slots[timeSlot.id].status === 'conflict'"
-                        class="w-3 h-3 bg-yellow-500 rounded-full"
+                        class="h-3 w-3 rounded-full bg-yellow-500"
                         title="Konflik"
-                      ></div>
+                      />
                     </div>
                   </div>
-                  
+
                   <!-- Empty Slot -->
-                  <div 
+                  <div
                     v-else
-                    class="w-full min-h-[60px] border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-emerald-400 dark:hover:border-emerald-500 transition-colors flex items-center justify-center group"
+                    class="group flex min-h-[60px] w-full cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 transition-colors hover:border-emerald-400 dark:border-gray-600 dark:hover:border-emerald-500"
                     @click="addSchedule(dayKey, timeSlot.id)"
                     @dragover.prevent
                     @drop="onDrop($event, dayKey, timeSlot.id)"
                   >
-                    <div class="text-center text-gray-500 dark:text-gray-400 group-hover:text-emerald-500 dark:group-hover:text-emerald-400">
-                      <PlusIcon class="w-5 h-5 mx-auto mb-1" />
+                    <div
+                      class="text-center text-gray-500 group-hover:text-emerald-500 dark:text-gray-400 dark:group-hover:text-emerald-400"
+                    >
+                      <PlusIcon class="mx-auto mb-1 h-5 w-5" />
                       <span class="text-xs">Tambah</span>
                     </div>
                   </div>
@@ -223,29 +251,33 @@
     </div>
 
     <!-- Conflicts Panel -->
-    <div 
-      v-if="showConflicts && conflicts.length > 0" 
-      class="mt-6 bg-red-50 dark:bg-red-900/30 rounded-xl border border-red-200 dark:border-red-700/50 p-6"
+    <div
+      v-if="showConflicts && conflicts.length > 0"
+      class="mt-6 rounded-xl border border-red-200 bg-red-50 p-6 dark:border-red-700/50 dark:bg-red-900/30"
     >
-      <h3 class="text-lg font-semibold text-red-800 dark:text-red-200 mb-4">
+      <h3 class="mb-4 text-lg font-semibold text-red-800 dark:text-red-200">
         Konflik Jadwal Terdeteksi
       </h3>
-      
+
       <div class="space-y-3">
-        <div 
-          v-for="conflict in conflicts" 
+        <div
+          v-for="conflict in conflicts"
           :key="conflict.id"
-          class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-red-200 dark:border-red-700"
+          class="rounded-lg border border-red-200 bg-white p-4 dark:border-red-700 dark:bg-gray-800"
         >
           <div class="flex items-start justify-between">
             <div class="flex-1">
-              <div class="flex items-center space-x-2 mb-2">
-                <span :class="[
-                  'px-2 py-1 rounded-full text-xs font-medium',
-                  conflict.severity === 'critical' ? 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-200' :
-                  conflict.severity === 'high' ? 'bg-orange-100 text-orange-800 dark:bg-orange-800 dark:text-orange-200' :
-                  'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200'
-                ]">
+              <div class="mb-2 flex items-center space-x-2">
+                <span
+                  :class="[
+                    'rounded-full px-2 py-1 text-xs font-medium',
+                    conflict.severity === 'critical'
+                      ? 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-200'
+                      : conflict.severity === 'high'
+                        ? 'bg-orange-100 text-orange-800 dark:bg-orange-800 dark:text-orange-200'
+                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200',
+                  ]"
+                >
                   {{ conflict.severity.toUpperCase() }}
                 </span>
                 <span class="text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -255,14 +287,14 @@
               <p class="text-sm text-gray-600 dark:text-gray-300">
                 {{ conflict.description }}
               </p>
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 Terdeteksi: {{ formatDateTime(conflict.detected_at) }}
               </p>
             </div>
-            
+
             <button
+              class="ml-4 rounded-lg bg-red-100 px-3 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-200 dark:bg-red-900/50 dark:text-red-400 dark:hover:bg-red-900/70"
               @click="resolveConflict(conflict)"
-              class="ml-4 px-3 py-1 text-xs font-medium text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/50 hover:bg-red-200 dark:hover:bg-red-900/70 rounded-lg transition-colors"
             >
               Selesaikan
             </button>
@@ -275,9 +307,9 @@
     <ScheduleModal
       v-if="showAddModal || showEditModal"
       :schedule="selectedSchedule"
-      :academic-class-id="selectedClassId"
-      :day-of-week="modalData.dayOfWeek"
-      :time-slot-id="modalData.timeSlotId"
+      :academicClassId="selectedClassId"
+      :dayOfWeek="modalData.dayOfWeek"
+      :timeSlotId="modalData.timeSlotId"
       :subjects="subjects"
       @close="closeModal"
       @saved="onScheduleSaved"
@@ -307,10 +339,13 @@
     />
 
     <!-- Loading Overlay -->
-    <div v-if="loading" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white dark:bg-gray-800 rounded-lg p-6">
+    <div
+      v-if="loading"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+    >
+      <div class="rounded-lg bg-white p-6 dark:bg-gray-800">
         <div class="flex items-center space-x-3">
-          <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-600"></div>
+          <div class="h-6 w-6 animate-spin rounded-full border-b-2 border-emerald-600" />
           <span class="text-gray-900 dark:text-gray-100">{{ loadingMessage }}</span>
         </div>
       </div>
@@ -320,11 +355,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue'
-import { 
-  PlusIcon,
-  ArrowDownTrayIcon,
-  ExclamationTriangleIcon
-} from '@heroicons/vue/24/outline'
+import { PlusIcon, ArrowDownTrayIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import ScheduleModal from './ScheduleModal.vue'
 import ScheduleDetailModal from './ScheduleDetailModal.vue'
 import ContextMenu from './ScheduleContextMenu.vue'
@@ -333,12 +364,12 @@ import ContextMenu from './ScheduleContextMenu.vue'
 const props = defineProps({
   academicClasses: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   subjects: {
     type: Array,
-    default: () => []
-  }
+    default: () => [],
+  },
 })
 
 // Reactive state
@@ -361,13 +392,13 @@ const showContextMenuFlag = ref(false)
 const contextMenu = reactive({
   x: 0,
   y: 0,
-  schedule: null
+  schedule: null,
 })
 
 // Modal data
 const modalData = reactive({
   dayOfWeek: '',
-  timeSlotId: ''
+  timeSlotId: '',
 })
 
 // Drag and drop
@@ -395,7 +426,7 @@ const loadScheduleGrid = async () => {
     if (data.success) {
       gridData.value = data.data.grid
       timeSlots.value = data.data.time_slots
-      
+
       // Load conflicts
       await loadConflicts()
     }
@@ -407,7 +438,7 @@ const loadScheduleGrid = async () => {
 }
 
 const loadConflicts = async () => {
-  if (!selectedClassId.value) return
+  if (!selectedClassId.value) {return}
 
   try {
     const response = await fetch(`/api/academic-schedules/conflicts/${selectedClassId.value}`)
@@ -440,7 +471,7 @@ const showScheduleDetail = (schedule) => {
 }
 
 const deleteSchedule = async (schedule) => {
-  if (!confirm('Apakah Anda yakin ingin menghapus jadwal ini?')) return
+  if (!confirm('Apakah Anda yakin ingin menghapus jadwal ini?')) {return}
 
   loading.value = true
   loadingMessage.value = 'Menghapus jadwal...'
@@ -450,8 +481,8 @@ const deleteSchedule = async (schedule) => {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-      }
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+      },
     })
 
     const data = await response.json()
@@ -468,13 +499,13 @@ const deleteSchedule = async (schedule) => {
   } finally {
     loading.value = false
   }
-  
+
   closeContextMenu()
 }
 
 const toggleScheduleLock = async (schedule) => {
   const reason = prompt(`${schedule.is_locked ? 'Buka' : 'Kunci'} jadwal. Masukkan alasan:`)
-  if (!reason) return
+  if (!reason) {return}
 
   loading.value = true
   loadingMessage.value = `${schedule.is_locked ? 'Membuka' : 'Mengunci'} jadwal...`
@@ -484,9 +515,9 @@ const toggleScheduleLock = async (schedule) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
       },
-      body: JSON.stringify({ reason })
+      body: JSON.stringify({ reason }),
     })
 
     const data = await response.json()
@@ -503,12 +534,12 @@ const toggleScheduleLock = async (schedule) => {
   } finally {
     loading.value = false
   }
-  
+
   closeContextMenu()
 }
 
 const exportSchedule = async () => {
-  if (!selectedClassId.value) return
+  if (!selectedClassId.value) {return}
 
   try {
     const response = await fetch(`/api/academic-schedules/export/${selectedClassId.value}`)
@@ -536,16 +567,16 @@ const toggleConflictsView = () => {
 
 const resolveConflict = async (conflict) => {
   const notes = prompt('Masukkan catatan penyelesaian konflik:')
-  if (!notes) return
+  if (!notes) {return}
 
   try {
     const response = await fetch(`/api/academic-schedules/conflicts/${conflict.id}/resolve`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
       },
-      body: JSON.stringify({ resolution_notes: notes })
+      body: JSON.stringify({ resolution_notes: notes }),
     })
 
     const data = await response.json()
@@ -592,12 +623,14 @@ const onDragStart = (event, schedule) => {
 
 const onDrop = async (event, dayOfWeek, timeSlotId) => {
   event.preventDefault()
-  
-  if (!draggedSchedule.value) return
+
+  if (!draggedSchedule.value) {return}
 
   // Check if dropping on same cell
-  if (draggedSchedule.value.day_of_week === dayOfWeek && 
-      draggedSchedule.value.time_slot_id === timeSlotId) {
+  if (
+    draggedSchedule.value.day_of_week === dayOfWeek &&
+    draggedSchedule.value.time_slot_id === timeSlotId
+  ) {
     draggedSchedule.value = null
     return
   }
@@ -624,13 +657,13 @@ const moveSchedule = async (schedule, dayOfWeek, timeSlotId) => {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
       },
       body: JSON.stringify({
         day_of_week: dayOfWeek,
         time_slot_id: timeSlotId,
-        reason: 'Moved via drag and drop'
-      })
+        reason: 'Moved via drag and drop',
+      }),
     })
 
     const data = await response.json()
@@ -649,7 +682,7 @@ const moveSchedule = async (schedule, dayOfWeek, timeSlotId) => {
 }
 
 const swapSchedules = async (schedule1, schedule2) => {
-  if (!confirm('Tukar posisi kedua jadwal?')) return
+  if (!confirm('Tukar posisi kedua jadwal?')) {return}
 
   loading.value = true
   loadingMessage.value = 'Menukar jadwal...'
@@ -659,13 +692,13 @@ const swapSchedules = async (schedule1, schedule2) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
       },
       body: JSON.stringify({
         schedule_1_id: schedule1.id,
         schedule_2_id: schedule2.id,
-        reason: 'Swapped via drag and drop'
-      })
+        reason: 'Swapped via drag and drop',
+      }),
     })
 
     const data = await response.json()
@@ -698,7 +731,7 @@ const startSwapMode = (schedule) => {
 
 const getScheduleClass = (status, color) => {
   const baseClass = 'border'
-  
+
   if (status === 'locked') {
     return `${baseClass} bg-red-100 border-red-300 text-red-800 dark:bg-red-900/30 dark:border-red-600 dark:text-red-200`
   } else if (status === 'conflict') {
@@ -753,7 +786,7 @@ onUnmounted(() => {
 
 <style scoped>
 .schedule-grid-container {
-  @apply max-w-7xl mx-auto p-6;
+  @apply mx-auto max-w-7xl p-6;
 }
 
 /* Drag and drop styles */

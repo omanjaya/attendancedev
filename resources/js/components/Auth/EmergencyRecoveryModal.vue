@@ -7,31 +7,35 @@
         <!-- Header -->
         <div class="modal-header">
           <div class="header-icon">
-            <Icon name="exclamation-triangle" class="w-8 h-8 text-red-600" />
+            <Icon name="exclamation-triangle" class="h-8 w-8 text-red-600" />
           </div>
-          <h2 class="modal-title">Emergency Account Recovery</h2>
+          <h2 class="modal-title">
+            Emergency Account Recovery
+          </h2>
           <p class="modal-subtitle">
             Request emergency access to your account when you've lost access to all 2FA methods.
           </p>
-          <button @click="closeModal" class="close-button">
-            <Icon name="x" class="w-5 h-5" />
+          <button class="close-button" @click="closeModal">
+            <Icon name="x" class="h-5 w-5" />
           </button>
         </div>
 
         <!-- Warning Notice -->
         <div class="warning-notice">
-          <Icon name="exclamation-triangle" class="w-5 h-5 text-amber-600" />
+          <Icon name="exclamation-triangle" class="h-5 w-5 text-amber-600" />
           <div>
-            <h4 class="warning-title">Security Notice</h4>
+            <h4 class="warning-title">
+              Security Notice
+            </h4>
             <p class="warning-text">
-              This process requires manual verification by an administrator and may take 24-48 hours.
-              You will need to provide additional identity verification.
+              This process requires manual verification by an administrator and may take 24-48
+              hours. You will need to provide additional identity verification.
             </p>
           </div>
         </div>
 
         <!-- Form -->
-        <form @submit.prevent="handleSubmit" class="recovery-form">
+        <form class="recovery-form" @submit.prevent="handleSubmit">
           <!-- Reason for Recovery -->
           <div class="form-group">
             <label for="reason" class="form-label">
@@ -42,15 +46,17 @@
               id="reason"
               v-model="formData.reason"
               class="form-textarea"
-              :class="{ 'error': errors.reason }"
+              :class="{ error: errors.reason }"
               rows="4"
               placeholder="Please explain why you need emergency access (e.g., lost phone, broken authenticator app, lost recovery codes)"
               required
               maxlength="500"
-            ></textarea>
-            <div class="char-counter">{{ formData.reason.length }}/500</div>
+            />
+            <div class="char-counter">
+              {{ formData.reason.length }}/500
+            </div>
             <div v-if="errors.reason" class="error-message">
-              <Icon name="x-circle" class="w-4 h-4" />
+              <Icon name="x-circle" class="h-4 w-4" />
               {{ errors.reason }}
             </div>
           </div>
@@ -69,10 +75,10 @@
                   value="email"
                   class="radio-input"
                   required
-                />
-                <div class="radio-custom"></div>
+                >
+                <div class="radio-custom" />
                 <div class="radio-content">
-                  <Icon name="mail" class="w-4 h-4" />
+                  <Icon name="mail" class="h-4 w-4" />
                   <span>Email</span>
                 </div>
               </label>
@@ -83,10 +89,10 @@
                   value="phone"
                   class="radio-input"
                   required
-                />
-                <div class="radio-custom"></div>
+                >
+                <div class="radio-custom" />
                 <div class="radio-content">
-                  <Icon name="phone" class="w-4 h-4" />
+                  <Icon name="phone" class="h-4 w-4" />
                   <span>Phone</span>
                 </div>
               </label>
@@ -104,15 +110,17 @@
               v-model="formData.emergencyContact"
               :type="formData.contactMethod === 'phone' ? 'tel' : 'email'"
               class="form-input"
-              :class="{ 'error': errors.emergencyContact }"
-              :placeholder="formData.contactMethod === 'phone' ? '+1234567890' : 'your-email@example.com'"
+              :class="{ error: errors.emergencyContact }"
+              :placeholder="
+                formData.contactMethod === 'phone' ? '+1234567890' : 'your-email@example.com'
+              "
               required
-            />
+            >
             <div class="help-text">
               Administrators will use this to verify your identity and contact you.
             </div>
             <div v-if="errors.emergencyContact" class="error-message">
-              <Icon name="x-circle" class="w-4 h-4" />
+              <Icon name="x-circle" class="h-4 w-4" />
               {{ errors.emergencyContact }}
             </div>
           </div>
@@ -129,8 +137,10 @@
               rows="3"
               placeholder="Any additional information that might help verify your identity (employee ID, department, supervisor name, etc.)"
               maxlength="300"
-            ></textarea>
-            <div class="char-counter">{{ formData.additionalInfo.length }}/300</div>
+            />
+            <div class="char-counter">
+              {{ formData.additionalInfo.length }}/300
+            </div>
           </div>
 
           <!-- Terms Agreement -->
@@ -141,11 +151,11 @@
                 type="checkbox"
                 class="checkbox-input"
                 required
-              />
-              <div class="checkbox-custom"></div>
+              >
+              <div class="checkbox-custom" />
               <span class="checkbox-label">
-                I understand that this request will be reviewed by administrators and
-                I may be required to provide additional identity verification.
+                I understand that this request will be reviewed by administrators and I may be
+                required to provide additional identity verification.
                 <span class="required">*</span>
               </span>
             </label>
@@ -153,16 +163,12 @@
 
           <!-- Actions -->
           <div class="form-actions">
-            <button type="button" @click="closeModal" class="btn-secondary">
+            <button type="button" class="btn-secondary" @click="closeModal">
               Cancel
             </button>
-            <button 
-              type="submit" 
-              class="btn-primary"
-              :disabled="!isFormValid || loading"
-            >
+            <button type="submit" class="btn-primary" :disabled="!isFormValid || loading">
               <div v-if="loading" class="spinner" />
-              <Icon v-else name="send" class="w-4 h-4" />
+              <Icon v-else name="send" class="h-4 w-4" />
               {{ loading ? 'Submitting...' : 'Submit Recovery Request' }}
             </button>
           </div>
@@ -170,24 +176,32 @@
 
         <!-- Information Section -->
         <div class="info-section">
-          <h4 class="info-title">What happens next?</h4>
+          <h4 class="info-title">
+            What happens next?
+          </h4>
           <div class="info-steps">
             <div class="info-step">
-              <div class="step-number">1</div>
+              <div class="step-number">
+                1
+              </div>
               <div class="step-content">
                 <h5>Request Review</h5>
                 <p>Your request will be reviewed by system administrators</p>
               </div>
             </div>
             <div class="info-step">
-              <div class="step-number">2</div>
+              <div class="step-number">
+                2
+              </div>
               <div class="step-content">
                 <h5>Identity Verification</h5>
                 <p>You may be contacted for additional identity verification</p>
               </div>
             </div>
             <div class="info-step">
-              <div class="step-number">3</div>
+              <div class="step-number">
+                3
+              </div>
               <div class="step-content">
                 <h5>Account Recovery</h5>
                 <p>If approved, your 2FA will be reset and you'll receive new setup instructions</p>
@@ -214,20 +228,22 @@ const formData = reactive({
   contactMethod: 'email',
   emergencyContact: '',
   additionalInfo: '',
-  agreeToTerms: false
+  agreeToTerms: false,
 })
 
 const errors = reactive({
   reason: '',
-  emergencyContact: ''
+  emergencyContact: '',
 })
 
 // Computed
 const isFormValid = computed(() => {
-  return formData.reason.trim().length > 10 &&
-         formData.emergencyContact.trim().length > 0 &&
-         formData.agreeToTerms &&
-         isValidContact.value
+  return (
+    formData.reason.trim().length > 10 &&
+    formData.emergencyContact.trim().length > 0 &&
+    formData.agreeToTerms &&
+    isValidContact.value
+  )
 })
 
 const isValidContact = computed(() => {
@@ -242,7 +258,7 @@ const isValidContact = computed(() => {
 
 // Methods
 const handleSubmit = async () => {
-  if (!validateForm()) return
+  if (!validateForm()) {return}
 
   loading.value = true
 
@@ -254,7 +270,7 @@ const handleSubmit = async () => {
       additional_info: formData.additionalInfo.trim() || null,
       timestamp: new Date().toISOString(),
       user_agent: navigator.userAgent,
-      ip_address: null // Will be filled by backend
+      ip_address: null, // Will be filled by backend
     }
 
     emit('submit', submissionData)
@@ -280,9 +296,10 @@ const validateForm = () => {
 
   // Validate contact
   if (!isValidContact.value) {
-    errors.emergencyContact = formData.contactMethod === 'email' 
-      ? 'Please enter a valid email address'
-      : 'Please enter a valid phone number'
+    errors.emergencyContact =
+      formData.contactMethod === 'email'
+        ? 'Please enter a valid email address'
+        : 'Please enter a valid phone number'
     isValid = false
   }
 
@@ -306,55 +323,57 @@ const handleBackdropClick = () => {
 }
 
 .modal-backdrop {
-  @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4;
+  @apply fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4;
   animation: fadeIn 0.3s ease-out;
 }
 
 .modal-content {
-  @apply bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-screen overflow-y-auto;
+  @apply max-h-screen w-full max-w-2xl overflow-y-auto rounded-lg bg-white shadow-xl;
   animation: slideIn 0.3s ease-out;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideIn {
-  from { 
-    opacity: 0; 
-    transform: translateY(20px) scale(0.95); 
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
   }
-  to { 
-    opacity: 1; 
-    transform: translateY(0) scale(1); 
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
 .modal-header {
-  @apply relative p-6 border-b border-gray-200;
+  @apply relative border-b border-gray-200 p-6;
 }
 
 .header-icon {
-  @apply flex justify-center mb-4;
+  @apply mb-4 flex justify-center;
 }
 
 .modal-title {
-  @apply text-2xl font-bold text-gray-900 text-center;
+  @apply text-center text-2xl font-bold text-gray-900;
 }
 
 .modal-subtitle {
-  @apply text-gray-600 text-center mt-2;
+  @apply mt-2 text-center text-gray-600;
 }
 
 .close-button {
-  @apply absolute top-4 right-4 text-gray-400 hover:text-gray-600 
-         transition-colors duration-200;
+  @apply absolute right-4 top-4 text-gray-400 transition-colors duration-200 hover:text-gray-600;
 }
 
 .warning-notice {
-  @apply mx-6 mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg 
-         flex items-start space-x-3;
+  @apply mx-6 mt-6 flex items-start space-x-3 rounded-lg border border-amber-200 bg-amber-50 p-4;
 }
 
 .warning-title {
@@ -362,11 +381,11 @@ const handleBackdropClick = () => {
 }
 
 .warning-text {
-  @apply text-sm text-amber-800 mt-1;
+  @apply mt-1 text-sm text-amber-800;
 }
 
 .recovery-form {
-  @apply p-6 space-y-6;
+  @apply space-y-6 p-6;
 }
 
 .form-group {
@@ -378,14 +397,12 @@ const handleBackdropClick = () => {
 }
 
 .required {
-  @apply text-red-500 ml-1;
+  @apply ml-1 text-red-500;
 }
 
 .form-input,
 .form-textarea {
-  @apply w-full px-3 py-2 border border-gray-300 rounded-lg 
-         focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-         transition-all duration-200;
+  @apply w-full rounded-lg border border-gray-300 px-3 py-2 transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500;
 }
 
 .form-input.error,
@@ -394,7 +411,7 @@ const handleBackdropClick = () => {
 }
 
 .char-counter {
-  @apply text-xs text-gray-500 text-right;
+  @apply text-right text-xs text-gray-500;
 }
 
 .help-text {
@@ -402,7 +419,7 @@ const handleBackdropClick = () => {
 }
 
 .error-message {
-  @apply text-sm text-red-600 flex items-center space-x-1;
+  @apply flex items-center space-x-1 text-sm text-red-600;
 }
 
 .radio-group {
@@ -410,8 +427,7 @@ const handleBackdropClick = () => {
 }
 
 .radio-option {
-  @apply flex items-center space-x-3 cursor-pointer p-3 border border-gray-200 
-         rounded-lg hover:bg-gray-50 transition-all duration-200;
+  @apply flex cursor-pointer items-center space-x-3 rounded-lg border border-gray-200 p-3 transition-all duration-200 hover:bg-gray-50;
 }
 
 .radio-input {
@@ -419,7 +435,7 @@ const handleBackdropClick = () => {
 }
 
 .radio-custom {
-  @apply w-4 h-4 border-2 border-gray-300 rounded-full transition-all duration-200;
+  @apply h-4 w-4 rounded-full border-2 border-gray-300 transition-all duration-200;
 }
 
 .radio-input:checked + .radio-custom {
@@ -428,7 +444,7 @@ const handleBackdropClick = () => {
 
 .radio-input:checked + .radio-custom::after {
   content: '';
-  @apply block w-2 h-2 bg-white rounded-full mx-auto mt-0.5;
+  @apply mx-auto mt-0.5 block h-2 w-2 rounded-full bg-white;
 }
 
 .radio-content {
@@ -436,7 +452,7 @@ const handleBackdropClick = () => {
 }
 
 .checkbox-container {
-  @apply flex items-start space-x-3 cursor-pointer;
+  @apply flex cursor-pointer items-start space-x-3;
 }
 
 .checkbox-input {
@@ -444,17 +460,16 @@ const handleBackdropClick = () => {
 }
 
 .checkbox-custom {
-  @apply w-4 h-4 border-2 border-gray-300 rounded flex-shrink-0 mt-0.5
-         transition-all duration-200;
+  @apply mt-0.5 h-4 w-4 flex-shrink-0 rounded border-2 border-gray-300 transition-all duration-200;
 }
 
 .checkbox-input:checked + .checkbox-custom {
-  @apply bg-blue-600 border-blue-600;
+  @apply border-blue-600 bg-blue-600;
 }
 
 .checkbox-input:checked + .checkbox-custom::after {
   content: '✓';
-  @apply text-white text-xs flex items-center justify-center;
+  @apply flex items-center justify-center text-xs text-white;
 }
 
 .checkbox-label {
@@ -462,30 +477,27 @@ const handleBackdropClick = () => {
 }
 
 .form-actions {
-  @apply flex space-x-3 pt-4 border-t border-gray-200;
+  @apply flex space-x-3 border-t border-gray-200 pt-4;
 }
 
 .btn-secondary {
-  @apply flex-1 px-4 py-2 text-gray-700 bg-white border border-gray-300 
-         rounded-lg hover:bg-gray-50 transition-colors duration-200;
+  @apply flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-700 transition-colors duration-200 hover:bg-gray-50;
 }
 
 .btn-primary {
-  @apply flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white 
-         rounded-lg transition-colors duration-200 inline-flex items-center 
-         justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply inline-flex flex-1 items-center justify-center space-x-2 rounded-lg bg-red-600 px-4 py-2 text-white transition-colors duration-200 hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50;
 }
 
 .spinner {
-  @apply animate-spin rounded-full h-4 w-4 border-b-2 border-white;
+  @apply h-4 w-4 animate-spin rounded-full border-b-2 border-white;
 }
 
 .info-section {
-  @apply bg-gray-50 p-6 border-t border-gray-200;
+  @apply border-t border-gray-200 bg-gray-50 p-6;
 }
 
 .info-title {
-  @apply text-lg font-medium text-gray-900 mb-4;
+  @apply mb-4 text-lg font-medium text-gray-900;
 }
 
 .info-steps {
@@ -497,8 +509,7 @@ const handleBackdropClick = () => {
 }
 
 .step-number {
-  @apply w-6 h-6 bg-blue-600 text-white text-sm font-medium rounded-full 
-         flex items-center justify-center flex-shrink-0;
+  @apply flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-medium text-white;
 }
 
 .step-content h5 {
@@ -506,7 +517,7 @@ const handleBackdropClick = () => {
 }
 
 .step-content p {
-  @apply text-sm text-gray-600 mt-1;
+  @apply mt-1 text-sm text-gray-600;
 }
 
 /* Mobile optimizations */
@@ -514,13 +525,13 @@ const handleBackdropClick = () => {
   .modal-content {
     @apply m-2 max-h-screen;
   }
-  
+
   .modal-header,
   .recovery-form,
   .info-section {
     @apply p-4;
   }
-  
+
   .form-actions {
     @apply flex-col space-x-0 space-y-2;
   }
@@ -531,20 +542,20 @@ const handleBackdropClick = () => {
   .modal-content {
     @apply bg-gray-800 text-gray-100;
   }
-  
+
   .modal-title {
     @apply text-gray-100;
   }
-  
+
   .form-input,
   .form-textarea {
-    @apply bg-gray-700 border-gray-600 text-gray-100;
+    @apply border-gray-600 bg-gray-700 text-gray-100;
   }
-  
+
   .radio-option {
-    @apply bg-gray-700 border-gray-600;
+    @apply border-gray-600 bg-gray-700;
   }
-  
+
   .info-section {
     @apply bg-gray-700;
   }

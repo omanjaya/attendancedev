@@ -2,18 +2,21 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Payroll;
 use App\Models\Employee;
+use App\Models\Payroll;
 use App\Models\PayrollItem;
 use App\Services\PayrollCalculationService;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
+use App\Traits\ApiResponseTrait;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 class PayrollController extends Controller
 {
+    use ApiResponseTrait;
+
     protected $payrollCalculationService;
 
     public function __construct(PayrollCalculationService $payrollCalculationService)
@@ -27,9 +30,9 @@ class PayrollController extends Controller
      */
     public function index(Request $request)
     {
-        Gate::authorize('view_payroll');
+        Gate::authorize('view_payroll_own');
 
-        $query = Payroll::with(['employee', 'approver', 'processor']);
+        $query = Payroll::with(['employee.user', 'employee.location', 'approver', 'processor']);
 
         // Filter by employee if provided
         if ($request->filled('employee_id')) {
@@ -43,21 +46,16 @@ class PayrollController extends Controller
 
         // Filter by payroll period if provided
         if ($request->filled('period_start') && $request->filled('period_end')) {
-            $query->whereBetween('payroll_period_start', [
-                $request->period_start,
-                $request->period_end
-            ]);
+            $query->whereBetween('payroll_period_start', [$request->period_start, $request->period_end]);
         }
 
         // Filter by pay date if provided
         if ($request->filled('pay_date_start') && $request->filled('pay_date_end')) {
-            $query->whereBetween('pay_date', [
-                $request->pay_date_start,
-                $request->pay_date_end
-            ]);
+            $query->whereBetween('pay_date', [$request->pay_date_start, $request->pay_date_end]);
         }
 
-        $payrolls = $query->orderBy('payroll_period_start', 'desc')
+        $payrolls = $query
+            ->orderBy('payroll_period_start', 'desc')
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
@@ -73,10 +71,9 @@ class PayrollController extends Controller
      */
     public function data(Request $request): JsonResponse
     {
-        Gate::authorize('view_payroll');
+        Gate::authorize('view_payroll_own');
 
-        $query = Payroll::with(['employee', 'approver', 'processor'])
-            ->select('payrolls.*');
+        $query = Payroll::with(['employee', 'approver', 'processor'])->select('payrolls.*');
 
         // Apply filters
         if ($request->filled('employee_id')) {
@@ -88,10 +85,7 @@ class PayrollController extends Controller
         }
 
         if ($request->filled('period_start') && $request->filled('period_end')) {
-            $query->whereBetween('payroll_period_start', [
-                $request->period_start,
-                $request->period_end
-            ]);
+            $query->whereBetween('payroll_period_start', [$request->period_start, $request->period_end]);
         }
 
         return datatables($query)
@@ -111,28 +105,45 @@ class PayrollController extends Controller
                 return $payroll->formatted_net_salary;
             })
             ->addColumn('status_badge', function ($payroll) {
-                return '<span class="badge bg-' . $payroll->status_color . '">' . ucfirst($payroll->status) . '</span>';
+                return '<span class="badge bg-'.
+                  $payroll->status_color.
+                  '">'.
+                  ucfirst($payroll->status).
+                  '</span>';
             })
             ->addColumn('actions', function ($payroll) {
                 $actions = '<div class="btn-group" role="group">';
-                
-                if (auth()->user()->can('view_payroll')) {
-                    $actions .= '<a href="' . route('payroll.show', $payroll) . '" class="btn btn-sm btn-outline-primary">View</a>';
+
+                if (auth()->user()->can('view_payroll_own')) {
+                    $actions .=
+                      '<a href="'.
+                      route('payroll.show', $payroll).
+                      '" class="btn btn-sm btn-outline-primary">View</a>';
                 }
-                
+
                 if (auth()->user()->can('edit_payroll') && $payroll->canBeEdited()) {
-                    $actions .= '<a href="' . route('payroll.edit', $payroll) . '" class="btn btn-sm btn-outline-warning">Edit</a>';
+                    $actions .=
+                      '<a href="'.
+                      route('payroll.edit', $payroll).
+                      '" class="btn btn-sm btn-outline-warning">Edit</a>';
                 }
-                
+
                 if (auth()->user()->can('approve_payroll') && $payroll->canBeApproved()) {
-                    $actions .= '<button type="button" class="btn btn-sm btn-outline-success approve-payroll" data-id="' . $payroll->id . '">Approve</button>';
+                    $actions .=
+                      '<button type="button" class="btn btn-sm btn-outline-success approve-payroll" data-id="'.
+                      $payroll->id.
+                      '">Approve</button>';
                 }
-                
+
                 if (auth()->user()->can('process_payroll') && $payroll->canBeProcessed()) {
-                    $actions .= '<button type="button" class="btn btn-sm btn-outline-info process-payroll" data-id="' . $payroll->id . '">Process</button>';
+                    $actions .=
+                      '<button type="button" class="btn btn-sm btn-outline-info process-payroll" data-id="'.
+                      $payroll->id.
+                      '">Process</button>';
                 }
-                
+
                 $actions .= '</div>';
+
                 return $actions;
             })
             ->rawColumns(['status_badge', 'actions'])
@@ -155,7 +166,10 @@ class PayrollController extends Controller
         $periodEnd = $request->get('period_end', now()->endOfMonth()->toDateString());
         $selectedEmployeeId = $request->get('employee_id');
 
-        return view('pages.payroll.create', compact('employees', 'periodStart', 'periodEnd', 'selectedEmployeeId'));
+        return view(
+            'pages.payroll.create',
+            compact('employees', 'periodStart', 'periodEnd', 'selectedEmployeeId'),
+        );
     }
 
     /**
@@ -196,18 +210,20 @@ class PayrollController extends Controller
                 $employee,
                 $periodStart,
                 $periodEnd,
-                $options
+                $options,
             );
 
             DB::commit();
 
-            return redirect()->route('payroll.show', $payroll)
-                ->with('success', 'Payroll calculated successfully for ' . $employee->full_name);
-
+            return redirect()
+                ->route('payroll.show', $payroll)
+                ->with('success', 'Payroll calculated successfully for '.$employee->full_name);
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->withInput()
-                ->with('error', 'Failed to calculate payroll: ' . $e->getMessage());
+
+            return back()
+                ->withInput()
+                ->with('error', 'Failed to calculate payroll: '.$e->getMessage());
         }
     }
 
@@ -216,7 +232,7 @@ class PayrollController extends Controller
      */
     public function show(Payroll $payroll)
     {
-        Gate::authorize('view_payroll');
+        Gate::authorize('view_payroll_own');
 
         $payroll->load([
             'employee',
@@ -224,7 +240,7 @@ class PayrollController extends Controller
                 $query->orderBy('type')->orderBy('category');
             },
             'approver',
-            'processor'
+            'processor',
         ]);
 
         $earnings = $payroll->getEarnings();
@@ -241,8 +257,9 @@ class PayrollController extends Controller
     {
         Gate::authorize('edit_payroll');
 
-        if (!$payroll->canBeEdited()) {
-            return redirect()->route('payroll.show', $payroll)
+        if (! $payroll->canBeEdited()) {
+            return redirect()
+                ->route('payroll.show', $payroll)
                 ->with('error', 'This payroll cannot be edited in its current status.');
         }
 
@@ -250,7 +267,7 @@ class PayrollController extends Controller
             'employee',
             'payrollItems' => function ($query) {
                 $query->orderBy('type')->orderBy('category');
-            }
+            },
         ]);
 
         $earnings = $payroll->getEarnings();
@@ -267,8 +284,9 @@ class PayrollController extends Controller
     {
         Gate::authorize('edit_payroll');
 
-        if (!$payroll->canBeEdited()) {
-            return redirect()->route('payroll.show', $payroll)
+        if (! $payroll->canBeEdited()) {
+            return redirect()
+                ->route('payroll.show', $payroll)
                 ->with('error', 'This payroll cannot be edited in its current status.');
         }
 
@@ -324,13 +342,15 @@ class PayrollController extends Controller
 
             DB::commit();
 
-            return redirect()->route('payroll.show', $payroll)
+            return redirect()
+                ->route('payroll.show', $payroll)
                 ->with('success', 'Payroll updated successfully.');
-
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->withInput()
-                ->with('error', 'Failed to update payroll: ' . $e->getMessage());
+
+            return back()
+                ->withInput()
+                ->with('error', 'Failed to update payroll: '.$e->getMessage());
         }
     }
 
@@ -341,8 +361,9 @@ class PayrollController extends Controller
     {
         Gate::authorize('delete_payroll');
 
-        if (!$payroll->canBeEdited()) {
-            return redirect()->route('payroll.index')
+        if (! $payroll->canBeEdited()) {
+            return redirect()
+                ->route('payroll.index')
                 ->with('error', 'This payroll cannot be deleted in its current status.');
         }
 
@@ -350,12 +371,13 @@ class PayrollController extends Controller
             $employeeName = $payroll->employee->full_name;
             $payroll->delete();
 
-            return redirect()->route('payroll.index')
+            return redirect()
+                ->route('payroll.index')
                 ->with('success', "Payroll for {$employeeName} has been deleted successfully.");
-
         } catch (\Exception $e) {
-            return redirect()->route('payroll.index')
-                ->with('error', 'Failed to delete payroll: ' . $e->getMessage());
+            return redirect()
+                ->route('payroll.index')
+                ->with('error', 'Failed to delete payroll: '.$e->getMessage());
         }
     }
 
@@ -366,27 +388,30 @@ class PayrollController extends Controller
     {
         Gate::authorize('approve_payroll');
 
-        if (!$payroll->canBeApproved()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'This payroll cannot be approved in its current status.'
-            ], 400);
+        if (! $payroll->canBeApproved()) {
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'This payroll cannot be approved in its current status.',
+                ],
+                400,
+            );
         }
 
         try {
             $payroll->approve();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Payroll approved successfully.',
-                'status' => $payroll->status
-            ]);
-
+            return $this->successResponse([
+                'status' => $payroll->status,
+            ], 'Payroll approved successfully.');
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to approve payroll: ' . $e->getMessage()
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to approve payroll: '.$e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -397,27 +422,30 @@ class PayrollController extends Controller
     {
         Gate::authorize('process_payroll');
 
-        if (!$payroll->canBeProcessed()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'This payroll cannot be processed in its current status.'
-            ], 400);
+        if (! $payroll->canBeProcessed()) {
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'This payroll cannot be processed in its current status.',
+                ],
+                400,
+            );
         }
 
         try {
             $payroll->process();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Payroll processed successfully.',
-                'status' => $payroll->status
-            ]);
-
+            return $this->successResponse([
+                'status' => $payroll->status,
+            ], 'Payroll processed successfully.');
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to process payroll: ' . $e->getMessage()
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to process payroll: '.$e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -431,17 +459,19 @@ class PayrollController extends Controller
         try {
             $payroll->markAsPaid();
 
-            return response()->json([
+            return $this->successResponse([
                 'success' => true,
                 'message' => 'Payroll marked as paid successfully.',
-                'status' => $payroll->status
+                'status' => $payroll->status,
             ]);
-
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to mark payroll as paid: ' . $e->getMessage()
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to mark payroll as paid: '.$e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -452,27 +482,32 @@ class PayrollController extends Controller
     {
         Gate::authorize('edit_payroll');
 
-        if (!$payroll->canBeEdited()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'This payroll cannot be cancelled in its current status.'
-            ], 400);
+        if (! $payroll->canBeEdited()) {
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'This payroll cannot be cancelled in its current status.',
+                ],
+                400,
+            );
         }
 
         try {
             $payroll->cancel();
 
-            return response()->json([
+            return $this->successResponse([
                 'success' => true,
                 'message' => 'Payroll cancelled successfully.',
-                'status' => $payroll->status
+                'status' => $payroll->status,
             ]);
-
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to cancel payroll: ' . $e->getMessage()
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to cancel payroll: '.$e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -506,18 +541,20 @@ class PayrollController extends Controller
                 $employees,
                 $periodStart,
                 $periodEnd,
-                $options
+                $options,
             );
 
             DB::commit();
 
-            return redirect()->route('payroll.index')
+            return redirect()
+                ->route('payroll.index')
                 ->with('success', "Payroll calculated successfully for {$payrolls->count()} employees.");
-
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->withInput()
-                ->with('error', 'Failed to calculate bulk payroll: ' . $e->getMessage());
+
+            return back()
+                ->withInput()
+                ->with('error', 'Failed to calculate bulk payroll: '.$e->getMessage());
         }
     }
 
@@ -544,7 +581,7 @@ class PayrollController extends Controller
      */
     public function summary(Request $request)
     {
-        Gate::authorize('view_payroll_reports');
+        Gate::authorize('export_payroll_reports');
 
         $request->validate([
             'period_start' => 'required|date',
@@ -564,13 +601,13 @@ class PayrollController extends Controller
      */
     public function downloadSlip(Payroll $payroll)
     {
-        Gate::authorize('view_payroll');
+        Gate::authorize('view_payroll_own');
 
         $payroll->load([
             'employee',
             'payrollItems' => function ($query) {
                 $query->orderBy('type')->orderBy('category');
-            }
+            },
         ]);
 
         // This would use a PDF library like TCPDF or DomPDF
@@ -585,17 +622,20 @@ class PayrollController extends Controller
     {
         Gate::authorize('edit_payroll');
 
-        if (!$payroll->canBeEdited()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'This payroll cannot be recalculated in its current status.'
-            ], 400);
+        if (! $payroll->canBeEdited()) {
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'This payroll cannot be recalculated in its current status.',
+                ],
+                400,
+            );
         }
 
         try {
             $payroll->recalculateTotals();
 
-            return response()->json([
+            return $this->successResponse([
                 'success' => true,
                 'message' => 'Payroll totals recalculated successfully.',
                 'gross_salary' => $payroll->formatted_gross_salary,
@@ -603,12 +643,14 @@ class PayrollController extends Controller
                 'total_bonuses' => $payroll->formatted_total_bonuses,
                 'net_salary' => $payroll->formatted_net_salary,
             ]);
-
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to recalculate payroll: ' . $e->getMessage()
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to recalculate payroll: '.$e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 }

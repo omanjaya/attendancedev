@@ -10,31 +10,31 @@ export function useFaceDetection(options = {}) {
   const error = ref(null)
   const gesturePrompt = ref(null)
   const gestureProgress = ref(0)
-  
+
   const videoElement = ref(null)
   const canvasElement = ref(null)
   const currentService = useMediaPipe ? MediaPipeFaceService : FaceDetectionService
   const detectionLoop = ref(null)
   const knownFaces = ref([])
-  
+
   const startCamera = async () => {
     try {
       error.value = null
       processing.value = true
-      
+
       // Initialize the face detection service
       await currentService.initialize()
-      
+
       if (videoElement.value) {
         await currentService.startCamera(videoElement.value)
         cameraActive.value = true
-        
+
         // Wait for video to be ready
         await nextTick()
-        
+
         // Set up canvas
         setupCanvas()
-        
+
         // Start face detection loop
         startFaceDetectionLoop()
       }
@@ -50,10 +50,10 @@ export function useFaceDetection(options = {}) {
     if (canvasElement.value && videoElement.value) {
       const video = videoElement.value
       const canvas = canvasElement.value
-      
+
       canvas.width = video.videoWidth || 640
       canvas.height = video.videoHeight || 480
-      
+
       // For MediaPipe, set up result callback
       if (useMediaPipe) {
         currentService.setOnResults((results) => {
@@ -70,14 +70,14 @@ export function useFaceDetection(options = {}) {
       cancelAnimationFrame(detectionLoop.value)
       detectionLoop.value = null
     }
-    
+
     // Stop camera service
     currentService.stopCamera()
-    
+
     if (videoElement.value) {
       videoElement.value.srcObject = null
     }
-    
+
     cameraActive.value = false
     faceDetected.value = false
     gesturePrompt.value = null
@@ -86,49 +86,48 @@ export function useFaceDetection(options = {}) {
 
   const startFaceDetectionLoop = async () => {
     if (!cameraActive.value || !videoElement.value) return
-    
+
     const detectFaces = async () => {
       try {
         if (!useMediaPipe) {
           // Face-API.js detection
           const detections = await currentService.detectFaces(videoElement.value)
-          
+
           faceDetected.value = detections.length > 0
-          
+
           // Draw detections on canvas
           if (canvasElement.value) {
             const displaySize = currentService.getDisplaySize(videoElement.value)
             currentService.drawDetections(canvasElement.value, detections, displaySize)
           }
-          
+
           if (detections.length > 0 && !gesturePrompt.value) {
             promptGesture()
           }
         }
         // MediaPipe handles detection in the callback
-        
       } catch (err) {
         console.error('Face detection error:', err)
       }
-      
+
       // Continue detection loop
       if (cameraActive.value) {
         detectionLoop.value = requestAnimationFrame(detectFaces)
       }
     }
-    
+
     detectionLoop.value = requestAnimationFrame(detectFaces)
   }
 
   const promptGesture = () => {
     const gestures = ['nod your head', 'shake your head', 'smile', 'blink']
     const randomGesture = gestures[Math.floor(Math.random() * gestures.length)]
-    
+
     gesturePrompt.value = {
       action: randomGesture,
-      detected: false
+      detected: false,
     }
-    
+
     // Simulate gesture detection progress
     const progressInterval = setInterval(() => {
       gestureProgress.value += 10
@@ -142,20 +141,23 @@ export function useFaceDetection(options = {}) {
   const captureAndVerify = async () => {
     processing.value = true
     error.value = null
-    
+
     try {
       if (!videoElement.value) {
         throw new Error('Camera not available')
       }
-      
+
       // Capture face data using the current service
-      const faceData = useMediaPipe 
+      const faceData = useMediaPipe
         ? await currentService.captureFaceData(videoElement.value)
         : await currentService.captureFaceDescriptor(videoElement.value, 'current')
-      
+
       // Try to recognize against known faces
-      const recognitionResult = await currentService.recognizeFace(videoElement.value, knownFaces.value)
-      
+      const recognitionResult = await currentService.recognizeFace(
+        videoElement.value,
+        knownFaces.value
+      )
+
       if (recognitionResult.success) {
         console.log('Face recognized:', recognitionResult.employeeId)
         return {
@@ -163,7 +165,7 @@ export function useFaceDetection(options = {}) {
           employeeId: recognitionResult.employeeId,
           confidence: recognitionResult.confidence,
           faceData: faceData,
-          gestureCompleted: gesturePrompt.value?.detected || false
+          gestureCompleted: gesturePrompt.value?.detected || false,
         }
       } else {
         // Face not recognized - could be registration mode
@@ -171,10 +173,9 @@ export function useFaceDetection(options = {}) {
           success: false,
           message: recognitionResult.message,
           faceData: faceData,
-          gestureCompleted: gesturePrompt.value?.detected || false
+          gestureCompleted: gesturePrompt.value?.detected || false,
         }
       }
-      
     } catch (err) {
       error.value = 'Face verification failed: ' + err.message
       console.error('Face verification error:', err)
@@ -189,27 +190,26 @@ export function useFaceDetection(options = {}) {
       if (!videoElement.value) {
         throw new Error('Camera not available')
       }
-      
-      const faceData = useMediaPipe 
+
+      const faceData = useMediaPipe
         ? await currentService.captureFaceData(videoElement.value)
         : await currentService.captureFaceDescriptor(videoElement.value, employeeId)
-      
+
       // Add to known faces
-      const descriptor = useMediaPipe 
+      const descriptor = useMediaPipe
         ? currentService.calculateFaceDescriptor(faceData)
         : faceData.descriptor
-      
+
       knownFaces.value.push({
         employeeId: employeeId,
-        descriptor: descriptor
+        descriptor: descriptor,
       })
-      
+
       return {
         success: true,
         faceData: faceData,
-        message: 'Face registered successfully'
+        message: 'Face registered successfully',
       }
-      
     } catch (err) {
       error.value = 'Face registration failed: ' + err.message
       throw err
@@ -226,13 +226,13 @@ export function useFaceDetection(options = {}) {
         reject(new Error('Geolocation not supported'))
         return
       }
-      
+
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const locationData = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy
+            accuracy: position.coords.accuracy,
           }
           resolve(locationData)
         },
@@ -242,7 +242,7 @@ export function useFaceDetection(options = {}) {
         {
           enableHighAccuracy: true,
           timeout: 10000,
-          maximumAge: 0
+          maximumAge: 0,
         }
       )
     })
@@ -264,6 +264,6 @@ export function useFaceDetection(options = {}) {
     loadKnownFaces,
     verifyLocation,
     knownFaces,
-    currentService
+    currentService,
   }
 }

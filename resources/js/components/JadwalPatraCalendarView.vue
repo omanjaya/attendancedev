@@ -2,30 +2,46 @@
   <div class="jadwal-patra-container">
     <!-- Header -->
     <div class="header-section">
-      <h2 class="title">Penyusunan Jadwal Mengajar Guru</h2>
-      
+      <h2 class="title">
+        Penyusunan Jadwal Mengajar Guru
+      </h2>
+
       <!-- Teacher Code Input Section -->
       <div class="teacher-input-section">
         <label>Masukkan Kode Guru:</label>
-        <input 
-          v-model="teacherCode" 
-          type="text" 
+        <input
+          v-model="teacherCode"
+          type="text"
           placeholder="Contoh: JIN_28_3C"
           class="teacher-code-input"
           @keyup.enter="setTeacherCode"
         >
-        <button @click="setTeacherCode" class="btn-set-kode">Set Kode</button>
-        <button @click="showLogin" class="btn-logout">Logout</button>
-        <span class="current-teacher">Kode Guru Saat Ini: <strong>{{ currentTeacherCode || "BELUM DISET" }}</strong></span>
+        <button class="btn-set-kode" @click="setTeacherCode">
+          Set Kode
+        </button>
+        <button class="btn-logout" @click="showLogin">
+          Logout
+        </button>
+        <span class="current-teacher">Kode Guru Saat Ini: <strong>{{ currentTeacherCode || 'BELUM DISET' }}</strong></span>
       </div>
 
       <!-- Action Buttons -->
       <div class="action-buttons">
-        <button @click="exportJSON" class="btn-action btn-json">Simpan Jadwal (JSON)</button>
-        <button @click="importJSON" class="btn-action btn-json">Buat Jadwal (JSON)</button>
-        <button @click="exportExcel" class="btn-action btn-excel">Export ke Excel</button>
-        <button @click="undoAction" class="btn-action btn-undo">Undo (Ctrl+Z)</button>
-        <button @click="resetSchedule" class="btn-action btn-reset">Reset Data</button>
+        <button class="btn-action btn-json" @click="exportJSON">
+          Simpan Jadwal (JSON)
+        </button>
+        <button class="btn-action btn-json" @click="importJSON">
+          Buat Jadwal (JSON)
+        </button>
+        <button class="btn-action btn-excel" @click="exportExcel">
+          Export ke Excel
+        </button>
+        <button class="btn-action btn-undo" @click="undoAction">
+          Undo (Ctrl+Z)
+        </button>
+        <button class="btn-action btn-reset" @click="resetSchedule">
+          Reset Data
+        </button>
       </div>
     </div>
 
@@ -35,29 +51,37 @@
         <!-- Header Row 1: Grade Levels -->
         <thead>
           <tr class="grade-header">
-            <th rowspan="2" class="hari-header">HARI</th>
-            <th :colspan="getClassCountByGrade(10)" class="grade-cell">Kelas X</th>
-            <th :colspan="getClassCountByGrade(11)" class="grade-cell">Kelas XI</th>
-            <th :colspan="getClassCountByGrade(12)" class="grade-cell">Kelas XII</th>
+            <th rowspan="2" class="hari-header">
+              HARI
+            </th>
+            <th :colspan="getClassCountByGrade(10)" class="grade-cell">
+              Kelas X
+            </th>
+            <th :colspan="getClassCountByGrade(11)" class="grade-cell">
+              Kelas XI
+            </th>
+            <th :colspan="getClassCountByGrade(12)" class="grade-cell">
+              Kelas XII
+            </th>
           </tr>
           <!-- Header Row 2: Class Numbers -->
           <tr class="class-header">
-            <th 
-              v-for="classNum in getClassesByGrade(10)" 
+            <th
+              v-for="classNum in getClassesByGrade(10)"
               :key="`x-${classNum}`"
               class="class-number-cell"
             >
               {{ classNum }}
             </th>
-            <th 
-              v-for="classNum in getClassesByGrade(11)" 
+            <th
+              v-for="classNum in getClassesByGrade(11)"
               :key="`xi-${classNum}`"
               class="class-number-cell"
             >
               {{ classNum }}
             </th>
-            <th 
-              v-for="classNum in getClassesByGrade(12)" 
+            <th
+              v-for="classNum in getClassesByGrade(12)"
               :key="`xii-${classNum}`"
               class="class-number-cell"
             >
@@ -70,39 +94,41 @@
           <!-- Time Slot Rows -->
           <tr v-for="day in days" :key="day" class="day-row">
             <!-- Day Column -->
-            <td class="day-cell">{{ day }}</td>
-            
+            <td class="day-cell">
+              {{ day }}
+            </td>
+
             <!-- Class Cells for Each Grade -->
-            <td 
-              v-for="classNum in getClassesByGrade(10)" 
+            <td
+              v-for="classNum in getClassesByGrade(10)"
               :key="`${day}-x-${classNum}`"
-              @click="handleCellClick(day, 10, classNum)"
               :class="getCellClass(day, 10, classNum)"
               class="schedule-cell"
+              @click="handleCellClick(day, 10, classNum)"
             >
               <div class="cell-content">
                 {{ getCellContent(day, 10, classNum) }}
               </div>
             </td>
-            
-            <td 
-              v-for="classNum in getClassesByGrade(11)" 
+
+            <td
+              v-for="classNum in getClassesByGrade(11)"
               :key="`${day}-xi-${classNum}`"
-              @click="handleCellClick(day, 11, classNum)"
               :class="getCellClass(day, 11, classNum)"
               class="schedule-cell"
+              @click="handleCellClick(day, 11, classNum)"
             >
               <div class="cell-content">
                 {{ getCellContent(day, 11, classNum) }}
               </div>
             </td>
-            
-            <td 
-              v-for="classNum in getClassesByGrade(12)" 
+
+            <td
+              v-for="classNum in getClassesByGrade(12)"
               :key="`${day}-xii-${classNum}`"
-              @click="handleCellClick(day, 12, classNum)"
               :class="getCellClass(day, 12, classNum)"
               class="schedule-cell"
+              @click="handleCellClick(day, 12, classNum)"
             >
               <div class="cell-content">
                 {{ getCellContent(day, 12, classNum) }}
@@ -114,23 +140,25 @@
         <!-- Footer with totals -->
         <tfoot>
           <tr class="total-row">
-            <td class="total-label">TOTAL JAM GURU</td>
-            <td 
-              v-for="classNum in getClassesByGrade(10)" 
+            <td class="total-label">
+              TOTAL JAM GURU
+            </td>
+            <td
+              v-for="classNum in getClassesByGrade(10)"
               :key="`total-guru-x-${classNum}`"
               class="total-cell"
             >
               {{ getTotalHoursForClass(10, classNum) }}
             </td>
-            <td 
-              v-for="classNum in getClassesByGrade(11)" 
+            <td
+              v-for="classNum in getClassesByGrade(11)"
               :key="`total-guru-xi-${classNum}`"
               class="total-cell"
             >
               {{ getTotalHoursForClass(11, classNum) }}
             </td>
-            <td 
-              v-for="classNum in getClassesByGrade(12)" 
+            <td
+              v-for="classNum in getClassesByGrade(12)"
               :key="`total-guru-xii-${classNum}`"
               class="total-cell"
             >
@@ -138,23 +166,25 @@
             </td>
           </tr>
           <tr class="total-row">
-            <td class="total-label">TOTAL JAM KELAS</td>
-            <td 
-              v-for="classNum in getClassesByGrade(10)" 
+            <td class="total-label">
+              TOTAL JAM KELAS
+            </td>
+            <td
+              v-for="classNum in getClassesByGrade(10)"
               :key="`total-kelas-x-${classNum}`"
               class="total-cell"
             >
               {{ getTotalClassHours(10, classNum) }}
             </td>
-            <td 
-              v-for="classNum in getClassesByGrade(11)" 
+            <td
+              v-for="classNum in getClassesByGrade(11)"
               :key="`total-kelas-xi-${classNum}`"
               class="total-cell"
             >
               {{ getTotalClassHours(11, classNum) }}
             </td>
-            <td 
-              v-for="classNum in getClassesByGrade(12)" 
+            <td
+              v-for="classNum in getClassesByGrade(12)"
               :key="`total-kelas-xii-${classNum}`"
               class="total-cell"
             >
@@ -169,15 +199,25 @@
     <div class="instructions">
       <h3>Cara Penggunaan:</h3>
       <ol>
-        <li>Masukkan kode guru di kolom "Masukkan Kode Guru" dan klik "Set Kode" atau tekan Enter.</li>
+        <li>
+          Masukkan kode guru di kolom "Masukkan Kode Guru" dan klik "Set Kode" atau tekan Enter.
+        </li>
         <li>Klik pada kotak kosong di jadwal untuk menjadwalkan kode guru saat ini.</li>
         <li>Klik pada kotak berisi untuk menghapus kode guru dari jadwal.</li>
         <li>Gunakan "Ctrl+Z" untuk undo jadwal yang telah dihapus atau dibuat.</li>
-        <li>Untuk melihat jadwal guru tertentu klik tombol mengajar untuk melihat mata pelajaran yang berbeda, dll akan menjadi merah semua rumusan perintah.</li>
+        <li>
+          Untuk melihat jadwal guru tertentu klik tombol mengajar untuk melihat mata pelajaran yang
+          berbeda, dll akan menjadi merah semua rumusan perintah.
+        </li>
         <li>Gunakan "Reset Data" untuk menghapus semua jadwal pada komputer Anda.</li>
-        <li>Gunakan "Buat Jadwal (Upload JSON)" untuk mengunggah jadwal dari file JSON (otomatis dari komputer Anda).</li>
+        <li>
+          Gunakan "Buat Jadwal (Upload JSON)" untuk mengunggah jadwal dari file JSON (otomatis dari
+          komputer Anda).
+        </li>
         <li>Jadwal otomatis tersimpan di browser (IndexedDB).</li>
-        <li>Gunakan "Simpan Jadwal (Download JSON)" untuk mengunduh jadwal saat ini ke komputer.</li>
+        <li>
+          Gunakan "Simpan Jadwal (Download JSON)" untuk mengunduh jadwal saat ini ke komputer.
+        </li>
       </ol>
     </div>
   </div>
@@ -190,12 +230,12 @@ import { ref, reactive, computed, onMounted } from 'vue'
 const props = defineProps({
   academicClasses: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   timeSlots: {
     type: Array,
-    default: () => []
-  }
+    default: () => [],
+  },
 })
 
 // Reactive data
@@ -214,12 +254,12 @@ const getClassCountByGrade = (grade) => {
 }
 
 const getClassesByGrade = (grade) => {
-  const classes = props.academicClasses.filter(cls => cls.grade_level === grade)
+  const classes = props.academicClasses.filter((cls) => cls.grade_level === grade)
   if (classes.length > 0) {
-    return classes.map(cls => cls.class_number || cls.section)
+    return classes.map((cls) => cls.class_number || cls.section)
   }
   // Always show 12 classes per grade as in the screenshot
-  return Array.from({length: 12}, (_, i) => i + 1)
+  return Array.from({ length: 12 }, (_, i) => i + 1)
 }
 
 // Methods
@@ -232,13 +272,13 @@ const setTeacherCode = () => {
 
 const handleCellClick = (day, grade, classNum) => {
   const cellKey = `${day}-${grade}-${classNum}`
-  
+
   if (scheduleData.value[cellKey]) {
     // Remove existing assignment
     actionHistory.value.push({
       type: 'remove',
       key: cellKey,
-      value: scheduleData.value[cellKey]
+      value: scheduleData.value[cellKey],
     })
     delete scheduleData.value[cellKey]
   } else if (currentTeacherCode.value) {
@@ -246,24 +286,24 @@ const handleCellClick = (day, grade, classNum) => {
     actionHistory.value.push({
       type: 'add',
       key: cellKey,
-      value: currentTeacherCode.value
+      value: currentTeacherCode.value,
     })
     scheduleData.value[cellKey] = currentTeacherCode.value
   } else {
     alert('Silakan set kode guru terlebih dahulu!')
     return
   }
-  
+
   saveToStorage()
 }
 
 const getCellClass = (day, grade, classNum) => {
   const cellKey = `${day}-${grade}-${classNum}`
   const hasData = scheduleData.value[cellKey]
-  
+
   return {
     'has-teacher': hasData,
-    'clickable': true
+    clickable: true,
   }
 }
 
@@ -274,7 +314,7 @@ const getCellContent = (day, grade, classNum) => {
 
 const getTotalHoursForClass = (grade, classNum) => {
   let total = 0
-  days.forEach(day => {
+  days.forEach((day) => {
     const cellKey = `${day}-${grade}-${classNum}`
     if (scheduleData.value[cellKey]) {
       total++
@@ -289,16 +329,16 @@ const getTotalClassHours = (grade, classNum) => {
 }
 
 const undoAction = () => {
-  if (actionHistory.value.length === 0) return
-  
+  if (actionHistory.value.length === 0) {return}
+
   const lastAction = actionHistory.value.pop()
-  
+
   if (lastAction.type === 'add') {
     delete scheduleData.value[lastAction.key]
   } else if (lastAction.type === 'remove') {
     scheduleData.value[lastAction.key] = lastAction.value
   }
-  
+
   saveToStorage()
 }
 
@@ -315,9 +355,9 @@ const exportJSON = () => {
   const data = {
     schedule: scheduleData.value,
     currentTeacher: currentTeacherCode.value,
-    exported_at: new Date().toISOString()
+    exported_at: new Date().toISOString(),
   }
-  
+
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -333,16 +373,16 @@ const importJSON = () => {
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = '.json'
-  
+
   input.onchange = (e) => {
     const file = e.target.files[0]
-    if (!file) return
-    
+    if (!file) {return}
+
     const reader = new FileReader()
     reader.onload = (e) => {
       try {
         const data = JSON.parse(e.target.result)
-        
+
         if (confirm('Import jadwal baru? Data sekarang akan diganti.')) {
           scheduleData.value = data.schedule || {}
           currentTeacherCode.value = data.currentTeacher || ''
@@ -354,7 +394,7 @@ const importJSON = () => {
     }
     reader.readAsText(file)
   }
-  
+
   input.click()
 }
 
@@ -371,7 +411,7 @@ const saveToStorage = () => {
   const data = {
     schedule: scheduleData.value,
     currentTeacher: currentTeacherCode.value,
-    history: actionHistory.value
+    history: actionHistory.value,
   }
   localStorage.setItem('jadwal_patra_data', JSON.stringify(data))
 }
@@ -656,11 +696,11 @@ onMounted(() => {
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .action-buttons {
     justify-content: center;
   }
-  
+
   .schedule-grid-container {
     overflow-x: auto;
   }

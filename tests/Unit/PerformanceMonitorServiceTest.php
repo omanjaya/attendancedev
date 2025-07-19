@@ -3,11 +3,11 @@
 namespace Tests\Unit;
 
 use App\Services\PerformanceMonitorService;
-use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Tests\TestCase;
 
 class PerformanceMonitorServiceTest extends TestCase
 {
@@ -18,7 +18,7 @@ class PerformanceMonitorServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new PerformanceMonitorService();
+        $this->service = new PerformanceMonitorService;
     }
 
     public function test_can_start_request_monitoring(): void
@@ -64,6 +64,7 @@ class PerformanceMonitorServiceTest extends TestCase
     {
         $result = $this->service->monitorOperation('test_operation', function () {
             usleep(5000); // 5ms
+
             return 'test_result';
         });
 
@@ -94,7 +95,7 @@ class PerformanceMonitorServiceTest extends TestCase
                 'execution_time' => 200,
                 'memory_usage_bytes' => 2 * 1024 * 1024, // 2MB
                 'queries_count' => 8,
-            ]
+            ],
         ];
 
         Cache::put('performance_metrics', $testMetrics, 3600);
@@ -135,7 +136,7 @@ class PerformanceMonitorServiceTest extends TestCase
                 'execution_time' => 3000, // 3 seconds - should trigger alert
                 'memory_usage_bytes' => 1024 * 1024,
                 'queries_count' => 5,
-            ]
+            ],
         ];
 
         Cache::put('performance_metrics', $highResponseTimeMetrics, 3600);
@@ -143,10 +144,10 @@ class PerformanceMonitorServiceTest extends TestCase
         $alerts = $this->service->getPerformanceAlerts();
 
         $this->assertIsArray($alerts);
-        
+
         // Should have at least one alert for high response time
         $this->assertGreaterThan(0, count($alerts));
-        
+
         $highResponseAlert = collect($alerts)->firstWhere('title', 'High Response Time');
         $this->assertNotNull($highResponseAlert);
         $this->assertEquals('warning', $highResponseAlert['type']);
@@ -195,7 +196,7 @@ class PerformanceMonitorServiceTest extends TestCase
 
         // Should detect at least one slow query
         $this->assertGreaterThan(0, count($queryAnalysis['slow_queries']));
-        
+
         // Should detect duplicate queries
         $this->assertGreaterThan(0, count($queryAnalysis['duplicate_queries']));
     }
@@ -204,12 +205,12 @@ class PerformanceMonitorServiceTest extends TestCase
     {
         // First call should cache the result
         $summary1 = $this->service->getPerformanceSummary(24);
-        
+
         // Second call should return cached result
         $summary2 = $this->service->getPerformanceSummary(24);
-        
+
         $this->assertEquals($summary1, $summary2);
-        
+
         // Verify it's actually cached
         $cacheKey = 'performance_summary_24h';
         $this->assertTrue(Cache::has($cacheKey));
@@ -248,7 +249,7 @@ class PerformanceMonitorServiceTest extends TestCase
         ];
 
         $errorRate = $calculateErrorRateMethod->invoke($this->service, $metrics);
-        
+
         $this->assertEquals(50.0, $errorRate); // 2 errors out of 4 requests = 50%
     }
 
@@ -274,16 +275,16 @@ class PerformanceMonitorServiceTest extends TestCase
     {
         $request = Request::create('/test', 'GET');
         $this->service->startRequest($request);
-        
+
         // Simulate some work
         usleep(5000);
-        
+
         $this->service->endRequest();
 
         // Check that metrics were stored in cache
         $storedMetrics = Cache::get('performance_metrics', []);
         $this->assertNotEmpty($storedMetrics);
-        
+
         $lastMetric = end($storedMetrics);
         $this->assertArrayHasKey('timestamp', $lastMetric);
         $this->assertArrayHasKey('execution_time', $lastMetric);

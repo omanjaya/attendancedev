@@ -3,7 +3,6 @@
 namespace Tests;
 
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Artisan;
 
 abstract class TestCase extends BaseTestCase
@@ -19,7 +18,7 @@ abstract class TestCase extends BaseTestCase
 
         // Clear cache before each test
         $this->clearApplicationCache();
-        
+
         // Set up test-specific configurations
         $this->setUpTestConfiguration();
     }
@@ -31,7 +30,7 @@ abstract class TestCase extends BaseTestCase
     {
         // Clear any test data
         $this->clearTestData();
-        
+
         parent::tearDown();
     }
 
@@ -55,16 +54,16 @@ abstract class TestCase extends BaseTestCase
     {
         // Disable performance monitoring in tests
         config(['app.performance_monitoring' => false]);
-        
+
         // Use array cache driver for faster tests
         config(['cache.default' => 'array']);
-        
+
         // Use sync queue driver for immediate execution
         config(['queue.default' => 'sync']);
-        
+
         // Disable mail sending in tests
         config(['mail.default' => 'array']);
-        
+
         // Set test-specific database configuration
         config(['database.default' => 'testing']);
     }
@@ -85,49 +84,56 @@ abstract class TestCase extends BaseTestCase
     {
         $user = \App\Models\User::factory()->create($attributes);
         $this->actingAs($user);
+
         return $user;
     }
 
     /**
      * Create a user with employee record and authenticate them.
      */
-    protected function authenticateEmployee(array $userAttributes = [], array $employeeAttributes = []): array
-    {
+    protected function authenticateEmployee(
+        array $userAttributes = [],
+        array $employeeAttributes = [],
+    ): array {
         $user = \App\Models\User::factory()->create($userAttributes);
         $employee = \App\Models\Employee::factory()->create(
-            array_merge(['user_id' => $user->id], $employeeAttributes)
+            array_merge(['user_id' => $user->id], $employeeAttributes),
         );
-        
+
         $this->actingAs($user);
-        
+
         return ['user' => $user, 'employee' => $employee];
     }
 
     /**
      * Create a user with specific permissions.
      */
-    protected function authenticateUserWithPermissions(array $permissions, array $attributes = []): \App\Models\User
-    {
+    protected function authenticateUserWithPermissions(
+        array $permissions,
+        array $attributes = [],
+    ): \App\Models\User {
         $user = $this->authenticateUser($attributes);
-        
+
         foreach ($permissions as $permission) {
             $user->givePermissionTo($permission);
         }
-        
+
         return $user;
     }
 
     /**
      * Create a user with a specific role.
      */
-    protected function authenticateUserWithRole(string $roleName, array $attributes = []): \App\Models\User
-    {
+    protected function authenticateUserWithRole(
+        string $roleName,
+        array $attributes = [],
+    ): \App\Models\User {
         $user = $this->authenticateUser($attributes);
-        
+
         // Create role if it doesn't exist
         $role = \Spatie\Permission\Models\Role::firstOrCreate(['name' => $roleName]);
         $user->assignRole($role);
-        
+
         return $user;
     }
 
@@ -137,7 +143,11 @@ abstract class TestCase extends BaseTestCase
     protected function assertTableRecordCount(string $table, int $count): void
     {
         $actual = $this->app['db']->table($table)->count();
-        $this->assertEquals($count, $actual, "Expected {$count} records in table '{$table}', but found {$actual}.");
+        $this->assertEquals(
+            $count,
+            $actual,
+            "Expected {$count} records in table '{$table}', but found {$actual}.",
+        );
     }
 
     /**
@@ -148,9 +158,9 @@ abstract class TestCase extends BaseTestCase
         foreach ($attributes as $attribute => $expectedValue) {
             $actualValue = $model->getAttribute($attribute);
             $this->assertEquals(
-                $expectedValue, 
-                $actualValue, 
-                "Expected model attribute '{$attribute}' to be '{$expectedValue}', but got '{$actualValue}'."
+                $expectedValue,
+                $actualValue,
+                "Expected model attribute '{$attribute}' to be '{$expectedValue}', but got '{$actualValue}'.",
             );
         }
     }
@@ -181,7 +191,7 @@ abstract class TestCase extends BaseTestCase
         $user = \App\Models\User::factory()->create();
         $employee = \App\Models\Employee::factory()->create(['user_id' => $user->id]);
         $location = \App\Models\Location::factory()->create();
-        
+
         return [
             'user' => $user,
             'employee' => $employee,
@@ -201,7 +211,7 @@ abstract class TestCase extends BaseTestCase
             'employee_id' => $employee->id,
             'leave_type_id' => $leaveType->id,
         ]);
-        
+
         return [
             'user' => $user,
             'employee' => $employee,
@@ -213,32 +223,40 @@ abstract class TestCase extends BaseTestCase
     /**
      * Create a test API request with proper headers.
      */
-    protected function apiRequest(string $method, string $uri, array $data = [], array $headers = []): \Illuminate\Testing\TestResponse
-    {
+    protected function apiRequest(
+        string $method,
+        string $uri,
+        array $data = [],
+        array $headers = [],
+    ): \Illuminate\Testing\TestResponse {
         $defaultHeaders = [
             'Accept' => 'application/json',
             'Content-Type' => 'application/json',
         ];
-        
+
         $headers = array_merge($defaultHeaders, $headers);
-        
+
         return $this->json($method, $uri, $data, $headers);
     }
 
     /**
      * Assert that a specific permission is required for a route.
      */
-    protected function assertRequiresPermission(string $route, string $permission, string $method = 'GET', array $data = []): void
-    {
+    protected function assertRequiresPermission(
+        string $route,
+        string $permission,
+        string $method = 'GET',
+        array $data = [],
+    ): void {
         // Test without permission
         $user = $this->authenticateUser();
-        
+
         $response = $this->json($method, $route, $data);
         $response->assertStatus(403);
-        
+
         // Test with permission
         $user->givePermissionTo($permission);
-        
+
         $response = $this->json($method, $route, $data);
         $response->assertStatus(200);
     }

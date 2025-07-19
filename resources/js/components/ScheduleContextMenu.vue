@@ -2,21 +2,21 @@
   <div
     v-if="schedule"
     :style="{ left: x + 'px', top: y + 'px' }"
-    class="fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-2 min-w-[180px]"
+    class="fixed z-50 min-w-[180px] rounded-lg border border-gray-200 bg-white py-2 shadow-lg dark:border-gray-600 dark:bg-gray-800"
     @click.stop
   >
     <!-- Schedule Info Header -->
-    <div class="px-4 py-2 border-b border-gray-200 dark:border-gray-600">
+    <div class="border-b border-gray-200 px-4 py-2 dark:border-gray-600">
       <div class="flex items-center space-x-2">
-        <div 
-          class="w-3 h-3 rounded"
+        <div
+          class="h-3 w-3 rounded"
           :style="{ backgroundColor: schedule.subject?.color || '#3B82F6' }"
-        ></div>
+        />
         <span class="text-sm font-medium text-gray-900 dark:text-gray-100">
           {{ schedule.subject?.code }}
         </span>
       </div>
-      <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+      <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
         {{ schedule.employee?.full_name }}
       </p>
     </div>
@@ -25,93 +25,93 @@
     <div class="py-1">
       <!-- View Details -->
       <button
+        class="flex w-full items-center px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
         @click="handleView"
-        class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
       >
-        <EyeIcon class="w-4 h-4 mr-3" />
+        <EyeIcon class="mr-3 h-4 w-4" />
         Lihat Detail
       </button>
 
       <!-- Edit (if not locked) -->
       <button
         v-if="!schedule.is_locked"
+        class="flex w-full items-center px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
         @click="handleEdit"
-        class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
       >
-        <PencilIcon class="w-4 h-4 mr-3" />
+        <PencilIcon class="mr-3 h-4 w-4" />
         Edit Jadwal
       </button>
 
       <!-- Separator -->
-      <div class="my-1 border-t border-gray-200 dark:border-gray-600"></div>
+      <div class="my-1 border-t border-gray-200 dark:border-gray-600" />
 
       <!-- Copy/Duplicate -->
       <button
+        class="flex w-full items-center px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
         @click="handleDuplicate"
-        class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
       >
-        <DocumentDuplicateIcon class="w-4 h-4 mr-3" />
+        <DocumentDuplicateIcon class="mr-3 h-4 w-4" />
         Duplikasi
       </button>
 
       <!-- Move (Swap Mode) -->
       <button
         v-if="!schedule.is_locked"
+        class="flex w-full items-center px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
         @click="handleSwap"
-        class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
       >
-        <ArrowsRightLeftIcon class="w-4 h-4 mr-3" />
+        <ArrowsRightLeftIcon class="mr-3 h-4 w-4" />
         Tukar Posisi
       </button>
 
       <!-- Separator -->
-      <div class="my-1 border-t border-gray-200 dark:border-gray-600"></div>
+      <div class="my-1 border-t border-gray-200 dark:border-gray-600" />
 
       <!-- Lock/Unlock -->
       <button
-        @click="handleToggleLock"
         :class="[
-          'w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center',
+          'flex w-full items-center px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700',
           schedule.is_locked
             ? 'text-green-600 dark:text-green-400'
-            : 'text-red-600 dark:text-red-400'
+            : 'text-red-600 dark:text-red-400',
         ]"
+        @click="handleToggleLock"
       >
-        <LockOpenIcon v-if="schedule.is_locked" class="w-4 h-4 mr-3" />
-        <LockClosedIcon v-else class="w-4 h-4 mr-3" />
+        <LockOpenIcon v-if="schedule.is_locked" class="mr-3 h-4 w-4" />
+        <LockClosedIcon v-else class="mr-3 h-4 w-4" />
         {{ schedule.is_locked ? 'Buka Kunci' : 'Kunci Jadwal' }}
       </button>
 
       <!-- Separator -->
-      <div class="my-1 border-t border-gray-200 dark:border-gray-600"></div>
+      <div class="my-1 border-t border-gray-200 dark:border-gray-600" />
 
       <!-- Export -->
       <button
+        class="flex w-full items-center px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
         @click="handleExport"
-        class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
       >
-        <ArrowDownTrayIcon class="w-4 h-4 mr-3" />
+        <ArrowDownTrayIcon class="mr-3 h-4 w-4" />
         Export Detail
       </button>
 
       <!-- View History -->
       <button
+        class="flex w-full items-center px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
         @click="handleViewHistory"
-        class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
       >
-        <ClockIcon class="w-4 h-4 mr-3" />
+        <ClockIcon class="mr-3 h-4 w-4" />
         Riwayat Perubahan
       </button>
 
       <!-- Separator -->
-      <div class="my-1 border-t border-gray-200 dark:border-gray-600"></div>
+      <div class="my-1 border-t border-gray-200 dark:border-gray-600" />
 
       <!-- Delete -->
       <button
+        class="flex w-full items-center px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
         @click="handleDelete"
-        class="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center"
       >
-        <TrashIcon class="w-4 h-4 mr-3" />
+        <TrashIcon class="mr-3 h-4 w-4" />
         Hapus Jadwal
       </button>
     </div>
@@ -129,36 +129,36 @@ import {
   DocumentDuplicateIcon,
   ArrowsRightLeftIcon,
   ArrowDownTrayIcon,
-  ClockIcon
+  ClockIcon,
 } from '@heroicons/vue/24/outline'
 
 // Props
 const props = defineProps({
   x: {
     type: Number,
-    required: true
+    required: true,
   },
   y: {
     type: Number,
-    required: true
+    required: true,
   },
   schedule: {
     type: Object,
-    default: null
-  }
+    default: null,
+  },
 })
 
 // Emits
 const emit = defineEmits([
   'close',
   'view',
-  'edit', 
+  'edit',
   'delete',
   'toggleLock',
   'swap',
   'duplicate',
   'export',
-  'viewHistory'
+  'viewHistory',
 ])
 
 // Methods
@@ -195,8 +195,8 @@ const handleDuplicate = async () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-      }
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+      },
     })
 
     const data = await response.json()
@@ -212,7 +212,7 @@ const handleDuplicate = async () => {
     console.error('Error duplicating schedule:', error)
     alert('Terjadi kesalahan saat menduplikasi jadwal')
   }
-  
+
   emit('close')
 }
 
@@ -235,7 +235,7 @@ const handleExport = async () => {
     console.error('Error exporting schedule:', error)
     alert('Gagal mengexport jadwal')
   }
-  
+
   emit('close')
 }
 

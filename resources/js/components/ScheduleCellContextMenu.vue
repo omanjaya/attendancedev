@@ -1,15 +1,15 @@
 <template>
-  <div 
-    class="fixed z-50 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 py-2 min-w-[200px]"
+  <div
+    class="fixed z-50 min-w-[200px] rounded-lg border border-gray-200 bg-white py-2 shadow-lg dark:border-gray-600 dark:bg-gray-800"
     :style="{ top: y + 'px', left: x + 'px' }"
     @click.stop
   >
     <!-- Cell Info Header -->
-    <div class="px-4 py-2 border-b border-gray-100 dark:border-gray-700">
+    <div class="border-b border-gray-100 px-4 py-2 dark:border-gray-700">
       <div class="text-xs text-gray-500 dark:text-gray-400">
         {{ getTimeSlotName() }} • {{ getClassName() }}
       </div>
-      <div v-if="cellData.data" class="text-sm font-medium text-gray-900 dark:text-gray-100 mt-1">
+      <div v-if="cellData.data" class="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
         {{ cellData.data.teacher_name }}
       </div>
     </div>
@@ -18,98 +18,100 @@
     <div class="py-1">
       <!-- Edit/Assign Teacher -->
       <button
+        class="flex w-full items-center space-x-3 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
         @click="handleEdit"
-        class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-3"
       >
-        <PencilIcon class="w-4 h-4" />
+        <PencilIcon class="h-4 w-4" />
         <span>{{ cellData.data ? 'Edit Guru' : 'Pilih Guru' }}</span>
       </button>
 
       <!-- Clear Cell -->
       <button
         v-if="cellData.data"
+        class="flex w-full items-center space-x-3 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
         @click="handleClear"
-        class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-3"
       >
-        <TrashIcon class="w-4 h-4" />
+        <TrashIcon class="h-4 w-4" />
         <span>Hapus Jadwal</span>
       </button>
 
       <!-- Divider -->
-      <div v-if="cellData.data" class="border-t border-gray-100 dark:border-gray-700 my-1"></div>
+      <div v-if="cellData.data" class="my-1 border-t border-gray-100 dark:border-gray-700" />
 
       <!-- Lock/Unlock -->
       <button
         v-if="cellData.data"
+        class="flex w-full items-center space-x-3 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
         @click="handleLock"
-        class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-3"
       >
-        <LockClosedIcon v-if="!cellData.isLocked" class="w-4 h-4" />
-        <LockOpenIcon v-else class="w-4 h-4" />
+        <LockClosedIcon v-if="!cellData.isLocked" class="h-4 w-4" />
+        <LockOpenIcon v-else class="h-4 w-4" />
         <span>{{ cellData.isLocked ? 'Buka Kunci' : 'Kunci Sel' }}</span>
       </button>
 
       <!-- Copy Schedule -->
       <button
         v-if="cellData.data"
+        class="flex w-full items-center space-x-3 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
         @click="handleCopy"
-        class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-3"
       >
-        <DocumentDuplicateIcon class="w-4 h-4" />
+        <DocumentDuplicateIcon class="h-4 w-4" />
         <span>Salin Jadwal</span>
       </button>
 
       <!-- View Details -->
       <button
         v-if="cellData.data"
+        class="flex w-full items-center space-x-3 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
         @click="handleViewDetails"
-        class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-3"
       >
-        <InformationCircleIcon class="w-4 h-4" />
+        <InformationCircleIcon class="h-4 w-4" />
         <span>Lihat Detail</span>
       </button>
 
       <!-- Divider -->
-      <div class="border-t border-gray-100 dark:border-gray-700 my-1"></div>
+      <div class="my-1 border-t border-gray-100 dark:border-gray-700" />
 
       <!-- Mark as Break -->
       <button
-        @click="handleMarkBreak"
         :class="[
-          'w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-3',
-          isBreakTime ? 'text-orange-600 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300'
+          'flex w-full items-center space-x-3 px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700',
+          isBreakTime ? 'text-orange-600 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300',
         ]"
+        @click="handleMarkBreak"
       >
-        <ClockIcon class="w-4 h-4" />
+        <ClockIcon class="h-4 w-4" />
         <span>{{ isBreakTime ? 'Batal Istirahat' : 'Tandai Istirahat' }}</span>
       </button>
 
       <!-- Export This Slot -->
       <button
+        class="flex w-full items-center space-x-3 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
         @click="handleExportSlot"
-        class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-3"
       >
-        <ArrowDownTrayIcon class="w-4 h-4" />
+        <ArrowDownTrayIcon class="h-4 w-4" />
         <span>Export Slot Ini</span>
       </button>
     </div>
 
     <!-- Quick Actions -->
-    <div class="border-t border-gray-100 dark:border-gray-700 py-1">
+    <div class="border-t border-gray-100 py-1 dark:border-gray-700">
       <div class="px-4 py-2">
-        <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">Quick Actions</div>
+        <div class="mb-2 text-xs text-gray-500 dark:text-gray-400">
+          Quick Actions
+        </div>
         <div class="flex space-x-2">
           <button
-            @click="handleQuickAction('copy_to_all')"
-            class="flex-1 px-2 py-1 text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50"
             v-if="cellData.data"
+            class="flex-1 rounded bg-blue-50 px-2 py-1 text-xs text-blue-600 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50"
+            @click="handleQuickAction('copy_to_all')"
           >
             Copy ke Semua
           </button>
           <button
-            @click="handleQuickAction('repeat_weekly')"
-            class="flex-1 px-2 py-1 text-xs bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded hover:bg-green-100 dark:hover:bg-green-900/50"
             v-if="cellData.data"
+            class="flex-1 rounded bg-green-50 px-2 py-1 text-xs text-green-600 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50"
+            @click="handleQuickAction('repeat_weekly')"
           >
             Ulangi Mingguan
           </button>
@@ -129,23 +131,23 @@ import {
   DocumentDuplicateIcon,
   InformationCircleIcon,
   ClockIcon,
-  ArrowDownTrayIcon
+  ArrowDownTrayIcon,
 } from '@heroicons/vue/24/outline'
 
 // Props
 const props = defineProps({
   x: {
     type: Number,
-    required: true
+    required: true,
   },
   y: {
     type: Number,
-    required: true
+    required: true,
   },
   cellData: {
     type: Object,
-    required: true
-  }
+    required: true,
+  },
 })
 
 // Emits
@@ -159,7 +161,7 @@ const emit = defineEmits([
   'view-details',
   'mark-break',
   'export-slot',
-  'quick-action'
+  'quick-action',
 ])
 
 // Computed
@@ -230,6 +232,8 @@ button:hover {
 
 /* Custom menu shadow */
 .shadow-lg {
-  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 10px 25px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 </style>

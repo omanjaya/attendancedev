@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             $table->boolean('is_active')->default(true)->after('email');
             $table->timestamp('last_login_at')->nullable()->after('updated_at');
-            
+
             // Add indexes for better performance
             $table->index('is_active');
             $table->index('last_login_at');

@@ -2,7 +2,7 @@
   <div class="audit-logs-container">
     <!-- Header -->
     <div class="mb-8">
-      <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+      <h2 class="mb-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
         Audit Log Face Recognition
       </h2>
       <p class="text-gray-600 dark:text-gray-300">
@@ -11,149 +11,207 @@
     </div>
 
     <!-- Statistics Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-      <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 rounded-xl p-6 border border-blue-200 dark:border-blue-700/50">
+    <div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-4">
+      <div
+        class="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 p-6 dark:border-blue-700/50 dark:from-blue-900/30 dark:to-blue-800/20"
+      >
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-blue-600 dark:text-blue-400">Total Events</p>
+            <p class="text-sm font-medium text-blue-600 dark:text-blue-400">
+              Total Events
+            </p>
             <p class="text-2xl font-bold text-blue-900 dark:text-blue-100">
               {{ statistics.totalEvents }}
             </p>
-            <div class="flex items-center mt-1">
-              <ArrowUpIcon class="w-4 h-4 text-blue-500 mr-1" />
+            <div class="mt-1 flex items-center">
+              <ArrowUpIcon class="mr-1 h-4 w-4 text-blue-500" />
               <span class="text-sm text-blue-600 dark:text-blue-400">+{{ statistics.eventsGrowth }}%</span>
             </div>
           </div>
-          <div class="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center">
-            <DocumentTextIcon class="w-6 h-6 text-white" />
+          <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500">
+            <DocumentTextIcon class="h-6 w-6 text-white" />
           </div>
         </div>
       </div>
 
-      <div class="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-800/20 rounded-xl p-6 border border-emerald-200 dark:border-emerald-700/50">
+      <div
+        class="rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100 p-6 dark:border-emerald-700/50 dark:from-emerald-900/30 dark:to-emerald-800/20"
+      >
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-emerald-600 dark:text-emerald-400">Successful</p>
+            <p class="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+              Successful
+            </p>
             <p class="text-2xl font-bold text-emerald-900 dark:text-emerald-100">
               {{ statistics.successfulEvents }}
             </p>
-            <div class="flex items-center mt-1">
+            <div class="mt-1 flex items-center">
               <span class="text-sm text-emerald-600 dark:text-emerald-400">
-                {{ Math.round((statistics.successfulEvents / statistics.totalEvents) * 100) }}% dari total
+                {{ Math.round((statistics.successfulEvents / statistics.totalEvents) * 100) }}% dari
+                total
               </span>
             </div>
           </div>
-          <div class="w-12 h-12 rounded-xl bg-emerald-500 flex items-center justify-center">
-            <CheckCircleIcon class="w-6 h-6 text-white" />
+          <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500">
+            <CheckCircleIcon class="h-6 w-6 text-white" />
           </div>
         </div>
       </div>
 
-      <div class="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/20 rounded-xl p-6 border border-red-200 dark:border-red-700/50">
+      <div
+        class="rounded-xl border border-red-200 bg-gradient-to-br from-red-50 to-red-100 p-6 dark:border-red-700/50 dark:from-red-900/30 dark:to-red-800/20"
+      >
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-red-600 dark:text-red-400">Failed/Errors</p>
+            <p class="text-sm font-medium text-red-600 dark:text-red-400">
+              Failed/Errors
+            </p>
             <p class="text-2xl font-bold text-red-900 dark:text-red-100">
               {{ statistics.failedEvents }}
             </p>
-            <div class="flex items-center mt-1">
+            <div class="mt-1 flex items-center">
               <span class="text-sm text-red-600 dark:text-red-400">
-                {{ Math.round((statistics.failedEvents / statistics.totalEvents) * 100) }}% dari total
+                {{ Math.round((statistics.failedEvents / statistics.totalEvents) * 100) }}% dari
+                total
               </span>
             </div>
           </div>
-          <div class="w-12 h-12 rounded-xl bg-red-500 flex items-center justify-center">
-            <ExclamationTriangleIcon class="w-6 h-6 text-white" />
+          <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-500">
+            <ExclamationTriangleIcon class="h-6 w-6 text-white" />
           </div>
         </div>
       </div>
 
-      <div class="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/20 rounded-xl p-6 border border-amber-200 dark:border-amber-700/50">
+      <div
+        class="rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-amber-100 p-6 dark:border-amber-700/50 dark:from-amber-900/30 dark:to-amber-800/20"
+      >
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-amber-600 dark:text-amber-400">Security Events</p>
+            <p class="text-sm font-medium text-amber-600 dark:text-amber-400">
+              Security Events
+            </p>
             <p class="text-2xl font-bold text-amber-900 dark:text-amber-100">
               {{ statistics.securityEvents }}
             </p>
-            <div class="flex items-center mt-1">
+            <div class="mt-1 flex items-center">
               <span class="text-sm text-amber-600 dark:text-amber-400">
                 {{ statistics.securityEvents > 0 ? 'Perlu perhatian' : 'Aman' }}
               </span>
             </div>
           </div>
-          <div class="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center">
-            <ShieldExclamationIcon class="w-6 h-6 text-white" />
+          <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500">
+            <ShieldExclamationIcon class="h-6 w-6 text-white" />
           </div>
         </div>
       </div>
     </div>
 
     <!-- Filters and Actions -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 mb-6">
-      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-        <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
+    <div
+      class="mb-6 rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800"
+    >
+      <div
+        class="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0"
+      >
+        <div class="flex flex-col space-y-4 md:flex-row md:space-x-4 md:space-y-0">
           <!-- Date Range -->
           <div class="flex items-center space-x-2">
-            <CalendarIcon class="w-5 h-5 text-gray-400" />
+            <CalendarIcon class="h-5 w-5 text-gray-400" />
             <input
               v-model="filters.startDate"
               type="date"
-              class="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+              class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700"
             >
             <span class="text-gray-500 dark:text-gray-400">-</span>
             <input
               v-model="filters.endDate"
               type="date"
-              class="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+              class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700"
             >
           </div>
 
           <!-- Event Type Filter -->
           <select
             v-model="filters.eventType"
-            class="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+            class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700"
           >
-            <option value="">Semua Event</option>
-            <option value="detection">Deteksi Wajah</option>
-            <option value="enrollment">Pendaftaran</option>
-            <option value="authentication">Autentikasi</option>
-            <option value="liveness">Liveness Check</option>
-            <option value="template_update">Update Template</option>
-            <option value="system">Sistem</option>
+            <option value="">
+              Semua Event
+            </option>
+            <option value="detection">
+              Deteksi Wajah
+            </option>
+            <option value="enrollment">
+              Pendaftaran
+            </option>
+            <option value="authentication">
+              Autentikasi
+            </option>
+            <option value="liveness">
+              Liveness Check
+            </option>
+            <option value="template_update">
+              Update Template
+            </option>
+            <option value="system">
+              Sistem
+            </option>
           </select>
 
           <!-- Status Filter -->
           <select
             v-model="filters.status"
-            class="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+            class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700"
           >
-            <option value="">Semua Status</option>
-            <option value="success">Berhasil</option>
-            <option value="failed">Gagal</option>
-            <option value="warning">Peringatan</option>
-            <option value="error">Error</option>
+            <option value="">
+              Semua Status
+            </option>
+            <option value="success">
+              Berhasil
+            </option>
+            <option value="failed">
+              Gagal
+            </option>
+            <option value="warning">
+              Peringatan
+            </option>
+            <option value="error">
+              Error
+            </option>
           </select>
 
           <!-- Risk Level Filter -->
           <select
             v-model="filters.riskLevel"
-            class="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+            class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700"
           >
-            <option value="">Semua Level</option>
-            <option value="low">Low Risk</option>
-            <option value="medium">Medium Risk</option>
-            <option value="high">High Risk</option>
-            <option value="critical">Critical</option>
+            <option value="">
+              Semua Level
+            </option>
+            <option value="low">
+              Low Risk
+            </option>
+            <option value="medium">
+              Medium Risk
+            </option>
+            <option value="high">
+              High Risk
+            </option>
+            <option value="critical">
+              Critical
+            </option>
           </select>
 
           <!-- Search -->
           <div class="relative">
-            <MagnifyingGlassIcon class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <MagnifyingGlassIcon
+              class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400"
+            />
             <input
               v-model="filters.searchQuery"
               type="text"
               placeholder="Cari user, IP, atau event..."
-              class="pl-10 pr-4 py-2 w-full md:w-64 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+              class="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700 md:w-64"
             >
           </div>
         </div>
@@ -164,27 +222,27 @@
             <input
               v-model="realTimeEnabled"
               type="checkbox"
-              class="w-4 h-4 text-emerald-600 bg-gray-100 border-gray-300 rounded focus:ring-emerald-500"
+              class="h-4 w-4 rounded border-gray-300 bg-gray-100 text-emerald-600 focus:ring-emerald-500"
             >
             <span class="text-sm text-gray-700 dark:text-gray-300">Real-time</span>
           </label>
 
           <!-- Export Button -->
           <button
+            class="inline-flex items-center rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
             @click="exportLogs"
-            class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
           >
-            <ArrowDownTrayIcon class="w-4 h-4 mr-2" />
+            <ArrowDownTrayIcon class="mr-2 h-4 w-4" />
             Export
           </button>
 
           <!-- Refresh Button -->
           <button
-            @click="refreshLogs"
             :disabled="loading"
-            class="inline-flex items-center px-4 py-2 text-sm font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 rounded-lg transition-colors disabled:opacity-50"
+            class="inline-flex items-center rounded-lg bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-600 transition-colors hover:bg-emerald-100 disabled:opacity-50 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50"
+            @click="refreshLogs"
           >
-            <ArrowPathIcon :class="['w-4 h-4 mr-2', { 'animate-spin': loading }]" />
+            <ArrowPathIcon :class="['mr-2 h-4 w-4', { 'animate-spin': loading }]" />
             {{ loading ? 'Loading...' : 'Refresh' }}
           </button>
         </div>
@@ -192,40 +250,58 @@
     </div>
 
     <!-- Activity Chart -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 mb-6">
-      <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+    <div
+      class="mb-6 rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800"
+    >
+      <h3 class="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
         Aktivitas Harian
       </h3>
       <div class="h-64">
-        <canvas ref="activityChart"></canvas>
+        <canvas ref="activityChart" />
       </div>
     </div>
 
     <!-- Logs Table -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div
+      class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
+    >
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead>
             <tr class="bg-gray-50 dark:bg-gray-700">
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th
+                class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
+              >
                 Waktu
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th
+                class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
+              >
                 Event
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th
+                class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
+              >
                 User
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th
+                class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
+              >
                 Status
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th
+                class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
+              >
                 Risk Level
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th
+                class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
+              >
                 IP Address
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th
+                class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
+              >
                 Aksi
               </th>
             </tr>
@@ -234,22 +310,24 @@
             <tr
               v-for="log in filteredLogs"
               :key="log.id"
-              class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
             >
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+              <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
                 <div>{{ formatDateTime(log.timestamp) }}</div>
                 <div class="text-xs text-gray-500 dark:text-gray-400">
                   {{ formatTimeAgo(log.timestamp) }}
                 </div>
               </td>
-              
+
               <td class="px-6 py-4">
                 <div class="flex items-center space-x-3">
-                  <div :class="[
-                    'w-8 h-8 rounded-full flex items-center justify-center',
-                    getEventTypeColor(log.event_type)
-                  ]">
-                    <component :is="getEventTypeIcon(log.event_type)" class="w-4 h-4" />
+                  <div
+                    :class="[
+                      'flex h-8 w-8 items-center justify-center rounded-full',
+                      getEventTypeColor(log.event_type),
+                    ]"
+                  >
+                    <component :is="getEventTypeIcon(log.event_type)" class="h-4 w-4" />
                   </div>
                   <div>
                     <div class="font-medium text-gray-900 dark:text-gray-100">
@@ -261,10 +339,12 @@
                   </div>
                 </div>
               </td>
-              
+
               <td class="px-6 py-4">
                 <div class="flex items-center space-x-3">
-                  <div class="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+                  <div
+                    class="flex h-8 w-8 items-center justify-center rounded-full bg-gray-300 dark:bg-gray-600"
+                  >
                     <span class="text-xs font-medium text-gray-700 dark:text-gray-300">
                       {{ log.user_name?.charAt(0) || 'S' }}
                     </span>
@@ -279,36 +359,40 @@
                   </div>
                 </div>
               </td>
-              
+
               <td class="px-6 py-4">
-                <span :class="[
-                  'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-                  getStatusColor(log.status)
-                ]">
+                <span
+                  :class="[
+                    'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
+                    getStatusColor(log.status),
+                  ]"
+                >
                   {{ getStatusText(log.status) }}
                 </span>
               </td>
-              
+
               <td class="px-6 py-4">
-                <span :class="[
-                  'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-                  getRiskLevelColor(log.risk_level)
-                ]">
+                <span
+                  :class="[
+                    'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
+                    getRiskLevelColor(log.risk_level),
+                  ]"
+                >
                   {{ getRiskLevelText(log.risk_level) }}
                 </span>
               </td>
-              
+
               <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
                 <div>{{ log.ip_address }}</div>
                 <div class="text-xs text-gray-500 dark:text-gray-400">
                   {{ log.user_agent_summary || 'Unknown' }}
                 </div>
               </td>
-              
+
               <td class="px-6 py-4">
                 <button
+                  class="text-sm font-medium text-emerald-600 hover:text-emerald-500 dark:text-emerald-400 dark:hover:text-emerald-300"
                   @click="viewLogDetails(log)"
-                  class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 font-medium text-sm"
                 >
                   Detail
                 </button>
@@ -320,28 +404,29 @@
     </div>
 
     <!-- Pagination -->
-    <div class="flex items-center justify-between mt-6">
+    <div class="mt-6 flex items-center justify-between">
       <div class="text-sm text-gray-700 dark:text-gray-300">
-        Menampilkan {{ startIndex + 1 }} hingga {{ Math.min(endIndex, filteredLogs.length) }} dari {{ filteredLogs.length }} log
+        Menampilkan {{ startIndex + 1 }} hingga {{ Math.min(endIndex, filteredLogs.length) }} dari
+        {{ filteredLogs.length }} log
       </div>
-      
+
       <div class="flex items-center space-x-2">
         <button
-          @click="previousPage"
           :disabled="currentPage === 1"
-          class="px-3 py-1 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          class="rounded-lg border border-gray-300 bg-white px-3 py-1 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+          @click="previousPage"
         >
           Sebelumnya
         </button>
-        
+
         <span class="text-sm text-gray-700 dark:text-gray-300">
           {{ currentPage }} dari {{ totalPages }}
         </span>
-        
+
         <button
-          @click="nextPage"
           :disabled="currentPage === totalPages"
-          class="px-3 py-1 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          class="rounded-lg border border-gray-300 bg-white px-3 py-1 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+          @click="nextPage"
         >
           Selanjutnya
         </button>
@@ -355,28 +440,28 @@
       @click="selectedLog = null"
     >
       <div
-        class="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto"
+        class="mx-4 max-h-[80vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-white p-6 dark:bg-gray-800"
         @click.stop
       >
-        <div class="flex items-center justify-between mb-6">
+        <div class="mb-6 flex items-center justify-between">
           <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
             Detail Audit Log
           </h3>
           <button
-            @click="selectedLog = null"
             class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            @click="selectedLog = null"
           >
-            <XMarkIcon class="w-6 h-6" />
+            <XMarkIcon class="h-6 w-6" />
           </button>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <!-- Basic Information -->
           <div>
-            <h4 class="font-medium text-gray-900 dark:text-gray-100 mb-3">
+            <h4 class="mb-3 font-medium text-gray-900 dark:text-gray-100">
               Informasi Dasar
             </h4>
-            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 space-y-3">
+            <div class="space-y-3 rounded-lg bg-gray-50 p-4 dark:bg-gray-700">
               <div class="flex justify-between">
                 <span class="text-sm text-gray-600 dark:text-gray-400">Event ID:</span>
                 <span class="text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -397,24 +482,33 @@
               </div>
               <div class="flex justify-between">
                 <span class="text-sm text-gray-600 dark:text-gray-400">Status:</span>
-                <span :class="[
-                  'text-sm font-medium',
-                  selectedLog.status === 'success' ? 'text-emerald-600 dark:text-emerald-400' :
-                  selectedLog.status === 'failed' ? 'text-red-600 dark:text-red-400' :
-                  'text-amber-600 dark:text-amber-400'
-                ]">
+                <span
+                  :class="[
+                    'text-sm font-medium',
+                    selectedLog.status === 'success'
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : selectedLog.status === 'failed'
+                        ? 'text-red-600 dark:text-red-400'
+                        : 'text-amber-600 dark:text-amber-400',
+                  ]"
+                >
                   {{ getStatusText(selectedLog.status) }}
                 </span>
               </div>
               <div class="flex justify-between">
                 <span class="text-sm text-gray-600 dark:text-gray-400">Risk Level:</span>
-                <span :class="[
-                  'text-sm font-medium',
-                  selectedLog.risk_level === 'low' ? 'text-green-600 dark:text-green-400' :
-                  selectedLog.risk_level === 'medium' ? 'text-yellow-600 dark:text-yellow-400' :
-                  selectedLog.risk_level === 'high' ? 'text-orange-600 dark:text-orange-400' :
-                  'text-red-600 dark:text-red-400'
-                ]">
+                <span
+                  :class="[
+                    'text-sm font-medium',
+                    selectedLog.risk_level === 'low'
+                      ? 'text-green-600 dark:text-green-400'
+                      : selectedLog.risk_level === 'medium'
+                        ? 'text-yellow-600 dark:text-yellow-400'
+                        : selectedLog.risk_level === 'high'
+                          ? 'text-orange-600 dark:text-orange-400'
+                          : 'text-red-600 dark:text-red-400',
+                  ]"
+                >
                   {{ getRiskLevelText(selectedLog.risk_level) }}
                 </span>
               </div>
@@ -423,10 +517,10 @@
 
           <!-- Technical Details -->
           <div>
-            <h4 class="font-medium text-gray-900 dark:text-gray-100 mb-3">
+            <h4 class="mb-3 font-medium text-gray-900 dark:text-gray-100">
               Detail Teknis
             </h4>
-            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 space-y-3">
+            <div class="space-y-3 rounded-lg bg-gray-50 p-4 dark:bg-gray-700">
               <div class="flex justify-between">
                 <span class="text-sm text-gray-600 dark:text-gray-400">IP Address:</span>
                 <span class="text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -463,22 +557,22 @@
 
         <!-- Event Details -->
         <div class="mt-6">
-          <h4 class="font-medium text-gray-900 dark:text-gray-100 mb-3">
+          <h4 class="mb-3 font-medium text-gray-900 dark:text-gray-100">
             Detail Event
           </h4>
-          <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-            <p class="text-sm text-gray-700 dark:text-gray-300 mb-3">
+          <div class="rounded-lg bg-gray-50 p-4 dark:bg-gray-700">
+            <p class="mb-3 text-sm text-gray-700 dark:text-gray-300">
               {{ selectedLog.description }}
             </p>
-            
+
             <div v-if="selectedLog.metadata" class="space-y-2">
               <div
                 v-for="(value, key) in selectedLog.metadata"
                 :key="key"
                 class="flex justify-between text-sm"
               >
-                <span class="text-gray-600 dark:text-gray-400 capitalize">{{ key.replace(/_/g, ' ') }}:</span>
-                <span class="text-gray-900 dark:text-gray-100 font-medium">
+                <span class="capitalize text-gray-600 dark:text-gray-400">{{ key.replace(/_/g, ' ') }}:</span>
+                <span class="font-medium text-gray-900 dark:text-gray-100">
                   {{ typeof value === 'object' ? JSON.stringify(value) : value }}
                 </span>
               </div>
@@ -488,26 +582,32 @@
 
         <!-- Error Details (if any) -->
         <div v-if="selectedLog.error_details" class="mt-6">
-          <h4 class="font-medium text-gray-900 dark:text-gray-100 mb-3">
+          <h4 class="mb-3 font-medium text-gray-900 dark:text-gray-100">
             Error Details
           </h4>
-          <div class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700/50 rounded-lg p-4">
-            <pre class="text-sm text-red-800 dark:text-red-200 whitespace-pre-wrap">{{ selectedLog.error_details }}</pre>
+          <div
+            class="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-700/50 dark:bg-red-900/30"
+          >
+            <pre class="whitespace-pre-wrap text-sm text-red-800 dark:text-red-200">{{
+              selectedLog.error_details
+            }}</pre>
           </div>
         </div>
 
         <!-- Actions -->
-        <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-600">
+        <div
+          class="mt-6 flex justify-end space-x-3 border-t border-gray-200 pt-4 dark:border-gray-600"
+        >
           <button
             v-if="selectedLog.risk_level === 'high' || selectedLog.risk_level === 'critical'"
+            class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
             @click="flagForInvestigation(selectedLog)"
-            class="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
           >
             Flag for Investigation
           </button>
           <button
+            class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
             @click="selectedLog = null"
-            class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
           >
             Tutup
           </button>
@@ -519,7 +619,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
-import { 
+import {
   DocumentTextIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
@@ -535,7 +635,7 @@ import {
   KeyIcon,
   ShieldCheckIcon,
   Cog6ToothIcon,
-  ClockIcon
+  ClockIcon,
 } from '@heroicons/vue/24/outline'
 
 // Reactive state
@@ -552,7 +652,7 @@ const filters = reactive({
   eventType: '',
   status: '',
   riskLevel: '',
-  searchQuery: ''
+  searchQuery: '',
 })
 
 const statistics = reactive({
@@ -560,7 +660,7 @@ const statistics = reactive({
   eventsGrowth: 8.5,
   successfulEvents: 1089,
   failedEvents: 158,
-  securityEvents: 12
+  securityEvents: 12,
 })
 
 const auditLogs = ref([
@@ -581,8 +681,8 @@ const auditLogs = ref([
     metadata: {
       algorithm: 'Face-API.js',
       liveness_score: 89,
-      device_info: 'Camera HD 1080p'
-    }
+      device_info: 'Camera HD 1080p',
+    },
   },
   {
     id: 'LOG002',
@@ -601,9 +701,9 @@ const auditLogs = ref([
     metadata: {
       algorithm: 'MediaPipe',
       liveness_score: 32,
-      failure_reason: 'Insufficient lighting'
+      failure_reason: 'Insufficient lighting',
     },
-    error_details: 'Face detection confidence below threshold (45% < 70%)'
+    error_details: 'Face detection confidence below threshold (45% < 70%)',
   },
   {
     id: 'LOG003',
@@ -622,8 +722,8 @@ const auditLogs = ref([
     metadata: {
       algorithm: 'Face-API.js',
       template_count: 4,
-      enrollment_quality: 'High'
-    }
+      enrollment_quality: 'High',
+    },
   },
   {
     id: 'LOG004',
@@ -643,9 +743,9 @@ const auditLogs = ref([
       algorithm: 'Face-API.js',
       liveness_score: 23,
       failed_gestures: ['blink', 'smile'],
-      suspicious_patterns: ['static_image', 'no_depth']
+      suspicious_patterns: ['static_image', 'no_depth'],
     },
-    error_details: 'Multiple liveness checks failed. Potential spoofing attempt detected.'
+    error_details: 'Multiple liveness checks failed. Potential spoofing attempt detected.',
   },
   {
     id: 'LOG005',
@@ -664,9 +764,9 @@ const auditLogs = ref([
     metadata: {
       maintenance_type: 'template_optimization',
       processed_templates: 245,
-      duration: '15 minutes'
-    }
-  }
+      duration: '15 minutes',
+    },
+  },
 ])
 
 const activityChart = ref(null)
@@ -680,8 +780,8 @@ const filteredLogs = computed(() => {
     const start = new Date(filters.startDate)
     const end = new Date(filters.endDate)
     end.setHours(23, 59, 59, 999)
-    
-    filtered = filtered.filter(log => {
+
+    filtered = filtered.filter((log) => {
       const logDate = new Date(log.timestamp)
       return logDate >= start && logDate <= end
     })
@@ -689,27 +789,28 @@ const filteredLogs = computed(() => {
 
   // Event type filter
   if (filters.eventType) {
-    filtered = filtered.filter(log => log.event_type === filters.eventType)
+    filtered = filtered.filter((log) => log.event_type === filters.eventType)
   }
 
   // Status filter
   if (filters.status) {
-    filtered = filtered.filter(log => log.status === filters.status)
+    filtered = filtered.filter((log) => log.status === filters.status)
   }
 
   // Risk level filter
   if (filters.riskLevel) {
-    filtered = filtered.filter(log => log.risk_level === filters.riskLevel)
+    filtered = filtered.filter((log) => log.risk_level === filters.riskLevel)
   }
 
   // Search filter
   if (filters.searchQuery) {
     const query = filters.searchQuery.toLowerCase()
-    filtered = filtered.filter(log => 
-      log.user_name?.toLowerCase().includes(query) ||
-      log.user_id?.toLowerCase().includes(query) ||
-      log.ip_address.includes(query) ||
-      log.description.toLowerCase().includes(query)
+    filtered = filtered.filter(
+      (log) =>
+        log.user_name?.toLowerCase().includes(query) ||
+        log.user_id?.toLowerCase().includes(query) ||
+        log.ip_address.includes(query) ||
+        log.description.toLowerCase().includes(query)
     )
   }
 
@@ -741,7 +842,7 @@ const formatDateTime = (date) => {
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit'
+    second: '2-digit',
   }).format(date)
 }
 
@@ -752,9 +853,9 @@ const formatTimeAgo = (date) => {
   const hours = Math.floor(minutes / 60)
   const days = Math.floor(hours / 24)
 
-  if (days > 0) return `${days} hari lalu`
-  if (hours > 0) return `${hours} jam lalu`
-  if (minutes > 0) return `${minutes} menit lalu`
+  if (days > 0) {return `${days} hari lalu`}
+  if (hours > 0) {return `${hours} jam lalu`}
+  if (minutes > 0) {return `${minutes} menit lalu`}
   return 'Baru saja'
 }
 
@@ -765,7 +866,7 @@ const getEventTypeIcon = (type) => {
     authentication: KeyIcon,
     liveness: ShieldCheckIcon,
     template_update: ArrowPathIcon,
-    system: Cog6ToothIcon
+    system: Cog6ToothIcon,
   }
   return icons[type] || DocumentTextIcon
 }
@@ -777,7 +878,7 @@ const getEventTypeColor = (type) => {
     authentication: 'bg-purple-100 text-purple-600 dark:bg-purple-800 dark:text-purple-400',
     liveness: 'bg-amber-100 text-amber-600 dark:bg-amber-800 dark:text-amber-400',
     template_update: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-800 dark:text-indigo-400',
-    system: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+    system: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
   }
   return colors[type] || 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
 }
@@ -789,7 +890,7 @@ const getEventTypeName = (type) => {
     authentication: 'Autentikasi',
     liveness: 'Liveness Check',
     template_update: 'Update Template',
-    system: 'Sistem'
+    system: 'Sistem',
   }
   return names[type] || 'Unknown'
 }
@@ -799,7 +900,7 @@ const getStatusColor = (status) => {
     success: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200',
     failed: 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-200',
     warning: 'bg-amber-100 text-amber-800 dark:bg-amber-800 dark:text-amber-200',
-    error: 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-200'
+    error: 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-200',
   }
   return colors[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
 }
@@ -809,7 +910,7 @@ const getStatusText = (status) => {
     success: 'Berhasil',
     failed: 'Gagal',
     warning: 'Peringatan',
-    error: 'Error'
+    error: 'Error',
   }
   return texts[status] || 'Unknown'
 }
@@ -819,7 +920,7 @@ const getRiskLevelColor = (level) => {
     low: 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-200',
     medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200',
     high: 'bg-orange-100 text-orange-800 dark:bg-orange-800 dark:text-orange-200',
-    critical: 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-200'
+    critical: 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-200',
   }
   return colors[level] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
 }
@@ -829,7 +930,7 @@ const getRiskLevelText = (level) => {
     low: 'Low',
     medium: 'Medium',
     high: 'High',
-    critical: 'Critical'
+    critical: 'Critical',
   }
   return texts[level] || 'Unknown'
 }
@@ -848,11 +949,11 @@ const refreshLogs = async () => {
   loading.value = true
   try {
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
     // In production, fetch fresh logs from API
     console.log('Logs refreshed')
-    
+
     // Add a new sample log to simulate real-time updates
     auditLogs.value.unshift({
       id: `LOG${Date.now()}`,
@@ -870,14 +971,13 @@ const refreshLogs = async () => {
       confidence: 88,
       metadata: {
         algorithm: 'Face-API.js',
-        liveness_score: 91
-      }
+        liveness_score: 91,
+      },
     })
-    
+
     // Update statistics
     statistics.totalEvents++
     statistics.successfulEvents++
-    
   } catch (error) {
     console.error('Failed to refresh logs:', error)
   } finally {
@@ -889,7 +989,7 @@ const exportLogs = () => {
   const data = JSON.stringify(filteredLogs.value, null, 2)
   const blob = new Blob([data], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
-  
+
   const a = document.createElement('a')
   a.href = url
   a.download = `audit_logs_${new Date().toISOString().split('T')[0]}.json`
@@ -900,7 +1000,7 @@ const exportLogs = () => {
 }
 
 const initializeChart = () => {
-  if (!activityChart.value) return
+  if (!activityChart.value) {return}
 
   const ctx = activityChart.value.getContext('2d')
   const canvas = ctx.canvas
@@ -931,7 +1031,7 @@ const drawActivityChart = (ctx, labels, successData, failedData) => {
   ctx.lineWidth = 1
 
   for (let i = 0; i <= 5; i++) {
-    const y = padding + (height - 2 * padding) / 5 * i
+    const y = padding + ((height - 2 * padding) / 5) * i
     ctx.beginPath()
     ctx.moveTo(padding, y)
     ctx.lineTo(width - padding, y)
@@ -944,9 +1044,9 @@ const drawActivityChart = (ctx, labels, successData, failedData) => {
   ctx.beginPath()
 
   successData.forEach((value, index) => {
-    const x = padding + (width - 2 * padding) / (successData.length - 1) * index
+    const x = padding + ((width - 2 * padding) / (successData.length - 1)) * index
     const y = height - padding - (value / Math.max(...successData)) * (height - 2 * padding)
-    
+
     if (index === 0) {
       ctx.moveTo(x, y)
     } else {
@@ -961,9 +1061,9 @@ const drawActivityChart = (ctx, labels, successData, failedData) => {
   ctx.beginPath()
 
   failedData.forEach((value, index) => {
-    const x = padding + (width - 2 * padding) / (failedData.length - 1) * index
+    const x = padding + ((width - 2 * padding) / (failedData.length - 1)) * index
     const y = height - padding - (value / Math.max(...successData)) * (height - 2 * padding)
-    
+
     if (index === 0) {
       ctx.moveTo(x, y)
     } else {
@@ -989,7 +1089,7 @@ const startRealTimeUpdates = () => {
   if (realTimeInterval.value) {
     clearInterval(realTimeInterval.value)
   }
-  
+
   realTimeInterval.value = setInterval(() => {
     if (realTimeEnabled.value) {
       refreshLogs()
@@ -1018,10 +1118,10 @@ onMounted(() => {
   // Set date range to last 7 days
   const endDate = new Date()
   const startDate = new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1000)
-  
+
   filters.startDate = startDate.toISOString().split('T')[0]
   filters.endDate = endDate.toISOString().split('T')[0]
-  
+
   // Initialize chart
   setTimeout(initializeChart, 100)
 })
@@ -1033,7 +1133,7 @@ onUnmounted(() => {
 
 <style scoped>
 .audit-logs-container {
-  @apply max-w-7xl mx-auto p-6;
+  @apply mx-auto max-w-7xl p-6;
 }
 
 /* Chart canvas styling */
@@ -1062,7 +1162,9 @@ canvas {
 
 /* Transitions */
 .transition-colors {
-  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out;
+  transition:
+    color 0.15s ease-in-out,
+    background-color 0.15s ease-in-out;
 }
 
 /* Pre formatting */

@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 use Yajra\DataTables\Facades\DataTables;
 
 class AuditLogController extends Controller
@@ -25,7 +25,7 @@ class AuditLogController extends Controller
         $stats = $this->getAuditStats();
         $eventTypes = $this->getEventTypes();
         $auditableTypes = $this->getAuditableTypes();
-        
+
         return view('pages.admin.audit.index', compact('stats', 'eventTypes', 'auditableTypes'));
     }
 
@@ -35,11 +35,7 @@ class AuditLogController extends Controller
     public function data(Request $request)
     {
         $query = AuditLog::with(['user'])
-            ->select([
-                'audit_logs.*',
-                'users.name as user_name',
-                'users.email as user_email'
-            ])
+            ->select(['audit_logs.*', 'users.name as user_name', 'users.email as user_email'])
             ->leftJoin('users', 'audit_logs.user_id', '=', 'users.id');
 
         return DataTables::of($query)
@@ -47,8 +43,8 @@ class AuditLogController extends Controller
                 // Date range filter
                 if ($request->filled(['start_date', 'end_date'])) {
                     $query->whereBetween('audit_logs.created_at', [
-                        $request->start_date . ' 00:00:00',
-                        $request->end_date . ' 23:59:59'
+                        $request->start_date.' 00:00:00',
+                        $request->end_date.' 23:59:59',
                     ]);
                 }
 
@@ -59,7 +55,7 @@ class AuditLogController extends Controller
 
                 // Auditable type filter
                 if ($request->filled('auditable_type')) {
-                    $query->where('audit_logs.auditable_type', 'LIKE', '%' . $request->auditable_type . '%');
+                    $query->where('audit_logs.auditable_type', 'LIKE', '%'.$request->auditable_type.'%');
                 }
 
                 // User filter
@@ -71,15 +67,38 @@ class AuditLogController extends Controller
                 if ($request->filled('risk_level')) {
                     $riskLevel = $request->risk_level;
                     if ($riskLevel === 'high') {
-                        $query->whereIn('audit_logs.event_type', ['deleted', 'login_failed', 'permission_changed', 'role_changed']);
+                        $query->whereIn('audit_logs.event_type', [
+                            'deleted',
+                            'login_failed',
+                            'permission_changed',
+                            'role_changed',
+                        ]);
                     } elseif ($riskLevel === 'medium') {
-                        $query->where(function($q) {
-                            $q->whereIn('audit_logs.auditable_type', ['App\\Models\\User', 'App\\Models\\Employee', 'App\\Models\\Payroll'])
-                              ->whereNotIn('audit_logs.event_type', ['deleted', 'login_failed', 'permission_changed', 'role_changed']);
+                        $query->where(function ($q) {
+                            $q->whereIn('audit_logs.auditable_type', [
+                                'App\\Models\\User',
+                                'App\\Models\\Employee',
+                                'App\\Models\\Payroll',
+                            ])->whereNotIn('audit_logs.event_type', [
+                                'deleted',
+                                'login_failed',
+                                'permission_changed',
+                                'role_changed',
+                            ]);
                         });
                     } else {
-                        $query->whereNotIn('audit_logs.auditable_type', ['App\\Models\\User', 'App\\Models\\Employee', 'App\\Models\\Payroll'])
-                              ->whereNotIn('audit_logs.event_type', ['deleted', 'login_failed', 'permission_changed', 'role_changed']);
+                        $query
+                            ->whereNotIn('audit_logs.auditable_type', [
+                                'App\\Models\\User',
+                                'App\\Models\\Employee',
+                                'App\\Models\\Payroll',
+                            ])
+                            ->whereNotIn('audit_logs.event_type', [
+                                'deleted',
+                                'login_failed',
+                                'permission_changed',
+                                'role_changed',
+                            ]);
                     }
                 }
 
@@ -88,10 +107,10 @@ class AuditLogController extends Controller
                     $search = $request->input('search.value');
                     $query->where(function ($q) use ($search) {
                         $q->where('users.name', 'LIKE', "%{$search}%")
-                          ->orWhere('users.email', 'LIKE', "%{$search}%")
-                          ->orWhere('audit_logs.event_type', 'LIKE', "%{$search}%")
-                          ->orWhere('audit_logs.auditable_type', 'LIKE', "%{$search}%")
-                          ->orWhere('audit_logs.ip_address', 'LIKE', "%{$search}%");
+                            ->orWhere('users.email', 'LIKE', "%{$search}%")
+                            ->orWhere('audit_logs.event_type', 'LIKE', "%{$search}%")
+                            ->orWhere('audit_logs.auditable_type', 'LIKE', "%{$search}%")
+                            ->orWhere('audit_logs.ip_address', 'LIKE', "%{$search}%");
                     });
                 }
             })
@@ -99,14 +118,21 @@ class AuditLogController extends Controller
                 if ($auditLog->user) {
                     return '<div class="d-flex align-items-center">
                         <div class="avatar avatar-sm me-2 bg-secondary text-white">
-                            ' . strtoupper(substr($auditLog->user->name, 0, 1)) . '
+                            '.
+                      strtoupper(substr($auditLog->user->name, 0, 1)).
+                      '
                         </div>
                         <div>
-                            <div class="font-weight-medium">' . e($auditLog->user->name) . '</div>
-                            <div class="text-muted small">' . e($auditLog->user->email) . '</div>
+                            <div class="font-weight-medium">'.
+                      e($auditLog->user->name).
+                      '</div>
+                            <div class="text-muted small">'.
+                      e($auditLog->user->email).
+                      '</div>
                         </div>
                     </div>';
                 }
+
                 return '<span class="text-muted">System</span>';
             })
             ->addColumn('event_info', function ($auditLog) {
@@ -114,52 +140,67 @@ class AuditLogController extends Controller
                 $riskColor = $model->risk_color;
                 $eventType = $model->formatted_event_type;
                 $modelName = $model->model_name;
-                
+
                 return '<div>
-                    <span class="badge bg-' . $riskColor . '">' . e($eventType) . '</span>
-                    <div class="text-muted small mt-1">' . e($modelName) . '</div>
+                    <span class="badge bg-'.
+                  $riskColor.
+                  '">'.
+                  e($eventType).
+                  '</span>
+                    <div class="text-muted small mt-1">'.
+                  e($modelName).
+                  '</div>
                 </div>';
             })
             ->addColumn('changes', function ($auditLog) {
                 $model = new AuditLog($auditLog->toArray());
                 $changesSummary = $model->changes_summary;
-                
-                $html = '<div class="small">' . e($changesSummary) . '</div>';
-                
+
+                $html = '<div class="small">'.e($changesSummary).'</div>';
+
                 if ($model->hasSignificantChanges()) {
                     $html .= '<span class="badge bg-warning-lt mt-1">Sensitive</span>';
                 }
-                
+
                 return $html;
             })
             ->addColumn('context', function ($auditLog) {
                 $context = [];
-                
+
                 if ($auditLog->ip_address) {
-                    $context[] = 'IP: ' . $auditLog->ip_address;
+                    $context[] = 'IP: '.$auditLog->ip_address;
                 }
-                
+
                 if ($auditLog->tags) {
                     $tags = is_string($auditLog->tags) ? json_decode($auditLog->tags, true) : $auditLog->tags;
                     if (is_array($tags)) {
                         foreach ($tags as $tag) {
-                            $context[] = '<span class="badge bg-light text-dark">' . e($tag) . '</span>';
+                            $context[] = '<span class="badge bg-light text-dark">'.e($tag).'</span>';
                         }
                     }
                 }
-                
+
                 return implode('<br>', $context);
             })
             ->addColumn('timestamp', function ($auditLog) {
                 $date = Carbon::parse($auditLog->created_at);
+
                 return '<div>
-                    <div>' . $date->format('M j, Y') . '</div>
-                    <div class="text-muted small">' . $date->format('g:i A') . '</div>
-                    <div class="text-muted smaller">' . $date->diffForHumans() . '</div>
+                    <div>'.
+                  $date->format('M j, Y').
+                  '</div>
+                    <div class="text-muted small">'.
+                  $date->format('g:i A').
+                  '</div>
+                    <div class="text-muted smaller">'.
+                  $date->diffForHumans().
+                  '</div>
                 </div>';
             })
             ->addColumn('actions', function ($auditLog) {
-                return '<button class="btn btn-sm btn-outline-primary" onclick="viewAuditDetails(\'' . $auditLog->id . '\')">
+                return '<button class="btn btn-sm btn-outline-primary" onclick="viewAuditDetails(\''.
+                  $auditLog->id.
+                  '\')">
                     <svg class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
                         <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                         <circle cx="12" cy="12" r="2"/>
@@ -182,15 +223,17 @@ class AuditLogController extends Controller
     public function show(AuditLog $auditLog)
     {
         $auditLog->load('user');
-        
+
         return response()->json([
             'success' => true,
             'data' => [
                 'id' => $auditLog->id,
-                'user' => $auditLog->user ? [
-                    'name' => $auditLog->user->name,
-                    'email' => $auditLog->user->email,
-                ] : null,
+                'user' => $auditLog->user
+                  ? [
+                      'name' => $auditLog->user->name,
+                      'email' => $auditLog->user->email,
+                  ]
+                  : null,
                 'event_type' => $auditLog->formatted_event_type,
                 'model_name' => $auditLog->model_name,
                 'auditable_type' => $auditLog->auditable_type,
@@ -207,7 +250,7 @@ class AuditLogController extends Controller
                 'has_significant_changes' => $auditLog->hasSignificantChanges(),
                 'created_at' => $auditLog->created_at->format('M j, Y g:i:s A'),
                 'created_at_human' => $auditLog->created_at->diffForHumans(),
-            ]
+            ],
         ]);
     }
 
@@ -218,12 +261,12 @@ class AuditLogController extends Controller
     {
         $startDate = $request->input('start_date', Carbon::now()->subDays(30));
         $endDate = $request->input('end_date', Carbon::now());
-        
+
         $stats = $this->getAuditStats($startDate, $endDate);
-        
+
         return response()->json([
             'success' => true,
-            'data' => $stats
+            'data' => $stats,
         ]);
     }
 
@@ -241,15 +284,17 @@ class AuditLogController extends Controller
             'user_id' => 'nullable|exists:users,id',
         ]);
 
-        $query = AuditLog::with(['user'])
-            ->whereBetween('created_at', [$validated['start_date'], $validated['end_date']]);
+        $query = AuditLog::with(['user'])->whereBetween('created_at', [
+            $validated['start_date'],
+            $validated['end_date'],
+        ]);
 
         if ($request->filled('event_type')) {
             $query->where('event_type', $validated['event_type']);
         }
 
         if ($request->filled('auditable_type')) {
-            $query->where('auditable_type', 'LIKE', '%' . $validated['auditable_type'] . '%');
+            $query->where('auditable_type', 'LIKE', '%'.$validated['auditable_type'].'%');
         }
 
         if ($request->filled('user_id')) {
@@ -277,22 +322,22 @@ class AuditLogController extends Controller
         ]);
 
         $cutoffDate = Carbon::now()->subDays($validated['older_than_days']);
-        
+
         $query = AuditLog::where('created_at', '<', $cutoffDate);
-        
+
         // Keep critical events if requested
         if ($validated['keep_critical'] ?? true) {
             $criticalEvents = ['deleted', 'login_failed', 'permission_changed', 'role_changed'];
             $query->whereNotIn('event_type', $criticalEvents);
         }
-        
+
         $deletedCount = $query->count();
         $query->delete();
-        
+
         return response()->json([
             'success' => true,
             'message' => "Cleaned up {$deletedCount} audit log entries",
-            'deleted_count' => $deletedCount
+            'deleted_count' => $deletedCount,
         ]);
     }
 
@@ -303,23 +348,24 @@ class AuditLogController extends Controller
     {
         $startDate = $startDate ?: Carbon::now()->subDays(30);
         $endDate = $endDate ?: Carbon::now();
-        
+
         $baseQuery = AuditLog::whereBetween('created_at', [$startDate, $endDate]);
-        
+
         return [
             'total_events' => (clone $baseQuery)->count(),
             'unique_users' => (clone $baseQuery)->distinct('user_id')->count('user_id'),
-            'high_risk_events' => (clone $baseQuery)->whereIn('event_type', ['deleted', 'login_failed', 'permission_changed', 'role_changed'])->count(),
+            'high_risk_events' => (clone $baseQuery)
+                ->whereIn('event_type', ['deleted', 'login_failed', 'permission_changed', 'role_changed'])
+                ->count(),
             'today_events' => AuditLog::whereDate('created_at', Carbon::today())->count(),
-            'events_by_type' => (clone $baseQuery)->select('event_type', DB::raw('count(*) as count'))
+            'events_by_type' => (clone $baseQuery)
+                ->select('event_type', DB::raw('count(*) as count'))
                 ->groupBy('event_type')
                 ->orderByDesc('count')
                 ->get()
                 ->pluck('count', 'event_type'),
-            'events_by_day' => (clone $baseQuery)->select(
-                DB::raw('DATE(created_at) as date'),
-                DB::raw('count(*) as count')
-            )
+            'events_by_day' => (clone $baseQuery)
+                ->select(DB::raw('DATE(created_at) as date'), DB::raw('count(*) as count'))
                 ->groupBy('date')
                 ->orderBy('date')
                 ->get()
@@ -338,7 +384,7 @@ class AuditLogController extends Controller
             ->map(function ($type) {
                 return [
                     'value' => $type,
-                    'label' => ucfirst(str_replace('_', ' ', $type))
+                    'label' => ucfirst(str_replace('_', ' ', $type)),
                 ];
             });
     }
@@ -355,7 +401,7 @@ class AuditLogController extends Controller
             ->map(function ($type) {
                 return [
                     'value' => $type,
-                    'label' => class_basename($type)
+                    'label' => class_basename($type),
                 ];
             });
     }
@@ -367,16 +413,23 @@ class AuditLogController extends Controller
     {
         $headers = [
             'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="audit-logs-' . now()->format('Y-m-d') . '.csv"',
+            'Content-Disposition' => 'attachment; filename="audit-logs-'.now()->format('Y-m-d').'.csv"',
         ];
 
-        $callback = function() use ($auditLogs) {
+        $callback = function () use ($auditLogs) {
             $file = fopen('php://output', 'w');
-            
+
             // Headers
             fputcsv($file, [
-                'Timestamp', 'User', 'Event Type', 'Model', 'Model ID', 
-                'Changes Summary', 'IP Address', 'URL', 'Tags'
+                'Timestamp',
+                'User',
+                'Event Type',
+                'Model',
+                'Model ID',
+                'Changes Summary',
+                'IP Address',
+                'URL',
+                'Tags',
             ]);
 
             // Data

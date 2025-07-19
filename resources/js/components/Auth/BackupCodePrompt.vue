@@ -5,7 +5,9 @@
       <div class="icon-container">
         <Icon name="key" class="backup-icon" />
       </div>
-      <h2 class="title">Use Recovery Code</h2>
+      <h2 class="title">
+        Use Recovery Code
+      </h2>
       <p class="subtitle">
         Enter one of your 8-character backup codes to access your account.
       </p>
@@ -14,23 +16,24 @@
     <!-- Remaining Codes Info -->
     <div v-if="remainingCodes !== null" class="codes-info">
       <div class="info-badge" :class="getInfoBadgeClass()">
-        <Icon :name="getInfoIcon()" class="w-4 h-4" />
+        <Icon :name="getInfoIcon()" class="h-4 w-4" />
         <span>{{ remainingCodes }} recovery codes remaining</span>
       </div>
       <p v-if="remainingCodes <= 2" class="warning-text">
-        You're running low on recovery codes. After logging in, consider regenerating new codes from your security settings.
+        You're running low on recovery codes. After logging in, consider regenerating new codes from
+        your security settings.
       </p>
     </div>
 
     <!-- Main Form -->
-    <form @submit.prevent="handleSubmit" class="recovery-form">
+    <form class="recovery-form" @submit.prevent="handleSubmit">
       <!-- Recovery Code Input -->
       <div class="input-section">
         <label for="recovery-code" class="input-label">
           Recovery Code
           <span class="required">*</span>
         </label>
-        
+
         <div class="input-wrapper">
           <input
             id="recovery-code"
@@ -40,19 +43,19 @@
             pattern="[A-Za-z0-9]{8}"
             placeholder="XXXXXXXX"
             class="recovery-input"
-            :class="{ 'error': errors.code }"
+            :class="{ error: errors.code }"
             :disabled="loading"
             @input="handleInput"
             @paste="handlePaste"
-          />
-          
+          >
+
           <!-- Format Helper -->
           <div class="format-helper">
             <div
               v-for="(char, index) in displayCode"
               :key="index"
               class="char-box"
-              :class="{ 'filled': char !== '_', 'active': index === cursorPosition }"
+              :class="{ filled: char !== '_', active: index === cursorPosition }"
             >
               {{ char }}
             </div>
@@ -61,7 +64,7 @@
 
         <!-- Error Message -->
         <div v-if="errors.code" class="error-message">
-          <Icon name="x-circle" class="w-4 h-4" />
+          <Icon name="x-circle" class="h-4 w-4" />
           {{ errors.code }}
         </div>
 
@@ -73,13 +76,9 @@
 
       <!-- Actions -->
       <div class="actions">
-        <button
-          type="submit"
-          class="btn-primary"
-          :disabled="!isValidCode || loading"
-        >
+        <button type="submit" class="btn-primary" :disabled="!isValidCode || loading">
           <div v-if="loading" class="spinner" />
-          <Icon v-else name="unlock" class="w-4 h-4" />
+          <Icon v-else name="unlock" class="h-4 w-4" />
           {{ loading ? 'Verifying...' : 'Verify Recovery Code' }}
         </button>
       </div>
@@ -92,19 +91,19 @@
       </div>
 
       <div class="alternative-actions">
-        <button @click="switchToAuthenticator" class="alternative-btn">
-          <Icon name="smartphone" class="w-4 h-4" />
+        <button class="alternative-btn" @click="switchToAuthenticator">
+          <Icon name="smartphone" class="h-4 w-4" />
           Use Authenticator App
         </button>
 
         <button
           v-if="smsEnabled"
-          @click="requestSMS"
           class="alternative-btn"
           :disabled="smsLoading"
+          @click="requestSMS"
         >
           <div v-if="smsLoading" class="spinner-sm" />
-          <Icon v-else name="phone" class="w-4 h-4" />
+          <Icon v-else name="phone" class="h-4 w-4" />
           Send SMS Code
         </button>
       </div>
@@ -114,21 +113,30 @@
     <div class="help-section">
       <details class="help-details">
         <summary class="help-summary">
-          <Icon name="help-circle" class="w-4 h-4" />
+          <Icon name="help-circle" class="h-4 w-4" />
           About recovery codes
         </summary>
         <div class="help-content">
           <div class="help-item">
             <h4>What are recovery codes?</h4>
-            <p>Recovery codes are backup codes that allow you to access your account when you don't have access to your authenticator device.</p>
+            <p>
+              Recovery codes are backup codes that allow you to access your account when you don't
+              have access to your authenticator device.
+            </p>
           </div>
           <div class="help-item">
             <h4>How do I use them?</h4>
-            <p>Enter any unused 8-character recovery code exactly as it appears in your saved list. Each code can only be used once.</p>
+            <p>
+              Enter any unused 8-character recovery code exactly as it appears in your saved list.
+              Each code can only be used once.
+            </p>
           </div>
           <div class="help-item">
             <h4>Where are my codes?</h4>
-            <p>You should have saved them when you first set up 2FA. Check your password manager, secure notes, or printed copy.</p>
+            <p>
+              You should have saved them when you first set up 2FA. Check your password manager,
+              secure notes, or printed copy.
+            </p>
           </div>
           <div class="help-item">
             <h4>Lost all your codes?</h4>
@@ -140,8 +148,8 @@
 
     <!-- Emergency Recovery -->
     <div class="emergency-section">
-      <button @click="showEmergencyRecovery" class="emergency-btn">
-        <Icon name="exclamation-triangle" class="w-4 h-4" />
+      <button class="emergency-btn" @click="showEmergencyRecovery">
+        <Icon name="exclamation-triangle" class="h-4 w-4" />
         Lost access? Request emergency recovery
       </button>
     </div>
@@ -165,12 +173,12 @@ import EmergencyRecoveryModal from '@/components/Auth/EmergencyRecoveryModal.vue
 const props = defineProps({
   remainingCodes: {
     type: Number,
-    default: null
+    default: null,
   },
   smsEnabled: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 })
 
 // Emits
@@ -184,7 +192,7 @@ const showEmergencyModal = ref(false)
 const cursorPosition = ref(0)
 
 const errors = reactive({
-  code: ''
+  code: '',
 })
 
 // Composables
@@ -201,32 +209,32 @@ const displayCode = computed(() => {
 })
 
 const getInfoBadgeClass = () => {
-  if (props.remainingCodes === null) return 'info'
-  if (props.remainingCodes <= 1) return 'danger'
-  if (props.remainingCodes <= 2) return 'warning'
+  if (props.remainingCodes === null) {return 'info'}
+  if (props.remainingCodes <= 1) {return 'danger'}
+  if (props.remainingCodes <= 2) {return 'warning'}
   return 'success'
 }
 
 const getInfoIcon = () => {
-  if (props.remainingCodes === null) return 'info'
-  if (props.remainingCodes <= 1) return 'exclamation-triangle'
-  if (props.remainingCodes <= 2) return 'exclamation'
+  if (props.remainingCodes === null) {return 'info'}
+  if (props.remainingCodes <= 1) {return 'exclamation-triangle'}
+  if (props.remainingCodes <= 2) {return 'exclamation'}
   return 'check-circle'
 }
 
 // Methods
 const handleInput = (event) => {
   let value = event.target.value.toUpperCase()
-  
+
   // Only allow alphanumeric characters
   value = value.replace(/[^A-Z0-9]/g, '')
-  
+
   // Limit to 8 characters
   value = value.slice(0, 8)
-  
+
   recoveryCode.value = value
   cursorPosition.value = value.length
-  
+
   // Clear previous errors
   errors.code = ''
 }
@@ -234,19 +242,19 @@ const handleInput = (event) => {
 const handlePaste = (event) => {
   event.preventDefault()
   const paste = (event.clipboardData || window.clipboardData).getData('text')
-  
+
   // Clean pasted text
   let cleanPaste = paste.toUpperCase().replace(/[^A-Z0-9]/g, '')
-  
+
   // Handle common formats like "XXXX-XXXX" or "XXXX XXXX"
   cleanPaste = cleanPaste.replace(/[-\s]/g, '')
-  
+
   // Take only first 8 characters
   cleanPaste = cleanPaste.slice(0, 8)
-  
+
   recoveryCode.value = cleanPaste
   cursorPosition.value = cleanPaste.length
-  
+
   // Auto-submit if complete
   if (cleanPaste.length === 8) {
     setTimeout(() => handleSubmit(), 100)
@@ -254,7 +262,7 @@ const handlePaste = (event) => {
 }
 
 const handleSubmit = async () => {
-  if (!isValidCode.value || loading.value) return
+  if (!isValidCode.value || loading.value) {return}
 
   loading.value = true
   errors.code = ''
@@ -264,17 +272,17 @@ const handleSubmit = async () => {
 
     if (response.success) {
       toast.success('Recovery code verified successfully!')
-      
+
       emit('success', {
         redirect: response.redirect,
         warning: response.warning,
-        remainingCodes: response.remaining_codes
+        remainingCodes: response.remaining_codes,
       })
     }
   } catch (error) {
     const message = error.message || 'Invalid recovery code. Please check and try again.'
     errors.code = message
-    
+
     // Shake animation for visual feedback
     const input = document.getElementById('recovery-code')
     if (input) {
@@ -291,10 +299,10 @@ const switchToAuthenticator = () => {
 }
 
 const requestSMS = async () => {
-  if (smsLoading.value) return
+  if (smsLoading.value) {return}
 
   smsLoading.value = true
-  
+
   try {
     await twoFactorService.sendSMS()
     emit('requestSMS')
@@ -316,13 +324,13 @@ const handleEmergencyRecovery = async (recoveryData) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
       },
-      body: JSON.stringify(recoveryData)
+      body: JSON.stringify(recoveryData),
     })
 
     const result = await response.json()
-    
+
     if (result.success) {
       showEmergencyModal.value = false
       toast.success(result.message)
@@ -338,18 +346,18 @@ const handleEmergencyRecovery = async (recoveryData) => {
 onMounted(() => {
   setTimeout(() => {
     const input = document.getElementById('recovery-code')
-    if (input) input.focus()
+    if (input) {input.focus()}
   }, 100)
 })
 </script>
 
 <style scoped>
 .backup-code-prompt {
-  @apply max-w-md mx-auto p-6 space-y-6;
+  @apply mx-auto max-w-md space-y-6 p-6;
 }
 
 .header-section {
-  @apply text-center space-y-3;
+  @apply space-y-3 text-center;
 }
 
 .icon-container {
@@ -357,7 +365,7 @@ onMounted(() => {
 }
 
 .backup-icon {
-  @apply w-12 h-12 text-amber-600;
+  @apply h-12 w-12 text-amber-600;
 }
 
 .title {
@@ -373,7 +381,7 @@ onMounted(() => {
 }
 
 .info-badge {
-  @apply inline-flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium;
+  @apply inline-flex items-center space-x-2 rounded-full px-3 py-1 text-sm font-medium;
 }
 
 .info-badge.info {
@@ -393,7 +401,7 @@ onMounted(() => {
 }
 
 .warning-text {
-  @apply text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-lg p-3;
+  @apply rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-700;
 }
 
 .recovery-form {
@@ -409,7 +417,7 @@ onMounted(() => {
 }
 
 .required {
-  @apply text-red-500 ml-1;
+  @apply ml-1 text-red-500;
 }
 
 .input-wrapper {
@@ -417,10 +425,7 @@ onMounted(() => {
 }
 
 .recovery-input {
-  @apply w-full px-4 py-3 text-lg font-mono text-center border border-gray-300 rounded-lg
-         focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
-         disabled:bg-gray-100 disabled:cursor-not-allowed
-         transition-all duration-200 tracking-widest uppercase;
+  @apply w-full rounded-lg border border-gray-300 px-4 py-3 text-center font-mono text-lg uppercase tracking-widest transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100;
 }
 
 .recovery-input.error {
@@ -432,9 +437,16 @@ onMounted(() => {
 }
 
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
 }
 
 .format-helper {
@@ -442,12 +454,11 @@ onMounted(() => {
 }
 
 .char-box {
-  @apply w-8 h-8 border border-gray-300 rounded flex items-center justify-center
-         text-lg font-mono font-medium bg-white transition-all duration-200;
+  @apply flex h-8 w-8 items-center justify-center rounded border border-gray-300 bg-white font-mono text-lg font-medium transition-all duration-200;
 }
 
 .char-box.filled {
-  @apply bg-blue-50 border-blue-300 text-blue-900;
+  @apply border-blue-300 bg-blue-50 text-blue-900;
 }
 
 .char-box.active {
@@ -455,7 +466,7 @@ onMounted(() => {
 }
 
 .error-message {
-  @apply text-sm text-red-600 flex items-center space-x-1;
+  @apply flex items-center space-x-1 text-sm text-red-600;
 }
 
 .helper-text {
@@ -467,13 +478,11 @@ onMounted(() => {
 }
 
 .btn-primary {
-  @apply w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 
-         rounded-lg transition-colors duration-200 inline-flex items-center 
-         justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply inline-flex w-full items-center justify-center space-x-2 rounded-lg bg-blue-600 px-4 py-3 font-medium text-white transition-colors duration-200 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50;
 }
 
 .spinner {
-  @apply animate-spin rounded-full h-4 w-4 border-b-2 border-white;
+  @apply h-4 w-4 animate-spin rounded-full border-b-2 border-white;
 }
 
 .alternatives-section {
@@ -498,18 +507,15 @@ onMounted(() => {
 }
 
 .alternative-actions {
-  @apply grid grid-cols-1 sm:grid-cols-2 gap-2;
+  @apply grid grid-cols-1 gap-2 sm:grid-cols-2;
 }
 
 .alternative-btn {
-  @apply px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300
-         rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-         transition-all duration-200 inline-flex items-center justify-center space-x-2
-         disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply inline-flex items-center justify-center space-x-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-all duration-200 hover:bg-gray-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50;
 }
 
 .spinner-sm {
-  @apply animate-spin rounded-full h-3 w-3 border-b-2 border-current;
+  @apply h-3 w-3 animate-spin rounded-full border-b-2 border-current;
 }
 
 .help-section {
@@ -521,25 +527,23 @@ onMounted(() => {
 }
 
 .help-summary {
-  @apply flex items-center space-x-2 cursor-pointer text-sm font-medium text-gray-700
-         hover:text-gray-900 transition-colors duration-200;
+  @apply flex cursor-pointer items-center space-x-2 text-sm font-medium text-gray-700 transition-colors duration-200 hover:text-gray-900;
 }
 
 .help-content {
-  @apply space-y-3 mt-3 text-sm text-gray-600;
+  @apply mt-3 space-y-3 text-sm text-gray-600;
 }
 
 .help-item h4 {
-  @apply font-medium text-gray-900 mb-1;
+  @apply mb-1 font-medium text-gray-900;
 }
 
 .emergency-section {
-  @apply text-center border-t border-gray-200 pt-4;
+  @apply border-t border-gray-200 pt-4 text-center;
 }
 
 .emergency-btn {
-  @apply text-sm text-red-600 hover:text-red-700 inline-flex items-center space-x-2
-         transition-colors duration-200;
+  @apply inline-flex items-center space-x-2 text-sm text-red-600 transition-colors duration-200 hover:text-red-700;
 }
 
 /* Mobile optimizations */
@@ -547,15 +551,15 @@ onMounted(() => {
   .backup-code-prompt {
     @apply p-4;
   }
-  
+
   .alternative-actions {
     @apply grid-cols-1;
   }
-  
+
   .char-box {
-    @apply w-6 h-6 text-sm;
+    @apply h-6 w-6 text-sm;
   }
-  
+
   .recovery-input {
     @apply text-base;
   }
@@ -566,23 +570,23 @@ onMounted(() => {
   .backup-code-prompt {
     @apply text-gray-100;
   }
-  
+
   .title {
     @apply text-gray-100;
   }
-  
+
   .subtitle {
     @apply text-gray-300;
   }
-  
+
   .char-box {
-    @apply bg-gray-800 border-gray-600;
+    @apply border-gray-600 bg-gray-800;
   }
-  
+
   .char-box.filled {
-    @apply bg-blue-900 border-blue-600 text-blue-100;
+    @apply border-blue-600 bg-blue-900 text-blue-100;
   }
-  
+
   .divider-text {
     @apply bg-gray-800;
   }
@@ -594,7 +598,7 @@ onMounted(() => {
   .char-box {
     @apply border-2;
   }
-  
+
   .char-box.active {
     @apply ring-4;
   }

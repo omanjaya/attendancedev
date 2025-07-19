@@ -4,56 +4,60 @@
       <div class="modal-content" @click.stop>
         <!-- Header -->
         <div class="modal-header">
-          <h2 class="modal-title">Set Up Two-Factor Authentication</h2>
+          <h2 class="modal-title">
+            Set Up Two-Factor Authentication
+          </h2>
           <p class="modal-subtitle">
             Follow the steps below to secure your account with 2FA
           </p>
-          <button @click="closeModal" class="close-button">
-            <Icon name="x" class="w-5 h-5" />
+          <button class="close-button" @click="closeModal">
+            <Icon name="x" class="h-5 w-5" />
           </button>
         </div>
 
         <!-- Setup Steps -->
         <div class="setup-steps">
           <!-- Step 1: Install App -->
-          <div class="step" :class="{ 'active': currentStep >= 1, 'completed': currentStep > 1 }">
+          <div class="step" :class="{ active: currentStep >= 1, completed: currentStep > 1 }">
             <div class="step-header">
               <div class="step-number">
-                <Icon v-if="currentStep > 1" name="check" class="w-4 h-4" />
+                <Icon v-if="currentStep > 1" name="check" class="h-4 w-4" />
                 <span v-else>1</span>
               </div>
-              <h3 class="step-title">Install Authenticator App</h3>
+              <h3 class="step-title">
+                Install Authenticator App
+              </h3>
             </div>
-            
+
             <div v-if="currentStep === 1" class="step-content">
               <p class="step-description">
                 Choose and install an authenticator app on your phone. We recommend:
               </p>
-              
+
               <div class="app-recommendations">
                 <div class="app-option">
                   <div class="app-icon google">
-                    <Icon name="smartphone" class="w-6 h-6" />
+                    <Icon name="smartphone" class="h-6 w-6" />
                   </div>
                   <div class="app-info">
                     <h4>Google Authenticator</h4>
                     <p>Free app by Google</p>
                   </div>
                 </div>
-                
+
                 <div class="app-option">
                   <div class="app-icon authy">
-                    <Icon name="shield" class="w-6 h-6" />
+                    <Icon name="shield" class="h-6 w-6" />
                   </div>
                   <div class="app-info">
                     <h4>Authy</h4>
                     <p>Feature-rich with backup</p>
                   </div>
                 </div>
-                
+
                 <div class="app-option">
                   <div class="app-icon microsoft">
-                    <Icon name="key" class="w-6 h-6" />
+                    <Icon name="key" class="h-6 w-6" />
                   </div>
                   <div class="app-info">
                     <h4>Microsoft Authenticator</h4>
@@ -63,8 +67,8 @@
               </div>
 
               <div class="step-actions">
-                <button @click="nextStep" class="btn-primary">
-                  <Icon name="arrow-right" class="w-4 h-4" />
+                <button class="btn-primary" @click="nextStep">
+                  <Icon name="arrow-right" class="h-4 w-4" />
                   App Installed, Continue
                 </button>
               </div>
@@ -72,15 +76,17 @@
           </div>
 
           <!-- Step 2: Scan QR Code -->
-          <div class="step" :class="{ 'active': currentStep >= 2, 'completed': currentStep > 2 }">
+          <div class="step" :class="{ active: currentStep >= 2, completed: currentStep > 2 }">
             <div class="step-header">
               <div class="step-number">
-                <Icon v-if="currentStep > 2" name="check" class="w-4 h-4" />
+                <Icon v-if="currentStep > 2" name="check" class="h-4 w-4" />
                 <span v-else>2</span>
               </div>
-              <h3 class="step-title">Scan QR Code</h3>
+              <h3 class="step-title">
+                Scan QR Code
+              </h3>
             </div>
-            
+
             <div v-if="currentStep === 2" class="step-content">
               <p class="step-description">
                 Open your authenticator app and scan this QR code:
@@ -88,16 +94,16 @@
 
               <!-- Loading State -->
               <div v-if="loadingQR" class="qr-loading">
-                <div class="spinner"></div>
+                <div class="spinner" />
                 <p>Generating QR code...</p>
               </div>
 
               <!-- QR Code Display -->
               <div v-else-if="qrCodeData" class="qr-section">
                 <div class="qr-container">
-                  <div class="qr-code" v-html="qrCodeData"></div>
+                  <div class="qr-code" v-html="sanitizedQrCode" />
                 </div>
-                
+
                 <div class="manual-entry">
                   <details class="manual-details">
                     <summary class="manual-summary">
@@ -109,8 +115,8 @@
                       </p>
                       <div class="secret-key">
                         <code>{{ secretKey }}</code>
-                        <button @click="copySecret" class="copy-btn">
-                          <Icon name="copy" class="w-4 h-4" />
+                        <button class="copy-btn" @click="copySecret">
+                          <Icon name="copy" class="h-4 w-4" />
                         </button>
                       </div>
                       <div class="manual-settings">
@@ -123,12 +129,12 @@
               </div>
 
               <div class="step-actions">
-                <button @click="previousStep" class="btn-secondary">
-                  <Icon name="arrow-left" class="w-4 h-4" />
+                <button class="btn-secondary" @click="previousStep">
+                  <Icon name="arrow-left" class="h-4 w-4" />
                   Back
                 </button>
-                <button @click="nextStep" class="btn-primary" :disabled="!qrCodeData">
-                  <Icon name="arrow-right" class="w-4 h-4" />
+                <button class="btn-primary" :disabled="!qrCodeData" @click="nextStep">
+                  <Icon name="arrow-right" class="h-4 w-4" />
                   Code Added, Continue
                 </button>
               </div>
@@ -136,25 +142,25 @@
           </div>
 
           <!-- Step 3: Verify Setup -->
-          <div class="step" :class="{ 'active': currentStep >= 3, 'completed': setupComplete }">
+          <div class="step" :class="{ active: currentStep >= 3, completed: setupComplete }">
             <div class="step-header">
               <div class="step-number">
-                <Icon v-if="setupComplete" name="check" class="w-4 h-4" />
+                <Icon v-if="setupComplete" name="check" class="h-4 w-4" />
                 <span v-else>3</span>
               </div>
-              <h3 class="step-title">Verify Setup</h3>
+              <h3 class="step-title">
+                Verify Setup
+              </h3>
             </div>
-            
+
             <div v-if="currentStep === 3" class="step-content">
               <p class="step-description">
                 Enter the 6-digit code from your authenticator app to verify the setup:
               </p>
 
-              <form @submit.prevent="verifySetup" class="verification-form">
+              <form class="verification-form" @submit.prevent="verifySetup">
                 <div class="code-input-section">
-                  <label for="verification-code" class="code-label">
-                    Verification Code
-                  </label>
+                  <label for="verification-code" class="code-label"> Verification Code </label>
                   <input
                     id="verification-code"
                     v-model="verificationCode"
@@ -163,12 +169,12 @@
                     pattern="[0-9]{6}"
                     placeholder="123456"
                     class="code-input"
-                    :class="{ 'error': errors.code }"
+                    :class="{ error: errors.code }"
                     :disabled="loading"
                     @input="handleCodeInput"
-                  />
+                  >
                   <div v-if="errors.code" class="error-message">
-                    <Icon name="x-circle" class="w-4 h-4" />
+                    <Icon name="x-circle" class="h-4 w-4" />
                     {{ errors.code }}
                   </div>
                   <p class="code-hint">
@@ -177,13 +183,18 @@
                 </div>
 
                 <div class="step-actions">
-                  <button @click="previousStep" type="button" class="btn-secondary" :disabled="loading">
-                    <Icon name="arrow-left" class="w-4 h-4" />
+                  <button
+                    type="button"
+                    class="btn-secondary"
+                    :disabled="loading"
+                    @click="previousStep"
+                  >
+                    <Icon name="arrow-left" class="h-4 w-4" />
                     Back
                   </button>
                   <button type="submit" class="btn-primary" :disabled="!isValidCode || loading">
                     <div v-if="loading" class="spinner" />
-                    <Icon v-else name="check" class="w-4 h-4" />
+                    <Icon v-else name="check" class="h-4 w-4" />
                     {{ loading ? 'Verifying...' : 'Enable 2FA' }}
                   </button>
                 </div>
@@ -195,27 +206,31 @@
         <!-- Success State -->
         <div v-if="setupComplete" class="success-section">
           <div class="success-content">
-            <Icon name="check-circle" class="w-12 h-12 text-green-600" />
-            <h3 class="success-title">Two-Factor Authentication Enabled!</h3>
+            <Icon name="check-circle" class="h-12 w-12 text-green-600" />
+            <h3 class="success-title">
+              Two-Factor Authentication Enabled!
+            </h3>
             <p class="success-description">
               Your account is now secured with two-factor authentication.
             </p>
           </div>
 
           <div class="recovery-notice">
-            <Icon name="key" class="w-5 h-5 text-amber-600" />
+            <Icon name="key" class="h-5 w-5 text-amber-600" />
             <div>
-              <h4 class="recovery-title">Important: Save Your Recovery Codes</h4>
+              <h4 class="recovery-title">
+                Important: Save Your Recovery Codes
+              </h4>
               <p class="recovery-description">
-                You'll be shown recovery codes that can be used if you lose access to your authenticator app.
-                Save them in a secure location.
+                You'll be shown recovery codes that can be used if you lose access to your
+                authenticator app. Save them in a secure location.
               </p>
             </div>
           </div>
 
           <div class="success-actions">
-            <button @click="completeSetup" class="btn-primary">
-              <Icon name="arrow-right" class="w-4 h-4" />
+            <button class="btn-primary" @click="completeSetup">
+              <Icon name="arrow-right" class="h-4 w-4" />
               View Recovery Codes
             </button>
           </div>
@@ -229,6 +244,8 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useToast } from '@/composables/useToast'
 import { twoFactorService } from '@/services/twoFactor'
+import { HTMLSanitizer } from '@/utils/xssAudit'
+import { useErrorTrackingForAuth } from '@/composables/useErrorTracking'
 
 // Props
 const props = defineProps({
@@ -257,10 +274,15 @@ const errors = reactive({
 
 // Composables
 const { toast } = useToast()
+const errorTracking = useErrorTrackingForAuth()
 
 // Computed
 const isValidCode = computed(() => {
   return verificationCode.value.length === 6 && /^\d{6}$/.test(verificationCode.value)
+})
+
+const sanitizedQrCode = computed(() => {
+  return qrCodeData.value ? HTMLSanitizer.sanitize(qrCodeData.value) : ''
 })
 
 // Methods
@@ -281,24 +303,36 @@ const previousStep = () => {
 
 const loadQRCode = async () => {
   loadingQR.value = true
-  
-  try {
+
+  return errorTracking.trackAsyncOperation('load_qr_code', async () => {
+    errorTracking.addBreadcrumb('Loading QR code for 2FA setup', 'auth')
+
     const response = await twoFactorService.initializeSetup()
     qrCodeData.value = response.data.qr_code_url
     secretKey.value = response.data.secret_key
     appName.value = response.data.company_name
-  } catch (error) {
+
+    errorTracking.addBreadcrumb('QR code loaded successfully', 'auth')
+  }).catch((error: Error) => {
+    errorTracking.captureError(error, {
+      action: 'qr_code_generation_failed',
+      metadata: {
+        currentStep: currentStep.value,
+        userId: props.user?.id
+      }
+    })
     toast.error('Failed to generate QR code')
     console.error('QR Code generation error:', error)
-  } finally {
+    throw error
+  }).finally(() => {
     loadingQR.value = false
-  }
+  })
 }
 
 const handleCodeInput = () => {
   // Clear errors when user types
   errors.code = ''
-  
+
   // Auto-submit if code is complete
   if (isValidCode.value) {
     setTimeout(() => verifySetup(), 500)
@@ -306,39 +340,82 @@ const handleCodeInput = () => {
 }
 
 const verifySetup = async () => {
-  if (!isValidCode.value || loading.value) return
+  if (!isValidCode.value || loading.value) {return}
 
   loading.value = true
   errors.code = ''
 
-  try {
+  return errorTracking.trackAsyncOperation('verify_2fa_setup', async () => {
+    errorTracking.addBreadcrumb('Verifying 2FA setup code', 'auth', {
+      codeLength: verificationCode.value.length
+    })
+
     const response = await twoFactorService.enable(verificationCode.value)
-    
+
     if (response.success) {
       setupComplete.value = true
+
+      errorTracking.addBreadcrumb('2FA setup completed successfully', 'auth')
+      errorTracking.captureMessage('Two-factor authentication enabled', 'info', {
+        action: '2fa_enabled',
+        metadata: {
+          userId: props.user?.id,
+          userEmail: props.user?.email
+        }
+      })
+
       toast.success('Two-factor authentication enabled successfully!')
+    } else {
+      throw new Error(response.message || 'Setup verification failed')
     }
-  } catch (error) {
+  }).catch((error: Error) => {
+    errorTracking.captureError(error, {
+      action: '2fa_verification_failed',
+      metadata: {
+        currentStep: currentStep.value,
+        codeLength: verificationCode.value.length,
+        userId: props.user?.id,
+        errorType: error.message.includes('Invalid') ? 'invalid_code' : 'unknown'
+      }
+    })
+
     errors.code = error.message || 'Invalid verification code. Please try again.'
-  } finally {
+    console.error('2FA verification error:', error)
+  }).finally(() => {
     loading.value = false
-  }
+  })
 }
 
 const copySecret = async () => {
-  try {
-    await navigator.clipboard.writeText(secretKey.value)
-    toast.success('Secret key copied to clipboard')
-  } catch (error) {
-    // Fallback for older browsers
-    const textArea = document.createElement('textarea')
-    textArea.value = secretKey.value
-    document.body.appendChild(textArea)
-    textArea.select()
-    document.execCommand('copy')
-    document.body.removeChild(textArea)
-    toast.success('Secret key copied to clipboard')
-  }
+  return errorTracking.withErrorBoundary(() => {
+    errorTracking.addBreadcrumb('Copying secret key to clipboard', 'user_action')
+
+    return navigator.clipboard.writeText(secretKey.value).then(() => {
+      toast.success('Secret key copied to clipboard')
+      errorTracking.addBreadcrumb('Secret key copied successfully', 'user_action')
+    }).catch((clipboardError) => {
+      // Fallback for older browsers
+      errorTracking.addBreadcrumb('Using fallback copy method', 'user_action')
+
+      const textArea = document.createElement('textarea')
+      textArea.value = secretKey.value
+      textArea.style.position = 'fixed'
+      textArea.style.opacity = '0'
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+
+      toast.success('Secret key copied to clipboard')
+      errorTracking.addBreadcrumb('Fallback copy completed', 'user_action')
+    })
+  }, {
+    action: 'copy_secret_failed',
+    metadata: {
+      hasClipboardAPI: !!navigator.clipboard,
+      secretKeyLength: secretKey.value?.length || 0
+    }
+  })
 }
 
 const completeSetup = () => {
@@ -365,7 +442,7 @@ onMounted(() => {
   // Set focus to modal for accessibility
   setTimeout(() => {
     const modal = document.querySelector('.modal-content')
-    if (modal) modal.focus()
+    if (modal) {modal.focus()}
   }, 100)
 })
 </script>
@@ -376,33 +453,37 @@ onMounted(() => {
 }
 
 .modal-backdrop {
-  @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4;
+  @apply fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4;
   animation: fadeIn 0.3s ease-out;
 }
 
 .modal-content {
-  @apply bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-screen overflow-y-auto;
+  @apply max-h-screen w-full max-w-2xl overflow-y-auto rounded-lg bg-white shadow-xl;
   animation: slideIn 0.3s ease-out;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideIn {
-  from { 
-    opacity: 0; 
-    transform: translateY(20px) scale(0.95); 
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
   }
-  to { 
-    opacity: 1; 
-    transform: translateY(0) scale(1); 
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
 .modal-header {
-  @apply relative p-6 border-b border-gray-200;
+  @apply relative border-b border-gray-200 p-6;
 }
 
 .modal-title {
@@ -410,20 +491,19 @@ onMounted(() => {
 }
 
 .modal-subtitle {
-  @apply text-gray-600 mt-2;
+  @apply mt-2 text-gray-600;
 }
 
 .close-button {
-  @apply absolute top-4 right-4 text-gray-400 hover:text-gray-600 
-         transition-colors duration-200;
+  @apply absolute right-4 top-4 text-gray-400 transition-colors duration-200 hover:text-gray-600;
 }
 
 .setup-steps {
-  @apply p-6 space-y-6;
+  @apply space-y-6 p-6;
 }
 
 .step {
-  @apply border border-gray-200 rounded-lg overflow-hidden;
+  @apply overflow-hidden rounded-lg border border-gray-200;
 }
 
 .step.active {
@@ -435,7 +515,7 @@ onMounted(() => {
 }
 
 .step-header {
-  @apply flex items-center space-x-4 p-4 bg-gray-50;
+  @apply flex items-center space-x-4 bg-gray-50 p-4;
 }
 
 .step.active .step-header {
@@ -447,8 +527,7 @@ onMounted(() => {
 }
 
 .step-number {
-  @apply w-8 h-8 rounded-full bg-gray-300 text-gray-600 font-medium 
-         flex items-center justify-center;
+  @apply flex h-8 w-8 items-center justify-center rounded-full bg-gray-300 font-medium text-gray-600;
 }
 
 .step.active .step-number {
@@ -464,7 +543,7 @@ onMounted(() => {
 }
 
 .step-content {
-  @apply p-4 space-y-4;
+  @apply space-y-4 p-4;
 }
 
 .step-description {
@@ -472,16 +551,15 @@ onMounted(() => {
 }
 
 .app-recommendations {
-  @apply grid grid-cols-1 sm:grid-cols-3 gap-4;
+  @apply grid grid-cols-1 gap-4 sm:grid-cols-3;
 }
 
 .app-option {
-  @apply flex items-center space-x-3 p-3 border border-gray-200 rounded-lg 
-         hover:border-blue-300 transition-colors duration-200;
+  @apply flex items-center space-x-3 rounded-lg border border-gray-200 p-3 transition-colors duration-200 hover:border-blue-300;
 }
 
 .app-icon {
-  @apply w-10 h-10 rounded-lg flex items-center justify-center;
+  @apply flex h-10 w-10 items-center justify-center rounded-lg;
 }
 
 .app-icon.google {
@@ -505,7 +583,7 @@ onMounted(() => {
 }
 
 .qr-loading {
-  @apply text-center py-8 space-y-4;
+  @apply space-y-4 py-8 text-center;
 }
 
 .qr-section {
@@ -513,7 +591,7 @@ onMounted(() => {
 }
 
 .qr-container {
-  @apply flex justify-center p-6 bg-white border-2 border-dashed border-gray-300 rounded-lg;
+  @apply flex justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white p-6;
 }
 
 .qr-code {
@@ -541,7 +619,7 @@ onMounted(() => {
 }
 
 .secret-key {
-  @apply flex items-center space-x-2 p-3 bg-gray-50 border rounded-lg;
+  @apply flex items-center space-x-2 rounded-lg border bg-gray-50 p-3;
 }
 
 .secret-key code {
@@ -549,7 +627,7 @@ onMounted(() => {
 }
 
 .copy-btn {
-  @apply text-gray-400 hover:text-gray-600 transition-colors duration-200;
+  @apply text-gray-400 transition-colors duration-200 hover:text-gray-600;
 }
 
 .manual-settings {
@@ -569,9 +647,7 @@ onMounted(() => {
 }
 
 .code-input {
-  @apply w-full px-4 py-3 text-lg font-mono text-center border border-gray-300 
-         rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
-         transition-all duration-200;
+  @apply w-full rounded-lg border border-gray-300 px-4 py-3 text-center font-mono text-lg transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500;
 }
 
 .code-input.error {
@@ -579,39 +655,35 @@ onMounted(() => {
 }
 
 .error-message {
-  @apply text-sm text-red-600 flex items-center space-x-1;
+  @apply flex items-center space-x-1 text-sm text-red-600;
 }
 
 .code-hint {
-  @apply text-xs text-gray-500 text-center;
+  @apply text-center text-xs text-gray-500;
 }
 
 .step-actions {
-  @apply flex space-x-3 pt-4 border-t border-gray-200;
+  @apply flex space-x-3 border-t border-gray-200 pt-4;
 }
 
 .btn-primary {
-  @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 
-         rounded-lg transition-colors duration-200 inline-flex items-center 
-         space-x-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply inline-flex items-center space-x-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50;
 }
 
 .btn-secondary {
-  @apply bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 
-         font-medium py-2 px-4 rounded-lg transition-colors duration-200 
-         inline-flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply inline-flex items-center space-x-2 rounded-lg border border-gray-300 bg-white px-4 py-2 font-medium text-gray-700 transition-colors duration-200 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50;
 }
 
 .spinner {
-  @apply animate-spin rounded-full h-4 w-4 border-b-2 border-white;
+  @apply h-4 w-4 animate-spin rounded-full border-b-2 border-white;
 }
 
 .success-section {
-  @apply p-6 space-y-6;
+  @apply space-y-6 p-6;
 }
 
 .success-content {
-  @apply text-center space-y-4;
+  @apply space-y-4 text-center;
 }
 
 .success-title {
@@ -623,7 +695,7 @@ onMounted(() => {
 }
 
 .recovery-notice {
-  @apply flex items-start space-x-3 p-4 bg-amber-50 border border-amber-200 rounded-lg;
+  @apply flex items-start space-x-3 rounded-lg border border-amber-200 bg-amber-50 p-4;
 }
 
 .recovery-title {
@@ -631,7 +703,7 @@ onMounted(() => {
 }
 
 .recovery-description {
-  @apply text-sm text-amber-800 mt-1;
+  @apply mt-1 text-sm text-amber-800;
 }
 
 .success-actions {
@@ -643,11 +715,11 @@ onMounted(() => {
   .modal-content {
     @apply m-2;
   }
-  
+
   .app-recommendations {
     @apply grid-cols-1;
   }
-  
+
   .step-actions {
     @apply flex-col space-x-0 space-y-2;
   }
@@ -659,7 +731,7 @@ onMounted(() => {
   .modal-content {
     animation: none;
   }
-  
+
   .spinner {
     @apply animate-none;
   }

@@ -9,7 +9,7 @@ use Illuminate\Support\Str;
 class AuditLog extends Model
 {
     const UPDATED_AT = null; // Disable updated_at timestamp since table only has created_at
-    
+
     protected $fillable = [
         'id',
         'user_id',
@@ -32,6 +32,7 @@ class AuditLog extends Model
     ];
 
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected static function booted()
@@ -117,23 +118,24 @@ class AuditLog extends Model
         }
 
         $changes = [];
-        
+
         if ($this->event_type === 'created') {
             $fields = array_keys($this->new_values ?? []);
-            return 'Created with ' . count($fields) . ' fields';
+
+            return 'Created with '.count($fields).' fields';
         }
 
         if ($this->event_type === 'updated') {
             $old = $this->old_values ?? [];
             $new = $this->new_values ?? [];
-            
+
             foreach ($new as $key => $value) {
                 if (isset($old[$key]) && $old[$key] !== $value) {
                     $changes[] = $key;
                 }
             }
-            
-            return 'Updated ' . implode(', ', $changes);
+
+            return 'Updated '.implode(', ', $changes);
         }
 
         if ($this->event_type === 'deleted') {
@@ -150,15 +152,15 @@ class AuditLog extends Model
     {
         $highRiskEvents = ['deleted', 'login_failed', 'permission_changed', 'role_changed'];
         $highRiskModels = ['User', 'Employee', 'Payroll'];
-        
+
         if (in_array($this->event_type, $highRiskEvents)) {
             return 'high';
         }
-        
+
         if (in_array($this->model_name, $highRiskModels)) {
             return 'medium';
         }
-        
+
         return 'low';
     }
 
@@ -183,19 +185,25 @@ class AuditLog extends Model
     public function hasSignificantChanges()
     {
         $sensitiveFields = [
-            'password', 'email', 'salary', 'role', 'permissions', 
-            'status', 'deleted_at', 'face_data'
+            'password',
+            'email',
+            'salary',
+            'role',
+            'permissions',
+            'status',
+            'deleted_at',
+            'face_data',
         ];
-        
+
         $old = $this->old_values ?? [];
         $new = $this->new_values ?? [];
-        
+
         foreach ($sensitiveFields as $field) {
             if (isset($old[$field]) || isset($new[$field])) {
                 return true;
             }
         }
-        
+
         return false;
     }
 
@@ -208,11 +216,11 @@ class AuditLog extends Model
         array $oldValues = [],
         array $newValues = [],
         ?User $user = null,
-        array $tags = []
+        array $tags = [],
     ) {
         $user = $user ?? auth()->user();
         $request = request();
-        
+
         return static::create([
             'user_id' => $user?->id,
             'event_type' => $eventType,
@@ -233,7 +241,7 @@ class AuditLog extends Model
     public static function createAuthLog(string $eventType, User $user, array $context = [])
     {
         $request = request();
-        
+
         return static::create([
             'user_id' => $user->id,
             'event_type' => $eventType,
@@ -255,7 +263,7 @@ class AuditLog extends Model
     {
         $request = request();
         $user = auth()->user();
-        
+
         return static::create([
             'user_id' => $user?->id,
             'event_type' => $eventType,

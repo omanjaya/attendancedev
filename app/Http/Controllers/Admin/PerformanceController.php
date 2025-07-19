@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Services\PerformanceMonitorService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Artisan;
 
 class PerformanceController extends Controller
 {
@@ -16,7 +16,7 @@ class PerformanceController extends Controller
     public function __construct(PerformanceMonitorService $performanceMonitor)
     {
         $this->performanceMonitor = $performanceMonitor;
-        $this->middleware('permission:manage_system');
+        $this->middleware('permission:manage_system_settings');
     }
 
     /**
@@ -27,7 +27,7 @@ class PerformanceController extends Controller
         $summary = $this->performanceMonitor->getPerformanceSummary(24);
         $alerts = $this->performanceMonitor->getPerformanceAlerts();
         $systemInfo = $this->getSystemInfo();
-        
+
         return view('pages.admin.performance.index', compact('summary', 'alerts', 'systemInfo'));
     }
 
@@ -39,18 +39,18 @@ class PerformanceController extends Controller
         $hours = $request->get('hours', 24);
         $summary = $this->performanceMonitor->getPerformanceSummary($hours);
         $alerts = $this->performanceMonitor->getPerformanceAlerts();
-        
+
         // Get detailed metrics for charts
         $metrics = Cache::get('performance_metrics', []);
         $since = now()->subHours($hours);
-        
+
         $recentMetrics = array_filter($metrics, function ($metric) use ($since) {
             return \Carbon\Carbon::parse($metric['timestamp'])->gte($since);
         });
 
         // Prepare chart data
         $chartData = $this->prepareChartData($recentMetrics);
-        
+
         return response()->json([
             'summary' => $summary,
             'alerts' => $alerts,
@@ -66,8 +66,9 @@ class PerformanceController extends Controller
         try {
             // PostgreSQL specific queries
             $stats = [
-                'connections' => DB::select("SELECT count(*) as count FROM pg_stat_activity")[0]->count ?? 0,
-                'database_size' => DB::select("SELECT pg_size_pretty(pg_database_size(current_database())) as size")[0]->size ?? 'N/A',
+                'connections' => DB::select('SELECT count(*) as count FROM pg_stat_activity')[0]->count ?? 0,
+                'database_size' => DB::select('SELECT pg_size_pretty(pg_database_size(current_database())) as size')[0]
+                    ->size ?? 'N/A',
                 'slow_queries' => $this->getSlowQueries(),
                 'table_sizes' => $this->getTableSizes(),
                 'index_usage' => $this->getIndexUsage(),
@@ -75,7 +76,10 @@ class PerformanceController extends Controller
 
             return response()->json($stats);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to fetch database stats: ' . $e->getMessage()], 500);
+            return response()->json(
+                ['error' => 'Failed to fetch database stats: '.$e->getMessage()],
+                500,
+            );
         }
     }
 
@@ -88,16 +92,16 @@ class PerformanceController extends Controller
             Cache::forget('performance_metrics');
             Cache::forget('performance_summary_24h');
             Cache::forget('performance_summary_1h');
-            
+
             // Clear operation metrics
             $keys = Cache::get('operation_metrics_keys', []);
             foreach ($keys as $key) {
                 Cache::forget($key);
             }
-            
+
             return response()->json(['message' => 'Performance cache cleared successfully']);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to clear cache: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Failed to clear cache: '.$e->getMessage()], 500);
         }
     }
 
@@ -109,22 +113,25 @@ class PerformanceController extends Controller
         try {
             // Run database optimization commands
             $results = [];
-            
+
             // Analyze tables
             $results[] = 'Running ANALYZE...';
             DB::statement('ANALYZE');
-            
+
             // Vacuum (if PostgreSQL)
             if (DB::getDriverName() === 'pgsql') {
                 $results[] = 'Running VACUUM...';
                 DB::statement('VACUUM');
             }
-            
+
             $results[] = 'Database optimization completed';
-            
-            return response()->json(['message' => 'Database optimized successfully', 'details' => $results]);
+
+            return response()->json([
+                'message' => 'Database optimized successfully',
+                'details' => $results,
+            ]);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to optimize database: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Failed to optimize database: '.$e->getMessage()], 500);
         }
     }
 
@@ -138,10 +145,13 @@ class PerformanceController extends Controller
             Artisan::call('config:clear');
             Artisan::call('route:clear');
             Artisan::call('view:clear');
-            
+
             return response()->json(['message' => 'Application cache cleared successfully']);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to clear application cache: ' . $e->getMessage()], 500);
+            return response()->json(
+                ['error' => 'Failed to clear application cache: '.$e->getMessage()],
+                500,
+            );
         }
     }
 
@@ -174,8 +184,10 @@ class PerformanceController extends Controller
         try {
             if (config('cache.default') === 'redis') {
                 Cache::store('redis')->put('test', 'value', 1);
+
                 return true;
             }
+
             return false;
         } catch (\Exception $e) {
             return false;
@@ -226,13 +238,13 @@ class PerformanceController extends Controller
                 return [];
             }
 
-            return DB::select("
+            return DB::select('
                 SELECT query, mean_time, calls, total_time
                 FROM pg_stat_statements 
                 WHERE mean_time > 100 
                 ORDER BY mean_time DESC 
                 LIMIT 10
-            ");
+            ');
         } catch (\Exception $e) {
             return [];
         }
@@ -257,6 +269,7 @@ class PerformanceController extends Controller
                     LIMIT 10
                 ");
             }
+
             return [];
         } catch (\Exception $e) {
             return [];
@@ -283,6 +296,7 @@ class PerformanceController extends Controller
                     LIMIT 10
                 ");
             }
+
             return [];
         } catch (\Exception $e) {
             return [];

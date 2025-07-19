@@ -81,13 +81,13 @@ return [
         |
         */
         'enabled' => env('IP_WHITELIST_ENABLED', false),
-        
+
         // Global allowed IPs (applies to all users)
         'global' => [
             // '192.168.1.0/24',
             // '10.0.0.0/8',
         ],
-        
+
         // Guard-specific IPs
         'guards' => [
             'admin' => [
@@ -98,7 +98,7 @@ return [
                 // '192.168.1.0/24',
             ],
         ],
-        
+
         // Role-specific IPs
         'roles' => [
             'admin' => [

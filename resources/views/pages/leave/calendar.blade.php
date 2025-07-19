@@ -1,251 +1,239 @@
-@extends('layouts.authenticated')
+@extends('layouts.authenticated-unified')
 
-@section('title', 'Leave Calendar')
-
+@section('title', 'Kalender Cuti')
 
 @section('page-content')
-    <!-- Breadcrumb -->
-    <nav class="mb-8" aria-label="Breadcrumb">
-        <ol class="flex items-center space-x-2 text-sm">
-            <li>
-                <a href="{{ route('dashboard') }}" class="text-muted-foreground hover:text-foreground transition-colors">
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-                    </svg>
-                </a>
-            </li>
-            <li class="flex items-center">
-                <svg class="h-5 w-5 text-muted-foreground mx-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-                </svg>
-                <a href="{{ route('leave.index') }}" class="text-muted-foreground hover:text-foreground transition-colors">Leave</a>
-            </li>
-            <li class="flex items-center">
-                <svg class="h-5 w-5 text-muted-foreground mx-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-                </svg>
-                <span class="text-foreground font-medium">Calendar</span>
-            </li>
-        </ol>
-    </nav>
-    
-    <!-- Page Header -->
-    <div class="mb-8">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-                <h1 class="text-3xl font-bold text-foreground">Leave Calendar</h1>
-                <p class="text-muted-foreground mt-1">Visual overview of your leave requests</p>
-            </div>
-            
-            <div class="flex flex-wrap items-center gap-3">
-                <x-ui.button variant="outline" href="{{ route('leave.index') }}">
-                    <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v8a2 2 0 002 2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    Manage Requests
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-blue-900 dark:to-indigo-900">
+    <div class="p-6 lg:p-8">
+        <x-layouts.base-page
+            title="Kalender Cuti"
+            subtitle="Ikhtisar visual permintaan cuti Anda"
+            :breadcrumbs="[
+                ['label' => 'Dashboard', 'url' => route('dashboard')],
+                ['label' => 'Cuti', 'url' => route('leave.index')],
+                ['label' => 'Kalender']
+            ]">
+            <x-slot name="actions">
+                <x-ui.button variant="secondary" href="{{ route('leave.index') }}">
+                    <svg class="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                    Kelola Permintaan
                 </x-ui.button>
-                <x-ui.button href="{{ route('leave.create') }}">
-                    <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                    </svg>
-                    Request Leave
+                <x-ui.button variant="primary" href="{{ route('leave.create') }}">
+                    <svg class="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                    Ajukan Cuti
                 </x-ui.button>
                 @can('approve_leave')
-                <x-ui.button variant="default" href="{{ route('leave.calendar.manager') }}" class="bg-success hover:bg-success/90 text-success-foreground">
-                    <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l5 5 5-5"/>
-                    </svg>
-                    Manager View
+                <x-ui.button variant="success" href="{{ route('leave.approvals.index') }}">
+                    <svg class="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l5 5 5-5"/></svg>
+                    Tampilan Manajer
                 </x-ui.button>
                 @endcan
+            </x-slot>
+        </x-layouts.base-page>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out hover:bg-white/30 hover:scale-105">
+                <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-slate-600 dark:text-slate-400">Total Cuti</p>
+                        <p class="text-3xl font-bold text-slate-800 dark:text-white mt-1" id="total-leaves">-</p>
+                    </div>
+                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform duration-300">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    </div>
+                </div>
+            </div>
+            <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out hover:bg-white/30 hover:scale-105">
+                <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-slate-600 dark:text-slate-400">Disetujui</p>
+                        <p class="text-3xl font-bold text-slate-800 dark:text-white mt-1" id="approved-leaves">-</p>
+                    </div>
+                    <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform duration-300">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                </div>
+            </div>
+            <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out hover:bg-white/30 hover:scale-105">
+                <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-slate-600 dark:text-slate-400">Tertunda</p>
+                        <p class="text-3xl font-bold text-slate-800 dark:text-white mt-1" id="pending-leaves">-</p>
+                    </div>
+                    <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform duration-300">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                </div>
+            </div>
+            <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out hover:bg-white/30 hover:scale-105">
+                <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-slate-600 dark:text-slate-400">Aktif Sekarang</p>
+                        <p class="text-3xl font-bold text-slate-800 dark:text-white mt-1" id="active-leaves">-</p>
+                    </div>
+                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform duration-300">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
 
-<!-- Stats Cards -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-    <x-attendance.stats-card
-        title="Total Leaves"
-        :value="'-'"
-        subtitle="All requests"
-        icon="ti ti-calendar"
-        color="primary"
-        id="total-leaves" />
-    <x-attendance.stats-card
-        title="Approved"
-        :value="'-'"
-        subtitle="Approved leaves"
-        icon="ti ti-check"
-        color="success"
-        id="approved-leaves" />
-    <x-attendance.stats-card
-        title="Pending"
-        :value="'-'"
-        subtitle="Awaiting approval"
-        icon="ti ti-clock"
-        color="warning"
-        id="pending-leaves" />
-    <x-attendance.stats-card
-        title="Active Now"
-        :value="'-'"
-        subtitle="Currently on leave"
-        icon="ti ti-user-check"
-        color="info"
-        id="active-leaves" />
-</div>
-
-<!-- Calendar -->
-<x-ui.card>
-    <x-slot name="title">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-                <span>My Leave Calendar</span>
-                <p class="text-sm text-muted-foreground mt-1">Interactive calendar view of your leave requests</p>
+        <!-- Calendar -->
+        <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                <div>
+                    <h3 class="text-xl font-semibold text-slate-800 dark:text-white">Kalender Cuti Saya</h3>
+                    <p class="text-sm text-slate-600 dark:text-slate-400">Tampilan kalender interaktif permintaan cuti Anda</p>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row items-end gap-4">
+                    <div class="space-y-2">
+                        <x-ui.label for="leave-type-filter" value="Tipe Cuti" class="text-slate-700 dark:text-slate-300" />
+                        <x-ui.select id="leave-type-filter" class="bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300">
+                            <option value="">Semua Tipe</option>
+                            @foreach($leaveTypes as $type)
+                                <option value="{{ $type->id }}">{{ $type->name }}</option>
+                            @endforeach
+                        </x-ui.select>
+                    </div>
+                    <div class="space-y-2">
+                        <x-ui.label for="status-filter" value="Status" class="text-slate-700 dark:text-slate-300" />
+                        <x-ui.select id="status-filter" class="bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300">
+                            <option value="">Semua Status</option>
+                            <option value="pending">Tertunda</option>
+                            <option value="approved">Disetujui</option>
+                            <option value="rejected">Ditolak</option>
+                            <option value="cancelled">Dibatalkan</option>
+                        </x-ui.select>
+                    </div>
+                </div>
             </div>
             
-            <!-- Filters -->
-            <div class="flex flex-col sm:flex-row items-end gap-4">
-                <div class="space-y-2">
-                    <x-ui.label for="leave-type-filter" value="Leave Type" />
-                    <x-ui.select id="leave-type-filter">
-                        <option value="">All Types</option>
-                        @foreach($leaveTypes as $type)
-                            <option value="{{ $type->id }}">{{ $type->name }}</option>
-                        @endforeach
-                    </x-ui.select>
+            <div class="space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-white/10 rounded-lg">
+                    <div class="flex flex-wrap gap-4 text-slate-600 dark:text-slate-400">
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 rounded-full bg-amber-500"></div>
+                            <span class="text-sm">Tertunda</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                            <span class="text-sm">Disetujui</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                            <span class="text-sm">Ditolak</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 rounded-full bg-slate-500"></div>
+                            <span class="text-sm">Dibatalkan</span>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-600 dark:text-slate-400">Klik pada cuti untuk melihat detail</p>
                 </div>
-                <div class="space-y-2">
-                    <x-ui.label for="status-filter" value="Status" />
-                    <x-ui.select id="status-filter">
-                        <option value="">All Status</option>
-                        <option value="pending">Pending</option>
-                        <option value="approved">Approved</option>
-                        <option value="rejected">Rejected</option>
-                        <option value="cancelled">Cancelled</option>
-                    </x-ui.select>
+                
+                <div id="leave-calendar" class="[&_.fc]:text-slate-800 dark:[&_.fc]:text-white [&_.fc-theme-standard_td]:border-white/20 [&_.fc-theme-standard_th]:border-white/20">
+                    <!-- FullCalendar will render here -->
                 </div>
             </div>
         </div>
-    </x-slot>
-    <div class="space-y-6">
-        <!-- Legend -->
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-muted/30 rounded-lg">
-            <div class="flex flex-wrap gap-4">
-                <div class="flex items-center gap-2">
-                    <div class="w-3 h-3 rounded-full bg-warning"></div>
-                    <span class="text-sm text-muted-foreground">Pending</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <div class="w-3 h-3 rounded-full bg-success"></div>
-                    <span class="text-sm text-muted-foreground">Approved</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <div class="w-3 h-3 rounded-full bg-destructive"></div>
-                    <span class="text-sm text-muted-foreground">Rejected</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <div class="w-3 h-3 rounded-full bg-muted-foreground"></div>
-                    <span class="text-sm text-muted-foreground">Cancelled</span>
-                </div>
-            </div>
-            <p class="text-sm text-muted-foreground">Click on a leave to view details</p>
-        </div>
-        
-        <!-- Calendar -->
-        <div id="leave-calendar" class="[&_.fc]:text-foreground [&_.fc-theme-standard_td]:border-border [&_.fc-theme-standard_th]:border-border"></div>
     </div>
-</x-ui.card>
+</div>
 
 <!-- Leave Details Modal -->
-<div id="leaveDetailsModal" class="fixed inset-0 z-50 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity" aria-hidden="true"></div>
-        <div class="relative bg-card rounded-xl shadow-xl w-full max-w-2xl p-6">
-            <div class="flex items-center justify-between mb-6">
-                <h3 class="text-lg font-semibold text-foreground">Leave Details</h3>
-                <button type="button" class="text-muted-foreground hover:text-foreground transition-colors" onclick="closeModal('leaveDetailsModal')">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            </div>
-            
-            <div id="leave-details-content" class="mb-6">
-                <!-- Content will be populated dynamically -->
-            </div>
-            
-            <div class="flex flex-col sm:flex-row items-center justify-end gap-3">
-                <x-ui.button type="button" variant="outline" onclick="closeModal('leaveDetailsModal')">
-                    Close
-                </x-ui.button>
-                <div id="leave-actions" class="flex gap-2">
-                    <!-- Action buttons will be populated dynamically -->
-                </div>
-            </div>
-        </div>
+<x-ui.modal id="leaveDetailsModal" title="Detail Cuti" size="2xl">
+    <div id="leave-details-content" class="mb-6 text-slate-800 dark:text-white">
+        <!-- Content will be populated dynamically -->
     </div>
-</div>
+    
+    <x-slot name="footer">
+        <x-ui.button type="button" variant="secondary" onclick="closeModal('leaveDetailsModal')">
+            Tutup
+        </x-ui.button>
+        <div id="leave-actions" class="flex gap-2">
+            <!-- Action buttons will be populated dynamically -->
+        </div>
+    </x-slot>
+</x-ui.modal>
 @endsection
 
-@section('styles')
+@push('styles')
 <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.8/main.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.8/main.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.8/main.min.css" rel="stylesheet">
 <style>
     /* FullCalendar theming */
-    .fc {
-        color: hsl(var(--foreground));
-    }
-    .fc-theme-standard td,
-    .fc-theme-standard th {
-        border-color: hsl(var(--border));
-    }
     .fc-toolbar {
-        background: hsl(var(--muted) / 0.3);
-        border-radius: 0.5rem;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 0.75rem;
         padding: 1rem;
         margin-bottom: 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
     .fc-button-primary {
-        background-color: hsl(var(--primary));
-        border-color: hsl(var(--primary));
-        color: hsl(var(--primary-foreground));
+        background-color: #3b82f6 !important; /* blue-500 */
+        border-color: #3b82f6 !important;
+        color: white !important;
+        transition: all 0.2s ease-in-out;
     }
     .fc-button-primary:hover {
-        background-color: hsl(var(--primary) / 0.9);
-        border-color: hsl(var(--primary) / 0.9);
+        background-color: #2563eb !important; /* blue-600 */
+        border-color: #2563eb !important;
     }
     .fc-button-primary:not(:disabled):active {
-        background-color: hsl(var(--primary) / 0.8);
-        border-color: hsl(var(--primary) / 0.8);
+        background-color: #1d4ed8 !important; /* blue-700 */
+        border-color: #1d4ed8 !important;
     }
     .fc-event {
         cursor: pointer;
         border-radius: 0.375rem;
-        border: 1px solid transparent;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        color: #1e293b !important; /* slate-800 */
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: all 0.2s ease;
     }
     .fc-event:hover {
-        opacity: 0.8;
-        transform: translateY(-1px);
-        transition: all 0.2s ease;
+        opacity: 0.9;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
     .fc-daygrid-event {
         font-size: 0.75rem;
         padding: 2px 4px;
     }
     .fc-col-header {
-        background-color: hsl(var(--muted) / 0.5);
+        background-color: rgba(255, 255, 255, 0.1) !important;
     }
     .fc-day-today {
-        background-color: hsl(var(--primary) / 0.1) !important;
+        background-color: rgba(59, 130, 246, 0.1) !important; /* blue-500 with opacity */
     }
     .fc-daygrid-day:hover {
-        background-color: hsl(var(--muted) / 0.3);
+        background-color: rgba(255, 255, 255, 0.15) !important;
+    }
+    .fc-event-success {
+        background-color: rgba(16, 185, 129, 0.8) !important; /* emerald-500 */
+        border-color: rgba(16, 185, 129, 0.9) !important;
+    }
+    .fc-event-warning {
+        background-color: rgba(251, 191, 36, 0.8) !important; /* amber-500 */
+        border-color: rgba(251, 191, 36, 0.9) !important;
+    }
+    .fc-event-destructive {
+        background-color: rgba(239, 68, 68, 0.8) !important; /* red-500 */
+        border-color: rgba(239, 68, 68, 0.9) !important;
+    }
+    .fc-event-info {
+        background-color: rgba(59, 130, 246, 0.8) !important; /* blue-500 */
+        border-color: rgba(59, 130, 246, 0.9) !important;
     }
 </style>
-@endsection
+@endpush
 
-@section('scripts')
+@push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.8/main.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.8/main.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.8/main.min.js"></script>
@@ -309,7 +297,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     },
                     error: function() {
                         failureCallback();
-                        toastr.error('Failed to load leave data');
+                        toastr.error('Gagal memuat data cuti');
                     }
                 });
             },
@@ -324,7 +312,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     `${props.leave_type_name}\n` +
                     `${props.date_range}\n` +
                     `Status: ${props.status.charAt(0).toUpperCase() + props.status.slice(1)}\n` +
-                    `Duration: ${props.duration}`
+                    `Durasi: ${props.duration}`
                 );
             },
             dayHeaderFormat: { weekday: 'short' },
@@ -346,7 +334,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 $('#active-leaves').text(data.active_leaves);
             },
             error: function() {
-                console.error('Failed to load leave stats');
+                console.error('Gagal memuat statistik cuti');
             }
         });
     }
@@ -359,63 +347,61 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (response.success) {
                     const leave = response.leave;
                     const content = `
-                        <div class="grid grid-cols-12 gap-4">
-                            <div class="md:col-span-6">
-                                <dl class="grid grid-cols-12 gap-4">
-                                    <dt class="w-5/12 px-2">Leave Type:</dt>
-                                    <dd class="w-7/12 px-2">
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">${leave.leave_type}</span>
-                                    </dd>
-                                    <dt class="w-5/12 px-2">Status:</dt>
-                                    <dd class="w-7/12 px-2">
-                                        <span class="badge bg-${leave.status_color}">${leave.status.charAt(0).toUpperCase() + leave.status.slice(1)}</span>
-                                    </dd>
-                                    <dt class="w-5/12 px-2">Duration:</dt>
-                                    <dd class="w-7/12 px-2">${leave.duration}</dd>
-                                    <dt class="w-5/12 px-2">Date Range:</dt>
-                                    <dd class="w-7/12 px-2">${leave.date_range}</dd>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-slate-800 dark:text-white">
+                            <div>
+                                <h6 class="text-lg font-semibold mb-3">Informasi Cuti</h6>
+                                <dl class="space-y-2">
+                                    <div class="flex justify-between"><dt class="font-medium text-slate-600 dark:text-slate-400">Tipe Cuti:</dt><dd><span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r from-blue-500 to-purple-600 shadow-lg">${leave.leave_type}</span></dd></div>
+                                    <div class="flex justify-between"><dt class="font-medium text-slate-600 dark:text-slate-400">Status:</dt><dd><span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r ${getLeaveStatusColorClass(leave.status)} shadow-lg">${leave.status.charAt(0).toUpperCase() + leave.status.slice(1)}</span></dd></div>
+                                    <div class="flex justify-between"><dt class="font-medium text-slate-600 dark:text-slate-400">Durasi:</dt><dd>${leave.duration}</dd></div>
+                                    <div class="flex justify-between"><dt class="font-medium text-slate-600 dark:text-slate-400">Rentang Tanggal:</dt><dd>${leave.date_range}</dd></div>
+                                    <div class="flex justify-between"><dt class="font-medium text-slate-600 dark:text-slate-400">Hari Diminta:</dt><dd>${leave.days_requested}</dd></div>
+                                    ${leave.is_emergency ? `<div class="flex justify-between"><dt class="font-medium text-slate-600 dark:text-slate-400">Darurat:</dt><dd><span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r from-red-500 to-rose-600 shadow-lg">Ya</span></dd></div>` : ''}
+                                    ${leave.approved_by ? `<div class="flex justify-between"><dt class="font-medium text-slate-600 dark:text-slate-400">Disetujui Oleh:</dt><dd>${leave.approved_by}</dd></div>` : ''}
+                                    ${leave.approved_at ? `<div class="flex justify-between"><dt class="font-medium text-slate-600 dark:text-slate-400">Disetujui Pada:</dt><dd>${leave.approved_at}</dd></div>` : ''}
+                                    <div class="flex justify-between"><dt class="font-medium text-slate-600 dark:text-slate-400">Diminta:</dt><dd>${leave.created_at}</dd></div>
                                 </dl>
                             </div>
-                            <div class="md:col-span-6">
-                                <dl class="grid grid-cols-12 gap-4">
-                                    <dt class="w-5/12 px-2">Days Requested:</dt>
-                                    <dd class="w-7/12 px-2">${leave.days_requested}</dd>
-                                    ${leave.is_emergency ? '<dt class="w-5/12 px-2">Emergency:</dt><dd class="w-7/12 px-2"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Yes</span></dd>' : ''}
-                                    ${leave.approved_by ? '<dt class="w-5/12 px-2">Approved By:</dt><dd class="w-7/12 px-2">' + leave.approved_by + '</dd>' : ''}
-                                    ${leave.approved_at ? '<dt class="w-5/12 px-2">Approved At:</dt><dd class="w-7/12 px-2">' + leave.approved_at + '</dd>' : ''}
-                                    <dt class="w-5/12 px-2">Requested:</dt>
-                                    <dd class="w-7/12 px-2">${leave.created_at}</dd>
-                                </dl>
+                            <div>
+                                <h6 class="text-lg font-semibold mb-3">Detail Tambahan</h6>
+                                ${leave.reason ? `<div class="mb-3"><p class="font-medium text-slate-600 dark:text-slate-400">Alasan:</p><p>${leave.reason}</p></div>` : ''}
+                                ${leave.approval_notes ? `<div class="mb-3"><p class="font-medium text-slate-600 dark:text-slate-400">Catatan Persetujuan:</p><p>${leave.approval_notes}</p></div>` : ''}
+                                ${leave.rejection_reason ? `<div class="mb-3"><p class="font-medium text-slate-600 dark:text-slate-400">Alasan Penolakan:</p><p>${leave.rejection_reason}</p></div>` : ''}
                             </div>
                         </div>
-                        
-                        ${leave.reason ? '<div class="mt-4"><strong>Reason:</strong><br>' + leave.reason + '</div>' : ''}
-                        ${leave.approval_notes ? '<div class="mt-4"><strong>Approval Notes:</strong><br>' + leave.approval_notes + '</div>' : ''}
-                        ${leave.rejection_reason ? '<div class="mt-4"><strong>Rejection Reason:</strong><br>' + leave.rejection_reason + '</div>' : ''}
                     `;
                     
                     $('#leave-details-content').html(content);
                     
-                    // Add cancel button if applicable
                     let actions = '';
                     if (leave.can_be_cancelled) {
-                        actions += '<button type="button" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition duration-150" onclick="cancelLeave(' + leave.id + ')">Cancel Leave</button>';
+                        actions += `<x-ui.button variant="destructive" onclick="cancelLeave('${leave.id}')">Batalkan Cuti</x-ui.button>`;
                     }
-                    actions += '<a href="{{ route("leave.show", ":id") }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">View Full Details</a>'.replace(':id', leave.id);
+                    actions += `<x-ui.button variant="secondary" href="{{ route("leave.show", ":id") }}".replace(':id', leave.id)>Lihat Detail Lengkap</x-ui.button>`;
                     
                     $('#leave-actions').html(actions);
                     
                     showModal('leaveDetailsModal');
                 } else {
-                    toastr.error('Failed to load leave details');
+                    toastr.error('Gagal memuat detail cuti');
                 }
             },
             error: function() {
-                toastr.error('Failed to load leave details');
+                toastr.error('Gagal memuat detail cuti');
             }
         });
     }
     
+    function getLeaveStatusColorClass(status) {
+        switch(status) {
+            case 'approved': return 'from-green-500 to-emerald-600';
+            case 'pending': return 'from-amber-500 to-orange-600';
+            case 'rejected': return 'from-red-500 to-rose-600';
+            case 'cancelled': return 'from-gray-500 to-slate-600';
+            default: return 'from-gray-500 to-slate-600';
+        }
+    }
+
     // Auto-refresh calendar and stats every 5 minutes
     setInterval(function() {
         calendar.refetchEvents();
@@ -424,7 +410,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function cancelLeave(leaveId) {
-    if (confirm('Are you sure you want to cancel this leave request?')) {
+    if (confirm('Apakah Anda yakin ingin membatalkan permintaan cuti ini?')) {
         $.ajax({
             url: '{{ route("leave.cancel", ":id") }}'.replace(':id', leaveId),
             type: 'POST',
@@ -433,19 +419,19 @@ function cancelLeave(leaveId) {
             },
             success: function(response) {
                 if (response.success) {
-                    toastr.success('Leave request cancelled successfully');
+                    toastr.success('Permintaan cuti berhasil dibatalkan');
                     closeModal('leaveDetailsModal');
                     calendar.refetchEvents();
                     loadLeaveStats();
                 } else {
-                    toastr.error(response.message || 'Failed to cancel leave request');
+                    toastr.error(response.message || 'Gagal membatalkan permintaan cuti');
                 }
             },
             error: function() {
-                toastr.error('Failed to cancel leave request');
+                toastr.error('Gagal membatalkan permintaan cuti');
             }
         });
     }
 }
 </script>
-@endsection
+@endpush

@@ -4,14 +4,16 @@
     <div class="dashboard-header">
       <div class="header-content">
         <div class="header-info">
-          <h1 class="dashboard-title">Two-Factor Authentication</h1>
+          <h1 class="dashboard-title">
+            Two-Factor Authentication
+          </h1>
           <p class="dashboard-subtitle">
             Manage your account security and two-factor authentication settings
           </p>
         </div>
         <div class="header-status">
           <div class="status-badge" :class="statusBadgeClass">
-            <Icon :name="statusIcon" class="w-4 h-4" />
+            <Icon :name="statusIcon" class="h-4 w-4" />
             <span>{{ statusText }}</span>
           </div>
         </div>
@@ -24,16 +26,18 @@
         <!-- 2FA Status Card -->
         <div class="overview-card">
           <div class="card-icon" :class="status.enabled ? 'enabled' : 'disabled'">
-            <Icon name="shield-check" class="w-6 h-6" />
+            <Icon name="shield-check" class="h-6 w-6" />
           </div>
           <div class="card-content">
-            <h3 class="card-title">Two-Factor Authentication</h3>
+            <h3 class="card-title">
+              Two-Factor Authentication
+            </h3>
             <p class="card-description">
               {{ status.enabled ? 'Active and protecting your account' : 'Not yet configured' }}
             </p>
             <div v-if="status.enabled" class="card-meta">
               <span class="meta-item">
-                <Icon name="calendar" class="w-3 h-3" />
+                <Icon name="calendar" class="h-3 w-3" />
                 Enabled {{ formatDate(user.two_factor_enabled_at) }}
               </span>
             </div>
@@ -43,15 +47,17 @@
         <!-- Recovery Codes Card -->
         <div class="overview-card">
           <div class="card-icon" :class="recoveryCodesStatus">
-            <Icon name="key" class="w-6 h-6" />
+            <Icon name="key" class="h-6 w-6" />
           </div>
           <div class="card-content">
-            <h3 class="card-title">Recovery Codes</h3>
+            <h3 class="card-title">
+              Recovery Codes
+            </h3>
             <p class="card-description">
               {{ recoveryCodesCount }} unused codes remaining
             </p>
             <div v-if="recoveryCodesCount <= 2" class="card-warning">
-              <Icon name="exclamation-triangle" class="w-3 h-3" />
+              <Icon name="exclamation-triangle" class="h-3 w-3" />
               <span>Running low - consider regenerating</span>
             </div>
           </div>
@@ -60,21 +66,27 @@
         <!-- Security Score Card -->
         <div class="overview-card">
           <div class="card-icon score">
-            <Icon name="trending-up" class="w-6 h-6" />
+            <Icon name="trending-up" class="h-6 w-6" />
           </div>
           <div class="card-content">
-            <h3 class="card-title">Security Score</h3>
+            <h3 class="card-title">
+              Security Score
+            </h3>
             <div class="score-display">
-              <div class="score-value">{{ securityScore }}/100</div>
+              <div class="score-value">
+                {{ securityScore }}/100
+              </div>
               <div class="score-bar">
-                <div 
-                  class="score-progress" 
+                <div
+                  class="score-progress"
                   :style="{ width: `${securityScore}%` }"
                   :class="scoreClass"
-                ></div>
+                />
               </div>
             </div>
-            <p class="card-description">{{ securityScoreText }}</p>
+            <p class="card-description">
+              {{ securityScoreText }}
+            </p>
           </div>
         </div>
       </div>
@@ -86,9 +98,11 @@
         <!-- Setup/Status Panel -->
         <div class="management-panel">
           <div class="panel-header">
-            <h2 class="panel-title">Authentication Setup</h2>
+            <h2 class="panel-title">
+              Authentication Setup
+            </h2>
             <div v-if="status.required" class="required-badge">
-              <Icon name="exclamation" class="w-3 h-3" />
+              <Icon name="exclamation" class="h-3 w-3" />
               <span>Required</span>
             </div>
           </div>
@@ -97,34 +111,43 @@
             <!-- 2FA Not Enabled -->
             <div v-if="!status.enabled" class="setup-section">
               <div class="setup-info">
-                <Icon name="smartphone" class="w-8 h-8 text-blue-600" />
+                <Icon name="smartphone" class="h-8 w-8 text-blue-600" />
                 <div>
-                  <h3 class="setup-title">Set up two-factor authentication</h3>
+                  <h3 class="setup-title">
+                    Set up two-factor authentication
+                  </h3>
                   <p class="setup-description">
-                    Add an extra layer of security to your account by requiring a code from your phone.
+                    Add an extra layer of security to your account by requiring a code from your
+                    phone.
                   </p>
                 </div>
               </div>
-              
+
               <div class="setup-steps">
                 <div class="step">
-                  <div class="step-number">1</div>
+                  <div class="step-number">
+                    1
+                  </div>
                   <span>Install authenticator app</span>
                 </div>
                 <div class="step">
-                  <div class="step-number">2</div>
+                  <div class="step-number">
+                    2
+                  </div>
                   <span>Scan QR code or enter secret key</span>
                 </div>
                 <div class="step">
-                  <div class="step-number">3</div>
+                  <div class="step-number">
+                    3
+                  </div>
                   <span>Verify with generated code</span>
                 </div>
               </div>
 
               <div class="setup-actions">
-                <button @click="startSetup" class="btn-primary" :disabled="loading">
+                <button class="btn-primary" :disabled="loading" @click="startSetup">
                   <div v-if="loading" class="spinner" />
-                  <Icon v-else name="plus" class="w-4 h-4" />
+                  <Icon v-else name="plus" class="h-4 w-4" />
                   {{ loading ? 'Setting up...' : 'Enable Two-Factor Authentication' }}
                 </button>
               </div>
@@ -133,19 +156,21 @@
             <!-- 2FA Enabled -->
             <div v-else class="enabled-section">
               <div class="enabled-info">
-                <Icon name="check-circle" class="w-8 h-8 text-green-600" />
+                <Icon name="check-circle" class="h-8 w-8 text-green-600" />
                 <div>
-                  <h3 class="enabled-title">Two-factor authentication is active</h3>
+                  <h3 class="enabled-title">
+                    Two-factor authentication is active
+                  </h3>
                   <p class="enabled-description">
                     Your account is secured with two-factor authentication.
                   </p>
                   <div class="enabled-meta">
                     <span class="meta-item">
-                      <Icon name="calendar" class="w-3 h-3" />
+                      <Icon name="calendar" class="h-3 w-3" />
                       Enabled {{ formatDate(user.two_factor_enabled_at) }}
                     </span>
                     <span class="meta-item">
-                      <Icon name="smartphone" class="w-3 h-3" />
+                      <Icon name="smartphone" class="h-3 w-3" />
                       Authenticator app
                     </span>
                   </div>
@@ -153,18 +178,18 @@
               </div>
 
               <div class="enabled-actions">
-                <button @click="showQRCode" class="btn-secondary">
-                  <Icon name="qr-code" class="w-4 h-4" />
+                <button class="btn-secondary" @click="showQRCode">
+                  <Icon name="qr-code" class="h-4 w-4" />
                   Show QR Code
                 </button>
-                <button 
-                  v-if="!status.required" 
-                  @click="confirmDisable" 
+                <button
+                  v-if="!status.required"
                   class="btn-danger"
                   :disabled="loading"
+                  @click="confirmDisable"
                 >
                   <div v-if="loading" class="spinner" />
-                  <Icon v-else name="x" class="w-4 h-4" />
+                  <Icon v-else name="x" class="h-4 w-4" />
                   {{ loading ? 'Disabling...' : 'Disable 2FA' }}
                 </button>
               </div>
@@ -175,9 +200,11 @@
         <!-- Recovery Codes Panel -->
         <div class="management-panel">
           <div class="panel-header">
-            <h2 class="panel-title">Recovery Codes</h2>
+            <h2 class="panel-title">
+              Recovery Codes
+            </h2>
             <div class="recovery-status" :class="recoveryCodesStatus">
-              <Icon :name="recoveryCodesIcon" class="w-3 h-3" />
+              <Icon :name="recoveryCodesIcon" class="h-3 w-3" />
               <span>{{ recoveryCodesCount }} remaining</span>
             </div>
           </div>
@@ -185,12 +212,12 @@
           <div class="panel-content">
             <div class="recovery-info">
               <p class="recovery-description">
-                Recovery codes allow you to access your account if you lose your authenticator device.
-                Each code can only be used once.
+                Recovery codes allow you to access your account if you lose your authenticator
+                device. Each code can only be used once.
               </p>
-              
+
               <div v-if="recoveryCodesCount <= 2" class="recovery-warning">
-                <Icon name="exclamation-triangle" class="w-4 h-4" />
+                <Icon name="exclamation-triangle" class="h-4 w-4" />
                 <div>
                   <h4>Running low on recovery codes</h4>
                   <p>You should regenerate new codes before you run out.</p>
@@ -199,21 +226,21 @@
             </div>
 
             <div class="recovery-actions">
-              <button 
-                @click="showRecoveryCodes" 
+              <button
                 class="btn-secondary"
                 :disabled="!status.enabled || loading"
+                @click="showRecoveryCodes"
               >
-                <Icon name="eye" class="w-4 h-4" />
+                <Icon name="eye" class="h-4 w-4" />
                 View Recovery Codes
               </button>
-              <button 
-                @click="regenerateRecoveryCodes" 
+              <button
                 class="btn-primary"
                 :disabled="!status.enabled || loading"
+                @click="regenerateRecoveryCodes"
               >
                 <div v-if="loading" class="spinner" />
-                <Icon v-else name="refresh" class="w-4 h-4" />
+                <Icon v-else name="refresh" class="h-4 w-4" />
                 {{ loading ? 'Generating...' : 'Generate New Codes' }}
               </button>
             </div>
@@ -225,24 +252,24 @@
     <!-- Recent Activity -->
     <div class="activity-section">
       <div class="activity-header">
-        <h2 class="activity-title">Recent Security Activity</h2>
-        <button @click="refreshActivity" class="refresh-btn">
-          <Icon name="refresh" class="w-4 h-4" />
+        <h2 class="activity-title">
+          Recent Security Activity
+        </h2>
+        <button class="refresh-btn" @click="refreshActivity">
+          <Icon name="refresh" class="h-4 w-4" />
           <span>Refresh</span>
         </button>
       </div>
 
       <div class="activity-list">
-        <div 
-          v-for="activity in recentActivity" 
-          :key="activity.id" 
-          class="activity-item"
-        >
+        <div v-for="activity in recentActivity" :key="activity.id" class="activity-item">
           <div class="activity-icon" :class="activity.type">
-            <Icon :name="getActivityIcon(activity.type)" class="w-4 h-4" />
+            <Icon :name="getActivityIcon(activity.type)" class="h-4 w-4" />
           </div>
           <div class="activity-content">
-            <div class="activity-description">{{ activity.description }}</div>
+            <div class="activity-description">
+              {{ activity.description }}
+            </div>
             <div class="activity-meta">
               <span class="activity-time">{{ formatDateTime(activity.created_at) }}</span>
               <span class="activity-location">{{ activity.location }}</span>
@@ -254,7 +281,7 @@
         </div>
 
         <div v-if="recentActivity.length === 0" class="no-activity">
-          <Icon name="clock" class="w-8 h-8 text-gray-400" />
+          <Icon name="clock" class="h-8 w-8 text-gray-400" />
           <p>No recent security activity</p>
         </div>
       </div>
@@ -267,16 +294,12 @@
       @complete="handleSetupComplete"
     />
 
-    <QRCodeModal
-      v-if="showQRModal"
-      :qr-code="qrCodeData"
-      @close="showQRModal = false"
-    />
+    <QRCodeModal v-if="showQRModal" :qrCode="qrCodeData" @close="showQRModal = false" />
 
     <RecoveryCodesModal
       v-if="showRecoveryModal"
       :codes="displayRecoveryCodes"
-      :is-new="isNewCodes"
+      :isNew="isNewCodes"
       @close="showRecoveryModal = false"
       @downloaded="handleCodesDownloaded"
     />
@@ -285,7 +308,7 @@
       v-if="showConfirmModal"
       :title="confirmModal.title"
       :message="confirmModal.message"
-      :confirm-text="confirmModal.confirmText"
+      :confirmText="confirmModal.confirmText"
       :danger="confirmModal.danger"
       @confirm="handleConfirmAction"
       @cancel="showConfirmModal = false"
@@ -306,12 +329,12 @@ import ConfirmationModal from './ConfirmationModal.vue'
 const props = defineProps({
   user: {
     type: Object,
-    required: true
+    required: true,
   },
   initialStatus: {
     type: Object,
-    default: () => ({})
-  }
+    default: () => ({}),
+  },
 })
 
 // Reactive data
@@ -331,7 +354,7 @@ const status = reactive({
   verified: false,
   hasRecoveryCodes: false,
   recoveryCodesCount: 0,
-  ...props.initialStatus
+  ...props.initialStatus,
 })
 
 const confirmModal = reactive({
@@ -339,7 +362,7 @@ const confirmModal = reactive({
   message: '',
   confirmText: '',
   danger: false,
-  action: null
+  action: null,
 })
 
 // Composables
@@ -347,56 +370,56 @@ const { toast } = useToast()
 
 // Computed
 const statusBadgeClass = computed(() => {
-  if (status.enabled) return 'status-enabled'
-  if (status.required) return 'status-warning'
+  if (status.enabled) {return 'status-enabled'}
+  if (status.required) {return 'status-warning'}
   return 'status-disabled'
 })
 
 const statusIcon = computed(() => {
-  if (status.enabled) return 'check-circle'
-  if (status.required) return 'exclamation-triangle'
+  if (status.enabled) {return 'check-circle'}
+  if (status.required) {return 'exclamation-triangle'}
   return 'x-circle'
 })
 
 const statusText = computed(() => {
-  if (status.enabled) return 'Active'
-  if (status.required) return 'Required - Not Set Up'
+  if (status.enabled) {return 'Active'}
+  if (status.required) {return 'Required - Not Set Up'}
   return 'Disabled'
 })
 
 const recoveryCodesCount = computed(() => status.recoveryCodesCount || 0)
 
 const recoveryCodesStatus = computed(() => {
-  if (recoveryCodesCount.value === 0) return 'critical'
-  if (recoveryCodesCount.value <= 2) return 'warning'
+  if (recoveryCodesCount.value === 0) {return 'critical'}
+  if (recoveryCodesCount.value <= 2) {return 'warning'}
   return 'good'
 })
 
 const recoveryCodesIcon = computed(() => {
-  if (recoveryCodesCount.value === 0) return 'exclamation-triangle'
-  if (recoveryCodesCount.value <= 2) return 'exclamation'
+  if (recoveryCodesCount.value === 0) {return 'exclamation-triangle'}
+  if (recoveryCodesCount.value <= 2) {return 'exclamation'}
   return 'check-circle'
 })
 
 const securityScore = computed(() => {
   let score = 0
-  if (status.enabled) score += 70
-  if (status.hasRecoveryCodes && recoveryCodesCount.value > 2) score += 20
-  if (props.user.phone) score += 10
+  if (status.enabled) {score += 70}
+  if (status.hasRecoveryCodes && recoveryCodesCount.value > 2) {score += 20}
+  if (props.user.phone) {score += 10}
   return Math.min(score, 100)
 })
 
 const scoreClass = computed(() => {
-  if (securityScore.value >= 80) return 'score-excellent'
-  if (securityScore.value >= 60) return 'score-good'
-  if (securityScore.value >= 40) return 'score-fair'
+  if (securityScore.value >= 80) {return 'score-excellent'}
+  if (securityScore.value >= 60) {return 'score-good'}
+  if (securityScore.value >= 40) {return 'score-fair'}
   return 'score-poor'
 })
 
 const securityScoreText = computed(() => {
-  if (securityScore.value >= 80) return 'Excellent security'
-  if (securityScore.value >= 60) return 'Good security'
-  if (securityScore.value >= 40) return 'Fair security'
+  if (securityScore.value >= 80) {return 'Excellent security'}
+  if (securityScore.value >= 60) {return 'Good security'}
+  if (securityScore.value >= 40) {return 'Fair security'}
   return 'Poor security'
 })
 
@@ -410,12 +433,12 @@ const handleSetupComplete = (result) => {
   status.enabled = true
   status.hasRecoveryCodes = true
   status.recoveryCodesCount = result.recovery_codes?.length || 0
-  
+
   // Show recovery codes
   displayRecoveryCodes.value = result.recovery_codes || []
   isNewCodes.value = true
   showRecoveryModal.value = true
-  
+
   toast.success('Two-factor authentication enabled successfully!')
   refreshStatus()
 }
@@ -449,7 +472,8 @@ const showRecoveryCodes = async () => {
 
 const regenerateRecoveryCodes = () => {
   confirmModal.title = 'Regenerate Recovery Codes'
-  confirmModal.message = 'This will invalidate all existing recovery codes and generate new ones. Make sure to save the new codes securely.'
+  confirmModal.message =
+    'This will invalidate all existing recovery codes and generate new ones. Make sure to save the new codes securely.'
   confirmModal.confirmText = 'Regenerate Codes'
   confirmModal.danger = true
   confirmModal.action = 'regenerate-codes'
@@ -458,7 +482,8 @@ const regenerateRecoveryCodes = () => {
 
 const confirmDisable = () => {
   confirmModal.title = 'Disable Two-Factor Authentication'
-  confirmModal.message = 'This will remove two-factor authentication from your account. Your account will be less secure.'
+  confirmModal.message =
+    'This will remove two-factor authentication from your account. Your account will be less secure.'
   confirmModal.confirmText = 'Disable 2FA'
   confirmModal.danger = true
   confirmModal.action = 'disable-2fa'
@@ -484,7 +509,7 @@ const handleConfirmAction = async (password) => {
       status.recoveryCodesCount = 0
       toast.success('Two-factor authentication disabled')
     }
-    
+
     refreshStatus()
   } catch (error) {
     toast.error(error.message || 'Operation failed')
@@ -519,25 +544,25 @@ const refreshActivity = async () => {
 
 const getActivityIcon = (type) => {
   const icons = {
-    'login': 'log-in',
-    'failed_login': 'x-circle',
+    login: 'log-in',
+    failed_login: 'x-circle',
     '2fa_verified': 'check-circle',
     '2fa_failed': 'x-circle',
     '2fa_enabled': 'shield-check',
     '2fa_disabled': 'shield-off',
-    'recovery_used': 'key',
-    'codes_regenerated': 'refresh'
+    recovery_used: 'key',
+    codes_regenerated: 'refresh',
   }
   return icons[type] || 'activity'
 }
 
 const formatDate = (dateString) => {
-  if (!dateString) return 'Unknown'
+  if (!dateString) {return 'Unknown'}
   return new Date(dateString).toLocaleDateString()
 }
 
 const formatDateTime = (dateString) => {
-  if (!dateString) return 'Unknown'
+  if (!dateString) {return 'Unknown'}
   return new Date(dateString).toLocaleString()
 }
 
@@ -550,11 +575,11 @@ onMounted(() => {
 
 <style scoped>
 .two-factor-dashboard {
-  @apply max-w-7xl mx-auto p-6 space-y-8;
+  @apply mx-auto max-w-7xl space-y-8 p-6;
 }
 
 .dashboard-header {
-  @apply bg-white rounded-lg shadow-sm p-6;
+  @apply rounded-lg bg-white p-6 shadow-sm;
 }
 
 .header-content {
@@ -566,11 +591,11 @@ onMounted(() => {
 }
 
 .dashboard-subtitle {
-  @apply text-gray-600 mt-1;
+  @apply mt-1 text-gray-600;
 }
 
 .status-badge {
-  @apply inline-flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium;
+  @apply inline-flex items-center space-x-2 rounded-full px-3 py-1 text-sm font-medium;
 }
 
 .status-badge.status-enabled {
@@ -586,19 +611,19 @@ onMounted(() => {
 }
 
 .security-overview {
-  @apply bg-white rounded-lg shadow-sm p-6;
+  @apply rounded-lg bg-white p-6 shadow-sm;
 }
 
 .overview-cards {
-  @apply grid grid-cols-1 md:grid-cols-3 gap-6;
+  @apply grid grid-cols-1 gap-6 md:grid-cols-3;
 }
 
 .overview-card {
-  @apply flex items-start space-x-4 p-4 border border-gray-200 rounded-lg;
+  @apply flex items-start space-x-4 rounded-lg border border-gray-200 p-4;
 }
 
 .card-icon {
-  @apply w-12 h-12 rounded-lg flex items-center justify-center;
+  @apply flex h-12 w-12 items-center justify-center rounded-lg;
 }
 
 .card-icon.enabled {
@@ -630,11 +655,11 @@ onMounted(() => {
 }
 
 .card-description {
-  @apply text-sm text-gray-600 mt-1;
+  @apply mt-1 text-sm text-gray-600;
 }
 
 .card-meta {
-  @apply flex items-center space-x-4 mt-2 text-xs text-gray-500;
+  @apply mt-2 flex items-center space-x-4 text-xs text-gray-500;
 }
 
 .meta-item {
@@ -642,7 +667,7 @@ onMounted(() => {
 }
 
 .card-warning {
-  @apply flex items-center space-x-1 mt-2 text-xs text-yellow-600;
+  @apply mt-2 flex items-center space-x-1 text-xs text-yellow-600;
 }
 
 .score-display {
@@ -654,7 +679,7 @@ onMounted(() => {
 }
 
 .score-bar {
-  @apply w-full h-2 bg-gray-200 rounded-full mt-1;
+  @apply mt-1 h-2 w-full rounded-full bg-gray-200;
 }
 
 .score-progress {
@@ -682,15 +707,15 @@ onMounted(() => {
 }
 
 .management-grid {
-  @apply grid grid-cols-1 lg:grid-cols-2 gap-6;
+  @apply grid grid-cols-1 gap-6 lg:grid-cols-2;
 }
 
 .management-panel {
-  @apply bg-white rounded-lg shadow-sm;
+  @apply rounded-lg bg-white shadow-sm;
 }
 
 .panel-header {
-  @apply flex items-center justify-between p-6 border-b border-gray-200;
+  @apply flex items-center justify-between border-b border-gray-200 p-6;
 }
 
 .panel-title {
@@ -698,12 +723,11 @@ onMounted(() => {
 }
 
 .required-badge {
-  @apply inline-flex items-center space-x-1 px-2 py-1 bg-yellow-100 
-         text-yellow-800 text-xs font-medium rounded;
+  @apply inline-flex items-center space-x-1 rounded bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800;
 }
 
 .recovery-status {
-  @apply inline-flex items-center space-x-1 px-2 py-1 text-xs font-medium rounded;
+  @apply inline-flex items-center space-x-1 rounded px-2 py-1 text-xs font-medium;
 }
 
 .recovery-status.good {
@@ -739,11 +763,11 @@ onMounted(() => {
 
 .setup-description,
 .enabled-description {
-  @apply text-gray-600 mt-1;
+  @apply mt-1 text-gray-600;
 }
 
 .enabled-meta {
-  @apply flex items-center space-x-4 mt-2 text-sm text-gray-500;
+  @apply mt-2 flex items-center space-x-4 text-sm text-gray-500;
 }
 
 .setup-steps {
@@ -755,8 +779,7 @@ onMounted(() => {
 }
 
 .step-number {
-  @apply w-6 h-6 bg-blue-600 text-white text-sm font-medium rounded-full 
-         flex items-center justify-center;
+  @apply flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-sm font-medium text-white;
 }
 
 .setup-actions,
@@ -766,25 +789,19 @@ onMounted(() => {
 }
 
 .btn-primary {
-  @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 
-         rounded-lg transition-colors duration-200 inline-flex items-center 
-         space-x-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply inline-flex items-center space-x-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50;
 }
 
 .btn-secondary {
-  @apply bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 
-         font-medium py-2 px-4 rounded-lg transition-colors duration-200 
-         inline-flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply inline-flex items-center space-x-2 rounded-lg border border-gray-300 bg-white px-4 py-2 font-medium text-gray-700 transition-colors duration-200 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50;
 }
 
 .btn-danger {
-  @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 
-         rounded-lg transition-colors duration-200 inline-flex items-center 
-         space-x-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply inline-flex items-center space-x-2 rounded-lg bg-red-600 px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50;
 }
 
 .spinner {
-  @apply animate-spin rounded-full h-4 w-4 border-b-2 border-white;
+  @apply h-4 w-4 animate-spin rounded-full border-b-2 border-white;
 }
 
 .recovery-info {
@@ -796,7 +813,7 @@ onMounted(() => {
 }
 
 .recovery-warning {
-  @apply flex items-start space-x-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg;
+  @apply flex items-start space-x-3 rounded-lg border border-yellow-200 bg-yellow-50 p-3;
 }
 
 .recovery-warning h4 {
@@ -804,15 +821,15 @@ onMounted(() => {
 }
 
 .recovery-warning p {
-  @apply text-sm text-yellow-800 mt-1;
+  @apply mt-1 text-sm text-yellow-800;
 }
 
 .activity-section {
-  @apply bg-white rounded-lg shadow-sm;
+  @apply rounded-lg bg-white shadow-sm;
 }
 
 .activity-header {
-  @apply flex items-center justify-between p-6 border-b border-gray-200;
+  @apply flex items-center justify-between border-b border-gray-200 p-6;
 }
 
 .activity-title {
@@ -820,20 +837,19 @@ onMounted(() => {
 }
 
 .refresh-btn {
-  @apply inline-flex items-center space-x-2 text-sm text-gray-600 
-         hover:text-gray-900 transition-colors duration-200;
+  @apply inline-flex items-center space-x-2 text-sm text-gray-600 transition-colors duration-200 hover:text-gray-900;
 }
 
 .activity-list {
-  @apply p-6 space-y-4;
+  @apply space-y-4 p-6;
 }
 
 .activity-item {
-  @apply flex items-start space-x-4 p-3 border border-gray-200 rounded-lg;
+  @apply flex items-start space-x-4 rounded-lg border border-gray-200 p-3;
 }
 
 .activity-icon {
-  @apply w-8 h-8 rounded-full flex items-center justify-center;
+  @apply flex h-8 w-8 items-center justify-center rounded-full;
 }
 
 .activity-icon.login {
@@ -859,11 +875,11 @@ onMounted(() => {
 }
 
 .activity-meta {
-  @apply flex items-center space-x-4 mt-1 text-sm text-gray-500;
+  @apply mt-1 flex items-center space-x-4 text-sm text-gray-500;
 }
 
 .activity-status {
-  @apply px-2 py-1 text-xs font-medium rounded;
+  @apply rounded px-2 py-1 text-xs font-medium;
 }
 
 .activity-status.success {
@@ -875,7 +891,7 @@ onMounted(() => {
 }
 
 .no-activity {
-  @apply text-center py-8 text-gray-500;
+  @apply py-8 text-center text-gray-500;
 }
 
 /* Mobile optimizations */
@@ -883,19 +899,19 @@ onMounted(() => {
   .two-factor-dashboard {
     @apply p-4;
   }
-  
+
   .header-content {
     @apply flex-col items-start space-y-4;
   }
-  
+
   .overview-cards {
     @apply grid-cols-1;
   }
-  
+
   .management-grid {
     @apply grid-cols-1;
   }
-  
+
   .setup-actions,
   .enabled-actions,
   .recovery-actions {

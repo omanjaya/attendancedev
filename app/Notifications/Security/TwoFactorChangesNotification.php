@@ -40,7 +40,7 @@ class TwoFactorChangesNotification extends Notification implements ShouldQueue
             ->line('Important changes have been made to your two-factor authentication settings.')
             ->line('')
             ->line('**Change Details:**')
-            ->line("• Action: " . $this->getChangeDescription($changeType))
+            ->line('• Action: '.$this->getChangeDescription($changeType))
             ->line("• IP Address: {$this->data['ip_address']}")
             ->line("• Location: {$location}")
             ->line("• Time: {$timestamp}")
@@ -49,7 +49,8 @@ class TwoFactorChangesNotification extends Notification implements ShouldQueue
         // Add specific guidance based on change type
         switch ($changeType) {
             case 'enabled':
-                $mailMessage->line('✅ **Two-factor authentication has been enabled on your account.**')
+                $mailMessage
+                    ->line('✅ **Two-factor authentication has been enabled on your account.**')
                     ->line('')
                     ->line('This significantly improves your account security. Make sure to:')
                     ->line('• Save your backup recovery codes in a safe place')
@@ -58,7 +59,8 @@ class TwoFactorChangesNotification extends Notification implements ShouldQueue
                 break;
 
             case 'disabled':
-                $mailMessage->line('⚠️ **Two-factor authentication has been disabled on your account.**')
+                $mailMessage
+                    ->line('⚠️ **Two-factor authentication has been disabled on your account.**')
                     ->line('')
                     ->line('Your account is now less secure. We strongly recommend:')
                     ->line('• Re-enabling two-factor authentication as soon as possible')
@@ -67,7 +69,8 @@ class TwoFactorChangesNotification extends Notification implements ShouldQueue
                 break;
 
             case 'recovery_codes_regenerated':
-                $mailMessage->line('🔄 **New recovery codes have been generated.**')
+                $mailMessage
+                    ->line('🔄 **New recovery codes have been generated.**')
                     ->line('')
                     ->line('Your old recovery codes are no longer valid. Make sure to:')
                     ->line('• Download and securely store your new recovery codes')
@@ -76,7 +79,8 @@ class TwoFactorChangesNotification extends Notification implements ShouldQueue
                 break;
 
             case 'secret_regenerated':
-                $mailMessage->line('🔄 **Your authenticator secret has been regenerated.**')
+                $mailMessage
+                    ->line('🔄 **Your authenticator secret has been regenerated.**')
                     ->line('')
                     ->line('You\'ll need to set up your authenticator app again:')
                     ->line('• Remove the old entry from your authenticator app')
@@ -92,7 +96,7 @@ class TwoFactorChangesNotification extends Notification implements ShouldQueue
             ->line('• Check your account for any unauthorized changes')
             ->line('• Contact support if you need assistance')
             ->action('Review Security Settings', url('/settings/security'))
-            ->salutation('Security Team, ' . config('app.name'));
+            ->salutation('Security Team, '.config('app.name'));
     }
 
     /**

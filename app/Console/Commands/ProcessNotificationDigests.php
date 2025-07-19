@@ -31,11 +31,13 @@ class ProcessNotificationDigests extends Command
 
         try {
             $notificationService->processDigestNotifications();
-            
+
             $this->info('✅ Notification digests processed successfully');
+
             return Command::SUCCESS;
         } catch (\Exception $e) {
-            $this->error('❌ Failed to process notification digests: ' . $e->getMessage());
+            $this->error('❌ Failed to process notification digests: '.$e->getMessage());
+
             return Command::FAILURE;
         }
     }

@@ -1,37 +1,39 @@
-@extends('layouts.authenticated')
+@extends('layouts.authenticated-unified')
 
 @section('title', 'Permission Management')
 
 @section('page-content')
-<div class="py-6">
-    <div class="max-w-7xl mx-auto mobile-container">
-        <!-- Page Header -->
-        <x-layout.page-header
-            title="Permission Management"
-            subtitle="System - Manage roles and permissions">
-            <x-slot name="actions">
-                <x-ui.button onclick="openCreateRoleModal()">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                    </svg>
-                    Create New Role
-                </x-ui.button>
-            </x-slot>
-        </x-layout.page-header>
+<div class="p-6 lg:p-8">
+    <x-layouts.base-page
+        title="Manajemen Izin"
+        subtitle="Sistem - Kelola peran dan izin"
+        :breadcrumbs="[
+            ['label' => 'Dashboard', 'url' => route('dashboard')],
+            ['label' => 'Pengaturan'],
+            ['label' => 'Manajemen Izin']
+        ]">
+        <x-slot name="actions">
+            <x-ui.button onclick="openCreateRoleModal()">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Buat Peran Baru
+            </x-ui.button>
+        </x-slot>
 
         <div class="grid grid-cols-1 gap-6">
             <!-- Roles Table -->
-            <x-ui.card title="System Roles">
+            <x-ui.card title="Peran Sistem">
                 <div class="overflow-hidden">
                     <div class="overflow-x-auto">
                         <table id="rolesTable" class="min-w-full divide-y divide-border">
                             <thead class="bg-muted/50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Role Name</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Permissions</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Users</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Created</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Nama Peran</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Izin</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Pengguna</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Dibuat</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Aksi</th>
                                 </tr>
                             </thead>
                         </table>
@@ -40,13 +42,13 @@
             </x-ui.card>
             
             <!-- Permissions Matrix -->
-            <x-ui.card title="Permissions Matrix">
+            <x-ui.card title="Matriks Izin">
                 <div class="overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-border">
                             <thead class="bg-muted/50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider" style="width: 200px;">Permission Category</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider" style="width: 200px;">Kategori Izin</th>
                                     @foreach($roles as $role)
                                         <th class="px-6 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">{{ ucfirst($role->name) }}</th>
                                     @endforeach
@@ -56,7 +58,7 @@
                                 @foreach($permissions as $category => $categoryPermissions)
                                     <tr>
                                         <td colspan="{{ count($roles) + 1 }}" class="px-6 py-3 bg-muted/50">
-                                            <span class="font-medium text-foreground">{{ ucfirst($category) }} Permissions</span>
+                                            <span class="font-medium text-foreground">Izin {{ ucfirst($category) }}</span>
                                         </td>
                                     </tr>
                                     @foreach($categoryPermissions as $permission)
@@ -83,7 +85,7 @@
                 </div>
             </x-ui.card>
         </div>
-    </div>
+    </x-layouts.base-page>
 </div>
 
 <!-- Create Role Modal -->
@@ -142,11 +144,11 @@
 <script>
 // Modal functions
 function openCreateRoleModal() {
-    document.getElementById('createRoleModal').classList.remove('hidden');
+    openModal('createRoleModal');
 }
 
 function closeCreateRoleModal() {
-    document.getElementById('createRoleModal').classList.add('hidden');
+    closeModal('createRoleModal');
 }
 
 $(document).ready(function() {

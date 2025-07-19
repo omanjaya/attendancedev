@@ -2,14 +2,12 @@
 
 namespace App\Services;
 
-use App\Models\User;
 use App\Models\AuditLog;
-use App\Services\SecurityLogger;
-use Illuminate\Support\Facades\Hash;
+use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Http\Request;
-use Carbon\Carbon;
 
 class SecurityService
 {
@@ -19,6 +17,7 @@ class SecurityService
     {
         $this->securityLogger = $securityLogger;
     }
+
     /**
      * Check if user's password meets security requirements.
      */
@@ -30,7 +29,7 @@ class SecurityService
             'lowercase' => preg_match('/[a-z]/', $password),
             'numbers' => preg_match('/[0-9]/', $password),
             'special' => preg_match('/[^A-Za-z0-9]/', $password),
-            'common' => !$this->isCommonPassword($password)
+            'common' => ! $this->isCommonPassword($password),
         ];
 
         $score = array_sum($requirements);
@@ -38,14 +37,14 @@ class SecurityService
             $score <= 2 => 'weak',
             $score <= 4 => 'medium',
             $score === 5 => 'strong',
-            default => 'very_strong'
+            default => 'very_strong',
         };
 
         return [
             'requirements' => $requirements,
             'score' => $score,
             'strength' => $strength,
-            'valid' => $score >= 4
+            'valid' => $score >= 4,
         ];
     }
 
@@ -55,9 +54,21 @@ class SecurityService
     private function isCommonPassword(string $password): bool
     {
         $commonPasswords = [
-            'password', '123456', '123456789', 'qwerty', 'abc123',
-            'password123', 'admin', 'letmein', 'welcome', 'monkey',
-            'dragon', 'master', 'shadow', 'superman', 'michael'
+            'password',
+            '123456',
+            '123456789',
+            'qwerty',
+            'abc123',
+            'password123',
+            'admin',
+            'letmein',
+            'welcome',
+            'monkey',
+            'dragon',
+            'master',
+            'shadow',
+            'superman',
+            'michael',
         ];
 
         return in_array(strtolower($password), $commonPasswords);
@@ -80,7 +91,7 @@ class SecurityService
                 'identifier' => $identifier,
                 'attempts' => $attempts,
                 'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent()
+                'user_agent' => $request->userAgent(),
             ]);
         }
 
@@ -88,7 +99,7 @@ class SecurityService
             'attempts' => $attempts,
             'remaining_attempts' => max(0, 5 - $attempts),
             'locked_until' => $attempts >= 5 ? now()->addMinutes($lockoutTime) : null,
-            'is_locked' => $attempts >= 5
+            'is_locked' => $attempts >= 5,
         ];
     }
 
@@ -98,10 +109,10 @@ class SecurityService
     private function calculateLockoutTime(int $attempts): int
     {
         return match (true) {
-            $attempts <= 3 => 5,      // 5 minutes
-            $attempts <= 5 => 15,     // 15 minutes
-            $attempts <= 7 => 60,     // 1 hour
-            default => 1440           // 24 hours
+            $attempts <= 3 => 5, // 5 minutes
+            $attempts <= 5 => 15, // 15 minutes
+            $attempts <= 7 => 60, // 1 hour
+            default => 1440, // 24 hours
         };
     }
 
@@ -152,7 +163,7 @@ class SecurityService
             '2fa_recovery_code' => ['max_attempts' => 3, 'window_minutes' => 60],
             '2fa_sms_request' => ['max_attempts' => 3, 'window_minutes' => 60],
             '2fa_emergency_recovery' => ['max_attempts' => 2, 'window_minutes' => 1440], // 24 hours
-            '2fa_setup_attempt' => ['max_attempts' => 10, 'window_minutes' => 60]
+            '2fa_setup_attempt' => ['max_attempts' => 10, 'window_minutes' => 60],
         ];
 
         return $limits[$action] ?? $limits['general'];
@@ -190,7 +201,7 @@ class SecurityService
         return [
             'indicators' => $suspiciousIndicators,
             'risk_level' => $riskLevel,
-            'requires_additional_verification' => $riskLevel >= 7
+            'requires_additional_verification' => $riskLevel >= 7,
         ];
     }
 
@@ -220,7 +231,7 @@ class SecurityService
         $deviceFingerprint = $this->generateDeviceFingerprint($request);
         $knownDevices = Cache::get("user_devices_{$user->id}", []);
 
-        return !in_array($deviceFingerprint, $knownDevices);
+        return ! in_array($deviceFingerprint, $knownDevices);
     }
 
     /**
@@ -232,7 +243,7 @@ class SecurityService
             $request->userAgent(),
             $request->header('Accept'),
             $request->header('Accept-Language'),
-            $request->header('Accept-Encoding')
+            $request->header('Accept-Encoding'),
         ];
 
         return hash('sha256', implode('|', $components));
@@ -244,7 +255,7 @@ class SecurityService
     private function hasRapidLogins(User $user): bool
     {
         $recentLogins = Cache::get("user_recent_logins_{$user->id}", []);
-        
+
         if (count($recentLogins) < 3) {
             return false;
         }
@@ -255,7 +266,7 @@ class SecurityService
         }
 
         $averageTimeBetweenLogins = array_sum($timeDiffs) / count($timeDiffs);
-        
+
         return $averageTimeBetweenLogins < 300; // Less than 5 minutes between logins
     }
 
@@ -282,7 +293,7 @@ class SecurityService
             'new_device' => 3,
             'rapid_logins' => 4,
             'privilege_escalation' => 5,
-            'multiple_failed_logins' => 3
+            'multiple_failed_logins' => 3,
         ];
 
         $totalRisk = 0;
@@ -311,7 +322,7 @@ class SecurityService
                 'new_values' => $data,
                 'ip_address' => $data['ip_address'] ?? null,
                 'user_agent' => $data['user_agent'] ?? null,
-                'risk_level' => 'high'
+                'risk_level' => 'high',
             ]);
         }
     }
@@ -323,15 +334,15 @@ class SecurityService
     {
         $deviceFingerprint = $this->generateDeviceFingerprint($request);
         $knownDevices = Cache::get("user_devices_{$user->id}", []);
-        
-        if (!in_array($deviceFingerprint, $knownDevices)) {
+
+        if (! in_array($deviceFingerprint, $knownDevices)) {
             $knownDevices[] = $deviceFingerprint;
-            
+
             // Keep only last 5 devices
             if (count($knownDevices) > 5) {
                 $knownDevices = array_slice($knownDevices, -5);
             }
-            
+
             Cache::put("user_devices_{$user->id}", $knownDevices, 86400 * 30); // 30 days
         }
     }
@@ -343,14 +354,14 @@ class SecurityService
     {
         $currentHour = now()->hour;
         $recentHours = Cache::get("user_login_hours_{$user->id}", []);
-        
+
         $recentHours[] = $currentHour;
-        
+
         // Keep only last 10 login hours
         if (count($recentHours) > 10) {
             $recentHours = array_slice($recentHours, -10);
         }
-        
+
         Cache::put("user_login_hours_{$user->id}", $recentHours, 86400 * 30); // 30 days
     }
 
@@ -361,14 +372,14 @@ class SecurityService
     {
         $timestamp = time();
         $recentLogins = Cache::get("user_recent_logins_{$user->id}", []);
-        
+
         $recentLogins[] = $timestamp;
-        
+
         // Keep only last 5 login timestamps
         if (count($recentLogins) > 5) {
             $recentLogins = array_slice($recentLogins, -5);
         }
-        
+
         Cache::put("user_recent_logins_{$user->id}", $recentLogins, 3600); // 1 hour
     }
 
@@ -396,7 +407,7 @@ class SecurityService
                 ->where('created_at', '>=', $timeframe)
                 ->count(),
             '2fa_enabled_users' => User::where('two_factor_enabled', true)->count(),
-            'active_sessions' => $this->getActiveSessionsCount()
+            'active_sessions' => $this->getActiveSessionsCount(),
         ];
     }
 
@@ -408,7 +419,7 @@ class SecurityService
         // This would depend on your session storage implementation
         // For database sessions:
         // return DB::table('sessions')->where('last_activity', '>', time() - 1800)->count();
-        
+
         // For cache-based sessions, you might need a different approach
         return 0; // Placeholder
     }
@@ -419,7 +430,7 @@ class SecurityService
     public function generateSecurityReport(int $days = 30): array
     {
         $startDate = now()->subDays($days);
-        
+
         $report = [
             'period' => "{$days} days",
             'generated_at' => now()->toISOString(),
@@ -430,7 +441,7 @@ class SecurityService
                 ->limit(10)
                 ->get(),
             'failed_login_trends' => $this->getFailedLoginTrends($days),
-            'recommendations' => $this->getSecurityRecommendations()
+            'recommendations' => $this->getSecurityRecommendations(),
         ];
 
         return $report;
@@ -444,13 +455,11 @@ class SecurityService
         $trends = [];
         for ($i = $days - 1; $i >= 0; $i--) {
             $date = now()->subDays($i)->format('Y-m-d');
-            $count = AuditLog::where('action', 'login_failed')
-                ->whereDate('created_at', $date)
-                ->count();
-            
+            $count = AuditLog::where('action', 'login_failed')->whereDate('created_at', $date)->count();
+
             $trends[] = ['date' => $date, 'count' => $count];
         }
-        
+
         return $trends;
     }
 
@@ -460,28 +469,28 @@ class SecurityService
     private function getSecurityRecommendations(): array
     {
         $recommendations = [];
-        
+
         $twoFactorStats = app(TwoFactorService::class)->getStatistics();
-        
+
         if ($twoFactorStats['compliance_rate'] < 80) {
             $recommendations[] = [
                 'type' => 'warning',
                 'title' => 'Low 2FA Compliance',
                 'description' => "Only {$twoFactorStats['compliance_rate']}% of required users have 2FA enabled.",
-                'action' => 'Enforce 2FA for all administrative users'
+                'action' => 'Enforce 2FA for all administrative users',
             ];
         }
 
         $recentFailedLogins = AuditLog::where('action', 'login_failed')
             ->where('created_at', '>=', now()->subDays(7))
             ->count();
-            
+
         if ($recentFailedLogins > 50) {
             $recommendations[] = [
                 'type' => 'alert',
                 'title' => 'High Failed Login Rate',
                 'description' => "{$recentFailedLogins} failed login attempts in the last 7 days.",
-                'action' => 'Review IP whitelist and consider additional rate limiting'
+                'action' => 'Review IP whitelist and consider additional rate limiting',
             ];
         }
 
@@ -491,16 +500,19 @@ class SecurityService
     /**
      * Enhanced 2FA-specific rate limiting and brute force protection
      */
-    
+
     /**
      * Track 2FA verification attempts with progressive penalties
      */
-    public function track2FAAttempt(string $identifier, string $type = 'totp', bool $success = false): array
-    {
+    public function track2FAAttempt(
+        string $identifier,
+        string $type = 'totp',
+        bool $success = false,
+    ): array {
         $key = "2fa_attempts_{$type}_{$identifier}";
         $attempts = Cache::get($key, 0);
-        
-        if (!$success) {
+
+        if (! $success) {
             $attempts++;
             $lockoutTime = $this->calculate2FALockoutTime($attempts, $type);
             Cache::put($key, $attempts, $lockoutTime);
@@ -513,7 +525,7 @@ class SecurityService
                     'attempts' => $attempts,
                     'ip_address' => request()->ip(),
                     'user_agent' => request()->userAgent(),
-                    'user_id' => auth()->id()
+                    'user_id' => auth()->id(),
                 ]);
             }
 
@@ -527,13 +539,15 @@ class SecurityService
         }
 
         $limit = $this->getRateLimit("2fa_{$type}");
-        
+
         return [
             'attempts' => $attempts,
             'remaining_attempts' => max(0, $limit['max_attempts'] - $attempts),
-            'locked_until' => $attempts >= $limit['max_attempts'] ? now()->addMinutes($this->calculate2FALockoutTime($attempts, $type)) : null,
+            'locked_until' => $attempts >= $limit['max_attempts']
+                ? now()->addMinutes($this->calculate2FALockoutTime($attempts, $type))
+                : null,
             'is_locked' => $attempts >= $limit['max_attempts'],
-            'requires_admin_intervention' => $attempts >= 10
+            'requires_admin_intervention' => $attempts >= 10,
         ];
     }
 
@@ -544,9 +558,9 @@ class SecurityService
     {
         $baseTime = match ($type) {
             'emergency_recovery' => 1440, // 24 hours for emergency recovery
-            'recovery_code' => 60,         // 1 hour for recovery codes
-            'sms_request' => 60,           // 1 hour for SMS requests
-            default => 15                  // 15 minutes for TOTP
+            'recovery_code' => 60, // 1 hour for recovery codes
+            'sms_request' => 60, // 1 hour for SMS requests
+            default => 15, // 15 minutes for TOTP
         };
 
         // Progressive penalty: exponential backoff
@@ -555,7 +569,7 @@ class SecurityService
             $attempts <= 5 => $baseTime * 2,
             $attempts <= 7 => $baseTime * 4,
             $attempts <= 10 => $baseTime * 8,
-            default => $baseTime * 16      // Maximum penalty
+            default => $baseTime * 16, // Maximum penalty
         };
     }
 
@@ -571,7 +585,7 @@ class SecurityService
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
             'user_id' => auth()->id(),
-            'requires_admin_unlock' => true
+            'requires_admin_unlock' => true,
         ];
 
         Cache::put($lockdownKey, $lockdownData, 86400 * 7); // 7 days
@@ -599,7 +613,7 @@ class SecurityService
         $lockdownKey = "2fa_lockdown_{$identifier}";
         $lockdownData = Cache::get($lockdownKey);
 
-        if (!$lockdownData) {
+        if (! $lockdownData) {
             return false;
         }
 
@@ -607,7 +621,7 @@ class SecurityService
         Log::info('2FA Lockdown Manually Unlocked', [
             'identifier' => $this->sanitizeIdentifier($identifier),
             'admin_user_id' => $adminUserId,
-            'original_lockdown' => $lockdownData
+            'original_lockdown' => $lockdownData,
         ]);
 
         Cache::forget($lockdownKey);
@@ -615,7 +629,7 @@ class SecurityService
         // Also clear related attempt counters
         $patterns = ['2fa_attempts_totp_', '2fa_attempts_recovery_code_', '2fa_attempts_sms_'];
         foreach ($patterns as $pattern) {
-            Cache::forget($pattern . $identifier);
+            Cache::forget($pattern.$identifier);
         }
 
         return true;
@@ -628,15 +642,18 @@ class SecurityService
     {
         $recentFailures = Cache::get('global_2fa_failures', []);
         $now = time();
-        
+
         // Clean old entries (older than 1 hour)
-        $recentFailures = array_filter($recentFailures, fn($failure) => ($now - $failure['timestamp']) < 3600);
-        
+        $recentFailures = array_filter(
+            $recentFailures,
+            fn ($failure) => $now - $failure['timestamp'] < 3600,
+        );
+
         // Group by IP address
         $ipGroups = [];
         foreach ($recentFailures as $failure) {
             $ip = $failure['ip'];
-            if (!isset($ipGroups[$ip])) {
+            if (! isset($ipGroups[$ip])) {
                 $ipGroups[$ip] = [];
             }
             $ipGroups[$ip][] = $failure;
@@ -646,7 +663,7 @@ class SecurityService
         foreach ($ipGroups as $ip => $failures) {
             $userCount = count(array_unique(array_column($failures, 'user_id')));
             $attemptCount = count($failures);
-            
+
             // Detect suspicious patterns
             if ($userCount >= 3 && $attemptCount >= 10) {
                 $threats[] = [
@@ -656,7 +673,7 @@ class SecurityService
                     'affected_users' => $userCount,
                     'total_attempts' => $attemptCount,
                     'time_window' => '1 hour',
-                    'recommended_action' => 'immediate_ip_block'
+                    'recommended_action' => 'immediate_ip_block',
                 ];
             }
         }
@@ -670,18 +687,18 @@ class SecurityService
     public function recordGlobal2FAFailure(string $ip, ?int $userId): void
     {
         $recentFailures = Cache::get('global_2fa_failures', []);
-        
+
         $recentFailures[] = [
             'timestamp' => time(),
             'ip' => $ip,
-            'user_id' => $userId
+            'user_id' => $userId,
         ];
-        
+
         // Keep only last 1000 failures
         if (count($recentFailures) > 1000) {
             $recentFailures = array_slice($recentFailures, -1000);
         }
-        
+
         Cache::put('global_2fa_failures', $recentFailures, 3600); // 1 hour
     }
 
@@ -691,7 +708,7 @@ class SecurityService
     public function generate2FASecurityReport(int $days = 7): array
     {
         $startDate = now()->subDays($days);
-        
+
         return [
             'period' => "{$days} days",
             'generated_at' => now()->toISOString(),
@@ -701,12 +718,12 @@ class SecurityService
                 'success_rate' => $this->calculate2FASuccessRate($startDate),
                 'unique_ips_with_failures' => $this->countUnique2FAFailureIPs($startDate),
                 'locked_accounts' => $this->countLocked2FAAccounts(),
-                'emergency_recovery_requests' => $this->countEmergencyRecoveryRequests($startDate)
+                'emergency_recovery_requests' => $this->countEmergencyRecoveryRequests($startDate),
             ],
             'threats' => $this->detectCoordinated2FAAttack(),
             'top_failing_ips' => $this->getTop2FAFailingIPs($startDate),
             'failure_patterns' => $this->analyze2FAFailurePatterns($startDate),
-            'recommendations' => $this->get2FASecurityRecommendations()
+            'recommendations' => $this->get2FASecurityRecommendations(),
         ];
     }
 
@@ -715,14 +732,13 @@ class SecurityService
      */
     private function count2FAAttempts(Carbon $since, ?bool $success = null): int
     {
-        $query = AuditLog::where('action', 'LIKE', '2fa_%')
-                         ->where('created_at', '>=', $since);
-        
+        $query = AuditLog::where('action', 'LIKE', '2fa_%')->where('created_at', '>=', $since);
+
         if ($success !== null) {
             $pattern = $success ? '2fa_success%' : '2fa_failed%';
             $query->where('action', 'LIKE', $pattern);
         }
-        
+
         return $query->count();
     }
 
@@ -730,16 +746,16 @@ class SecurityService
     {
         $total = $this->count2FAAttempts($since);
         $successful = $this->count2FAAttempts($since, true);
-        
+
         return $total > 0 ? round(($successful / $total) * 100, 2) : 0;
     }
 
     private function countUnique2FAFailureIPs(Carbon $since): int
     {
         return AuditLog::where('action', 'LIKE', '2fa_failed%')
-                      ->where('created_at', '>=', $since)
-                      ->distinct('ip_address')
-                      ->count();
+            ->where('created_at', '>=', $since)
+            ->distinct('ip_address')
+            ->count();
     }
 
     private function countLocked2FAAccounts(): int
@@ -752,85 +768,86 @@ class SecurityService
     private function countEmergencyRecoveryRequests(Carbon $since): int
     {
         return AuditLog::where('action', 'emergency_2fa_recovery_requested')
-                      ->where('created_at', '>=', $since)
-                      ->count();
+            ->where('created_at', '>=', $since)
+            ->count();
     }
 
     private function getTop2FAFailingIPs(Carbon $since, int $limit = 10): array
     {
         return AuditLog::where('action', 'LIKE', '2fa_failed%')
-                      ->where('created_at', '>=', $since)
-                      ->select('ip_address')
-                      ->selectRaw('COUNT(*) as failure_count')
-                      ->groupBy('ip_address')
-                      ->orderBy('failure_count', 'desc')
-                      ->limit($limit)
-                      ->get()
-                      ->map(function ($item) {
-                          return [
-                              'ip' => $this->sanitizeIdentifier($item->ip_address),
-                              'failures' => $item->failure_count
-                          ];
-                      })
-                      ->toArray();
+            ->where('created_at', '>=', $since)
+            ->select('ip_address')
+            ->selectRaw('COUNT(*) as failure_count')
+            ->groupBy('ip_address')
+            ->orderBy('failure_count', 'desc')
+            ->limit($limit)
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'ip' => $this->sanitizeIdentifier($item->ip_address),
+                    'failures' => $item->failure_count,
+                ];
+            })
+            ->toArray();
     }
 
     private function analyze2FAFailurePatterns(Carbon $since): array
     {
         // Analyze time-based patterns
         $hourlyFailures = AuditLog::where('action', 'LIKE', '2fa_failed%')
-                                ->where('created_at', '>=', $since)
-                                ->selectRaw('HOUR(created_at) as hour, COUNT(*) as count')
-                                ->groupBy('hour')
-                                ->get()
-                                ->keyBy('hour')
-                                ->map(fn($item) => $item->count)
-                                ->toArray();
+            ->where('created_at', '>=', $since)
+            ->selectRaw('HOUR(created_at) as hour, COUNT(*) as count')
+            ->groupBy('hour')
+            ->get()
+            ->keyBy('hour')
+            ->map(fn ($item) => $item->count)
+            ->toArray();
 
         return [
             'peak_failure_hours' => $this->getPeakHours($hourlyFailures),
             'failure_distribution' => $hourlyFailures,
-            'weekend_vs_weekday' => $this->getWeekendWeekdayComparison($since)
+            'weekend_vs_weekday' => $this->getWeekendWeekdayComparison($since),
         ];
     }
 
     private function getPeakHours(array $hourlyData): array
     {
         arsort($hourlyData);
+
         return array_slice($hourlyData, 0, 3, true);
     }
 
     private function getWeekendWeekdayComparison(Carbon $since): array
     {
         $weekdayFailures = AuditLog::where('action', 'LIKE', '2fa_failed%')
-                                 ->where('created_at', '>=', $since)
-                                 ->whereRaw('WEEKDAY(created_at) < 5')
-                                 ->count();
+            ->where('created_at', '>=', $since)
+            ->whereRaw('WEEKDAY(created_at) < 5')
+            ->count();
 
         $weekendFailures = AuditLog::where('action', 'LIKE', '2fa_failed%')
-                                 ->where('created_at', '>=', $since)
-                                 ->whereRaw('WEEKDAY(created_at) >= 5')
-                                 ->count();
+            ->where('created_at', '>=', $since)
+            ->whereRaw('WEEKDAY(created_at) >= 5')
+            ->count();
 
         return [
             'weekday_failures' => $weekdayFailures,
             'weekend_failures' => $weekendFailures,
-            'weekend_ratio' => $weekdayFailures > 0 ? round($weekendFailures / $weekdayFailures, 2) : 0
+            'weekend_ratio' => $weekdayFailures > 0 ? round($weekendFailures / $weekdayFailures, 2) : 0,
         ];
     }
 
     private function get2FASecurityRecommendations(): array
     {
         $recommendations = [];
-        
+
         // Check recent coordinated attacks
         $threats = $this->detectCoordinated2FAAttack();
-        if (!empty($threats)) {
+        if (! empty($threats)) {
             $recommendations[] = [
                 'type' => 'critical',
                 'title' => 'Coordinated 2FA Attack Detected',
                 'description' => 'Multiple IP addresses are attempting to breach 2FA security.',
-                'action' => 'Implement immediate IP blocking and review access logs'
+                'action' => 'Implement immediate IP blocking and review access logs',
             ];
         }
 
@@ -841,7 +858,7 @@ class SecurityService
                 'type' => 'warning',
                 'title' => 'Low 2FA Success Rate',
                 'description' => "2FA success rate is {$successRate}% over the last 7 days.",
-                'action' => 'Review user training and 2FA implementation'
+                'action' => 'Review user training and 2FA implementation',
             ];
         }
 
@@ -852,7 +869,7 @@ class SecurityService
                 'type' => 'alert',
                 'title' => 'Multiple Locked 2FA Accounts',
                 'description' => "{$lockedCount} accounts are currently locked due to 2FA failures.",
-                'action' => 'Review lockdown reasons and consider user support'
+                'action' => 'Review lockdown reasons and consider user support',
             ];
         }
 
@@ -866,10 +883,11 @@ class SecurityService
     {
         if (filter_var($identifier, FILTER_VALIDATE_IP)) {
             $parts = explode('.', $identifier);
-            return $parts[0] . '.' . $parts[1] . '.***.**';
+
+            return $parts[0].'.'.$parts[1].'.***.**';
         }
-        
-        return substr($identifier, 0, 4) . '***';
+
+        return substr($identifier, 0, 4).'***';
     }
 
     /**
@@ -879,6 +897,9 @@ class SecurityService
     {
         // This would integrate with your notification system
         // For now, just log the critical event
-        Log::critical('URGENT: 2FA Security Lockdown Triggered - Admin Intervention Required', $lockdownData);
+        Log::critical(
+            'URGENT: 2FA Security Lockdown Triggered - Admin Intervention Required',
+            $lockdownData,
+        );
     }
 }

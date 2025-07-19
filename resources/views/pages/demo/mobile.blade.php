@@ -1,361 +1,320 @@
-@extends('layouts.app')
+@extends('layouts.authenticated-unified')
 
-@section('title', 'Mobile-First Responsive Design Demo')
+@section('title', 'Demo Desain Responsif Mobile-First')
 
-@section('content')
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <!-- Header -->
-    <div class="bg-white dark:bg-gray-800 shadow-sm">
-        <div class="container mx-auto px-4 py-6">
-            <div class="text-center">
-                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                    Mobile-First Responsive Design
-                </h1>
-                <p class="text-gray-600 dark:text-gray-400 text-sm sm:text-base">
-                    Optimized for mobile devices with touch-friendly interfaces and progressive enhancement
-                </p>
-            </div>
-        </div>
-    </div>
+@section('page-content')
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-blue-900 dark:to-indigo-900">
+    <div class="p-6 lg:p-8">
+        <x-layouts.base-page
+            title="Desain Responsif Mobile-First"
+            subtitle="Dioptimalkan untuk perangkat seluler dengan antarmuka yang ramah sentuhan dan peningkatan progresif"
+            :breadcrumbs="[
+                ['label' => 'Dashboard', 'url' => route('dashboard')],
+                ['label' => 'Demo'],
+                ['label' => 'Mobile']
+            ]">
+        </x-layouts.base-page>
 
-    <div class="container mx-auto px-4 py-6 space-y-8">
         <!-- Responsive Cards Grid -->
-        <section>
-            <h2 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                Responsive Cards
-            </h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                <x-ui.mobile.responsive-card
-                    title="Active Users"
-                    value="1,247"
-                    icon="fas fa-users"
-                    trend="+12%"
-                    trend-direction="up"
-                    @can('view_employees')
-                    href="{{ route('employees.index') }}"
-                    @else
-                    href="#"
-                    @endcan>
-                    <p class="text-xs text-gray-500">Compared to last month</p>
-                </x-ui.mobile.responsive-card>
+        <section class="mb-8">
+            <h2 class="text-xl font-semibold text-slate-800 dark:text-white mb-4">Kartu Responsif</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out hover:bg-white/30 hover:scale-105">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-slate-600 dark:text-slate-400">Pengguna Aktif</p>
+                            <p class="text-3xl font-bold text-slate-800 dark:text-white mt-1">1,247</p>
+                        </div>
+                        <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform duration-300">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-600 dark:text-slate-400 mt-2">Dibandingkan bulan lalu</p>
+                </div>
 
-                <x-ui.mobile.responsive-card
-                    title="Attendance Rate"
-                    value="94.2%"
-                    icon="fas fa-chart-line"
-                    trend="+2.1%"
-                    trend-direction="up">
-                    <p class="text-xs text-gray-500">Above target of 90%</p>
-                </x-ui.mobile.responsive-card>
+                <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out hover:bg-white/30 hover:scale-105">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-slate-600 dark:text-slate-400">Tingkat Kehadiran</p>
+                            <p class="text-3xl font-bold text-slate-800 dark:text-white mt-1">94.2%</p>
+                        </div>
+                        <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform duration-300">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-600 dark:text-slate-400 mt-2">Di atas target 90%</p>
+                </div>
 
-                <x-ui.mobile.responsive-card
-                    title="Pending Requests"
-                    value="8"
-                    icon="fas fa-clock"
-                    trend="-3"
-                    trend-direction="down">
-                    <p class="text-xs text-gray-500">Needs review</p>
-                </x-ui.mobile.responsive-card>
+                <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out hover:bg-white/30 hover:scale-105">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-slate-600 dark:text-slate-400">Permintaan Tertunda</p>
+                            <p class="text-3xl font-bold text-slate-800 dark:text-white mt-1">8</p>
+                        </div>
+                        <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform duration-300">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-600 dark:text-slate-400 mt-2">Perlu ditinjau</p>
+                </div>
 
-                <x-ui.mobile.responsive-card
-                    title="Revenue"
-                    value="$45,280"
-                    icon="fas fa-dollar-sign"
-                    trend="+8.4%"
-                    trend-direction="up"
-                    compact="true">
-                    <p class="text-xs text-gray-500">This month</p>
-                </x-ui.mobile.responsive-card>
+                <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out hover:bg-white/30 hover:scale-105">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-slate-600 dark:text-slate-400">Pendapatan</p>
+                            <p class="text-3xl font-bold text-slate-800 dark:text-white mt-1">$45,280</p>
+                        </div>
+                        <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform duration-300">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-600 dark:text-slate-400 mt-2">Bulan ini</p>
+                </div>
             </div>
         </section>
 
         <!-- Responsive Table -->
-        <section>
-            <h2 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                Responsive Data Table
-            </h2>
+        <section class="mb-8">
+            <h2 class="text-xl font-semibold text-slate-800 dark:text-white mb-4">Tabel Data Responsif</h2>
             
-            @php
-                $tableHeaders = [
-                    ['label' => 'Name', 'field' => 'name', 'sortable' => true],
-                    ['label' => 'Position', 'field' => 'position'],
-                    ['label' => 'Department', 'field' => 'department'],
-                    ['label' => 'Status', 'field' => 'status', 'component' => 'partials.status-badge'],
-                    ['label' => 'Last Seen', 'field' => 'last_seen']
-                ];
+            <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out">
+                @php
+                    $tableHeaders = [
+                        ['label' => 'Nama', 'field' => 'name', 'sortable' => true],
+                        ['label' => 'Posisi', 'field' => 'position'],
+                        ['label' => 'Departemen', 'field' => 'department'],
+                        ['label' => 'Status', 'field' => 'status', 'component' => 'partials.status-badge'],
+                        ['label' => 'Terakhir Dilihat', 'field' => 'last_seen']
+                    ];
+                    
+                    $tableData = [
+                        [
+                            'id' => 1,
+                            'name' => 'John Doe',
+                            'position' => 'Pengembang Senior',
+                            'department' => 'Teknik',
+                            'status' => 'active',
+                            'last_seen' => '2 jam yang lalu'
+                        ],
+                        [
+                            'id' => 2,
+                            'name' => 'Jane Smith',
+                            'position' => 'Manajer Proyek',
+                            'department' => 'Operasi',
+                            'status' => 'away',
+                            'last_seen' => '1 hari yang lalu'
+                        ],
+                        [
+                            'id' => 3,
+                            'name' => 'Mike Johnson',
+                            'position' => 'Desainer',
+                            'department' => 'Kreatif',
+                            'status' => 'offline',
+                            'last_seen' => '3 hari yang lalu'
+                        ]
+                    ];
+                    
+                    $tableActions = function($row) {
+                        return '
+                            <x-ui.button size="sm" variant="secondary">Edit</x-ui.button>
+                            <x-ui.button size="sm" variant="destructive">Hapus</x-ui.button>
+                        ';
+                    };
+                @endphp
                 
-                $tableData = [
-                    [
-                        'id' => 1,
-                        'name' => 'John Doe',
-                        'position' => 'Senior Developer',
-                        'department' => 'Engineering',
-                        'status' => 'active',
-                        'last_seen' => '2 hours ago'
-                    ],
-                    [
-                        'id' => 2,
-                        'name' => 'Jane Smith',
-                        'position' => 'Project Manager',
-                        'department' => 'Operations',
-                        'status' => 'away',
-                        'last_seen' => '1 day ago'
-                    ],
-                    [
-                        'id' => 3,
-                        'name' => 'Mike Johnson',
-                        'position' => 'Designer',
-                        'department' => 'Creative',
-                        'status' => 'offline',
-                        'last_seen' => '3 days ago'
-                    ]
-                ];
-                
-                $tableActions = function($row) {
-                    return '
-                        <x-ui.button size="sm" variant="outline" class="text-xs">Edit</x-ui.button>
-                        <x-ui.button size="sm" variant="destructive" class="text-xs">Delete</x-ui.button>
-                    ';
-                };
-            @endphp
-            
-            <x-ui.mobile.responsive-table
-                :headers="$tableHeaders"
-                :data="$tableData"
-                :actions="$tableActions"
-                :searchable="true"
-                :sortable="true"
-                empty-message="No employees found" />
+                <x-ui.table
+                    :headers="$tableHeaders"
+                    :data="$tableData"
+                    :actions="$tableActions"
+                    :searchable="true"
+                    :sortable="true"
+                    empty-message="Tidak ada karyawan ditemukan" />
+            </div>
         </section>
 
         <!-- Mobile Form -->
-        <section>
-            <h2 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                Mobile-Optimized Form
-            </h2>
+        <section class="mb-8">
+            <h2 class="text-xl font-semibold text-slate-800 dark:text-white mb-4">Formulir yang Dioptimalkan untuk Seluler</h2>
             
-            <x-ui.mobile.responsive-form
-                title="Employee Registration"
-                subtitle="Create a new employee account"
-                action="{{ route('demo.components') }}"
-                method="POST"
-                submit-text="Create Employee"
-                cancel-url="{{ route('dashboard') }}">
-                
-                <x-ui.mobile.form-field
-                    label="Full Name"
-                    name="name"
-                    type="text"
-                    placeholder="Enter full name"
-                    icon="fas fa-user"
-                    required="true" />
+            <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out">
+                <h3 class="text-lg font-semibold text-slate-800 dark:text-white mb-4">Pendaftaran Karyawan</h3>
+                <form action="{{ route('demo.components') }}" method="POST" class="space-y-4">
+                    @csrf
+                    <div class="space-y-2">
+                        <x-ui.label for="form_name" value="Nama Lengkap" class="text-slate-700 dark:text-slate-300" />
+                        <x-ui.input id="form_name" name="name" type="text" placeholder="Masukkan nama lengkap" class="bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300" />
+                    </div>
 
-                <x-ui.mobile.form-field
-                    label="Email Address"
-                    name="email"
-                    type="email"
-                    placeholder="Enter email address"
-                    icon="fas fa-envelope"
-                    help="This will be used for login and notifications"
-                    required="true" />
+                    <div class="space-y-2">
+                        <x-ui.label for="form_email" value="Alamat Email" class="text-slate-700 dark:text-slate-300" />
+                        <x-ui.input id="form_email" name="email" type="email" placeholder="Masukkan alamat email" class="bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300" />
+                        <p class="text-xs text-slate-600 dark:text-slate-400">Ini akan digunakan untuk login dan notifikasi</p>
+                    </div>
 
-                <x-ui.mobile.form-field
-                    label="Phone Number"
-                    name="phone"
-                    type="tel"
-                    placeholder="Enter phone number"
-                    icon="fas fa-phone" />
+                    <div class="space-y-2">
+                        <x-ui.label for="form_phone" value="Nomor Telepon" class="text-slate-700 dark:text-slate-300" />
+                        <x-ui.input id="form_phone" name="phone" type="tel" placeholder="Masukkan nomor telepon" class="bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300" />
+                    </div>
 
-                <x-ui.mobile.form-field
-                    label="Department"
-                    name="department"
-                    type="select"
-                    placeholder="Select department"
-                    :options="[
-                        'engineering' => 'Engineering',
-                        'operations' => 'Operations',
-                        'creative' => 'Creative',
-                        'hr' => 'Human Resources',
-                        'finance' => 'Finance'
-                    ]"
-                    required="true" />
+                    <div class="space-y-2">
+                        <x-ui.label for="form_department" value="Departemen" class="text-slate-700 dark:text-slate-300" />
+                        <x-ui.select id="form_department" name="department" class="bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300">
+                            <option value="">Pilih departemen</option>
+                            <option value="engineering">Teknik</option>
+                            <option value="operations">Operasi</option>
+                            <option value="creative">Kreatif</option>
+                            <option value="hr">Sumber Daya Manusia</option>
+                            <option value="finance">Keuangan</option>
+                        </x-ui.select>
+                    </div>
 
-                <x-ui.mobile.form-field
-                    label="Employee Type"
-                    name="type"
-                    type="select"
-                    :options="[
-                        'permanent' => 'Permanent Staff',
-                        'honorary' => 'Honorary Teacher',
-                        'contract' => 'Contract Worker'
-                    ]"
-                    required="true" />
+                    <div class="space-y-2">
+                        <x-ui.label for="form_type" value="Tipe Karyawan" class="text-slate-700 dark:text-slate-300" />
+                        <x-ui.select id="form_type" name="type" class="bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300">
+                            <option value="">Pilih tipe karyawan</option>
+                            <option value="permanent">Staf Tetap</option>
+                            <option value="honorary">Guru Honorer</option>
+                            <option value="contract">Pekerja Kontrak</option>
+                        </x-ui.select>
+                    </div>
 
-                <x-ui.mobile.form-field
-                    label="Profile Picture"
-                    name="avatar"
-                    type="file"
-                    accept="image/*"
-                    help="Upload a profile picture (optional)" />
+                    <div class="space-y-2">
+                        <x-ui.label for="form_avatar" value="Gambar Profil" class="text-slate-700 dark:text-slate-300" />
+                        <x-ui.input id="form_avatar" name="avatar" type="file" accept="image/*" class="bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300" />
+                        <p class="text-xs text-slate-600 dark:text-slate-400">Unggah gambar profil (opsional)</p>
+                    </div>
 
-                <x-ui.mobile.form-field
-                    label="Bio"
-                    name="bio"
-                    type="textarea"
-                    placeholder="Tell us about yourself"
-                    rows="4"
-                    help="Brief description about the employee" />
+                    <div class="space-y-2">
+                        <x-ui.label for="form_bio" value="Bio" class="text-slate-700 dark:text-slate-300" />
+                        <textarea id="form_bio" name="bio" rows="4" class="flex min-h-[80px] w-full rounded-md border border-white/40 bg-white/30 backdrop-blur-sm px-3 py-2 text-sm ring-offset-background placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:border-blue-500/50 disabled:cursor-not-allowed disabled:opacity-50 text-slate-800 dark:text-white transition-all duration-300" placeholder="Ceritakan tentang diri Anda"></textarea>
+                        <p class="text-xs text-slate-600 dark:text-slate-400">Deskripsi singkat tentang karyawan</p>
+                    </div>
 
-                <x-ui.mobile.form-field
-                    name="terms"
-                    type="checkbox"
-                    placeholder="I agree to the terms and conditions"
-                    required="true" />
-            </x-ui.mobile.responsive-form>
+                    <div class="flex items-center space-x-2">
+                        <x-ui.checkbox id="form_terms" name="terms" />
+                        <x-ui.label for="form_terms" value="Saya menyetujui syarat dan ketentuan" class="text-slate-700 dark:text-slate-300" />
+                    </div>
+
+                    <div class="flex gap-4">
+                        <x-ui.button type="submit">Buat Karyawan</x-ui.button>
+                        <x-ui.button variant="secondary" type="button">Batal</x-ui.button>
+                    </div>
+                </form>
+            </div>
         </section>
 
         <!-- Mobile Features -->
-        <section>
-            <h2 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                Mobile-Specific Features
-            </h2>
+        <section class="mb-8">
+            <h2 class="text-xl font-semibold text-slate-800 dark:text-white mb-4">Fitur Khusus Seluler</h2>
             
-            <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6 space-y-6">
-                <!-- Touch Gestures -->
-                <div>
-                    <h3 class="text-base font-medium text-gray-900 dark:text-white mb-3">
-                        Touch Gestures & Interactions
-                    </h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                            <h4 class="font-medium text-gray-900 dark:text-white mb-2">Swipe Actions</h4>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">
-                                Swipe left on table rows for quick actions
-                            </p>
-                        </div>
-                        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                            <h4 class="font-medium text-gray-900 dark:text-white mb-2">Pull to Refresh</h4>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">
-                                Pull down on lists to refresh content
-                            </p>
-                        </div>
-                        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                            <h4 class="font-medium text-gray-900 dark:text-white mb-2">Haptic Feedback</h4>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">
-                                Vibration feedback for important actions
-                            </p>
-                        </div>
-                        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                            <h4 class="font-medium text-gray-900 dark:text-white mb-2">Large Touch Targets</h4>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">
-                                Minimum 44px touch targets for accessibility
-                            </p>
-                        </div>
+            <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out">
+                <h3 class="text-lg font-semibold text-slate-800 dark:text-white mb-3">Gestur & Interaksi Sentuh</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-slate-600 dark:text-slate-400">
+                    <div class="p-4 bg-white/10 rounded-lg">
+                        <h4 class="font-medium text-slate-800 dark:text-white mb-2">Aksi Geser</h4>
+                        <p class="text-sm">Geser ke kiri pada baris tabel untuk aksi cepat</p>
+                    </div>
+                    <div class="p-4 bg-white/10 rounded-lg">
+                        <h4 class="font-medium text-slate-800 dark:text-white mb-2">Tarik untuk Menyegarkan</h4>
+                        <p class="text-sm">Tarik ke bawah pada daftar untuk menyegarkan konten</p>
+                    </div>
+                    <div class="p-4 bg-white/10 rounded-lg">
+                        <h4 class="font-medium text-slate-800 dark:text-white mb-2">Umpan Balik Haptik</h4>
+                        <p class="text-sm">Umpan balik getaran untuk tindakan penting</p>
+                    </div>
+                    <div class="p-4 bg-white/10 rounded-lg">
+                        <h4 class="font-medium text-slate-800 dark:text-white mb-2">Target Sentuh Besar</h4>
+                        <p class="text-sm">Target sentuh minimum 44px untuk aksesibilitas</p>
                     </div>
                 </div>
 
-                <!-- Responsive Breakpoints -->
-                <div>
-                    <h3 class="text-base font-medium text-gray-900 dark:text-white mb-3">
-                        Responsive Breakpoints
-                    </h3>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full text-sm">
-                            <thead>
-                                <tr class="border-b border-gray-200 dark:border-gray-600">
-                                    <th class="text-left py-2 font-medium text-gray-900 dark:text-white">Device</th>
-                                    <th class="text-left py-2 font-medium text-gray-900 dark:text-white">Breakpoint</th>
-                                    <th class="text-left py-2 font-medium text-gray-900 dark:text-white">Behavior</th>
-                                </tr>
-                            </thead>
-                            <tbody class="text-gray-600 dark:text-gray-400">
-                                <tr class="border-b border-gray-100 dark:border-gray-700">
-                                    <td class="py-2">Mobile</td>
-                                    <td class="py-2">&lt; 640px</td>
-                                    <td class="py-2">Single column, bottom navigation</td>
-                                </tr>
-                                <tr class="border-b border-gray-100 dark:border-gray-700">
-                                    <td class="py-2">Tablet</td>
-                                    <td class="py-2">640px - 1024px</td>
-                                    <td class="py-2">Two columns, enhanced spacing</td>
-                                </tr>
-                                <tr>
-                                    <td class="py-2">Desktop</td>
-                                    <td class="py-2">&gt; 1024px</td>
-                                    <td class="py-2">Full layout, sidebar navigation</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                <h3 class="text-lg font-semibold text-slate-800 dark:text-white mt-6 mb-3">Breakpoint Responsif</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                        <thead class="bg-white/10">
+                            <tr class="border-b border-white/20">
+                                <th class="text-left py-2 font-semibold text-slate-700 dark:text-slate-300">Perangkat</th>
+                                <th class="text-left py-2 font-semibold text-slate-700 dark:text-slate-300">Breakpoint</th>
+                                <th class="text-left py-2 font-semibold text-slate-700 dark:text-slate-300">Perilaku</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-slate-600 dark:text-slate-400">
+                            <tr class="border-b border-white/10">
+                                <td class="py-2">Seluler</td>
+                                <td class="py-2">&lt; 640px</td>
+                                <td class="py-2">Satu kolom, navigasi bawah</td>
+                            </tr>
+                            <tr class="border-b border-white/10">
+                                <td class="py-2">Tablet</td>
+                                <td class="py-2">640px - 1024px</td>
+                                <td class="py-2">Dua kolom, spasi ditingkatkan</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2">Desktop</td>
+                                <td class="py-2">&gt; 1024px</td>
+                                <td class="py-2">Tata letak penuh, navigasi sidebar</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
 
-                <!-- Performance Features -->
-                <div>
-                    <h3 class="text-base font-medium text-gray-900 dark:text-white mb-3">
-                        Performance Optimizations
-                    </h3>
-                    <ul class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                        <li class="flex items-center">
-                            <svg class="w-4 h-4 text-emerald-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                            </svg>
-                            Lazy loading for images and components
-                        </li>
-                        <li class="flex items-center">
-                            <svg class="w-4 h-4 text-emerald-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                            </svg>
-                            Progressive Web App capabilities
-                        </li>
-                        <li class="flex items-center">
-                            <svg class="w-4 h-4 text-emerald-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                            </svg>
-                            Optimized bundle sizes with tree shaking
-                        </li>
-                        <li class="flex items-center">
-                            <svg class="w-4 h-4 text-emerald-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                            </svg>
-                            Offline capability with service workers
-                        </li>
-                    </ul>
-                </div>
+                <h3 class="text-lg font-semibold text-slate-800 dark:text-white mt-6 mb-3">Optimasi Kinerja</h3>
+                <ul class="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+                    <li class="flex items-center">
+                        <svg class="w-4 h-4 text-emerald-500 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                        Lazy loading untuk gambar dan komponen
+                    </li>
+                    <li class="flex items-center">
+                        <svg class="w-4 h-4 text-emerald-500 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                        Kemampuan Progressive Web App
+                    </li>
+                    <li class="flex items-center">
+                        <svg class="w-4 h-4 text-emerald-500 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                        Ukuran bundle yang dioptimalkan dengan tree shaking
+                    </li>
+                    <li class="flex items-center">
+                        <svg class="w-4 h-4 text-emerald-500 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                        Kemampuan offline dengan service workers
+                    </li>
+                </ul>
             </div>
         </section>
 
         <!-- Device Testing -->
-        <section>
-            <h2 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                Device Testing
-            </h2>
+        <section class="mb-8">
+            <h2 class="text-xl font-semibold text-slate-800 dark:text-white mb-4">Pengujian Perangkat</h2>
             
-            <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-                <div class="text-center space-y-4">
-                    <div class="text-sm text-gray-600 dark:text-gray-400">
-                        Current viewport: <span id="viewport-size" class="font-medium text-gray-900 dark:text-white"></span>
+            <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out">
+                <div class="text-center space-y-4 text-slate-600 dark:text-slate-400">
+                    <div class="text-sm">
+                        Ukuran viewport saat ini: <span id="viewport-size" class="font-medium text-slate-800 dark:text-white"></span>
                     </div>
-                    <div class="text-sm text-gray-600 dark:text-gray-400">
-                        Device type: <span id="device-type" class="font-medium text-gray-900 dark:text-white"></span>
+                    <div class="text-sm">
+                        Tipe perangkat: <span id="device-type" class="font-medium text-slate-800 dark:text-white"></span>
                     </div>
-                    <div class="text-sm text-gray-600 dark:text-gray-400">
-                        Touch support: <span id="touch-support" class="font-medium text-gray-900 dark:text-white"></span>
+                    <div class="text-sm">
+                        Dukungan sentuh: <span id="touch-support" class="font-medium text-slate-800 dark:text-white"></span>
                     </div>
                 </div>
             </div>
         </section>
 
         <!-- Back to Dashboard -->
-        <div class="text-center pt-8">
-            <a href="{{ route('dashboard') }}" class="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors duration-200">
-                ← Back to Dashboard
+        <div class="mt-8 text-center">
+            <a href="{{ route('dashboard') }}" class="group relative px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 ease-out">
+                <div class="flex items-center space-x-2">
+                    <svg class="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    <span class="font-medium">Kembali ke Dashboard</span>
+                </div>
             </a>
         </div>
     </div>
 </div>
 
 <!-- Mobile Bottom Navigation -->
-<x-ui.mobile.bottom-nav :current-route="request()->route()->getName()" />
+<x-navigation.unified-nav variant="mobile-bottom" />
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -376,7 +335,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Check touch support
         const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-        document.getElementById('touch-support').textContent = hasTouch ? 'Yes' : 'No';
+        document.getElementById('touch-support').textContent = hasTouch ? 'Ya' : 'Tidak';
     }
     
     updateViewportInfo();
@@ -384,27 +343,17 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Demo notification
     setTimeout(() => {
-        toast.success('Mobile-first design loaded successfully!', {
-            title: 'Welcome',
-            duration: 4000,
-            progress: true
-        });
+        // Assuming toast is globally available or imported
+        if (typeof toast !== 'undefined') {
+            toast.success('Desain mobile-first berhasil dimuat!', {
+                title: 'Selamat Datang',
+                duration: 4000,
+                progress: true
+            });
+        } else {
+            console.warn('Sistem notifikasi toast tidak ditemukan.');
+        }
     }, 1000);
 });
 </script>
-
-<!-- Add status badge partial for table demo -->
-@if(!View::exists('partials.status-badge'))
-    <script>
-    // Create a simple status badge renderer for the table demo
-    window.renderStatusBadge = function(status) {
-        const badges = {
-            'active': '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Active</span>',
-            'away': '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Away</span>',
-            'offline': '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Offline</span>'
-        };
-        return badges[status] || badges.offline;
-    };
-    </script>
-@endif
 @endsection

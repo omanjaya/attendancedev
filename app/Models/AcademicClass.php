@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class AcademicClass extends Model
 {
@@ -18,13 +18,13 @@ class AcademicClass extends Model
         'capacity',
         'room',
         'is_active',
-        'metadata'
+        'metadata',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'metadata' => 'array',
-        'capacity' => 'integer'
+        'capacity' => 'integer',
     ];
 
     // Relationships
@@ -35,8 +35,7 @@ class AcademicClass extends Model
 
     public function students()
     {
-        return $this->hasMany(Employee::class, 'academic_class_id')
-                    ->where('employee_type', 'student');
+        return $this->hasMany(Employee::class, 'academic_class_id')->where('employee_type', 'student');
     }
 
     // Scopes
@@ -59,13 +58,13 @@ class AcademicClass extends Model
     public function getFullNameAttribute()
     {
         $parts = [$this->grade_level];
-        
+
         if ($this->major) {
             $parts[] = $this->major;
         }
-        
+
         $parts[] = $this->class_number;
-        
+
         return implode('-', $parts);
     }
 
@@ -76,7 +75,10 @@ class AcademicClass extends Model
 
     public function getCapacityUtilizationAttribute()
     {
-        if ($this->capacity == 0) return 0;
+        if ($this->capacity == 0) {
+            return 0;
+        }
+
         return round(($this->current_student_count / $this->capacity) * 100, 1);
     }
 
@@ -84,28 +86,28 @@ class AcademicClass extends Model
     public function hasScheduleAt($dayOfWeek, $timeSlotId)
     {
         return $this->schedules()
-                    ->where('day_of_week', $dayOfWeek)
-                    ->where('time_slot_id', $timeSlotId)
-                    ->where('is_active', true)
-                    ->exists();
+            ->where('day_of_week', $dayOfWeek)
+            ->where('time_slot_id', $timeSlotId)
+            ->where('is_active', true)
+            ->exists();
     }
 
     public function getScheduleAt($dayOfWeek, $timeSlotId)
     {
         return $this->schedules()
-                    ->where('day_of_week', $dayOfWeek)
-                    ->where('time_slot_id', $timeSlotId)
-                    ->where('is_active', true)
-                    ->with(['subject', 'employee', 'timeSlot'])
-                    ->first();
+            ->where('day_of_week', $dayOfWeek)
+            ->where('time_slot_id', $timeSlotId)
+            ->where('is_active', true)
+            ->with(['subject', 'employee', 'timeSlot'])
+            ->first();
     }
 
     public function getWeeklySchedule()
     {
         return $this->schedules()
-                    ->where('is_active', true)
-                    ->with(['subject', 'employee', 'timeSlot'])
-                    ->get()
-                    ->groupBy('day_of_week');
+            ->where('is_active', true)
+            ->with(['subject', 'employee', 'timeSlot'])
+            ->get()
+            ->groupBy('day_of_week');
     }
 }

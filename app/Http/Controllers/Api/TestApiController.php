@@ -16,10 +16,13 @@ class TestApiController extends BaseApiController
      *     tags={"Test"},
      *     summary="Test API endpoint",
      *     description="Simple test endpoint to verify API is working",
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Successful test response",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="success", type="boolean", example=true),
      *             @OA\Property(property="message", type="string", example="API is working correctly"),
      *             @OA\Property(
@@ -35,11 +38,14 @@ class TestApiController extends BaseApiController
      */
     public function test()
     {
-        return $this->apiResponse([
-            'version' => '1.0.0',
-            'environment' => app()->environment(),
-            'timestamp' => now()->toISOString()
-        ], 'API is working correctly');
+        return $this->apiResponse(
+            [
+                'version' => '1.0.0',
+                'environment' => app()->environment(),
+                'timestamp' => now()->toISOString(),
+            ],
+            'API is working correctly',
+        );
     }
 
     /**
@@ -49,10 +55,13 @@ class TestApiController extends BaseApiController
      *     tags={"Test"},
      *     summary="Health check endpoint",
      *     description="Check API health status",
+     *
      *     @OA\Response(
      *         response=200,
      *         description="API is healthy",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="status", type="string", example="healthy"),
      *             @OA\Property(property="database", type="string", example="connected"),
      *             @OA\Property(property="cache", type="string", example="working"),
@@ -75,7 +84,7 @@ class TestApiController extends BaseApiController
             'status' => 'healthy',
             'database' => $database,
             'cache' => 'working',
-            'timestamp' => now()->toISOString()
+            'timestamp' => now()->toISOString(),
         ]);
     }
 }

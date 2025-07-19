@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class LeaveBalance extends Model
 {
@@ -18,7 +18,7 @@ class LeaveBalance extends Model
         'used_days',
         'remaining_days',
         'carried_forward',
-        'metadata'
+        'metadata',
     ];
 
     protected $casts = [
@@ -27,7 +27,7 @@ class LeaveBalance extends Model
         'used_days' => 'decimal:2',
         'remaining_days' => 'decimal:2',
         'carried_forward' => 'decimal:2',
-        'metadata' => 'array'
+        'metadata' => 'array',
     ];
 
     /**

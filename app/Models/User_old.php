@@ -3,19 +3,19 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Cache;
+// use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
-// use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Cache;
-use Carbon\Carbon;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens, HasRoles;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -108,7 +108,7 @@ class User extends Authenticatable
      */
     public function hasTwoFactorEnabled(): bool
     {
-        return $this->two_factor_enabled && !empty($this->two_factor_secret);
+        return $this->two_factor_enabled && ! empty($this->two_factor_secret);
     }
 
     /**
@@ -171,6 +171,7 @@ class User extends Authenticatable
             unset($codes[$index]);
             $this->setRecoveryCodes(array_values($codes));
             $this->save();
+
             return true;
         }
 
@@ -200,7 +201,7 @@ class User extends Authenticatable
     /**
      * Lock user account.
      */
-    public function lockAccount(Carbon $until = null): void
+    public function lockAccount(?Carbon $until = null): void
     {
         $this->locked_until = $until;
         $this->account_locked = $until === null;
@@ -224,14 +225,14 @@ class User extends Authenticatable
     public function incrementFailedLogins(): void
     {
         $this->failed_login_attempts++;
-        
+
         // Auto-lock after configured attempts
         $maxAttempts = config('security.rate_limiting.login.max_attempts', 5);
         if ($this->failed_login_attempts >= $maxAttempts) {
             $lockoutMinutes = config('security.rate_limiting.login.lockout_minutes', 60);
             $this->lockAccount(now()->addMinutes($lockoutMinutes));
         }
-        
+
         $this->save();
     }
 
@@ -247,7 +248,7 @@ class User extends Authenticatable
     /**
      * Update last login information.
      */
-    public function updateLastLogin(string $ipAddress = null): void
+    public function updateLastLogin(?string $ipAddress = null): void
     {
         $this->last_login_at = now();
         $this->last_login_ip = $ipAddress;
@@ -297,6 +298,7 @@ class User extends Authenticatable
     public function getSecurityPreference(string $key, $default = null)
     {
         $preferences = $this->security_preferences ?? [];
+
         return $preferences[$key] ?? $default;
     }
 
@@ -377,7 +379,8 @@ class User extends Authenticatable
     public function isNewDevice(string $deviceFingerprint): bool
     {
         $knownDevices = Cache::get("user_devices_{$this->id}", []);
-        return !in_array($deviceFingerprint, $knownDevices);
+
+        return ! in_array($deviceFingerprint, $knownDevices);
     }
 
     /**
@@ -386,15 +389,15 @@ class User extends Authenticatable
     public function rememberDevice(string $deviceFingerprint): void
     {
         $knownDevices = Cache::get("user_devices_{$this->id}", []);
-        
-        if (!in_array($deviceFingerprint, $knownDevices)) {
+
+        if (! in_array($deviceFingerprint, $knownDevices)) {
             $knownDevices[] = $deviceFingerprint;
-            
+
             // Keep only last 5 devices
             if (count($knownDevices) > 5) {
                 $knownDevices = array_slice($knownDevices, -5);
             }
-            
+
             Cache::put("user_devices_{$this->id}", $knownDevices, 86400 * 30); // 30 days
         }
     }
@@ -408,12 +411,12 @@ class User extends Authenticatable
      */
     public function scopeActive($query)
     {
-        return $query->where('is_active', true)
-                    ->where('account_locked', false)
-                    ->where(function ($q) {
-                        $q->whereNull('locked_until')
-                          ->orWhere('locked_until', '<=', now());
-                    });
+        return $query
+            ->where('is_active', true)
+            ->where('account_locked', false)
+            ->where(function ($q) {
+                $q->whereNull('locked_until')->orWhere('locked_until', '<=', now());
+            });
     }
 
     /**
@@ -430,8 +433,7 @@ class User extends Authenticatable
     public function scopeLocked($query)
     {
         return $query->where(function ($q) {
-            $q->where('account_locked', true)
-              ->orWhere('locked_until', '>', now());
+            $q->where('account_locked', true)->orWhere('locked_until', '>', now());
         });
     }
 

@@ -4,8 +4,8 @@ namespace Tests\Unit\Events;
 
 use App\Events\UserLoginEvent;
 use App\Models\User;
-use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class UserLoginEventTest extends TestCase
 {
@@ -26,7 +26,7 @@ class UserLoginEventTest extends TestCase
             userAgent: $userAgent,
             deviceFingerprint: $deviceFingerprint,
             isTwoFactorRequired: $isTwoFactorRequired,
-            metadata: $metadata
+            metadata: $metadata,
         );
 
         $this->assertEquals($user->id, $event->user->id);
@@ -43,11 +43,7 @@ class UserLoginEventTest extends TestCase
         $ipAddress = '192.168.1.1';
         $userAgent = 'Mozilla/5.0 (Test Browser)';
 
-        $event = new UserLoginEvent(
-            user: $user,
-            ipAddress: $ipAddress,
-            userAgent: $userAgent
-        );
+        $event = new UserLoginEvent(user: $user, ipAddress: $ipAddress, userAgent: $userAgent);
 
         $this->assertEquals($user->id, $event->user->id);
         $this->assertEquals($ipAddress, $event->ipAddress);
@@ -71,7 +67,7 @@ class UserLoginEventTest extends TestCase
             userAgent: $userAgent,
             deviceFingerprint: $deviceFingerprint,
             isTwoFactorRequired: true,
-            metadata: $metadata
+            metadata: $metadata,
         );
 
         $auditData = $event->getAuditData();
@@ -84,7 +80,7 @@ class UserLoginEventTest extends TestCase
         $this->assertEquals($deviceFingerprint, $auditData['device_fingerprint']);
         $this->assertTrue($auditData['two_factor_required']);
         $this->assertArrayHasKey('timestamp', $auditData);
-        
+
         // Check metadata merge
         $this->assertEquals('password', $auditData['metadata']['login_method']);
         $this->assertEquals($deviceFingerprint, $auditData['metadata']['device_fingerprint']);
@@ -98,7 +94,7 @@ class UserLoginEventTest extends TestCase
         $normalEvent = new UserLoginEvent(
             user: $user,
             ipAddress: '192.168.1.1',
-            userAgent: 'Mozilla/5.0 (Test Browser)'
+            userAgent: 'Mozilla/5.0 (Test Browser)',
         );
 
         $this->assertFalse($normalEvent->shouldAlert());
@@ -108,7 +104,7 @@ class UserLoginEventTest extends TestCase
             user: $user,
             ipAddress: '192.168.1.1',
             userAgent: 'Mozilla/5.0 (Test Browser)',
-            isTwoFactorRequired: true
+            isTwoFactorRequired: true,
         );
 
         $this->assertTrue($twoFactorEvent->shouldAlert());
@@ -118,7 +114,7 @@ class UserLoginEventTest extends TestCase
             user: $user,
             ipAddress: '192.168.1.1',
             userAgent: 'Mozilla/5.0 (Test Browser)',
-            metadata: ['suspicious_device' => true]
+            metadata: ['suspicious_device' => true],
         );
 
         $this->assertTrue($suspiciousEvent->shouldAlert());
@@ -132,7 +128,7 @@ class UserLoginEventTest extends TestCase
             user: $user,
             ipAddress: '192.168.1.1',
             userAgent: 'Mozilla/5.0 (Test Browser)',
-            isTwoFactorRequired: true
+            isTwoFactorRequired: true,
         );
 
         $recipients = $event->getNotificationRecipients();
@@ -149,7 +145,7 @@ class UserLoginEventTest extends TestCase
         $normalEvent = new UserLoginEvent(
             user: $user,
             ipAddress: '192.168.1.1',
-            userAgent: 'Mozilla/5.0 (Test Browser)'
+            userAgent: 'Mozilla/5.0 (Test Browser)',
         );
 
         $this->assertEquals('low', $normalEvent->getSeverity());
@@ -159,7 +155,7 @@ class UserLoginEventTest extends TestCase
             user: $user,
             ipAddress: '192.168.1.1',
             userAgent: 'Mozilla/5.0 (Test Browser)',
-            isTwoFactorRequired: true
+            isTwoFactorRequired: true,
         );
 
         $this->assertEquals('medium', $twoFactorEvent->getSeverity());
@@ -169,7 +165,7 @@ class UserLoginEventTest extends TestCase
             user: $user,
             ipAddress: '192.168.1.1',
             userAgent: 'Mozilla/5.0 (Test Browser)',
-            metadata: ['new_device' => true]
+            metadata: ['new_device' => true],
         );
 
         $this->assertEquals('medium', $newDeviceEvent->getSeverity());
@@ -179,7 +175,7 @@ class UserLoginEventTest extends TestCase
             user: $user,
             ipAddress: '192.168.1.1',
             userAgent: 'Mozilla/5.0 (Test Browser)',
-            metadata: ['suspicious_activity' => true]
+            metadata: ['suspicious_activity' => true],
         );
 
         $this->assertEquals('high', $suspiciousEvent->getSeverity());
@@ -194,7 +190,7 @@ class UserLoginEventTest extends TestCase
             userAgent: 'Mozilla/5.0 (Test Browser)',
             deviceFingerprint: 'device_123',
             isTwoFactorRequired: true,
-            metadata: ['test' => 'data']
+            metadata: ['test' => 'data'],
         );
 
         // Test that event can be serialized (important for queued listeners)

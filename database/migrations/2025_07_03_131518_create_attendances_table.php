@@ -15,27 +15,29 @@ return new class extends Migration
             $table->timestamp('check_in_time')->nullable();
             $table->timestamp('check_out_time')->nullable();
             $table->decimal('total_hours', 5, 2)->nullable();
-            $table->enum('status', ['present', 'absent', 'late', 'early_departure', 'incomplete'])->default('incomplete');
-            
+            $table
+                ->enum('status', ['present', 'absent', 'late', 'early_departure', 'incomplete'])
+                ->default('incomplete');
+
             // Face detection verification
             $table->decimal('check_in_confidence', 5, 4)->nullable(); // Face recognition confidence for check-in
             $table->decimal('check_out_confidence', 5, 4)->nullable(); // Face recognition confidence for check-out
-            
+
             // Location verification
             $table->decimal('check_in_latitude', 10, 8)->nullable();
             $table->decimal('check_in_longitude', 11, 8)->nullable();
             $table->decimal('check_out_latitude', 10, 8)->nullable();
             $table->decimal('check_out_longitude', 11, 8)->nullable();
             $table->boolean('location_verified')->default(false);
-            
+
             // Additional data
             $table->text('check_in_notes')->nullable();
             $table->text('check_out_notes')->nullable();
             $table->jsonb('metadata')->default('{}'); // Additional data like device info, IP, etc.
-            
+
             $table->timestamps();
             $table->softDeletes();
-            
+
             // Indexes
             $table->index(['employee_id', 'date']);
             $table->index('date');

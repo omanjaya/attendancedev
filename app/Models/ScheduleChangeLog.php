@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class ScheduleChangeLog extends Model
 {
@@ -19,14 +19,14 @@ class ScheduleChangeLog extends Model
         'user_id',
         'ip_address',
         'action_timestamp',
-        'metadata'
+        'metadata',
     ];
 
     protected $casts = [
         'old_data' => 'array',
         'new_data' => 'array',
         'metadata' => 'array',
-        'action_timestamp' => 'datetime'
+        'action_timestamp' => 'datetime',
     ];
 
     // Constants
@@ -36,7 +36,7 @@ class ScheduleChangeLog extends Model
         'delete' => 'Dihapus',
         'lock' => 'Dikunci',
         'unlock' => 'Dibuka',
-        'bulk_update' => 'Update Massal'
+        'bulk_update' => 'Update Massal',
     ];
 
     // Relationships
@@ -85,7 +85,7 @@ class ScheduleChangeLog extends Model
     // Methods
     public function getChangedFields()
     {
-        if (!$this->old_data || !$this->new_data) {
+        if (! $this->old_data || ! $this->new_data) {
             return [];
         }
 
@@ -101,7 +101,7 @@ class ScheduleChangeLog extends Model
             'day_of_week' => 'Hari',
             'room' => 'Ruangan',
             'is_locked' => 'Status Kunci',
-            'is_active' => 'Status Aktif'
+            'is_active' => 'Status Aktif',
         ];
 
         foreach ($fieldsToCheck as $field => $label) {
@@ -110,7 +110,7 @@ class ScheduleChangeLog extends Model
                     $changes[$field] = [
                         'label' => $label,
                         'old_value' => $oldData[$field],
-                        'new_value' => $newData[$field]
+                        'new_value' => $newData[$field],
                     ];
                 }
             }
@@ -122,7 +122,7 @@ class ScheduleChangeLog extends Model
     public function getChangeDescription()
     {
         $changes = $this->getChangedFields();
-        
+
         if (empty($changes)) {
             return $this->reason ?: $this->action_name;
         }
@@ -145,7 +145,7 @@ class ScheduleChangeLog extends Model
             'description' => $this->getChangeDescription(),
             'reason' => $this->reason,
             'ip_address' => $this->ip_address,
-            'metadata' => $this->metadata
+            'metadata' => $this->metadata,
         ];
     }
 }

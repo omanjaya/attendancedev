@@ -2,8 +2,8 @@
 
 namespace Tests\Unit\Config;
 
-use Tests\TestCase;
 use Illuminate\Support\Facades\Config;
+use Tests\TestCase;
 
 class PayrollConfigTest extends TestCase
 {
@@ -53,7 +53,7 @@ class PayrollConfigTest extends TestCase
             $this->assertArrayHasKey('min', $bracket);
             $this->assertArrayHasKey('max', $bracket);
             $this->assertArrayHasKey('rate', $bracket);
-            
+
             $this->assertIsNumeric($bracket['min']);
             $this->assertTrue($bracket['max'] === null || is_numeric($bracket['max']));
             $this->assertIsNumeric($bracket['rate']);
@@ -128,7 +128,7 @@ class PayrollConfigTest extends TestCase
     {
         // Test that config values can be overridden by environment variables
         config(['payroll.calculations.standard_hours_per_day' => 7]);
-        
+
         $this->assertEquals(7, Config::get('payroll.calculations.standard_hours_per_day'));
     }
 
@@ -160,7 +160,7 @@ class PayrollConfigTest extends TestCase
         $previousMax = -1;
         foreach ($taxBrackets as $bracket) {
             $this->assertGreaterThan($previousMax, $bracket['min']);
-            
+
             if ($bracket['max'] !== null) {
                 $this->assertGreaterThanOrEqual($bracket['min'], $bracket['max']);
                 $previousMax = $bracket['max'];

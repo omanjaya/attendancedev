@@ -9,7 +9,7 @@ use Illuminate\Queue\SerializesModels;
 
 /**
  * User Login Event
- * 
+ *
  * Fired when a user successfully logs in to the system.
  */
 class UserLoginEvent
@@ -22,7 +22,7 @@ class UserLoginEvent
         public string $userAgent,
         public ?string $deviceFingerprint = null,
         public bool $isTwoFactorRequired = false,
-        public array $metadata = []
+        public array $metadata = [],
     ) {}
 
     /**
@@ -40,8 +40,8 @@ class UserLoginEvent
             'metadata' => array_merge($this->metadata, [
                 'user_roles' => $this->user->roles->pluck('name')->toArray(),
                 'last_login' => $this->user->last_login_at?->toISOString(),
-                'login_count' => $this->user->failed_login_attempts === 0 ? 'successful' : 'after_failures'
-            ])
+                'login_count' => $this->user->failed_login_attempts === 0 ? 'successful' : 'after_failures',
+            ]),
         ];
     }
 }

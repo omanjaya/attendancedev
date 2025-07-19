@@ -18,8 +18,8 @@
     };
 @endphp
 
-<div class="relative" x-data="{ open: false }" @click.outside="open = false" @close.stop="open = false">
-    <div @click="open = ! open">
+<div class="relative" x-data="{ open: false }" @click.outside="open = false" @close.stop="open = false" @keydown.escape="open = false">
+    <div @click="open = ! open" @keydown.enter="open = ! open" @keydown.space.prevent="open = ! open" role="button" :aria-expanded="open" aria-haspopup="true" tabindex="0">
         {{ $trigger }}
     </div>
 
@@ -32,7 +32,9 @@
          x-transition:leave-end="opacity-0 scale-95"
          class="absolute z-50 mt-2 {{ $width }} rounded-lg shadow-lg {{ $alignmentClasses }}"
          style="display: none;"
-         @click="open = false">
+         @click="open = false"
+         role="menu"
+         x-trap.inert.noscroll="open">
         <div class="rounded-lg ring-1 ring-border overflow-hidden bg-popover">
             <div class="py-1">
                 {{ $slot }}

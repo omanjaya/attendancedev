@@ -2,18 +2,18 @@
 
 namespace App\Listeners;
 
-use App\Events\SecurityEvent;
 use App\Events\AttendanceEvent;
+use App\Events\SecurityEvent;
 use App\Models\User;
 use App\Notifications\SecurityAlertNotification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 
 /**
  * Security Alert Listener
- * 
+ *
  * Handles sending real-time notifications for security events.
  */
 class SecurityAlertListener implements ShouldQueue
@@ -25,17 +25,18 @@ class SecurityAlertListener implements ShouldQueue
      */
     public function handleSecurityEvent(SecurityEvent $event): void
     {
-        if (!$event->shouldAlert()) {
+        if (! $event->shouldAlert()) {
             return;
         }
 
         $recipients = $this->getNotificationRecipients($event->getNotificationRecipients());
-        
+
         if ($recipients->isEmpty()) {
             Log::warning('No recipients found for security alert', [
                 'event_type' => $event->eventType,
-                'severity' => $event->severity
+                'severity' => $event->severity,
             ]);
+
             return;
         }
 
@@ -47,7 +48,7 @@ class SecurityAlertListener implements ShouldQueue
             'event_type' => $event->eventType,
             'severity' => $event->severity,
             'recipients_count' => $recipients->count(),
-            'user_id' => $event->user?->id
+            'user_id' => $event->user?->id,
         ]);
     }
 
@@ -70,10 +71,10 @@ class SecurityAlertListener implements ShouldQueue
             metadata: [
                 'employee_id' => $event->employee->id,
                 'attendance_id' => $event->attendance?->id,
-                'location_verified' => !empty($event->locationData['verified']),
-                'face_verified' => !empty($event->faceData['verified']),
-                'action' => $event->action
-            ]
+                'location_verified' => ! empty($event->locationData['verified']),
+                'face_verified' => ! empty($event->faceData['verified']),
+                'action' => $event->action,
+            ],
         );
 
         $this->handleSecurityEvent($securityEvent);
@@ -82,8 +83,9 @@ class SecurityAlertListener implements ShouldQueue
     /**
      * Get users who should receive notifications based on role requirements.
      */
-    private function getNotificationRecipients(array $roleRequirements): \Illuminate\Database\Eloquent\Collection
-    {
+    private function getNotificationRecipients(
+        array $roleRequirements,
+    ): \Illuminate\Database\Eloquent\Collection {
         $roles = [];
 
         foreach ($roleRequirements as $requirement) {
@@ -106,8 +108,8 @@ class SecurityAlertListener implements ShouldQueue
         return User::whereHas('roles', function ($query) use ($roles) {
             $query->whereIn('name', array_unique($roles));
         })
-        ->where('is_active', true)
-        ->get();
+            ->where('is_active', true)
+            ->get();
     }
 
     /**
@@ -118,7 +120,7 @@ class SecurityAlertListener implements ShouldQueue
         Log::error('Security alert notification failed', [
             'event' => get_class($event),
             'exception' => $exception->getMessage(),
-            'trace' => $exception->getTraceAsString()
+            'trace' => $exception->getTraceAsString(),
         ]);
 
         // Fallback: Log critical alerts to file if notification fails
@@ -127,7 +129,7 @@ class SecurityAlertListener implements ShouldQueue
                 'event_type' => $event->eventType,
                 'user_id' => $event->user?->id,
                 'ip_address' => $event->ipAddress,
-                'metadata' => $event->metadata
+                'metadata' => $event->metadata,
             ]);
         }
     }

@@ -1,4 +1,4 @@
-@extends('layouts.authenticated')
+@extends('layouts.authenticated-unified')
 
 @section('title', 'Create New Schedule')
 
@@ -30,7 +30,7 @@
         
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- Basic Information -->
-            <x-layouts.glass-card>
+            <x-layouts.simple-card>
                 <div class="mb-6">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Informasi Dasar</h3>
                     <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">Detail jadwal dan waktu pembelajaran</p>
@@ -97,10 +97,10 @@
                         @enderror
                     </div>
                 </div>
-            </x-layouts.glass-card>
+            </x-layouts.simple-card>
 
             <!-- Time & Assignment -->
-            <x-layouts.glass-card>
+            <x-layouts.simple-card>
                 <div class="mb-6">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Waktu & Penugasan</h3>
                     <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">Waktu jadwal dan penugasan guru</p>
@@ -203,11 +203,11 @@
                         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Kosongkan jika guru belum ditugaskan</p>
                     </div>
                 </div>
-            </x-layouts.glass-card>
+            </x-layouts.simple-card>
         </div>
 
         <!-- Schedule Settings -->
-        <x-layouts.glass-card>
+        <x-layouts.simple-card>
             <div class="mb-6">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Pengaturan Jadwal</h3>
                 <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">Konfigurasi tambahan dan catatan</p>
@@ -282,7 +282,7 @@
                     </label>
                 </div>
             </div>
-        </x-ui.card>
+        </x-layouts.simple-card>
 
         <!-- Actions -->
         <div class="flex items-center justify-end space-x-4 pt-6">

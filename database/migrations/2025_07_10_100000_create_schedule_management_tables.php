@@ -21,7 +21,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->json('metadata')->nullable(); // Break time, special notes
             $table->timestamps();
-            
+
             $table->index(['is_active', 'order']);
         });
 
@@ -37,7 +37,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->json('metadata')->nullable();
             $table->timestamps();
-            
+
             $table->index(['grade_level', 'major', 'is_active']);
             $table->unique(['grade_level', 'major', 'class_number']);
         });
@@ -55,7 +55,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->json('metadata')->nullable();
             $table->timestamps();
-            
+
             $table->index(['category', 'is_active']);
         });
 
@@ -69,7 +69,7 @@ return new class extends Migration
             $table->json('competencies')->nullable(); // Sertifikasi, keahlian khusus
             $table->boolean('is_active')->default(true);
             $table->timestamps();
-            
+
             $table->foreign('employee_id')->references('id')->on('employees')->onDelete('cascade');
             $table->foreign('subject_id')->references('id')->on('subjects')->onDelete('cascade');
             $table->unique(['employee_id', 'subject_id']);
@@ -83,7 +83,14 @@ return new class extends Migration
             $table->uuid('subject_id');
             $table->uuid('employee_id'); // Teacher
             $table->uuid('time_slot_id');
-            $table->enum('day_of_week', ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']);
+            $table->enum('day_of_week', [
+                'monday',
+                'tuesday',
+                'wednesday',
+                'thursday',
+                'friday',
+                'saturday',
+            ]);
             $table->string('room', 50)->nullable();
             $table->date('effective_from'); // Tanggal mulai berlaku
             $table->date('effective_until')->nullable(); // Tanggal berakhir (null = selamanya)
@@ -93,18 +100,25 @@ return new class extends Migration
             $table->uuid('created_by')->nullable();
             $table->uuid('updated_by')->nullable();
             $table->timestamps();
-            
+
             // Constraints
-            $table->foreign('academic_class_id')->references('id')->on('academic_classes')->onDelete('cascade');
+            $table
+                ->foreign('academic_class_id')
+                ->references('id')
+                ->on('academic_classes')
+                ->onDelete('cascade');
             $table->foreign('subject_id')->references('id')->on('subjects')->onDelete('cascade');
             $table->foreign('employee_id')->references('id')->on('employees')->onDelete('cascade');
             $table->foreign('time_slot_id')->references('id')->on('time_slots')->onDelete('cascade');
             $table->foreign('created_by')->references('id')->on('users')->onDelete('set null');
             $table->foreign('updated_by')->references('id')->on('users')->onDelete('set null');
-            
+
             // Unique constraint: One schedule per class-timeslot-day combination
-            $table->unique(['academic_class_id', 'time_slot_id', 'day_of_week', 'effective_from'], 'unique_class_schedule');
-            
+            $table->unique(
+                ['academic_class_id', 'time_slot_id', 'day_of_week', 'effective_from'],
+                'unique_class_schedule',
+            );
+
             // Indexes for performance
             $table->index(['academic_class_id', 'day_of_week']);
             $table->index(['employee_id', 'day_of_week', 'time_slot_id']);
@@ -121,7 +135,7 @@ return new class extends Migration
             $table->boolean('is_public')->default(false); // Dapat digunakan user lain
             $table->uuid('created_by');
             $table->timestamps();
-            
+
             $table->foreign('created_by')->references('id')->on('users')->onDelete('cascade');
             $table->index(['template_type', 'is_public']);
         });
@@ -138,8 +152,12 @@ return new class extends Migration
             $table->ipAddress('ip_address')->nullable();
             $table->timestamp('action_timestamp');
             $table->json('metadata')->nullable(); // Browser info, bulk operation details
-            
-            $table->foreign('schedule_id')->references('id')->on('weekly_schedules')->onDelete('set null');
+
+            $table
+                ->foreign('schedule_id')
+                ->references('id')
+                ->on('weekly_schedules')
+                ->onDelete('set null');
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->index(['schedule_id', 'action_timestamp']);
             $table->index(['user_id', 'action_timestamp']);
@@ -152,11 +170,11 @@ return new class extends Migration
             $table->uuid('schedule_id_1');
             $table->uuid('schedule_id_2');
             $table->enum('conflict_type', [
-                'teacher_double_booking', 
-                'class_double_booking', 
+                'teacher_double_booking',
+                'class_double_booking',
                 'room_double_booking',
                 'subject_frequency_exceeded',
-                'teacher_max_hours_exceeded'
+                'teacher_max_hours_exceeded',
             ]);
             $table->enum('severity', ['low', 'medium', 'high', 'critical']);
             $table->text('description');
@@ -165,11 +183,19 @@ return new class extends Migration
             $table->timestamp('resolved_at')->nullable();
             $table->uuid('resolved_by')->nullable();
             $table->text('resolution_notes')->nullable();
-            
-            $table->foreign('schedule_id_1')->references('id')->on('weekly_schedules')->onDelete('cascade');
-            $table->foreign('schedule_id_2')->references('id')->on('weekly_schedules')->onDelete('cascade');
+
+            $table
+                ->foreign('schedule_id_1')
+                ->references('id')
+                ->on('weekly_schedules')
+                ->onDelete('cascade');
+            $table
+                ->foreign('schedule_id_2')
+                ->references('id')
+                ->on('weekly_schedules')
+                ->onDelete('cascade');
             $table->foreign('resolved_by')->references('id')->on('users')->onDelete('set null');
-            
+
             $table->index(['is_resolved', 'severity']);
             $table->index('detected_at');
         });
@@ -187,11 +213,11 @@ return new class extends Migration
             $table->uuid('unlocked_by')->nullable();
             $table->text('unlock_reason')->nullable();
             $table->boolean('is_active')->default(true);
-            
+
             $table->foreign('schedule_id')->references('id')->on('weekly_schedules')->onDelete('cascade');
             $table->foreign('locked_by')->references('id')->on('users')->onDelete('cascade');
             $table->foreign('unlocked_by')->references('id')->on('users')->onDelete('set null');
-            
+
             $table->index(['schedule_id', 'is_active']);
             $table->index(['locked_until', 'is_active']);
         });

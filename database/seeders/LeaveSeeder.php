@@ -2,12 +2,12 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Employee;
 use App\Models\Leave;
 use App\Models\LeaveBalance;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
 class LeaveSeeder extends Seeder
@@ -15,28 +15,49 @@ class LeaveSeeder extends Seeder
     public function run()
     {
         $employees = Employee::where('is_active', true)->get();
-        
+
         if ($employees->isEmpty()) {
             $this->command->warn('No employees found. Run EmployeeSeeder first.');
+
             return;
         }
 
-        $this->command->info("Creating leave balances and leave requests for {$employees->count()} employees...");
+        $this->command->info(
+            "Creating leave balances and leave requests for {$employees->count()} employees...",
+        );
 
-        $leaveTypes = [
-            'annual' => ['name' => 'Annual Leave', 'default_days' => 21],
-            'sick' => ['name' => 'Sick Leave', 'default_days' => 10],
-            'personal' => ['name' => 'Personal Leave', 'default_days' => 5],
-            'maternity' => ['name' => 'Maternity Leave', 'default_days' => 90],
-            'paternity' => ['name' => 'Paternity Leave', 'default_days' => 14],
-            'emergency' => ['name' => 'Emergency Leave', 'default_days' => 3],
+        $leaveTypesConfig = [
+            'annual' => ['name' => 'Annual Leave', 'default_days' => 21, 'code' => 'ANN'],
+            'sick' => ['name' => 'Sick Leave', 'default_days' => 10, 'code' => 'SICK'],
+            'personal' => ['name' => 'Personal Leave', 'default_days' => 5, 'code' => 'PER'],
+            'maternity' => ['name' => 'Maternity Leave', 'default_days' => 90, 'code' => 'MAT'],
+            'paternity' => ['name' => 'Paternity Leave', 'default_days' => 14, 'code' => 'PAT'],
+            'emergency' => ['name' => 'Emergency Leave', 'default_days' => 3, 'code' => 'EMG'],
         ];
+
+        // Ensure LeaveTypes exist and map them by code
+        $leaveTypes = [];
+        foreach ($leaveTypesConfig as $config) {
+            $leaveType = \App\Models\LeaveType::firstOrCreate(
+                ['code' => $config['code']],
+                [
+                    'name' => $config['name'],
+                    'default_days_per_year' => $config['default_days'],
+                    'requires_approval' => true,
+                    'is_paid' => true,
+                    'is_active' => true,
+                ]
+            );
+            $leaveTypes[$config['code']] = $leaveType;
+        }
 
         // Create leave balances for all employees
         foreach ($employees as $employee) {
-            foreach ($leaveTypes as $type => $config) {
+            foreach ($leaveTypesConfig as $typeCode => $config) {
+                $leaveType = $leaveTypes[$config['code']]; // Get the LeaveType model instance using its code
+
                 // Adjust leave days based on employee type
-                $maxDays = match($employee->employee_type) {
+                $maxDays = match ($employee->employee_type) {
                     'permanent' => $config['default_days'],
                     'honorary' => round($config['default_days'] * 0.5), // Half for honorary
                     'staff' => round($config['default_days'] * 0.8), // 80% for staff
@@ -47,12 +68,12 @@ class LeaveSeeder extends Seeder
 
                 LeaveBalance::create([
                     'employee_id' => $employee->id,
-                    'leave_type' => $type,
+                    'leave_type_id' => $leaveType->id, // Use leave_type_id here
                     'year' => date('Y'),
                     'allocated_days' => $maxDays,
                     'used_days' => $usedDays,
                     'remaining_days' => $maxDays - $usedDays,
-                    'carry_forward_days' => rand(0, 3), // Some carry forward
+                    'carried_forward' => rand(0, 3), // Some carry forward (corrected column name)
                     'is_active' => true,
                 ]);
             }
@@ -61,45 +82,52 @@ class LeaveSeeder extends Seeder
         $this->command->info('Leave balances created successfully!');
 
         // Create some leave requests with various statuses
-        $approvers = User::whereHas('roles', function($query) {
+        $approvers = User::whereHas('roles', function ($query) {
             $query->whereIn('name', ['admin', 'superadmin', 'manager']);
         })->get();
 
         foreach ($employees as $employee) {
             // Each employee has 0-4 leave requests
             $requestCount = rand(0, 4);
-            
+
             for ($i = 0; $i < $requestCount; $i++) {
-                $leaveType = array_rand($leaveTypes);
+                $leaveTypeCode = array_rand($leaveTypesConfig); // Get a random leave type code
+                $leaveType = $leaveTypes[$leaveTypesConfig[$leaveTypeCode]['code']]; // Get the LeaveType model instance using its code
                 $startDate = Carbon::now()->addDays(rand(-60, 60)); // Past or future requests
-                $duration = rand(1, match($leaveType) {
-                    'annual' => 10,
-                    'sick' => 3,
-                    'personal' => 2,
-                    'maternity', 'paternity' => 30,
-                    'emergency' => 1,
-                    default => 5,
-                });
-                
+                $duration = rand(
+                    1,
+                    match ($leaveTypeCode) {
+                        'annual' => 10,
+                        'sick' => 3,
+                        'personal' => 2,
+                        'maternity', 'paternity' => 30,
+                        'emergency' => 1,
+                        default => 5,
+                    },
+                );
+
                 $endDate = $startDate->copy()->addDays($duration - 1);
-                
+
                 // Determine status based on dates
                 $status = $this->determineLeaveStatus($startDate, $endDate);
-                
+
                 $leave = Leave::create([
                     'id' => (string) Str::uuid(),
                     'employee_id' => $employee->id,
-                    'leave_type' => $leaveType,
+                    'leave_type_id' => $leaveType->id, // Use leave_type_id here
                     'start_date' => $startDate,
                     'end_date' => $endDate,
                     'days_requested' => $duration,
-                    'reason' => $this->getLeaveReason($leaveType),
+                    'reason' => $this->getLeaveReason($leaveTypeCode),
                     'status' => $status,
                     'applied_at' => $startDate->copy()->subDays(rand(1, 14)), // Applied 1-14 days before
-                    'attachments' => rand(0, 10) < 3 ? [ // 30% chance of attachments
-                        'medical_certificate.pdf',
-                        'travel_documents.pdf'
-                    ] : null,
+                    'attachments' => rand(0, 10) < 3
+                        ? [
+                            // 30% chance of attachments
+                            'medical_certificate.pdf',
+                            'travel_documents.pdf',
+                        ]
+                        : null,
                     'employee_notes' => rand(0, 10) < 4 ? $this->getEmployeeNotes() : null,
                 ]);
 
@@ -107,21 +135,24 @@ class LeaveSeeder extends Seeder
                 if (in_array($status, ['approved', 'rejected']) && $approvers->isNotEmpty()) {
                     $approver = $approvers->random();
                     $processedAt = $leave->applied_at->copy()->addDays(rand(1, 5));
-                    
+
                     $leave->update([
                         'approved_by' => $approver->id,
                         'approved_at' => $processedAt,
-                        'approval_notes' => $status === 'rejected' ? $this->getRejectionReason() : 
-                                          (rand(0, 10) < 3 ? 'Approved as requested' : null),
+                        'approval_notes' => $status === 'rejected'
+                            ? $this->getRejectionReason()
+                            : (rand(0, 10) < 3
+                              ? 'Approved as requested'
+                              : null),
                     ]);
 
                     // Update leave balance if approved
                     if ($status === 'approved') {
                         $balance = LeaveBalance::where('employee_id', $employee->id)
-                                             ->where('leave_type', $leaveType)
-                                             ->where('year', $startDate->year)
-                                             ->first();
-                        
+                            ->where('leave_type_id', $leaveType->id) // Use leave_type_id here
+                            ->where('year', $startDate->year)
+                            ->first();
+
                         if ($balance) {
                             $balance->update([
                                 'used_days' => $balance->used_days + $duration,
@@ -131,48 +162,64 @@ class LeaveSeeder extends Seeder
                     }
                 }
 
-                $this->command->line("  - Created {$leaveType} leave for {$employee->first_name} {$employee->last_name}: {$startDate->format('Y-m-d')} to {$endDate->format('Y-m-d')} ({$status})");
+                $this->command->line(
+                    "  - Created {$leaveType->name} leave for {$employee->full_name}: {$startDate->format(
+                        'Y-m-d',
+                    )} to {$endDate->format('Y-m-d')} ({$status})",
+                );
             }
         }
 
         $this->command->info('Leave requests seeding completed successfully!');
-        $this->command->info('Total leave requests: ' . Leave::count());
-        
+        $this->command->info('Total leave requests: '.Leave::count());
+
         // Show statistics
         $statusCounts = Leave::selectRaw('status, COUNT(*) as count')
-                           ->groupBy('status')
-                           ->pluck('count', 'status')
-                           ->toArray();
-        
+            ->groupBy('status')
+            ->pluck('count', 'status')
+            ->toArray();
+
         $this->command->table(
             ['Status', 'Count'],
-            collect($statusCounts)->map(function($count, $status) {
-                return [ucfirst($status), $count];
-            })->toArray()
+            collect($statusCounts)
+                ->map(function ($count, $status) {
+                    return [ucfirst($status), $count];
+                })
+                ->toArray(),
         );
     }
 
     private function determineLeaveStatus(Carbon $startDate, Carbon $endDate): string
     {
         $now = Carbon::now();
-        
+
         // Past leaves are mostly approved (90%)
         if ($endDate->lt($now)) {
             return rand(0, 10) < 9 ? 'approved' : 'rejected';
         }
-        
+
         // Future leaves have mixed status
         if ($startDate->gt($now->copy()->addDays(7))) {
             $rand = rand(0, 10);
-            if ($rand < 6) return 'approved';
-            if ($rand < 8) return 'pending';
+            if ($rand < 6) {
+                return 'approved';
+            }
+            if ($rand < 8) {
+                return 'pending';
+            }
+
             return 'rejected';
         }
-        
+
         // Near-term leaves are mostly processed
         $rand = rand(0, 10);
-        if ($rand < 7) return 'approved';
-        if ($rand < 9) return 'pending';
+        if ($rand < 7) {
+            return 'approved';
+        }
+        if ($rand < 9) {
+            return 'pending';
+        }
+
         return 'rejected';
     }
 
@@ -200,11 +247,7 @@ class LeaveSeeder extends Seeder
                 'Legal appointment',
                 'Personal development',
             ],
-            'maternity' => [
-                'Maternity leave for childbirth',
-                'Prenatal care',
-                'Post-delivery recovery',
-            ],
+            'maternity' => ['Maternity leave for childbirth', 'Prenatal care', 'Post-delivery recovery'],
             'paternity' => [
                 'Paternity leave for new child',
                 'Supporting spouse after delivery',
@@ -219,6 +262,7 @@ class LeaveSeeder extends Seeder
         ];
 
         $typeReasons = $reasons[$leaveType] ?? ['Personal reasons'];
+
         return $typeReasons[array_rand($typeReasons)];
     }
 

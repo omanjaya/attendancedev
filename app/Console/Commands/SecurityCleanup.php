@@ -2,12 +2,11 @@
 
 namespace App\Console\Commands;
 
-use App\Models\User;
 use App\Models\AuditLog;
+use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class SecurityCleanup extends Command
 {
@@ -42,14 +41,23 @@ class SecurityCleanup extends Command
         if ($this->option('all')) {
             $operations = ['audit-logs', 'failed-attempts', 'cache', 'expired-locks'];
         } else {
-            if ($this->option('audit-logs')) $operations[] = 'audit-logs';
-            if ($this->option('failed-attempts')) $operations[] = 'failed-attempts';
-            if ($this->option('cache')) $operations[] = 'cache';
-            if ($this->option('expired-locks')) $operations[] = 'expired-locks';
+            if ($this->option('audit-logs')) {
+                $operations[] = 'audit-logs';
+            }
+            if ($this->option('failed-attempts')) {
+                $operations[] = 'failed-attempts';
+            }
+            if ($this->option('cache')) {
+                $operations[] = 'cache';
+            }
+            if ($this->option('expired-locks')) {
+                $operations[] = 'expired-locks';
+            }
         }
 
         if (empty($operations)) {
             $this->error('No cleanup operations specified. Use --all or specify individual operations.');
+
             return 1;
         }
 
@@ -61,6 +69,7 @@ class SecurityCleanup extends Command
         }
 
         $this->info("Security cleanup completed. Total items processed: {$totalCleaned}");
+
         return 0;
     }
 
@@ -80,6 +89,7 @@ class SecurityCleanup extends Command
                 return $this->removeExpiredLocks();
             default:
                 $this->warn("Unknown operation: {$operation}");
+
                 return 0;
         }
     }
@@ -114,14 +124,15 @@ class SecurityCleanup extends Command
         // Get users with failed login attempts that should be reset
         $users = User::where('failed_login_attempts', '>', 0)
             ->where(function ($query) use ($windowMinutes) {
-                $query->whereNull('locked_until')
-                      ->orWhere('locked_until', '<=', Carbon::now()->subMinutes($windowMinutes));
+                $query
+                    ->whereNull('locked_until')
+                    ->orWhere('locked_until', '<=', Carbon::now()->subMinutes($windowMinutes));
             })
             ->get();
 
         foreach ($users as $user) {
             // Check if the lockout period has expired
-            if (!$user->locked_until || $user->locked_until->isPast()) {
+            if (! $user->locked_until || $user->locked_until->isPast()) {
                 $user->failed_login_attempts = 0;
                 $user->locked_until = null;
                 $user->save();
@@ -147,7 +158,7 @@ class SecurityCleanup extends Command
             'user_devices_*',
             'user_login_hours_*',
             'user_recent_logins_*',
-            'security_settings'
+            'security_settings',
         ];
 
         $clearedCount = 0;
@@ -157,7 +168,7 @@ class SecurityCleanup extends Command
                 // For Redis, we can use pattern matching
                 if (config('cache.default') === 'redis') {
                     $keys = Cache::getRedis()->keys($pattern);
-                    if (!empty($keys)) {
+                    if (! empty($keys)) {
                         Cache::getRedis()->del($keys);
                         $clearedCount += count($keys);
                     }
@@ -187,7 +198,7 @@ class SecurityCleanup extends Command
             ->where('locked_until', '!=', null)
             ->update([
                 'locked_until' => null,
-                'account_locked' => false
+                'account_locked' => false,
             ]);
 
         $this->info("  ✓ Unlocked {$unlockedCount} expired account locks");
@@ -202,14 +213,9 @@ class SecurityCleanup extends Command
     {
         // Convert glob pattern to regex-like matching
         $basePattern = str_replace('*', '', $pattern);
-        
+
         // Try to clear some common cache keys
-        $commonKeys = [
-            $basePattern,
-            $basePattern . '1',
-            $basePattern . '2',
-            $basePattern . '3'
-        ];
+        $commonKeys = [$basePattern, $basePattern.'1', $basePattern.'2', $basePattern.'3'];
 
         foreach ($commonKeys as $key) {
             Cache::forget($key);

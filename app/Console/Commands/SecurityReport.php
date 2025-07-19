@@ -4,8 +4,8 @@ namespace App\Console\Commands;
 
 use App\Services\SecurityLogger;
 use App\Services\SecurityService;
-use Illuminate\Console\Command;
 use Carbon\Carbon;
+use Illuminate\Console\Command;
 
 class SecurityReport extends Command
 {
@@ -29,6 +29,7 @@ class SecurityReport extends Command
     protected $description = 'Generate comprehensive security reports';
 
     private SecurityLogger $securityLogger;
+
     private SecurityService $securityService;
 
     public function __construct(SecurityLogger $securityLogger, SecurityService $securityService)
@@ -96,7 +97,7 @@ class SecurityReport extends Command
             'date' => $date->format('Y-m-d'),
             'summary' => $summary,
             'metrics' => $metrics,
-            '2fa_report' => $twoFAReport
+            '2fa_report' => $twoFAReport,
         ];
     }
 
@@ -113,11 +114,16 @@ class SecurityReport extends Command
 
         return [
             'type' => 'weekly',
-            'period' => $date->copy()->subDays($days-1)->format('Y-m-d') . ' to ' . $date->format('Y-m-d'),
+            'period' => $date
+                ->copy()
+                ->subDays($days - 1)
+                ->format('Y-m-d').
+              ' to '.
+              $date->format('Y-m-d'),
             'daily_reports' => $weeklyReports,
             'metrics' => $metrics,
             '2fa_report' => $twoFAReport,
-            'trends' => $this->analyzeTrends($weeklyReports)
+            'trends' => $this->analyzeTrends($weeklyReports),
         ];
     }
 
@@ -129,11 +135,16 @@ class SecurityReport extends Command
 
         return [
             'type' => 'monthly',
-            'period' => $date->copy()->subDays($days-1)->format('Y-m-d') . ' to ' . $date->format('Y-m-d'),
+            'period' => $date
+                ->copy()
+                ->subDays($days - 1)
+                ->format('Y-m-d').
+              ' to '.
+              $date->format('Y-m-d'),
             'metrics' => $metrics,
             'security_report' => $securityReport,
             '2fa_report' => $twoFAReport,
-            'recommendations' => $this->generateRecommendations($metrics, $twoFAReport)
+            'recommendations' => $this->generateRecommendations($metrics, $twoFAReport),
         ];
     }
 
@@ -145,7 +156,7 @@ class SecurityReport extends Command
     private function outputConsole(array $report): void
     {
         $this->info("📊 Security Report ({$report['type']})");
-        $this->info("📅 Period: " . ($report['date'] ?? $report['period']));
+        $this->info('📅 Period: '.($report['date'] ?? $report['period']));
         $this->newLine();
 
         if (isset($report['summary'])) {
@@ -171,9 +182,17 @@ class SecurityReport extends Command
         $this->table(
             ['Metric', 'Successful', 'Failed'],
             [
-                ['Login Attempts', $summary['login_attempts']['successful'], $summary['login_attempts']['failed']],
-                ['2FA Attempts', $summary['2fa_attempts']['successful'], $summary['2fa_attempts']['failed']]
-            ]
+                [
+                    'Login Attempts',
+                    $summary['login_attempts']['successful'],
+                    $summary['login_attempts']['failed'],
+                ],
+                [
+                    '2FA Attempts',
+                    $summary['2fa_attempts']['successful'],
+                    $summary['2fa_attempts']['failed'],
+                ],
+            ],
         );
 
         $this->warn('🚨 Security Events');
@@ -183,8 +202,8 @@ class SecurityReport extends Command
                 ['Lockdowns', $summary['security_events']['lockdowns']],
                 ['Rate Limits', $summary['security_events']['rate_limits']],
                 ['Admin Interventions', $summary['security_events']['admin_interventions']],
-                ['Emergency Recoveries', $summary['security_events']['emergency_recoveries']]
-            ]
+                ['Emergency Recoveries', $summary['security_events']['emergency_recoveries']],
+            ],
         );
 
         $this->warn('⚠️ Risk Distribution');
@@ -194,8 +213,8 @@ class SecurityReport extends Command
                 ['Critical', $summary['risk_distribution']['critical']],
                 ['High', $summary['risk_distribution']['high']],
                 ['Medium', $summary['risk_distribution']['medium']],
-                ['Low', $summary['risk_distribution']['low']]
-            ]
+                ['Low', $summary['risk_distribution']['low']],
+            ],
         );
         $this->newLine();
     }
@@ -212,8 +231,8 @@ class SecurityReport extends Command
                 ['Unique IPs', $metrics['unique_ips']],
                 ['Password Changes', $metrics['password_changes']],
                 ['2FA Enabled Users', $metrics['2fa_enabled_users']],
-                ['Active Sessions', $metrics['active_sessions']]
-            ]
+                ['Active Sessions', $metrics['active_sessions']],
+            ],
         );
         $this->newLine();
     }
@@ -221,26 +240,30 @@ class SecurityReport extends Command
     private function display2FAReport(array $report): void
     {
         $this->warn('🔐 2FA Security Report');
-        
+
         if (isset($report['summary'])) {
             $this->table(
                 ['Metric', 'Value'],
                 [
                     ['Total 2FA Attempts', $report['summary']['total_2fa_attempts']],
                     ['Failed 2FA Attempts', $report['summary']['failed_2fa_attempts']],
-                    ['Success Rate', $report['summary']['success_rate'] . '%'],
+                    ['Success Rate', $report['summary']['success_rate'].'%'],
                     ['Unique IPs with Failures', $report['summary']['unique_ips_with_failures']],
                     ['Locked Accounts', $report['summary']['locked_accounts']],
-                    ['Emergency Recoveries', $report['summary']['emergency_recovery_requests']]
-                ]
+                    ['Emergency Recoveries', $report['summary']['emergency_recovery_requests']],
+                ],
             );
         }
 
-        if (isset($report['threats']) && !empty($report['threats'])) {
+        if (isset($report['threats']) && ! empty($report['threats'])) {
             $this->error('🚨 THREATS DETECTED:');
             foreach ($report['threats'] as $threat) {
-                $this->error("- {$threat['type']}: {$threat['severity']} threat from {$threat['ip_address']}");
-                $this->line("  Affected users: {$threat['affected_users']}, Total attempts: {$threat['total_attempts']}");
+                $this->error(
+                    "- {$threat['type']}: {$threat['severity']} threat from {$threat['ip_address']}",
+                );
+                $this->line(
+                    "  Affected users: {$threat['affected_users']}, Total attempts: {$threat['total_attempts']}",
+                );
                 $this->line("  Recommended action: {$threat['recommended_action']}");
             }
         }
@@ -252,18 +275,19 @@ class SecurityReport extends Command
     {
         if (empty($recommendations)) {
             $this->info('✅ No security recommendations at this time.');
+
             return;
         }
 
         $this->warn('💡 Security Recommendations');
         foreach ($recommendations as $rec) {
-            $icon = match($rec['type']) {
+            $icon = match ($rec['type']) {
                 'critical' => '🔴',
                 'warning' => '🟡',
                 'alert' => '🟠',
-                default => '🔵'
+                default => '🔵',
             };
-            
+
             $this->line("{$icon} {$rec['title']}");
             $this->line("   {$rec['description']}");
             $this->line("   Action: {$rec['action']}");
@@ -280,14 +304,14 @@ class SecurityReport extends Command
     {
         $filename = "security_report_{$type}_{$date->format('Y-m-d')}.json";
         $path = storage_path("app/reports/{$filename}");
-        
+
         // Ensure directory exists
-        if (!is_dir(dirname($path))) {
+        if (! is_dir(dirname($path))) {
             mkdir(dirname($path), 0755, true);
         }
 
         file_put_contents($path, json_encode($report, JSON_PRETTY_PRINT));
-        
+
         $this->info("📁 Report saved to: {$path}");
     }
 
@@ -295,29 +319,34 @@ class SecurityReport extends Command
     {
         $loginTrends = array_column($reports, 'login_attempts');
         $twoFATrends = array_column($reports, '2fa_attempts');
-        
+
         return [
             'login_success_trend' => $this->calculateTrend(array_column($loginTrends, 'successful')),
             'login_failure_trend' => $this->calculateTrend(array_column($loginTrends, 'failed')),
             '2fa_success_trend' => $this->calculateTrend(array_column($twoFATrends, 'successful')),
-            '2fa_failure_trend' => $this->calculateTrend(array_column($twoFATrends, 'failed'))
+            '2fa_failure_trend' => $this->calculateTrend(array_column($twoFATrends, 'failed')),
         ];
     }
 
     private function calculateTrend(array $values): string
     {
-        if (count($values) < 2) return 'stable';
-        
+        if (count($values) < 2) {
+            return 'stable';
+        }
+
         $first = array_slice($values, 0, ceil(count($values) / 2));
         $second = array_slice($values, ceil(count($values) / 2));
-        
+
         $firstAvg = array_sum($first) / count($first);
         $secondAvg = array_sum($second) / count($second);
-        
+
         $change = $secondAvg - $firstAvg;
         $percentChange = $firstAvg > 0 ? ($change / $firstAvg) * 100 : 0;
-        
-        if (abs($percentChange) < 10) return 'stable';
+
+        if (abs($percentChange) < 10) {
+            return 'stable';
+        }
+
         return $percentChange > 0 ? 'increasing' : 'decreasing';
     }
 
@@ -331,27 +360,33 @@ class SecurityReport extends Command
                 'type' => 'warning',
                 'title' => 'High Failed Login Rate',
                 'description' => "Detected {$metrics['failed_logins']} failed login attempts in the last 30 days.",
-                'action' => 'Review rate limiting settings and consider IP whitelisting'
+                'action' => 'Review rate limiting settings and consider IP whitelisting',
             ];
         }
 
         // Low 2FA success rate
-        if (isset($twoFAReport['summary']['success_rate']) && $twoFAReport['summary']['success_rate'] < 85) {
+        if (
+            isset($twoFAReport['summary']['success_rate']) &&
+            $twoFAReport['summary']['success_rate'] < 85
+        ) {
             $recommendations[] = [
                 'type' => 'alert',
                 'title' => 'Low 2FA Success Rate',
                 'description' => "2FA success rate is {$twoFAReport['summary']['success_rate']}%.",
-                'action' => 'Provide user training on 2FA usage and verify setup instructions'
+                'action' => 'Provide user training on 2FA usage and verify setup instructions',
             ];
         }
 
         // Multiple emergency recoveries
-        if (isset($twoFAReport['summary']['emergency_recovery_requests']) && $twoFAReport['summary']['emergency_recovery_requests'] > 5) {
+        if (
+            isset($twoFAReport['summary']['emergency_recovery_requests']) &&
+            $twoFAReport['summary']['emergency_recovery_requests'] > 5
+        ) {
             $recommendations[] = [
                 'type' => 'alert',
                 'title' => 'High Emergency Recovery Requests',
                 'description' => "Received {$twoFAReport['summary']['emergency_recovery_requests']} emergency recovery requests.",
-                'action' => 'Review 2FA setup process and user documentation'
+                'action' => 'Review 2FA setup process and user documentation',
             ];
         }
 

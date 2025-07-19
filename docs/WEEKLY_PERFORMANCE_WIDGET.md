@@ -1,17 +1,21 @@
 # 📊 Weekly Performance Widget - Enhanced Design
 
 ## Overview
-Widget Weekly Performance telah diperbaiki dengan desain yang lebih modern, interaktif, dan informatif.
+
+Widget Weekly Performance telah diperbaiki dengan desain yang lebih modern, interaktif, dan
+informatif.
 
 ## 🎨 Fitur Desain Baru
 
 ### 1. **Header dengan Gradient**
+
 - Icon chart-line di sebelah kiri
 - Judul "Weekly Performance"
 - Rata-rata persentase di kanan atas
 - Background gradient yang menarik
 
 ### 2. **Bar Chart Interaktif**
+
 - **Visual Bar Chart**: Menampilkan 5 hari kerja dengan bar vertikal
 - **Color Coding**:
   - Hijau (≥90%): Performa excellent
@@ -20,6 +24,7 @@ Widget Weekly Performance telah diperbaiki dengan desain yang lebih modern, inte
 - **Hari ini**: Bar dengan warna lebih terang dan label bold
 
 ### 3. **Tooltip Hover**
+
 - Muncul saat hover di atas bar
 - Menampilkan detail:
   - Jumlah hadir/total karyawan
@@ -27,6 +32,7 @@ Widget Weekly Performance telah diperbaiki dengan desain yang lebih modern, inte
 - Animasi smooth dengan arrow pointer
 
 ### 4. **Data Visualization**
+
 ```
 100% |                    █
      |         █    █     █
@@ -39,11 +45,13 @@ Widget Weekly Performance telah diperbaiki dengan desain yang lebih modern, inte
 ```
 
 ### 5. **Stats Summary**
+
 - **Best Day**: Hari dengan persentase tertinggi
 - **Lowest**: Hari dengan persentase terendah
 - Background muted untuk visual separation
 
 ### 6. **Trend Analysis**
+
 - **Positive Trend**: Icon trending up dengan background hijau
 - **Below Average**: Icon trending down dengan background kuning
 - Perbandingan dengan rata-rata mingguan
@@ -52,23 +60,26 @@ Widget Weekly Performance telah diperbaiki dengan desain yang lebih modern, inte
 ## 🔧 Technical Implementation
 
 ### PHP Data Structure
+
 ```php
 $weekData = [
-    ['day' => 'Mon', 'date' => '4', 'rate' => 95, 'present' => 32, 'total' => 34],
-    ['day' => 'Tue', 'date' => '5', 'rate' => 88, 'present' => 30, 'total' => 34],
-    // ... more days
+  ['day' => 'Mon', 'date' => '4', 'rate' => 95, 'present' => 32, 'total' => 34],
+  ['day' => 'Tue', 'date' => '5', 'rate' => 88, 'present' => 30, 'total' => 34],
+  // ... more days
 ];
 ```
 
 ### Dynamic Styling
+
 ```blade
-style="height: {{ $day['rate'] }}%; 
-       background: {{ $day['rate'] >= 90 ? 'hsl(var(--success))' : 
-                     ($day['rate'] >= 80 ? 'hsl(var(--primary))' : 
+style="height: {{ $day['rate'] }}%;
+       background: {{ $day['rate'] >= 90 ? 'hsl(var(--success))' :
+                     ($day['rate'] >= 80 ? 'hsl(var(--primary))' :
                      'hsl(var(--warning))') }}"
 ```
 
 ### Interactive Features
+
 - **Hover Effects**: Scale transform pada bar
 - **Tooltips**: Informasi detail saat hover
 - **Animations**: Smooth transitions
@@ -77,11 +88,13 @@ style="height: {{ $day['rate'] }}%;
 ## 📱 Responsive Design
 
 ### Mobile
+
 - Bar chart tetap proporsional
 - Tooltip disesuaikan untuk touch
 - Font size optimal untuk mobile
 
 ### Desktop
+
 - Full interactive features
 - Smooth hover animations
 - Detailed tooltips
@@ -115,4 +128,5 @@ style="height: {{ $day['rate'] }}%;
 3. **Tertiary**: Individual day details
 4. **Supporting**: Trend indicators
 
-Widget ini sekarang memberikan insight yang lebih baik tentang performa attendance mingguan dengan cara yang visual dan interaktif!
+Widget ini sekarang memberikan insight yang lebih baik tentang performa attendance mingguan dengan
+cara yang visual dan interaktif!

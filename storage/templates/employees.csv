@@ -1,0 +1,4 @@
+employee_id,first_name,last_name,email,phone,employee_type,role,location_id,date_of_birth,gender,hire_date,address,is_active
+EMP001,John,Doe,john.doe@example.com,+1234567890,permanent,employee,1,1990-01-15,male,2024-01-01,"123 Main St, City, State 12345",1
+EMP002,Jane,Smith,jane.smith@example.com,+1234567891,honorary,teacher,1,1985-05-20,female,2024-01-15,"456 Oak Ave, City, State 12345",1
+EMP003,Bob,Johnson,bob.johnson@example.com,+1234567892,staff,employee,2,1992-03-10,male,2024-02-01,"789 Pine Rd, City, State 12345",1

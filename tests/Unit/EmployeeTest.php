@@ -2,16 +2,16 @@
 
 namespace Tests\Unit;
 
-use App\Models\Employee;
-use App\Models\User;
-use App\Models\Location;
 use App\Models\Attendance;
+use App\Models\Employee;
 use App\Models\Leave;
 use App\Models\LeaveBalance;
 use App\Models\LeaveType;
+use App\Models\Location;
 use App\Models\Payroll;
-use Tests\TestCase;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class EmployeeTest extends TestCase
 {
@@ -39,7 +39,7 @@ class EmployeeTest extends TestCase
     {
         $employee = Employee::factory()->create([
             'first_name' => 'John',
-            'last_name' => 'Doe'
+            'last_name' => 'Doe',
         ]);
 
         $this->assertEquals('John Doe', $employee->full_name);
@@ -48,7 +48,7 @@ class EmployeeTest extends TestCase
     public function test_photo_url_attribute_with_photo(): void
     {
         $employee = Employee::factory()->create([
-            'photo_path' => 'employees/photo.jpg'
+            'photo_path' => 'employees/photo.jpg',
         ]);
 
         $expectedUrl = asset('storage/employees/photo.jpg');
@@ -60,19 +60,24 @@ class EmployeeTest extends TestCase
         $employee = Employee::factory()->create([
             'first_name' => 'John',
             'last_name' => 'Doe',
-            'photo_path' => null
+            'photo_path' => null,
         ]);
 
-        $expectedUrl = 'https://ui-avatars.com/api/?name=' . urlencode('John Doe') . '&background=206bc4&color=fff&size=200';
+        $expectedUrl =
+          'https://ui-avatars.com/api/?name='.
+          urlencode('John Doe').
+          '&background=206bc4&color=fff&size=200';
         $this->assertEquals($expectedUrl, $employee->photo_url);
     }
 
     public function test_employee_has_many_attendances(): void
     {
         $employee = Employee::factory()->create();
-        $attendances = Attendance::factory()->count(3)->create([
-            'employee_id' => $employee->id
-        ]);
+        $attendances = Attendance::factory()
+            ->count(3)
+            ->create([
+                'employee_id' => $employee->id,
+            ]);
 
         $this->assertCount(3, $employee->attendances);
         $this->assertInstanceOf(Attendance::class, $employee->attendances->first());
@@ -81,21 +86,21 @@ class EmployeeTest extends TestCase
     public function test_today_attendance_scope(): void
     {
         $employee = Employee::factory()->create();
-        
+
         // Create today's attendance
         $todayAttendance = Attendance::factory()->create([
             'employee_id' => $employee->id,
-            'date' => today()
+            'date' => today(),
         ]);
 
         // Create yesterday's attendance
         Attendance::factory()->create([
             'employee_id' => $employee->id,
-            'date' => today()->subDay()
+            'date' => today()->subDay(),
         ]);
 
         $todayRecord = $employee->todayAttendance()->first();
-        
+
         $this->assertNotNull($todayRecord);
         $this->assertEquals($todayAttendance->id, $todayRecord->id);
         $this->assertTrue($todayRecord->date->isToday());
@@ -113,7 +118,7 @@ class EmployeeTest extends TestCase
             'employee_id' => $employee->id,
             'date' => today(),
             'check_in_time' => now()->subHours(2),
-            'check_out_time' => null
+            'check_out_time' => null,
         ]);
 
         // Refresh the employee to clear cached relationships
@@ -129,9 +134,11 @@ class EmployeeTest extends TestCase
     public function test_employee_has_many_leaves(): void
     {
         $employee = Employee::factory()->create();
-        $leaves = Leave::factory()->count(2)->create([
-            'employee_id' => $employee->id
-        ]);
+        $leaves = Leave::factory()
+            ->count(2)
+            ->create([
+                'employee_id' => $employee->id,
+            ]);
 
         $this->assertCount(2, $employee->leaves);
         $this->assertInstanceOf(Leave::class, $employee->leaves->first());
@@ -141,10 +148,10 @@ class EmployeeTest extends TestCase
     {
         $employee = Employee::factory()->create();
         $leaveType = LeaveType::factory()->create();
-        
+
         $leaveBalance = LeaveBalance::factory()->create([
             'employee_id' => $employee->id,
-            'leave_type_id' => $leaveType->id
+            'leave_type_id' => $leaveType->id,
         ]);
 
         $this->assertCount(1, $employee->leaveBalances);
@@ -155,16 +162,16 @@ class EmployeeTest extends TestCase
     {
         $employee = Employee::factory()->create();
         $leaveType = LeaveType::factory()->create();
-        
+
         $leaveBalance = LeaveBalance::factory()->create([
             'employee_id' => $employee->id,
             'leave_type_id' => $leaveType->id,
             'year' => date('Y'),
-            'remaining_days' => 15
+            'remaining_days' => 15,
         ]);
 
         $balance = $employee->getLeaveBalance($leaveType->id);
-        
+
         $this->assertNotNull($balance);
         $this->assertEquals($leaveBalance->id, $balance->id);
         $this->assertEquals(15, $balance->remaining_days);
@@ -174,13 +181,13 @@ class EmployeeTest extends TestCase
     {
         $employee = Employee::factory()->create();
         $leaveType = LeaveType::factory()->create();
-        
+
         // Create balance for current year
         LeaveBalance::factory()->create([
             'employee_id' => $employee->id,
             'leave_type_id' => $leaveType->id,
             'year' => date('Y'),
-            'remaining_days' => 15
+            'remaining_days' => 15,
         ]);
 
         // Create balance for last year
@@ -188,11 +195,11 @@ class EmployeeTest extends TestCase
             'employee_id' => $employee->id,
             'leave_type_id' => $leaveType->id,
             'year' => date('Y') - 1,
-            'remaining_days' => 10
+            'remaining_days' => 10,
         ]);
 
         $balance = $employee->getLeaveBalance($leaveType->id, date('Y') - 1);
-        
+
         $this->assertNotNull($balance);
         $this->assertEquals($lastYearBalance->id, $balance->id);
         $this->assertEquals(10, $balance->remaining_days);
@@ -201,9 +208,11 @@ class EmployeeTest extends TestCase
     public function test_employee_has_many_payrolls(): void
     {
         $employee = Employee::factory()->create();
-        $payrolls = Payroll::factory()->count(2)->create([
-            'employee_id' => $employee->id
-        ]);
+        $payrolls = Payroll::factory()
+            ->count(2)
+            ->create([
+                'employee_id' => $employee->id,
+            ]);
 
         $this->assertCount(2, $employee->payrolls);
         $this->assertInstanceOf(Payroll::class, $employee->payrolls->first());
@@ -212,23 +221,23 @@ class EmployeeTest extends TestCase
     public function test_current_month_payroll(): void
     {
         $employee = Employee::factory()->create();
-        
+
         // Create current month payroll
         $currentPayroll = Payroll::factory()->create([
             'employee_id' => $employee->id,
             'payroll_period_start' => now()->startOfMonth(),
-            'payroll_period_end' => now()->endOfMonth()
+            'payroll_period_end' => now()->endOfMonth(),
         ]);
 
         // Create last month payroll
         Payroll::factory()->create([
             'employee_id' => $employee->id,
             'payroll_period_start' => now()->subMonth()->startOfMonth(),
-            'payroll_period_end' => now()->subMonth()->endOfMonth()
+            'payroll_period_end' => now()->subMonth()->endOfMonth(),
         ]);
 
         $currentMonthPayroll = $employee->currentMonthPayroll();
-        
+
         $this->assertNotNull($currentMonthPayroll);
         $this->assertEquals($currentPayroll->id, $currentMonthPayroll->id);
     }
@@ -237,12 +246,14 @@ class EmployeeTest extends TestCase
     {
         $manager = Employee::factory()->create();
         $employee = Employee::factory()->create();
-        
-        $approvedLeaves = Leave::factory()->count(2)->create([
-            'employee_id' => $employee->id,
-            'approved_by' => $manager->id,
-            'status' => 'approved'
-        ]);
+
+        $approvedLeaves = Leave::factory()
+            ->count(2)
+            ->create([
+                'employee_id' => $employee->id,
+                'approved_by' => $manager->id,
+                'status' => 'approved',
+            ]);
 
         $this->assertCount(2, $manager->approvedLeaves);
         $this->assertInstanceOf(Leave::class, $manager->approvedLeaves->first());
@@ -252,12 +263,14 @@ class EmployeeTest extends TestCase
     {
         $manager = Employee::factory()->create();
         $employee = Employee::factory()->create();
-        
-        $approvedPayrolls = Payroll::factory()->count(2)->create([
-            'employee_id' => $employee->id,
-            'approved_by' => $manager->id,
-            'status' => 'approved'
-        ]);
+
+        $approvedPayrolls = Payroll::factory()
+            ->count(2)
+            ->create([
+                'employee_id' => $employee->id,
+                'approved_by' => $manager->id,
+                'status' => 'approved',
+            ]);
 
         $this->assertCount(2, $manager->approvedPayrolls);
         $this->assertInstanceOf(Payroll::class, $manager->approvedPayrolls->first());
@@ -267,12 +280,14 @@ class EmployeeTest extends TestCase
     {
         $processor = Employee::factory()->create();
         $employee = Employee::factory()->create();
-        
-        $processedPayrolls = Payroll::factory()->count(2)->create([
-            'employee_id' => $employee->id,
-            'processed_by' => $processor->id,
-            'status' => 'processed'
-        ]);
+
+        $processedPayrolls = Payroll::factory()
+            ->count(2)
+            ->create([
+                'employee_id' => $employee->id,
+                'processed_by' => $processor->id,
+                'status' => 'processed',
+            ]);
 
         $this->assertCount(2, $processor->processedPayrolls);
         $this->assertInstanceOf(Payroll::class, $processor->processedPayrolls->first());
@@ -281,7 +296,7 @@ class EmployeeTest extends TestCase
     public function test_employee_uses_uuid(): void
     {
         $employee = Employee::factory()->create();
-        
+
         // UUID should be automatically generated
         $this->assertNotNull($employee->id);
         $this->assertTrue(is_string($employee->id));
@@ -308,11 +323,11 @@ class EmployeeTest extends TestCase
         $metadata = [
             'face_embedding' => 'some_face_data',
             'preferences' => ['theme' => 'dark'],
-            'skills' => ['PHP', 'JavaScript']
+            'skills' => ['PHP', 'JavaScript'],
         ];
 
         $employee = Employee::factory()->create([
-            'metadata' => $metadata
+            'metadata' => $metadata,
         ]);
 
         $this->assertIsArray($employee->metadata);
@@ -323,7 +338,7 @@ class EmployeeTest extends TestCase
     public function test_employee_salary_amount_casting(): void
     {
         $employee = Employee::factory()->create([
-            'salary_amount' => 75000.50
+            'salary_amount' => 75000.5,
         ]);
 
         $this->assertIsString($employee->salary_amount);
@@ -334,7 +349,7 @@ class EmployeeTest extends TestCase
     {
         $hireDate = '2023-01-15';
         $employee = Employee::factory()->create([
-            'hire_date' => $hireDate
+            'hire_date' => $hireDate,
         ]);
 
         $this->assertInstanceOf(\Carbon\Carbon::class, $employee->hire_date);
@@ -344,7 +359,7 @@ class EmployeeTest extends TestCase
     public function test_employee_is_active_casting(): void
     {
         $employee = Employee::factory()->create([
-            'is_active' => 1
+            'is_active' => 1,
         ]);
 
         $this->assertIsBool($employee->is_active);

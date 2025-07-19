@@ -83,7 +83,8 @@ class UserNotificationPreferences extends Model
      */
     public function wantsEmailNotification(string $type): bool
     {
-        $field = $type . '_email';
+        $field = $type.'_email';
+
         return $this->$field ?? false;
     }
 
@@ -92,7 +93,8 @@ class UserNotificationPreferences extends Model
      */
     public function wantsBrowserNotification(string $type): bool
     {
-        $field = $type . '_browser';
+        $field = $type.'_browser';
+
         return $this->$field ?? false;
     }
 
@@ -101,22 +103,23 @@ class UserNotificationPreferences extends Model
      */
     public function isInQuietHours(): bool
     {
-        if (!$this->quiet_hours) {
+        if (! $this->quiet_hours) {
             return false;
         }
 
         $now = now();
         $timezone = $this->quiet_hours['timezone'] ?? config('app.timezone');
         $currentTime = $now->setTimezone($timezone);
-        
+
         $startTime = $currentTime->copy()->setTimeFromTimeString($this->quiet_hours['start']);
         $endTime = $currentTime->copy()->setTimeFromTimeString($this->quiet_hours['end']);
-        
+
         // Handle overnight quiet hours (e.g., 22:00 to 08:00)
         if ($startTime->greaterThan($endTime)) {
-            return $currentTime->greaterThanOrEqualTo($startTime) || $currentTime->lessThanOrEqualTo($endTime);
+            return $currentTime->greaterThanOrEqualTo($startTime) ||
+              $currentTime->lessThanOrEqualTo($endTime);
         }
-        
+
         return $currentTime->between($startTime, $endTime);
     }
 
@@ -189,11 +192,6 @@ class UserNotificationPreferences extends Model
      */
     public static function getSystemNotificationTypes(): array
     {
-        return [
-            'attendance_reminders',
-            'leave_status',
-            'payroll_notifications',
-            'system_maintenance',
-        ];
+        return ['attendance_reminders', 'leave_status', 'payroll_notifications', 'system_maintenance'];
     }
 }

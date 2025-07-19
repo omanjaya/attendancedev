@@ -63,11 +63,13 @@ Utilities and helpers for testing:
 ## Running Tests
 
 ### Run All Tests
+
 ```bash
 php artisan test
 ```
 
 ### Run Specific Test Categories
+
 ```bash
 # Unit tests only
 php artisan test --testsuite=Unit
@@ -83,12 +85,14 @@ php artisan test --filter=test_calculate_payroll_creates_payroll_record
 ```
 
 ### Run Tests with Coverage
+
 ```bash
 php artisan test --coverage
 php artisan test --coverage-html coverage/
 ```
 
 ### Parallel Testing
+
 ```bash
 php artisan test --parallel
 ```
@@ -143,28 +147,28 @@ $data = TestHelper::createCompleteEmployee(['department' => 'IT']);
 
 // Attendance scenarios
 $attendances = TestHelper::createAttendanceScenario($employee, [
-    'days' => 5,
-    'hours_per_day' => 8,
-    'include_overtime' => true,
+  'days' => 5,
+  'hours_per_day' => 8,
+  'include_overtime' => true,
 ]);
 
 // Leave scenarios
 $data = TestHelper::createLeaveScenario($employee, [
-    'leave_days' => 3,
-    'is_paid' => true,
+  'leave_days' => 3,
+  'is_paid' => true,
 ]);
 
 // Payroll scenarios
 $data = TestHelper::createPayrollScenario($employee, [
-    'basic_salary' => 5000,
-    'include_overtime' => true,
-    'include_bonus' => true,
+  'basic_salary' => 5000,
+  'include_overtime' => true,
+  'include_bonus' => true,
 ]);
 
 // Security scenarios
 $data = TestHelper::createSecurityScenario($user, [
-    'failed_attempts' => 3,
-    'has_2fa' => true,
+  'failed_attempts' => 3,
+  'has_2fa' => true,
 ]);
 
 // Mock data
@@ -191,9 +195,9 @@ $employee = Employee::factory()->create(['is_active' => true]);
 
 // With relationships
 $employee = Employee::factory()
-    ->for(User::factory(), 'user')
-    ->for(Location::factory(), 'location')
-    ->create();
+  ->for(User::factory(), 'user')
+  ->for(Location::factory(), 'location')
+  ->create();
 
 // Multiple records
 $employees = Employee::factory()->count(10)->create();
@@ -208,9 +212,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class MyTest extends TestCase
 {
-    use RefreshDatabase;
-    
-    // Database is reset before each test
+  use RefreshDatabase;
+
+  // Database is reset before each test
 }
 ```
 
@@ -224,10 +228,10 @@ public function test_calculate_payroll_creates_record(): void
     // Arrange
     $employee = Employee::factory()->create(['salary_amount' => 5000]);
     $service = new PayrollCalculationService();
-    
+
     // Act
     $payroll = $service->calculatePayroll($employee, now()->startOfMonth(), now()->endOfMonth());
-    
+
     // Assert
     $this->assertInstanceOf(Payroll::class, $payroll);
     $this->assertEquals(5000, $payroll->gross_salary);
@@ -245,7 +249,7 @@ public function test_calculate_payroll_creates_record(): void
 ```php
 // Mock external services
 $this->mock(FaceDetectionService::class, function ($mock) {
-    $mock->shouldReceive('verify')->andReturn(true);
+  $mock->shouldReceive('verify')->andReturn(true);
 });
 
 // Mock facades
@@ -290,12 +294,8 @@ $this->assertDatabaseCount('payrolls', 1);
 ```php
 // Response structure
 $response->assertJsonStructure([
-    'data' => [
-        'id',
-        'first_name',
-        'last_name',
-    ],
-    'meta' => ['total', 'per_page'],
+  'data' => ['id', 'first_name', 'last_name'],
+  'meta' => ['total', 'per_page'],
 ]);
 
 // Response content
@@ -311,7 +311,7 @@ Test configuration files to ensure they're properly structured:
 public function test_payroll_config_has_required_sections(): void
 {
     $config = Config::get('payroll');
-    
+
     $this->assertArrayHasKey('calculations', $config);
     $this->assertArrayHasKey('tax', $config);
     $this->assertArrayHasKey('bonuses', $config);
@@ -326,11 +326,11 @@ For performance-critical code:
 public function test_large_payroll_calculation_performance(): void
 {
     $employees = Employee::factory()->count(1000)->create();
-    
+
     $startTime = microtime(true);
     $service->calculatePayrollForEmployees($employees, now(), now());
     $executionTime = microtime(true) - $startTime;
-    
+
     $this->assertLessThan(10, $executionTime); // Should complete within 10 seconds
 }
 ```

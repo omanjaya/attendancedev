@@ -2,569 +2,1181 @@
 
 namespace App\Services;
 
+use App\Models\AuditLog;
+use App\Models\User;
+use App\Models\UserDevice;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 
 class NavigationService
 {
     /**
-     * Cache duration for navigation structure (5 minutes)
+     * Cache duration for navigation data in minutes
      */
-    private const CACHE_DURATION = 300;
+    const CACHE_DURATION = 60; // 1 hour
 
     /**
-     * Get optimized navigation structure dengan caching
+     * Get complete navigation structure for the authenticated user
      */
-    public function getMainNavigation(string $currentRoute = null, $user = null): array
+    public function getNavigation(): array
     {
-        $currentRoute = $currentRoute ?? request()->route()?->getName() ?? '';
-        $userId = $user?->id ?? auth()->id();
-        
-        // Cache key berdasarkan user permissions dan current route
-        $userPermissions = $user ? $user->getAllPermissions()->pluck('name')->sort()->join(',') : '';
-        $cacheKey = "navigation.main.{$userId}." . md5($userPermissions . $currentRoute);
-        
-        return Cache::remember($cacheKey, self::CACHE_DURATION, function () use ($currentRoute, $user) {
-            return $this->buildNavigationStructure($currentRoute, $user);
+        $user = Auth::user();
+
+        if (! $user) {
+            return [];
+        }
+
+        $cacheKey = "navigation_user_{$user->id}";
+
+        return Cache::remember($cacheKey, self::CACHE_DURATION, function () use ($user) {
+            return $this->buildNavigationStructure($user);
         });
     }
 
     /**
-     * Build navigation structure dengan pre-computed routes dan permissions
+     * Build the navigation structure based on user permissions
      */
-    private function buildNavigationStructure(string $currentRoute, $user): array
+    private function buildNavigationStructure(User $user): array
     {
-        $baseNavigation = $this->getBaseNavigationConfig();
-        $processedNavigation = [];
+        $role = $user->getRoleNames()->first();
+        $cacheKey = "navigation_{$user->id}_{$role}";
 
-        foreach ($baseNavigation as $item) {
-            // Skip jika user tidak punya permission
-            if (isset($item['permission']) && $user && !$user->can($item['permission'])) {
-                continue;
-            }
-
-            // Pre-compute route URLs untuk performance
-            $processedItem = [
-                'name' => $item['name'],
-                'href' => $this->resolveRoute($item['route'], $item['params'] ?? []),
-                'icon' => $item['icon'],
-                'current' => $this->isCurrentRoute($currentRoute, $item['route_pattern']),
-                'badge' => $this->getBadgeData($item['badge_key'] ?? null, $user),
-                'children' => [],
-            ];
-
-            // Process children dengan permission check
-            if (isset($item['children'])) {
-                foreach ($item['children'] as $child) {
-                    if (isset($child['permission']) && $user && !$user->can($child['permission'])) {
-                        continue;
-                    }
-
-                    $processedItem['children'][] = [
-                        'name' => $child['name'],
-                        'href' => $this->resolveRoute($child['route'], $child['params'] ?? []),
-                        'current' => $this->isCurrentRoute($currentRoute, $child['route_pattern']),
-                        'badge' => $this->getBadgeData($child['badge_key'] ?? null, $user),
-                    ];
-                }
-            }
-
-            $processedNavigation[] = $processedItem;
-        }
-
-        return $processedNavigation;
-    }
-
-    /**
-     * Get bottom navigation (Settings, etc.)
-     */
-    public function getBottomNavigation(string $currentRoute = null, $user = null): array
-    {
-        $currentRoute = $currentRoute ?? request()->route()?->getName() ?? '';
-        $userId = $user?->id ?? auth()->id();
-        
-        $cacheKey = "navigation.bottom.{$userId}." . md5($currentRoute);
-        
-        return Cache::remember($cacheKey, self::CACHE_DURATION, function () use ($currentRoute, $user) {
-            $items = [
-                [
-                    'name' => 'Settings',
-                    'route' => 'system.settings',
-                    'icon' => 'cog',
-                    'route_pattern' => 'system',
-                    'permission' => 'manage_system',
-                ],
-            ];
-
-            $processed = [];
-            foreach ($items as $item) {
-                if (isset($item['permission']) && $user && !$user->can($item['permission'])) {
-                    continue;
-                }
-
-                $processed[] = [
-                    'name' => $item['name'],
-                    'href' => $this->resolveRoute($item['route']),
-                    'icon' => $item['icon'],
-                    'current' => $this->isCurrentRoute($currentRoute, $item['route_pattern']),
-                ];
-            }
-
-            return $processed;
-        });
-    }
-
-    /**
-     * Base navigation configuration
-     */
-    private function getBaseNavigationConfig(): array
-    {
-        return [
-            [
-                'name' => 'Dashboard',
-                'route' => 'dashboard',
-                'icon' => 'dashboard',
-                'route_pattern' => 'dashboard',
-                'permission' => null,
-            ],
-            [
-                'name' => 'Attendance',
-                'route' => 'attendance.index',
-                'icon' => 'clock',
-                'route_pattern' => 'attendance',
-                'permission' => 'view_attendance',
-                'badge_key' => 'pending_check_ins',
-                'children' => [
-                    [
-                        'name' => 'Overview',
-                        'route' => 'attendance.index',
-                        'route_pattern' => 'attendance.index',
-                    ],
-                    [
-                        'name' => 'Check In/Out',
-                        'route' => 'attendance.check-in',
-                        'route_pattern' => 'attendance.check-in',
-                    ],
-                    [
-                        'name' => 'History',
-                        'route' => 'attendance.history',
-                        'route_pattern' => 'attendance.history',
-                    ],
-                    [
-                        'name' => 'Reports',
-                        'route' => 'attendance.reports',
-                        'route_pattern' => 'attendance.reports',
-                        'permission' => 'view_attendance_reports',
-                    ],
-                ]
-            ],
-            [
-                'name' => 'Employees',
-                'route' => 'employees.index',
-                'icon' => 'users',
-                'route_pattern' => 'employees',
-                'permission' => 'view_employees',
-                'badge_key' => 'new_employees',
-                'children' => [
-                    [
-                        'name' => 'All Employees',
-                        'route' => 'employees.index',
-                        'route_pattern' => 'employees.index',
-                    ],
-                    [
-                        'name' => 'Add Employee',
-                        'route' => 'employees.create',
-                        'route_pattern' => 'employees.create',
-                        'permission' => 'create_employees',
-                    ],
-                ]
-            ],
-            [
-                'name' => 'Schedules',
-                'route' => 'schedules.index',
-                'icon' => 'calendar',
-                'route_pattern' => 'schedules',
-                'permission' => 'view_schedules',
-                'children' => [
-                    [
-                        'name' => 'Schedule Management',
-                        'route' => 'schedules.index',
-                        'route_pattern' => 'schedules.index',
-                    ],
-                    [
-                        'name' => 'Calendar View',
-                        'route' => 'schedules.calendar',
-                        'route_pattern' => 'schedules.calendar',
-                    ],
-                ]
-            ],
-            [
-                'name' => 'Leave Management',
-                'route' => 'leave.index',
-                'icon' => 'clipboard',
-                'route_pattern' => 'leave',
-                'permission' => 'view_leave',
-                'badge_key' => 'pending_leave_requests',
-                'children' => [
-                    [
-                        'name' => 'My Requests',
-                        'route' => 'leave.index',
-                        'route_pattern' => 'leave.index',
-                    ],
-                    [
-                        'name' => 'Request Leave',
-                        'route' => 'leave.create',
-                        'route_pattern' => 'leave.create',
-                    ],
-                    [
-                        'name' => 'Leave Balance',
-                        'route' => 'leave.balance.index',
-                        'route_pattern' => 'leave.balance',
-                    ],
-                    [
-                        'name' => 'Approvals',
-                        'route' => 'leave.approvals.index',
-                        'route_pattern' => 'leave.approvals',
-                        'permission' => 'approve_leave',
-                        'badge_key' => 'pending_approvals',
-                    ],
-                ]
-            ],
-            [
-                'name' => 'Payroll',
-                'route' => 'payroll.index',
-                'icon' => 'banknotes',
-                'route_pattern' => 'payroll',
-                'permission' => 'view_payroll',
-                'children' => [
-                    [
-                        'name' => 'Payroll Records',
-                        'route' => 'payroll.index',
-                        'route_pattern' => 'payroll.index',
-                    ],
-                    [
-                        'name' => 'Calculate Payroll',
-                        'route' => 'payroll.create',
-                        'route_pattern' => 'payroll.create',
-                        'permission' => 'create_payroll',
-                    ],
-                    [
-                        'name' => 'Bulk Calculate',
-                        'route' => 'payroll.bulk-calculate',
-                        'route_pattern' => 'payroll.bulk-calculate',
-                        'permission' => 'create_payroll',
-                    ],
-                ]
-            ],
-            [
-                'name' => 'Academic Schedules',
-                'route' => 'academic.schedules.index',
-                'icon' => 'academic-cap',
-                'route_pattern' => 'academic',
-                'permission' => 'manage_schedules',
-                'children' => [
-                    [
-                        'name' => 'Schedule Grid',
-                        'route' => 'academic.schedules.index',
-                        'route_pattern' => 'academic.schedules.index',
-                    ],
-                    [
-                        'name' => 'Calendar View',
-                        'route' => 'academic.schedules.calendar',
-                        'route_pattern' => 'academic.schedules.calendar',
-                    ],
-                ]
-            ],
-            [
-                'name' => 'Reports & Analytics',
-                'route' => 'attendance.reports',
-                'icon' => 'chart-bar',
-                'route_pattern' => 'reports',
-                'permission' => 'view_attendance_reports',
-                'children' => [
-                    [
-                        'name' => 'Attendance Reports',
-                        'route' => 'attendance.reports',
-                        'route_pattern' => 'attendance.reports',
-                        'permission' => 'view_attendance_reports',
-                    ],
-                    [
-                        'name' => 'Payroll Reports',
-                        'route' => 'payroll.index',
-                        'route_pattern' => 'payroll.reports',
-                        'permission' => 'view_payroll',
-                    ],
-                    [
-                        'name' => 'Leave Analytics',
-                        'route' => 'leave.balance.index',
-                        'route_pattern' => 'leave.analytics',
-                        'permission' => 'view_leave_analytics',
-                    ],
-                ]
-            ],
-            [
-                'name' => 'System Management',
-                'route' => 'audit.index',
-                'icon' => 'cog',
-                'route_pattern' => 'system',
-                'permission' => 'admin_access',
-                'badge_key' => 'system_alerts',
-                'children' => [
-                    [
-                        'name' => 'User Management',
-                        'route' => 'employees.index',
-                        'route_pattern' => 'users',
-                        'permission' => 'manage_users',
-                    ],
-                    [
-                        'name' => 'Location Management',
-                        'route' => 'locations.index',
-                        'route_pattern' => 'locations',
-                        'permission' => 'manage_locations',
-                    ],
-                    [
-                        'name' => 'Audit Logs',
-                        'route' => 'audit.index',
-                        'route_pattern' => 'audit',
-                        'permission' => 'admin_access',
-                    ],
-                    [
-                        'name' => 'System Backup',
-                        'route' => 'backup.index',
-                        'route_pattern' => 'backup',
-                        'permission' => 'admin_access',
-                    ],
-                ]
-            ],
-            [
-                'name' => 'Security',
-                'route' => 'security.dashboard',
-                'icon' => 'shield',
-                'route_pattern' => 'security',
-                'permission' => 'admin_access',
-                'badge_key' => 'security_alerts',
-                'children' => [
-                    [
-                        'name' => 'Security Dashboard',
-                        'route' => 'security.dashboard',
-                        'route_pattern' => 'security.dashboard',
-                    ],
-                    [
-                        'name' => 'Device Management',
-                        'route' => 'security.devices',
-                        'route_pattern' => 'security.devices',
-                    ],
-                    [
-                        'name' => 'Notification Preferences',
-                        'route' => 'security.notifications',
-                        'route_pattern' => 'security.notifications',
-                    ],
-                    [
-                        'name' => 'Security Events',
-                        'route' => 'security.events',
-                        'route_pattern' => 'security.events',
-                        'permission' => 'admin_access',
-                    ],
-                    [
-                        'name' => '2FA Settings',
-                        'route' => 'security.two-factor',
-                        'route_pattern' => 'security.two-factor',
-                    ],
-                ]
-            ],
-        ];
-    }
-
-    /**
-     * Resolve route dengan error handling
-     */
-    private function resolveRoute(string $routeName, array $params = []): string
-    {
-        try {
-            return route($routeName, $params);
-        } catch (\Exception $e) {
-            // Fallback ke dashboard jika route tidak ada
-            return route('dashboard');
-        }
-    }
-
-    /**
-     * Check if current route matches pattern
-     */
-    private function isCurrentRoute(string $currentRoute, string $pattern): bool
-    {
-        return str_starts_with($currentRoute, $pattern);
-    }
-
-    /**
-     * Get badge data untuk notifications
-     */
-    private function getBadgeData(?string $badgeKey, $user): ?array
-    {
-        if (!$badgeKey || !$user) {
-            return null;
-        }
-
-        // Cache badge data selama 1 menit untuk real-time feeling
-        return Cache::remember("badge.{$badgeKey}.{$user->id}", 60, function () use ($badgeKey, $user) {
-            return match ($badgeKey) {
-                'pending_check_ins' => $this->getPendingCheckIns($user),
-                'pending_leave_requests' => $this->getPendingLeaveRequests($user),
-                'pending_approvals' => $this->getPendingApprovals($user),
-                'new_employees' => $this->getNewEmployees($user),
-                'security_alerts' => $this->getSecurityAlerts($user),
-                'system_alerts' => $this->getSystemAlerts($user),
-                default => null,
+        // Cache navigation for 30 minutes
+        return cache()->remember($cacheKey, 1800, function () use ($user, $role) {
+            // Build role-specific navigation
+            return match ($role) {
+                'superadmin', 'super_admin', 'Super Admin' => $this->buildSuperAdminNavigation($user),
+                'admin', 'Admin' => $this->buildAdminNavigation($user),
+                'kepala_sekolah', 'principal' => $this->buildKepalaSekolahNavigation($user),
+                'guru', 'teacher' => $this->buildGuruNavigation($user),
+                'pegawai', 'staff' => $this->buildPegawaiNavigation($user),
+                default => $this->buildDefaultNavigation($user)
             };
         });
     }
 
     /**
-     * Badge data methods
+     * Build Super Admin navigation - Full system access
      */
-    private function getPendingCheckIns($user): ?array
+    private function buildSuperAdminNavigation(User $user): array
     {
-        // Implementasi berdasarkan business logic
-        $count = 0; // Placeholder
-        return $count > 0 ? ['count' => $count, 'variant' => 'warning'] : null;
-    }
-
-    private function getPendingLeaveRequests($user): ?array
-    {
-        $count = 0; // Placeholder - implementasi dengan model
-        return $count > 0 ? ['count' => $count, 'variant' => 'info'] : null;
-    }
-
-    private function getPendingApprovals($user): ?array
-    {
-        $count = 0; // Placeholder - implementasi dengan model
-        return $count > 0 ? ['count' => $count, 'variant' => 'danger'] : null;
-    }
-
-    private function getNewEmployees($user): ?array
-    {
-        $count = 0; // Placeholder - implementasi dengan model
-        return $count > 0 ? ['count' => $count, 'variant' => 'success'] : null;
-    }
-
-    private function getSecurityAlerts($user): ?array
-    {
-        // Get unacknowledged security alerts count
         try {
-            // Check if SecurityAlert model exists and get count
-            if (class_exists('\App\Models\SecurityAlert')) {
-                $count = \App\Models\SecurityAlert::where('acknowledged_at', null)->count();
-                return $count > 0 ? ['count' => $count, 'variant' => 'danger'] : null;
-            }
-            
-            // Fallback: Check audit logs for security events in last 24 hours
-            if (class_exists('\App\Models\AuditLog')) {
-                $securityEvents = \App\Models\AuditLog::where('event_type', 'security')
-                    ->where('created_at', '>', now()->subHours(24))
-                    ->whereJsonContains('tags', 'high_risk')
-                    ->count();
-                return $securityEvents > 0 ? ['count' => $securityEvents, 'variant' => 'danger'] : null;
-            }
+            return [
+                // Main Section
+                [
+                    'id' => 'main',
+                    'name' => 'Main',
+                    'icon' => 'home',
+                    'type' => 'section',
+                    'priority' => 1,
+                    'children' => [
+                        [
+                            'id' => 'dashboard',
+                            'name' => 'System Dashboard',
+                            'icon' => 'computer-desktop',
+                            'route' => 'dashboard',
+                            'badge' => null,
+                            'type' => 'single',
+                            'priority' => 1,
+                        ],
+                    ],
+                ],
+                // Management Section
+                [
+                    'id' => 'management',
+                    'name' => 'Management',
+                    'icon' => 'briefcase',
+                    'type' => 'section',
+                    'priority' => 2,
+                    'children' => [
+                        [
+                            'id' => 'employees',
+                            'name' => 'Employee Management',
+                            'icon' => 'users',
+                            'route' => 'employees.index',
+                            'badge' => null, // Temporarily disable badges to test
+                            'type' => 'single',
+                            'priority' => 1,
+                        ],
+                        [
+                            'id' => 'attendance',
+                            'name' => 'Attendance System',
+                            'icon' => 'clock',
+                            'route' => 'attendance.index',
+                            'badge' => null, // Temporarily disable badges to test
+                            'type' => 'single',
+                            'priority' => 2,
+                        ],
+                        [
+                            'id' => 'schedules',
+                            'name' => 'Schedule Management',
+                            'icon' => 'calendar',
+                            'route' => 'schedules.index',
+                            'badge' => null,
+                            'type' => 'single',
+                            'priority' => 3,
+                        ],
+                        [
+                            'id' => 'leave',
+                            'name' => 'Leave Management',
+                            'icon' => 'calendar-days',
+                            'route' => 'leave.index',
+                            'badge' => null, // Temporarily disable badges to test
+                            'type' => 'single',
+                            'priority' => 4,
+                        ],
+                        [
+                            'id' => 'payroll',
+                            'name' => 'Payroll Management',
+                            'icon' => 'banknotes',
+                            'route' => 'payroll.index',
+                            'badge' => null, // Temporarily disable badges to test
+                            'type' => 'single',
+                            'priority' => 5,
+                        ],
+                    ],
+                ],
+                // System Administration
+                [
+                    'id' => 'system',
+                    'name' => 'System',
+                    'icon' => 'cog-6-tooth',
+                    'type' => 'section',
+                    'priority' => 3,
+                    'children' => [
+                        [
+                            'id' => 'reports',
+                            'name' => 'Reports & Analytics',
+                            'icon' => 'chart-bar',
+                            'route' => 'reports.index',
+                            'badge' => null,
+                            'type' => 'single',
+                            'priority' => 1,
+                        ],
+                        [
+                            'id' => 'settings',
+                            'name' => 'System Settings',
+                            'icon' => 'cog-6-tooth',
+                            'route' => 'system.settings',
+                            'badge' => null,
+                            'type' => 'single',
+                            'priority' => 2,
+                        ],
+                    ],
+                ],
+                // Profile Section
+                [
+                    'id' => 'profile_section',
+                    'name' => 'Profile',
+                    'icon' => 'user-circle',
+                    'type' => 'section',
+                    'priority' => 4,
+                    'children' => [
+                        [
+                            'id' => 'profile',
+                            'name' => 'My Profile',
+                            'icon' => 'user-circle',
+                            'route' => 'profile.edit',
+                            'badge' => null,
+                            'type' => 'single',
+                            'priority' => 1,
+                        ],
+                    ],
+                ],
+            ];
         } catch (\Exception $e) {
-            // Fail silently for navigation
+            \Log::error('Error building SuperAdmin navigation', [
+                'error' => $e->getMessage(),
+                'user_id' => $user->id
+            ]);
+            // Fallback to simple navigation
+            return $this->buildDefaultNavigation($user);
         }
-        
+    }
+
+    /**
+     * Build Admin navigation - School management focus
+     */
+    private function buildAdminNavigation(User $user): array
+    {
+        return [
+            // Dashboard
+            [
+                'id' => 'dashboard',
+                'name' => 'Admin Dashboard',
+                'icon' => 'home',
+                'route' => 'dashboard',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 1,
+                'section' => 'main',
+            ],
+            // Employee Management
+            [
+                'id' => 'employees',
+                'name' => 'Employee Management',
+                'icon' => 'users',
+                'route' => 'employees.index',
+                'badge' => $this->getEmployeeBadge(),
+                'type' => 'single',
+                'priority' => 2,
+                'section' => 'management',
+            ],
+            // Attendance Management
+            [
+                'id' => 'attendance',
+                'name' => 'Attendance Management',
+                'icon' => 'clock',
+                'route' => 'attendance.index',
+                'badge' => $this->getAttendanceBadge(),
+                'type' => 'single',
+                'priority' => 3,
+                'section' => 'management',
+            ],
+            // Quick Check-in
+            [
+                'id' => 'quick_checkin',
+                'name' => 'Quick Check-in',
+                'icon' => 'finger-print',
+                'route' => 'attendance.check-in',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 4,
+                'section' => 'actions',
+                'highlight' => true,
+            ],
+            // Schedule Management
+            [
+                'id' => 'schedules',
+                'name' => 'Schedule Management',
+                'icon' => 'calendar',
+                'route' => 'schedules.index',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 5,
+                'section' => 'management',
+            ],
+            // Leave Management
+            [
+                'id' => 'leave',
+                'name' => 'Leave Management',
+                'icon' => 'calendar-days',
+                'route' => 'leave.index',
+                'badge' => $this->getLeaveBadge(),
+                'type' => 'single',
+                'priority' => 6,
+                'section' => 'management',
+            ],
+            // Payroll Management
+            [
+                'id' => 'payroll',
+                'name' => 'Payroll Management',
+                'icon' => 'banknotes',
+                'route' => 'payroll.index',
+                'badge' => $this->getPayrollBadge(),
+                'type' => 'single',
+                'priority' => 7,
+                'section' => 'management',
+            ],
+            // Locations
+            [
+                'id' => 'locations',
+                'name' => 'Locations',
+                'icon' => 'map-pin',
+                'route' => 'locations.index',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 8,
+                'section' => 'management',
+            ],
+            // Reports
+            [
+                'id' => 'reports',
+                'name' => 'Reports & Analytics',
+                'icon' => 'chart-bar',
+                'route' => 'reports.index',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 9,
+                'section' => 'analytics',
+            ],
+            // Settings (Limited)
+            [
+                'id' => 'settings',
+                'name' => 'Settings',
+                'icon' => 'cog-6-tooth',
+                'route' => 'system.settings',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 10,
+                'section' => 'system',
+            ],
+            // Profile
+            [
+                'id' => 'profile',
+                'name' => 'Profile',
+                'icon' => 'user-circle',
+                'route' => 'profile.edit',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 11,
+                'section' => 'profile',
+            ],
+        ];
+    }
+
+    /**
+     * Build Kepala Sekolah navigation - Strategic oversight
+     */
+    private function buildKepalaSekolahNavigation(User $user): array
+    {
+        return [
+            // Dashboard
+            [
+                'id' => 'dashboard',
+                'name' => 'Executive Dashboard',
+                'icon' => 'home',
+                'route' => 'dashboard',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 1,
+                'section' => 'main',
+            ],
+            // School Analytics
+            [
+                'id' => 'analytics',
+                'name' => 'School Analytics',
+                'icon' => 'chart-bar',
+                'route' => 'reports.index',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 2,
+                'section' => 'analytics',
+            ],
+            // Staff Overview
+            [
+                'id' => 'staff_overview',
+                'name' => 'Staff Overview',
+                'icon' => 'users',
+                'route' => 'employees.index',
+                'badge' => $this->getEmployeeBadge(),
+                'type' => 'single',
+                'priority' => 3,
+                'section' => 'management',
+            ],
+            // Attendance Overview
+            [
+                'id' => 'attendance_overview',
+                'name' => 'Attendance Overview',
+                'icon' => 'clock',
+                'route' => 'attendance.index',
+                'badge' => $this->getAttendanceBadge(),
+                'type' => 'single',
+                'priority' => 4,
+                'section' => 'management',
+            ],
+            // Leave Approvals
+            [
+                'id' => 'leave_approvals',
+                'name' => 'Leave Approvals',
+                'icon' => 'calendar-days',
+                'route' => 'leave.index',
+                'badge' => $this->getLeaveBadge(),
+                'type' => 'single',
+                'priority' => 5,
+                'section' => 'management',
+            ],
+            // Schedule Overview
+            [
+                'id' => 'schedule_overview',
+                'name' => 'Schedule Overview',
+                'icon' => 'calendar',
+                'route' => 'schedules.index',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 6,
+                'section' => 'management',
+            ],
+            // Payroll Overview
+            [
+                'id' => 'payroll_overview',
+                'name' => 'Payroll Overview',
+                'icon' => 'banknotes',
+                'route' => 'payroll.index',
+                'badge' => $this->getPayrollBadge(),
+                'type' => 'single',
+                'priority' => 7,
+                'section' => 'management',
+            ],
+            // Personal Check-in
+            [
+                'id' => 'my_attendance',
+                'name' => 'My Attendance',
+                'icon' => 'finger-print',
+                'route' => 'attendance.check-in',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 8,
+                'section' => 'personal',
+                'highlight' => true,
+            ],
+            // Profile
+            [
+                'id' => 'profile',
+                'name' => 'Profile',
+                'icon' => 'user-circle',
+                'route' => 'profile.edit',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 9,
+                'section' => 'profile',
+            ],
+        ];
+    }
+
+    /**
+     * Build Guru navigation - Teaching focused
+     */
+    private function buildGuruNavigation(User $user): array
+    {
+        return [
+            // Dashboard
+            [
+                'id' => 'dashboard',
+                'name' => 'Teacher Dashboard',
+                'icon' => 'home',
+                'route' => 'dashboard',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 1,
+                'section' => 'main',
+            ],
+            // My Attendance
+            [
+                'id' => 'my_attendance',
+                'name' => 'My Attendance',
+                'icon' => 'finger-print',
+                'route' => 'attendance.check-in',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 2,
+                'section' => 'personal',
+                'highlight' => true,
+            ],
+            // My Schedule
+            [
+                'id' => 'my_schedule',
+                'name' => 'My Schedule',
+                'icon' => 'calendar',
+                'route' => 'schedules.index',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 3,
+                'section' => 'personal',
+            ],
+            // My Leave
+            [
+                'id' => 'my_leave',
+                'name' => 'My Leave',
+                'icon' => 'calendar-days',
+                'route' => 'leave.index',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 4,
+                'section' => 'personal',
+            ],
+            // My Payroll
+            [
+                'id' => 'my_payroll',
+                'name' => 'My Payroll',
+                'icon' => 'banknotes',
+                'route' => 'payroll.index',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 5,
+                'section' => 'personal',
+            ],
+            // Attendance Records
+            [
+                'id' => 'attendance_records',
+                'name' => 'Attendance Records',
+                'icon' => 'clock',
+                'route' => 'attendance.index',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 6,
+                'section' => 'records',
+            ],
+            // Reports
+            [
+                'id' => 'reports',
+                'name' => 'Reports',
+                'icon' => 'chart-bar',
+                'route' => 'reports.index',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 7,
+                'section' => 'records',
+            ],
+            // Profile
+            [
+                'id' => 'profile',
+                'name' => 'Profile',
+                'icon' => 'user-circle',
+                'route' => 'profile.edit',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 8,
+                'section' => 'profile',
+            ],
+        ];
+    }
+
+    /**
+     * Build Pegawai navigation - Employee focused
+     */
+    private function buildPegawaiNavigation(User $user): array
+    {
+        return [
+            // Dashboard
+            [
+                'id' => 'dashboard',
+                'name' => 'Employee Dashboard',
+                'icon' => 'home',
+                'route' => 'dashboard',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 1,
+                'section' => 'main',
+            ],
+            // My Attendance
+            [
+                'id' => 'my_attendance',
+                'name' => 'My Attendance',
+                'icon' => 'finger-print',
+                'route' => 'attendance.check-in',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 2,
+                'section' => 'personal',
+                'highlight' => true,
+            ],
+            // My Schedule
+            [
+                'id' => 'my_schedule',
+                'name' => 'My Schedule',
+                'icon' => 'calendar',
+                'route' => 'schedules.index',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 3,
+                'section' => 'personal',
+            ],
+            // My Leave
+            [
+                'id' => 'my_leave',
+                'name' => 'My Leave',
+                'icon' => 'calendar-days',
+                'route' => 'leave.index',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 4,
+                'section' => 'personal',
+            ],
+            // My Payroll
+            [
+                'id' => 'my_payroll',
+                'name' => 'My Payroll',
+                'icon' => 'banknotes',
+                'route' => 'payroll.index',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 5,
+                'section' => 'personal',
+            ],
+            // Attendance History
+            [
+                'id' => 'attendance_history',
+                'name' => 'Attendance History',
+                'icon' => 'clock',
+                'route' => 'attendance.index',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 6,
+                'section' => 'records',
+            ],
+            // Profile
+            [
+                'id' => 'profile',
+                'name' => 'Profile',
+                'icon' => 'user-circle',
+                'route' => 'profile.edit',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 7,
+                'section' => 'profile',
+            ],
+        ];
+    }
+
+    /**
+     * Build default navigation for unknown roles
+     */
+    private function buildDefaultNavigation(User $user): array
+    {
+        return [
+            [
+                'id' => 'dashboard',
+                'name' => 'Dashboard',
+                'icon' => 'home',
+                'route' => 'dashboard',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 1,
+                'section' => 'main',
+            ],
+            [
+                'id' => 'profile',
+                'name' => 'Profile',
+                'icon' => 'user-circle',
+                'route' => 'profile.edit',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 2,
+                'section' => 'profile',
+            ],
+        ];
+    }
+
+    /**
+     * Get employee badge count
+     */
+    private function getEmployeeBadge(): ?array
+    {
+        try {
+            $user = Auth::user();
+
+            if (! $user || ! $user->can('view_employees')) {
+                return null;
+            }
+
+            // New employees this month
+            $newEmployees = \App\Models\Employee::where('created_at', '>=', Carbon::now()->startOfMonth())
+                ->count();
+
+            if ($newEmployees > 0) {
+                return [
+                    'count' => $newEmployees,
+                    'type' => 'info',
+                    'label' => __('employees.statistics.new_this_month'),
+                ];
+            }
+
+            return null;
+        } catch (\Exception $e) {
+            \Log::error('Error getting employee badge', ['error' => $e->getMessage()]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Get attendance badge count
+     */
+    private function getAttendanceBadge(): ?array
+    {
+        $user = Auth::user();
+
+        if (! $user->can('view_attendance_own')) {
+            return null;
+        }
+
+        // Pending attendance reviews
+        $pendingReviews = \App\Models\Attendance::whereNull('reviewed_at')
+            ->where('created_at', '>=', Carbon::now()->startOfWeek())
+            ->count();
+
+        if ($pendingReviews > 0) {
+            return [
+                'count' => $pendingReviews,
+                'type' => 'warning',
+                'label' => 'Pending reviews',
+            ];
+        }
+
         return null;
     }
 
     /**
-     * Clear navigation cache
+     * Get leave badge count
      */
-    public function clearCache(?int $userId = null): void
+    private function getLeaveBadge(): ?array
     {
-        if ($userId) {
-            Cache::forget("navigation.main.{$userId}.*");
-            Cache::forget("navigation.bottom.{$userId}.*");
-        } else {
-            // Clear all navigation cache
-            Cache::flush(); // Atau implementasi yang lebih specific
+        $user = Auth::user();
+
+        if (! $user->can('view_leave_all')) {
+            return null;
         }
+
+        // Pending leave requests
+        $pendingLeaves = \App\Models\Leave::where('status', 'pending')
+            ->count();
+
+        if ($pendingLeaves > 0) {
+            return [
+                'count' => $pendingLeaves,
+                'type' => 'info',
+                'label' => 'Pending approvals',
+            ];
+        }
+
+        return null;
     }
 
     /**
-     * Get user favorites dari database/cache
+     * Get security badge count
      */
-    public function getUserFavorites($user): array
+    private function getSecurityBadge(): ?array
     {
-        if (!$user) {
+        $user = Auth::user();
+
+        // High-risk security events in last 7 days
+        $securityEvents = AuditLog::where('user_id', $user->id)
+            ->where('risk_level', 'high')
+            ->where('created_at', '>=', Carbon::now()->subDays(7))
+            ->count();
+
+        if ($securityEvents > 0) {
+            return [
+                'count' => $securityEvents,
+                'type' => 'danger',
+                'label' => 'Security alerts',
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * Get devices badge count
+     */
+    private function getDevicesBadge(): ?array
+    {
+        $user = Auth::user();
+
+        // New untrusted devices
+        $newDevices = UserDevice::where('user_id', $user->id)
+            ->where('is_trusted', false)
+            ->count();
+
+        if ($newDevices > 0) {
+            return [
+                'count' => $newDevices,
+                'type' => 'warning',
+                'label' => 'New devices',
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * Get notifications badge count
+     */
+    private function getNotificationsBadge(): ?array
+    {
+        $user = Auth::user();
+
+        // Unread security notifications
+        $unreadNotifications = $user->unreadNotifications()
+            ->whereIn('type', [
+                'App\Notifications\NewDeviceLogin',
+                'App\Notifications\SecurityAlert',
+                'App\Notifications\SuspiciousActivity',
+            ])
+            ->count();
+
+        if ($unreadNotifications > 0) {
+            return [
+                'count' => $unreadNotifications,
+                'type' => 'info',
+                'label' => 'Unread notifications',
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * Check if current route is active for navigation item
+     */
+    public function isActiveRoute(array $navigationItem): bool
+    {
+        if (! isset($navigationItem['route'])) {
+            return false;
+        }
+
+        $routeName = $navigationItem['route'];
+
+        // Check exact match
+        if (Route::currentRouteName() === $routeName) {
+            return true;
+        }
+
+        // Check pattern match
+        $patterns = [
+            'dashboard' => ['dashboard*'],
+            'attendance.check-in' => ['attendance.check-in*'],
+            'employees.index' => ['employees*'],
+            'departments.index' => ['departments*'],
+            'positions.index' => ['positions*'],
+            'locations.index' => ['locations*'],
+            'schedules.index' => ['schedules*'],
+            'holidays.index' => ['holidays*'],
+            'attendance.index' => ['attendance.index*'],
+            'attendance.realtime' => ['attendance.realtime*'],
+            'attendance.manual' => ['attendance.manual*'],
+            'attendance.overtime' => ['attendance.overtime*'],
+            'leave.index' => ['leave.index*'],
+            'leave.approvals' => ['leave.approvals*'],
+            'leave.balance' => ['leave.balance*'],
+            'leave.types' => ['leave.types*'],
+            'payroll.index' => ['payroll.index*'],
+            'payroll.bulk-calculate' => ['payroll.bulk-calculate*'],
+            'payroll.summary' => ['payroll.summary*'],
+            'payroll.reports' => ['payroll.reports*'],
+            'reports.attendance' => ['reports.attendance*'],
+            'reports.leave' => ['reports.leave*'],
+            'analytics.dashboard' => ['analytics*'],
+            'users.index' => ['users*'],
+            'roles.index' => ['roles*'],
+            'audit.logs' => ['audit*'],
+            'settings.index' => ['settings*'],
+            'backups.index' => ['backups*'],
+            'security.dashboard' => ['security.dashboard*'],
+            'security.devices' => ['security.devices*'],
+            'security.notifications' => ['security.notifications*'],
+            'security.sessions' => ['security.sessions*'],
+            'security.events' => ['security.events*'],
+            'profile.edit' => ['profile*'],
+        ];
+
+        if (isset($patterns[$routeName])) {
+            foreach ($patterns[$routeName] as $pattern) {
+                if (request()->routeIs($pattern)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Get mobile navigation items (simplified for mobile)
+     */
+    public function getMobileNavigation(): array
+    {
+        $user = Auth::user();
+
+        if (! $user) {
             return [];
         }
 
-        return Cache::remember("favorites.{$user->id}", 600, function () use ($user) {
-            // Implementasi untuk get user favorites dari database
-            return [
-                // ['name' => 'Quick Check-in', 'route' => 'attendance.check-in', 'icon' => 'clock'],
-            ];
-        });
+        $role = $user->getRoleNames()->first();
+
+        // Get simplified mobile navigation based on role
+        $mobileNav = match ($role) {
+            'superadmin', 'super_admin' => [
+                ['id' => 'dashboard', 'name' => 'Dashboard', 'icon' => 'home', 'route' => 'dashboard', 'priority' => 1],
+                ['id' => 'users', 'name' => 'Users', 'icon' => 'users', 'route' => 'users.index', 'priority' => 2],
+                ['id' => 'attendance', 'name' => 'Attendance', 'icon' => 'clock', 'route' => 'attendance.index', 'priority' => 3],
+                ['id' => 'security', 'name' => 'Security', 'icon' => 'shield-check', 'route' => 'security.dashboard', 'priority' => 4],
+                ['id' => 'profile', 'name' => 'Profile', 'icon' => 'user', 'route' => 'profile.edit', 'priority' => 5],
+            ],
+            'admin' => [
+                ['id' => 'dashboard', 'name' => 'Dashboard', 'icon' => 'home', 'route' => 'dashboard', 'priority' => 1],
+                ['id' => 'employees', 'name' => 'Employees', 'icon' => 'users', 'route' => 'employees.index', 'priority' => 2],
+                ['id' => 'attendance', 'name' => 'Attendance', 'icon' => 'clock', 'route' => 'attendance.index', 'priority' => 3],
+                ['id' => 'quick_checkin', 'name' => 'Check-in', 'icon' => 'finger-print', 'route' => 'attendance.check-in', 'priority' => 4, 'highlight' => true],
+                ['id' => 'profile', 'name' => 'Profile', 'icon' => 'user', 'route' => 'profile.edit', 'priority' => 5],
+            ],
+            'kepala_sekolah' => [
+                ['id' => 'dashboard', 'name' => 'Dashboard', 'icon' => 'home', 'route' => 'dashboard', 'priority' => 1],
+                ['id' => 'analytics', 'name' => 'Analytics', 'icon' => 'chart-bar', 'route' => 'reports.index', 'priority' => 2],
+                ['id' => 'attendance', 'name' => 'Attendance', 'icon' => 'clock', 'route' => 'attendance.index', 'priority' => 3],
+                ['id' => 'my_attendance', 'name' => 'My Check-in', 'icon' => 'finger-print', 'route' => 'attendance.check-in', 'priority' => 4, 'highlight' => true],
+                ['id' => 'profile', 'name' => 'Profile', 'icon' => 'user', 'route' => 'profile.edit', 'priority' => 5],
+            ],
+            'guru', 'teacher' => [
+                ['id' => 'dashboard', 'name' => 'Dashboard', 'icon' => 'home', 'route' => 'dashboard', 'priority' => 1],
+                ['id' => 'my_attendance', 'name' => 'Check-in', 'icon' => 'finger-print', 'route' => 'attendance.check-in', 'priority' => 2, 'highlight' => true],
+                ['id' => 'my_schedule', 'name' => 'Schedule', 'icon' => 'calendar', 'route' => 'schedules.index', 'priority' => 3],
+                ['id' => 'my_leave', 'name' => 'Leave', 'icon' => 'calendar-days', 'route' => 'leave.index', 'priority' => 4],
+                ['id' => 'profile', 'name' => 'Profile', 'icon' => 'user', 'route' => 'profile.edit', 'priority' => 5],
+            ],
+            'pegawai', 'staff' => [
+                ['id' => 'dashboard', 'name' => 'Dashboard', 'icon' => 'home', 'route' => 'dashboard', 'priority' => 1],
+                ['id' => 'my_attendance', 'name' => 'Check-in', 'icon' => 'finger-print', 'route' => 'attendance.check-in', 'priority' => 2, 'highlight' => true],
+                ['id' => 'my_schedule', 'name' => 'Schedule', 'icon' => 'calendar', 'route' => 'schedules.index', 'priority' => 3],
+                ['id' => 'my_leave', 'name' => 'Leave', 'icon' => 'calendar-days', 'route' => 'leave.index', 'priority' => 4],
+                ['id' => 'profile', 'name' => 'Profile', 'icon' => 'user', 'route' => 'profile.edit', 'priority' => 5],
+            ],
+            default => [
+                ['id' => 'dashboard', 'name' => 'Dashboard', 'icon' => 'home', 'route' => 'dashboard', 'priority' => 1],
+                ['id' => 'profile', 'name' => 'Profile', 'icon' => 'user', 'route' => 'profile.edit', 'priority' => 2],
+            ]
+        };
+
+        // Add badges and proper structure
+        return array_map(function ($item) {
+            $item['badge'] = null;
+            $item['type'] = $item['highlight'] ?? false ? 'primary' : 'single';
+
+            return $item;
+        }, $mobileNav);
     }
 
     /**
-     * Search navigation items
+     * Clear navigation cache for user
      */
-    public function searchNavigation(string $query, $user): array
+    public function clearCache(?User $user = null): void
     {
-        $navigation = $this->getMainNavigation(user: $user);
-        $results = [];
+        $user = $user ?? Auth::user();
 
-        foreach ($navigation as $item) {
-            // Search dalam main items
-            if (stripos($item['name'], $query) !== false) {
-                $results[] = [
-                    'name' => $item['name'],
-                    'href' => $item['href'],
-                    'icon' => $item['icon'],
-                    'type' => 'main',
+        if ($user) {
+            Cache::forget("navigation_user_{$user->id}");
+        }
+    }
+
+    /**
+     * Get live attendance badge count
+     */
+    private function getLiveAttendanceBadge(): ?array
+    {
+        $user = Auth::user();
+
+        if (! $user->can('view_attendance_own')) {
+            return null;
+        }
+
+        // Currently active employees (checked in but not out)
+        $activeEmployees = \App\Models\Attendance::whereDate('date', Carbon::today())
+            ->whereNotNull('check_in')
+            ->whereNull('check_out')
+            ->count();
+
+        if ($activeEmployees > 0) {
+            return [
+                'count' => $activeEmployees,
+                'type' => 'success',
+                'label' => 'Currently active',
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * Get overtime badge count
+     */
+    private function getOvertimeBadge(): ?array
+    {
+        $user = Auth::user();
+
+        if (! $user->can('view_attendance_own')) {
+            return null;
+        }
+
+        // Pending overtime approvals this week
+        $overtimeRequests = \App\Models\Attendance::where('overtime_status', 'pending')
+            ->whereBetween('date', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
+            ->count();
+
+        if ($overtimeRequests > 0) {
+            return [
+                'count' => $overtimeRequests,
+                'type' => 'warning',
+                'label' => 'Pending approvals',
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * Get pending approvals badge count
+     */
+    private function getPendingApprovalsBadge(): ?array
+    {
+        try {
+            $user = Auth::user();
+
+            if (! $user || ! $user->can('approve_leave')) {
+                return null;
+            }
+
+            // Pending leave approvals - simplified to count all pending leaves for now
+            // In a real system, this would be filtered by manager-employee relationships
+            $pendingApprovals = \App\Models\Leave::where('status', 'pending')->count();
+
+            if ($pendingApprovals > 0) {
+                return [
+                    'count' => $pendingApprovals,
+                    'type' => 'warning',
+                    'label' => 'Pending approvals',
                 ];
             }
 
-            // Search dalam children
-            foreach ($item['children'] as $child) {
-                if (stripos($child['name'], $query) !== false) {
-                    $results[] = [
-                        'name' => $child['name'],
-                        'href' => $child['href'],
-                        'icon' => $item['icon'], // Use parent icon
-                        'parent' => $item['name'],
-                        'type' => 'child',
-                    ];
-                }
-            }
-        }
+            return null;
+        } catch (\Exception $e) {
+            \Log::error('Error getting pending approvals badge', ['error' => $e->getMessage()]);
 
-        return $results;
+            return null;
+        }
     }
 
-    private function getSystemAlerts($user): ?array
+    /**
+     * Get payroll badge count
+     */
+    private function getPayrollBadge(): ?array
     {
-        // Get system alerts count (backup failures, performance issues, etc)
-        $alertCount = 0;
-        
-        try {
-            // Check for backup failures (last 24 hours)
-            $backupAlerts = 0; // Could check backup logs
-            
-            // Check for performance issues
-            $performanceAlerts = 0; // Could check performance metrics
-            
-            // Check for pending audit log cleanup
-            if (class_exists('\App\Models\AuditLog')) {
-                $oldLogs = \App\Models\AuditLog::where('created_at', '<', now()->subDays(30))->count();
-                if ($oldLogs > 10000) {
-                    $alertCount++;
-                }
-            }
-            
-            $alertCount += $backupAlerts + $performanceAlerts;
-            
-        } catch (\Exception $e) {
-            // Fail silently for navigation
+        $user = Auth::user();
+
+        if (! $user->can('view_payroll_own') && ! $user->can('view_all_payroll')) {
+            return null;
         }
-        
-        return $alertCount > 0 ? ['count' => $alertCount, 'variant' => 'warning'] : null;
+
+        // Pending payroll for this month
+        $pendingPayroll = \App\Models\Payroll::where('status', 'draft')
+            ->where('period_month', Carbon::now()->month)
+            ->where('period_year', Carbon::now()->year)
+            ->count();
+
+        if ($pendingPayroll > 0) {
+            return [
+                'count' => $pendingPayroll,
+                'type' => 'info',
+                'label' => 'Pending payroll',
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * Get users badge count
+     */
+    private function getUsersBadge(): ?array
+    {
+        $user = Auth::user();
+
+        if (! $user->can('manage_users')) {
+            return null;
+        }
+
+        // New users this week
+        $newUsers = User::where('created_at', '>=', Carbon::now()->startOfWeek())
+            ->count();
+
+        if ($newUsers > 0) {
+            return [
+                'count' => $newUsers,
+                'type' => 'info',
+                'label' => 'New users',
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * Get backup badge count
+     */
+    private function getBackupBadge(): ?array
+    {
+        $user = Auth::user();
+
+        if (! $user->can('manage_backups')) {
+            return null;
+        }
+
+        // Check if last backup is older than 7 days
+        $lastBackup = Cache::get('last_backup_date');
+
+        if (! $lastBackup || Carbon::parse($lastBackup)->lt(Carbon::now()->subDays(7))) {
+            return [
+                'count' => 1,
+                'type' => 'danger',
+                'label' => 'Backup needed',
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * Get security events badge count
+     */
+    private function getSecurityEventsBadge(): ?array
+    {
+        $user = Auth::user();
+
+        if (! $user->can('view_security_logs')) {
+            return null;
+        }
+
+        // High-risk security events in last 24 hours
+        $recentEvents = AuditLog::where('risk_level', 'high')
+            ->where('created_at', '>=', Carbon::now()->subDay())
+            ->count();
+
+        if ($recentEvents > 0) {
+            return [
+                'count' => $recentEvents,
+                'type' => 'danger',
+                'label' => 'High-risk events',
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * Clear navigation cache for all users
+     */
+    public function clearAllCache(): void
+    {
+        Cache::flush();
+    }
+
+    /**
+     * Filter navigation items based on user permissions
+     */
+    private function filterNavigationByPermissions(array $navigation, User $user): array
+    {
+        return array_filter(array_map(function ($item) use ($user) {
+            // For section items with children, filter the children first
+            if (isset($item['children']) && is_array($item['children'])) {
+                $item['children'] = $this->filterNavigationByPermissions($item['children'], $user);
+
+                // Hide section if no children remain after filtering
+                if (empty($item['children'])) {
+                    return null;
+                }
+
+                return $item;
+            }
+
+            // For regular items, check permissions if specified
+            if (isset($item['permission']) && $item['permission'] !== null) {
+                return $user->can($item['permission']) ? $item : null;
+            }
+
+            // Role-based navigation is pre-filtered, so show all items
+            return $item;
+        }, $navigation));
     }
 }

@@ -2,15 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Attendance extends Model
 {
-    use HasFactory, SoftDeletes, HasUuids;
+    use HasFactory, HasUuids, SoftDeletes;
 
     protected $fillable = [
         'employee_id',
@@ -28,22 +28,43 @@ class Attendance extends Model
         'location_verified',
         'check_in_notes',
         'check_out_notes',
-        'metadata'
+        'metadata',
+        'is_manual_entry',
+        'manual_entry_reason',
+        'manual_entry_by',
+        'updated_by',
+        'notes',
+        'check_in',
+        'check_out',
+        'working_hours',
+        'check_in_location',
+        'check_out_location',
+        'check_in_face_confidence',
+        'check_out_face_confidence',
     ];
 
     protected $casts = [
         'date' => 'date',
         'check_in_time' => 'datetime',
         'check_out_time' => 'datetime',
+        'check_in' => 'datetime',
+        'check_out' => 'datetime',
         'total_hours' => 'decimal:2',
+        'working_hours' => 'decimal:2',
         'check_in_confidence' => 'decimal:4',
         'check_out_confidence' => 'decimal:4',
+        'check_in_face_confidence' => 'decimal:4',
+        'check_out_face_confidence' => 'decimal:4',
         'check_in_latitude' => 'decimal:8',
         'check_in_longitude' => 'decimal:8',
         'check_out_latitude' => 'decimal:8',
         'check_out_longitude' => 'decimal:8',
         'location_verified' => 'boolean',
-        'metadata' => 'array'
+        'is_manual_entry' => 'boolean',
+        'metadata' => 'array',
+        'check_in_location' => 'array',
+        'check_out_location' => 'array',
+        'notes' => 'array',
     ];
 
     /**
@@ -52,6 +73,46 @@ class Attendance extends Model
     public function employee()
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    /**
+     * Get the user who made the manual entry.
+     */
+    public function manualEntryBy()
+    {
+        return $this->belongsTo(User::class, 'manual_entry_by');
+    }
+
+    /**
+     * Get the user who last updated the attendance.
+     */
+    public function updatedBy()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    /**
+     * Get holidays for the attendance date
+     */
+    public function holidays()
+    {
+        return Holiday::getHolidaysForDate($this->date);
+    }
+
+    /**
+     * Check if attendance date is a holiday
+     */
+    public function isHoliday()
+    {
+        return Holiday::isHoliday($this->date);
+    }
+
+    /**
+     * Get the primary holiday for this date (if any)
+     */
+    public function primaryHoliday()
+    {
+        return Holiday::getHolidaysForDate($this->date)->first();
     }
 
     /**
@@ -99,7 +160,7 @@ class Attendance extends Model
      */
     public function isCheckedIn()
     {
-        return !is_null($this->check_in_time) && is_null($this->check_out_time);
+        return ! is_null($this->check_in_time) && is_null($this->check_out_time);
     }
 
     /**
@@ -107,7 +168,7 @@ class Attendance extends Model
      */
     public function isCheckedOut()
     {
-        return !is_null($this->check_in_time) && !is_null($this->check_out_time);
+        return ! is_null($this->check_in_time) && ! is_null($this->check_out_time);
     }
 
     /**
@@ -118,8 +179,10 @@ class Attendance extends Model
         if ($this->check_in_time && $this->check_out_time) {
             $checkIn = Carbon::parse($this->check_in_time);
             $checkOut = Carbon::parse($this->check_out_time);
+
             return $checkOut->diffInMinutes($checkIn) / 60;
         }
+
         return 0;
     }
 
@@ -130,6 +193,7 @@ class Attendance extends Model
     {
         $this->total_hours = $this->calculateTotalHours();
         $this->save();
+
         return $this->total_hours;
     }
 
@@ -138,22 +202,22 @@ class Attendance extends Model
      */
     public function determineStatus()
     {
-        if (!$this->check_in_time) {
+        if (! $this->check_in_time) {
             return 'absent';
         }
 
-        if (!$this->check_out_time) {
+        if (! $this->check_out_time) {
             return 'incomplete';
         }
 
         // Basic status determination - can be enhanced with business rules
         $checkInTime = Carbon::parse($this->check_in_time);
-        $standardStartTime = Carbon::parse($this->date->format('Y-m-d') . ' 09:00:00');
-        $standardEndTime = Carbon::parse($this->date->format('Y-m-d') . ' 17:00:00');
+        $standardStartTime = Carbon::parse($this->date->format('Y-m-d').' 09:00:00');
+        $standardEndTime = Carbon::parse($this->date->format('Y-m-d').' 17:00:00');
 
         $isLate = $checkInTime->isAfter($standardStartTime->addMinutes(15));
-        $isEarlyDeparture = $this->check_out_time && 
-            Carbon::parse($this->check_out_time)->isBefore($standardEndTime);
+        $isEarlyDeparture =
+          $this->check_out_time && Carbon::parse($this->check_out_time)->isBefore($standardEndTime);
 
         if ($isLate && $isEarlyDeparture) {
             return 'late'; // Could be 'late_and_early' if you want more granular status
@@ -173,6 +237,7 @@ class Attendance extends Model
     {
         $this->status = $this->determineStatus();
         $this->save();
+
         return $this->status;
     }
 
@@ -197,7 +262,7 @@ class Attendance extends Model
      */
     public function getWorkingHoursFormattedAttribute()
     {
-        if (!$this->total_hours) {
+        if (! $this->total_hours) {
             return '0h 0m';
         }
 
@@ -212,13 +277,13 @@ class Attendance extends Model
      */
     public function getStatusColorAttribute()
     {
-        return match($this->status) {
+        return match ($this->status) {
             'present' => 'success',
             'absent' => 'danger',
             'late' => 'warning',
             'early_departure' => 'info',
             'incomplete' => 'secondary',
-            default => 'secondary'
+            default => 'secondary',
         };
     }
 
@@ -233,9 +298,10 @@ class Attendance extends Model
     /**
      * Verify location against employee's assigned location.
      */
-    public function verifyLocation($latitude, $longitude, $maxDistance = 100) // 100 meters default
+    public function verifyLocation($latitude, $longitude, $maxDistance = 100)
     {
-        if (!$this->requiresLocationVerification()) {
+        // 100 meters default
+        if (! $this->requiresLocationVerification()) {
             return true;
         }
 
@@ -249,9 +315,7 @@ class Attendance extends Model
      */
     public static function getTodayAttendance($employeeId)
     {
-        return static::where('employee_id', $employeeId)
-                    ->today()
-                    ->first();
+        return static::where('employee_id', $employeeId)->today()->first();
     }
 
     /**
@@ -262,11 +326,11 @@ class Attendance extends Model
         return static::firstOrCreate(
             [
                 'employee_id' => $employeeId,
-                'date' => today()
+                'date' => today(),
             ],
             [
-                'status' => 'incomplete'
-            ]
+                'status' => 'incomplete',
+            ],
         );
     }
 }

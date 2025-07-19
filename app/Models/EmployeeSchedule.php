@@ -2,14 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class EmployeeSchedule extends Model
 {
-    use HasFactory, SoftDeletes, HasUuids;
+    use HasFactory, HasUuids, SoftDeletes;
 
     protected $fillable = [
         'employee_id',
@@ -17,14 +17,14 @@ class EmployeeSchedule extends Model
         'effective_date',
         'end_date',
         'is_active',
-        'metadata'
+        'metadata',
     ];
 
     protected $casts = [
         'effective_date' => 'date',
         'end_date' => 'date',
         'is_active' => 'boolean',
-        'metadata' => 'array'
+        'metadata' => 'array',
     ];
 
     /**
@@ -57,11 +57,10 @@ class EmployeeSchedule extends Model
     public function scopeCurrent($query)
     {
         $today = now()->toDateString();
-        return $query->where('effective_date', '<=', $today)
-                    ->where(function ($q) use ($today) {
-                        $q->whereNull('end_date')
-                          ->orWhere('end_date', '>=', $today);
-                    });
+
+        return $query->where('effective_date', '<=', $today)->where(function ($q) use ($today) {
+            $q->whereNull('end_date')->orWhere('end_date', '>=', $today);
+        });
     }
 
     /**
@@ -70,8 +69,9 @@ class EmployeeSchedule extends Model
     public function isCurrentlyActive()
     {
         $today = now()->toDateString();
-        return $this->is_active
-            && $this->effective_date <= $today
-            && (is_null($this->end_date) || $this->end_date >= $today);
+
+        return $this->is_active &&
+          $this->effective_date <= $today &&
+          (is_null($this->end_date) || $this->end_date >= $today);
     }
 }

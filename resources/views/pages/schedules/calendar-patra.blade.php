@@ -1,4 +1,4 @@
-@extends('layouts.authenticated')
+@extends('layouts.authenticated-unified')
 
 @section('title', 'Penyusunan Jadwal Mengajar Guru')
 
@@ -36,7 +36,7 @@
 
     <div class="max-w-full space-y-8">
         <!-- Quick Actions Header -->
-        <x-layouts.glass-card class="p-6">
+        <x-layouts.simple-card class="p-6">
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div>
                     <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
@@ -63,10 +63,10 @@
                     </x-ui.button>
                 </div>
             </div>
-        </x-layouts.glass-card>
+        </x-layouts.simple-card>
 
         <!-- Teacher Selection -->
-        <x-layouts.glass-card class="p-6">
+        <x-layouts.simple-card class="p-6">
             <div class="mb-6">
                 <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
                     <svg class="w-6 h-6 mr-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -100,10 +100,10 @@
                     <strong id="current-teacher" class="text-emerald-800 dark:text-emerald-200">BELUM DISET</strong>
                 </span>
             </div>
-        </x-layouts.glass-card>
+        </x-layouts.simple-card>
 
         <!-- Action Buttons -->
-        <x-layouts.glass-card class="p-6">
+        <x-layouts.simple-card class="p-6">
             <div class="mb-4">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Manage Schedules</h3>
                 <p class="text-sm text-gray-600 dark:text-gray-300">Save, load, dan export jadwal yang sudah dibuat</p>
@@ -144,10 +144,10 @@
                     Reset Data
                 </x-ui.button>
             </div>
-        </x-layouts.glass-card>
+        </x-layouts.simple-card>
 
         <!-- Schedule Grid -->
-        <x-layouts.glass-card padding="none" class="overflow-hidden">
+        <x-layouts.simple-card padding="none" class="overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full border-collapse" style="min-width: 1000px;">
                 <!-- Header -->
@@ -236,10 +236,10 @@
                 </tfoot>
             </table>
         </div>
-        </x-layouts.glass-card>
+        </x-layouts.simple-card>
 
         <!-- Instructions -->
-        <x-layouts.glass-card class="p-6">
+        <x-layouts.simple-card class="p-6">
             <div class="mb-6">
                 <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
                     <svg class="w-6 h-6 mr-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -286,7 +286,7 @@
                     </div>
                 </li>
             </ol>
-        </x-layouts.glass-card>
+        </x-layouts.simple-card>
     </div>
 </x-layouts.page-base>
 

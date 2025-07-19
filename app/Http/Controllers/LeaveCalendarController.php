@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Employee;
 use App\Models\Leave;
 use App\Models\LeaveType;
-use App\Models\Employee;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class LeaveCalendarController extends Controller
 {
@@ -18,7 +17,7 @@ class LeaveCalendarController extends Controller
     {
         $leaveTypes = LeaveType::active()->get();
         $employees = collect(); // Empty for employee view
-        
+
         return view('pages.leave.calendar', compact('leaveTypes', 'employees'));
     }
 
@@ -28,17 +27,15 @@ class LeaveCalendarController extends Controller
     public function manager()
     {
         // Check if user has permission to view all leaves
-        if (!auth()->user()->can('approve_leave')) {
-            return redirect()->route('leave.calendar')
+        if (! auth()->user()->can('approve_leave')) {
+            return redirect()
+                ->route('leave.calendar')
                 ->with('error', 'You do not have permission to view team leaves.');
         }
 
         $leaveTypes = LeaveType::active()->get();
-        $employees = Employee::with('user')
-            ->where('is_active', true)
-            ->orderBy('first_name')
-            ->get();
-        
+        $employees = Employee::with('user')->where('is_active', true)->orderBy('first_name')->get();
+
         return view('pages.leave.calendar-manager', compact('leaveTypes', 'employees'));
     }
 
@@ -48,13 +45,12 @@ class LeaveCalendarController extends Controller
     public function getCalendarData(Request $request)
     {
         $employeeId = auth()->user()->employee?->id;
-        
-        if (!$employeeId) {
+
+        if (! $employeeId) {
             return response()->json([]);
         }
 
-        $query = Leave::with(['leaveType', 'employee.user'])
-            ->where('employee_id', $employeeId);
+        $query = Leave::with(['leaveType', 'employee.user'])->where('employee_id', $employeeId);
 
         return $this->buildCalendarResponse($query, $request);
     }
@@ -65,7 +61,7 @@ class LeaveCalendarController extends Controller
     public function getManagerCalendarData(Request $request)
     {
         // Check if user has permission to view all leaves
-        if (!auth()->user()->can('approve_leave')) {
+        if (! auth()->user()->can('approve_leave')) {
             return response()->json([]);
         }
 
@@ -96,14 +92,13 @@ class LeaveCalendarController extends Controller
         if ($request->has('start') && $request->has('end')) {
             $startDate = Carbon::parse($request->start)->startOfDay();
             $endDate = Carbon::parse($request->end)->endOfDay();
-            
-            $query->where(function($q) use ($startDate, $endDate) {
+
+            $query->where(function ($q) use ($startDate, $endDate) {
                 $q->whereBetween('start_date', [$startDate, $endDate])
-                  ->orWhereBetween('end_date', [$startDate, $endDate])
-                  ->orWhere(function($subQuery) use ($startDate, $endDate) {
-                      $subQuery->where('start_date', '<=', $startDate)
-                               ->where('end_date', '>=', $endDate);
-                  });
+                    ->orWhereBetween('end_date', [$startDate, $endDate])
+                    ->orWhere(function ($subQuery) use ($startDate, $endDate) {
+                        $subQuery->where('start_date', '<=', $startDate)->where('end_date', '>=', $endDate);
+                    });
             });
         }
 
@@ -114,7 +109,7 @@ class LeaveCalendarController extends Controller
             // Create a single event for the entire leave period
             $events[] = [
                 'id' => $leave->id,
-                'title' => $leave->employee->full_name . ' - ' . $leave->leaveType->name,
+                'title' => $leave->employee->full_name.' - '.$leave->leaveType->name,
                 'start' => $leave->start_date->format('Y-m-d'),
                 'end' => $leave->end_date->addDay()->format('Y-m-d'), // FullCalendar expects end date to be exclusive
                 'allDay' => true,
@@ -139,8 +134,8 @@ class LeaveCalendarController extends Controller
                     'is_emergency' => $leave->is_emergency,
                     'approved_by' => $leave->approver ? $leave->approver->full_name : null,
                     'approved_at' => $leave->approved_at ? $leave->approved_at->format('Y-m-d H:i:s') : null,
-                    'can_be_cancelled' => $leave->canBeCancelled()
-                ]
+                    'can_be_cancelled' => $leave->canBeCancelled(),
+                ],
             ];
         }
 
@@ -154,10 +149,10 @@ class LeaveCalendarController extends Controller
     {
         // Priority 1: Status-based colors
         $statusColors = [
-            Leave::STATUS_PENDING => '#ffc107',    // Warning yellow
-            Leave::STATUS_APPROVED => '#28a745',   // Success green
-            Leave::STATUS_REJECTED => '#dc3545',   // Danger red
-            Leave::STATUS_CANCELLED => '#6c757d'   // Secondary gray
+            Leave::STATUS_PENDING => '#ffc107', // Warning yellow
+            Leave::STATUS_APPROVED => '#28a745', // Success green
+            Leave::STATUS_REJECTED => '#dc3545', // Danger red
+            Leave::STATUS_CANCELLED => '#6c757d', // Secondary gray
         ];
 
         if (isset($statusColors[$leave->status])) {
@@ -166,16 +161,17 @@ class LeaveCalendarController extends Controller
 
         // Priority 2: Leave type-based colors (fallback)
         $typeColors = [
-            'annual' => '#007bff',      // Blue
-            'sick' => '#fd7e14',        // Orange
-            'personal' => '#6f42c1',    // Purple
-            'maternity' => '#e83e8c',   // Pink
-            'paternity' => '#20c997',   // Teal
-            'emergency' => '#dc3545',   // Red
-            'bereavement' => '#343a40'  // Dark
+            'annual' => '#007bff', // Blue
+            'sick' => '#fd7e14', // Orange
+            'personal' => '#6f42c1', // Purple
+            'maternity' => '#e83e8c', // Pink
+            'paternity' => '#20c997', // Teal
+            'emergency' => '#dc3545', // Red
+            'bereavement' => '#343a40', // Dark
         ];
 
         $typeCode = strtolower($leave->leaveType->code);
+
         return $typeColors[$typeCode] ?? '#17a2b8'; // Default info color
     }
 
@@ -198,7 +194,7 @@ class LeaveCalendarController extends Controller
             $canView = true;
         }
 
-        if (!$canView) {
+        if (! $canView) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
@@ -221,12 +217,14 @@ class LeaveCalendarController extends Controller
                 'reason' => $leave->reason,
                 'is_emergency' => $leave->is_emergency,
                 'approved_by' => $leave->approver ? $leave->approver->full_name : null,
-                'approved_at' => $leave->approved_at ? $leave->approved_at->format('M j, Y \a\t H:i') : null,
+                'approved_at' => $leave->approved_at
+                  ? $leave->approved_at->format('M j, Y \a\t H:i')
+                  : null,
                 'approval_notes' => $leave->approval_notes,
                 'rejection_reason' => $leave->rejection_reason,
                 'can_be_cancelled' => $leave->canBeCancelled(),
-                'created_at' => $leave->created_at->format('M j, Y \a\t H:i')
-            ]
+                'created_at' => $leave->created_at->format('M j, Y \a\t H:i'),
+            ],
         ]);
     }
 
@@ -236,14 +234,14 @@ class LeaveCalendarController extends Controller
     public function getLeaveStats(Request $request)
     {
         $user = auth()->user();
-        
+
         // For employees, show their own stats
-        if (!$user->can('approve_leave') && $user->employee) {
+        if (! $user->can('approve_leave') && $user->employee) {
             $employeeId = $user->employee->id;
             $query = Leave::where('employee_id', $employeeId);
-        } 
+        }
         // For managers, show team/all stats
-        else if ($user->can('approve_leave')) {
+        elseif ($user->can('approve_leave')) {
             $query = Leave::query();
         } else {
             return response()->json(['error' => 'Unauthorized'], 403);
@@ -259,13 +257,17 @@ class LeaveCalendarController extends Controller
             'approved_leaves' => $query->clone()->where('status', Leave::STATUS_APPROVED)->count(),
             'rejected_leaves' => $query->clone()->where('status', Leave::STATUS_REJECTED)->count(),
             'cancelled_leaves' => $query->clone()->where('status', Leave::STATUS_CANCELLED)->count(),
-            'active_leaves' => $query->clone()->where('status', Leave::STATUS_APPROVED)
+            'active_leaves' => $query
+                ->clone()
+                ->where('status', Leave::STATUS_APPROVED)
                 ->where('start_date', '<=', now())
                 ->where('end_date', '>=', now())
                 ->count(),
-            'upcoming_leaves' => $query->clone()->where('status', Leave::STATUS_APPROVED)
+            'upcoming_leaves' => $query
+                ->clone()
+                ->where('status', Leave::STATUS_APPROVED)
                 ->where('start_date', '>', now())
-                ->count()
+                ->count(),
         ];
 
         return response()->json($stats);

@@ -5,27 +5,30 @@
         <!-- Header -->
         <div class="modal-header">
           <div class="header-icon">
-            <Icon name="key" class="w-8 h-8 text-amber-600" />
+            <Icon name="key" class="h-8 w-8 text-amber-600" />
           </div>
           <h2 class="modal-title">
             {{ isNew ? 'Save Your Recovery Codes' : 'Recovery Codes' }}
           </h2>
           <p class="modal-subtitle">
-            {{ isNew 
-              ? 'Store these codes in a safe place. You can use them to access your account if you lose your phone.'
-              : 'These are your backup codes for account recovery.'
+            {{
+              isNew
+                ? 'Store these codes in a safe place. You can use them to access your account if you lose your phone.'
+                : 'These are your backup codes for account recovery.'
             }}
           </p>
-          <button @click="closeModal" class="close-button">
-            <Icon name="x" class="w-5 h-5" />
+          <button class="close-button" @click="closeModal">
+            <Icon name="x" class="h-5 w-5" />
           </button>
         </div>
 
         <!-- Warning Notice -->
         <div v-if="isNew" class="warning-notice">
-          <Icon name="exclamation-triangle" class="w-5 h-5 text-amber-600" />
+          <Icon name="exclamation-triangle" class="h-5 w-5 text-amber-600" />
           <div>
-            <h4 class="warning-title">Important Security Information</h4>
+            <h4 class="warning-title">
+              Important Security Information
+            </h4>
             <ul class="warning-list">
               <li>Each code can only be used once</li>
               <li>Store them in a secure location (password manager, safe, etc.)</li>
@@ -42,66 +45,70 @@
               Recovery Codes ({{ codes.length }} {{ isNew ? 'generated' : 'remaining' }})
             </h3>
             <div class="codes-actions-top">
-              <button @click="copyAllCodes" class="action-btn copy">
-                <Icon name="copy" class="w-4 h-4" />
+              <button class="action-btn copy" @click="copyAllCodes">
+                <Icon name="copy" class="h-4 w-4" />
                 Copy All
               </button>
-              <button @click="printCodes" class="action-btn print">
-                <Icon name="printer" class="w-4 h-4" />
+              <button class="action-btn print" @click="printCodes">
+                <Icon name="printer" class="h-4 w-4" />
                 Print
               </button>
             </div>
           </div>
 
           <div class="codes-grid">
-            <div 
-              v-for="(code, index) in codes" 
+            <div
+              v-for="(code, index) in codes"
               :key="index"
               class="code-item"
-              :class="{ 'used': code.used }"
+              :class="{ used: code.used }"
             >
-              <div class="code-number">{{ index + 1 }}</div>
+              <div class="code-number">
+                {{ index + 1 }}
+              </div>
               <div class="code-value">
                 <code class="code-text">{{ formatCode(code.code || code) }}</code>
-                <button 
-                  @click="copyCode(code.code || code)" 
+                <button
                   class="copy-code-btn"
                   :title="'Copy code ' + (index + 1)"
+                  @click="copyCode(code.code || code)"
                 >
-                  <Icon name="copy" class="w-3 h-3" />
+                  <Icon name="copy" class="h-3 w-3" />
                 </button>
               </div>
               <div v-if="code.used" class="used-indicator">
-                <Icon name="check" class="w-3 h-3" />
+                <Icon name="check" class="h-3 w-3" />
                 <span class="used-text">Used</span>
               </div>
             </div>
           </div>
 
           <div v-if="codes.length === 0" class="no-codes">
-            <Icon name="key" class="w-8 h-8 text-gray-400" />
+            <Icon name="key" class="h-8 w-8 text-gray-400" />
             <p>No recovery codes available</p>
           </div>
         </div>
 
         <!-- Download Section -->
         <div v-if="isNew" class="download-section">
-          <h4 class="download-title">Save These Codes</h4>
+          <h4 class="download-title">
+            Save These Codes
+          </h4>
           <p class="download-description">
             Choose how you'd like to save your recovery codes:
           </p>
-          
+
           <div class="download-options">
-            <button @click="downloadAsText" class="download-btn">
-              <Icon name="file-text" class="w-5 h-5" />
+            <button class="download-btn" @click="downloadAsText">
+              <Icon name="file-text" class="h-5 w-5" />
               <div class="download-info">
                 <h5>Download as Text File</h5>
                 <p>Plain text file for password managers</p>
               </div>
             </button>
-            
-            <button @click="downloadAsPDF" class="download-btn">
-              <Icon name="file" class="w-5 h-5" />
+
+            <button class="download-btn" @click="downloadAsPDF">
+              <Icon name="file" class="h-5 w-5" />
               <div class="download-info">
                 <h5>Download as PDF</h5>
                 <p>Formatted document for printing</p>
@@ -114,12 +121,8 @@
         <div class="modal-footer">
           <div v-if="isNew" class="confirmation-section">
             <label class="confirmation-checkbox">
-              <input
-                v-model="confirmed"
-                type="checkbox"
-                class="checkbox-input"
-              />
-              <div class="checkbox-custom"></div>
+              <input v-model="confirmed" type="checkbox" class="checkbox-input">
+              <div class="checkbox-custom" />
               <span class="checkbox-label">
                 I have saved these recovery codes in a secure location
               </span>
@@ -127,20 +130,16 @@
           </div>
 
           <div class="footer-actions">
-            <button 
-              v-if="!isNew" 
-              @click="closeModal" 
-              class="btn-secondary"
-            >
+            <button v-if="!isNew" class="btn-secondary" @click="closeModal">
               Close
             </button>
-            <button 
+            <button
               v-else
-              @click="closeModal" 
               class="btn-primary"
               :disabled="!confirmed"
+              @click="closeModal"
             >
-              <Icon name="check" class="w-4 h-4" />
+              <Icon name="check" class="h-4 w-4" />
               I've Saved My Codes
             </button>
           </div>
@@ -153,7 +152,7 @@
             <p>Account: {{ userEmail }}</p>
             <p>Generated: {{ new Date().toLocaleString() }}</p>
           </div>
-          
+
           <div class="print-warning">
             <h2>⚠️ Important Security Information</h2>
             <ul>
@@ -186,20 +185,20 @@ import { useToast } from '@/composables/useToast'
 const props = defineProps({
   codes: {
     type: Array,
-    required: true
+    required: true,
   },
   isNew: {
     type: Boolean,
-    default: false
+    default: false,
   },
   userEmail: {
     type: String,
-    default: 'user@example.com'
+    default: 'user@example.com',
   },
   serviceName: {
     type: String,
-    default: 'Attendance System'
-  }
+    default: 'Attendance System',
+  },
 })
 
 // Emits
@@ -228,7 +227,7 @@ const handleBackdropClick = () => {
 }
 
 const formatCode = (code) => {
-  if (!code) return ''
+  if (!code) {return ''}
   // Format as XXXX-XXXX for better readability
   return code.replace(/(.{4})/g, '$1-').slice(0, -1)
 }
@@ -250,7 +249,7 @@ const copyCode = async (code) => {
 }
 
 const copyAllCodes = async () => {
-  const allCodes = props.codes.map(code => code.code || code).join('\n')
+  const allCodes = props.codes.map((code) => code.code || code).join('\n')
   try {
     await navigator.clipboard.writeText(allCodes)
     toast.success('All codes copied to clipboard')
@@ -277,7 +276,7 @@ const downloadAsText = () => {
     '- Contact support if you lose access to all codes',
     '',
     'Recovery Codes:',
-    ...props.codes.map((code, index) => `${index + 1}. ${code.code || code}`)
+    ...props.codes.map((code, index) => `${index + 1}. ${code.code || code}`),
   ].join('\n')
 
   const blob = new Blob([content], { type: 'text/plain' })
@@ -298,7 +297,7 @@ const downloadAsPDF = () => {
   // Simple PDF generation using the print template
   const printWindow = window.open('', '_blank')
   const printContent = printTemplate.value.innerHTML
-  
+
   printWindow.document.write(`
     <html>
       <head>
@@ -321,10 +320,10 @@ const downloadAsPDF = () => {
       <body>${printContent}</body>
     </html>
   `)
-  
+
   printWindow.document.close()
   printWindow.focus()
-  
+
   setTimeout(() => {
     printWindow.print()
     printWindow.close()
@@ -345,37 +344,41 @@ const printCodes = () => {
 }
 
 .modal-backdrop {
-  @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4;
+  @apply fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4;
   animation: fadeIn 0.3s ease-out;
 }
 
 .modal-content {
-  @apply bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-screen overflow-y-auto;
+  @apply max-h-screen w-full max-w-2xl overflow-y-auto rounded-lg bg-white shadow-xl;
   animation: slideIn 0.3s ease-out;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideIn {
-  from { 
-    opacity: 0; 
-    transform: translateY(20px) scale(0.95); 
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
   }
-  to { 
-    opacity: 1; 
-    transform: translateY(0) scale(1); 
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
 .modal-header {
-  @apply relative p-6 border-b border-gray-200 text-center;
+  @apply relative border-b border-gray-200 p-6 text-center;
 }
 
 .header-icon {
-  @apply flex justify-center mb-4;
+  @apply mb-4 flex justify-center;
 }
 
 .modal-title {
@@ -383,29 +386,27 @@ const printCodes = () => {
 }
 
 .modal-subtitle {
-  @apply text-gray-600 mt-2;
+  @apply mt-2 text-gray-600;
 }
 
 .close-button {
-  @apply absolute top-4 right-4 text-gray-400 hover:text-gray-600 
-         transition-colors duration-200;
+  @apply absolute right-4 top-4 text-gray-400 transition-colors duration-200 hover:text-gray-600;
 }
 
 .warning-notice {
-  @apply mx-6 mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg 
-         flex items-start space-x-3;
+  @apply mx-6 mt-6 flex items-start space-x-3 rounded-lg border border-amber-200 bg-amber-50 p-4;
 }
 
 .warning-title {
-  @apply font-medium text-amber-900 mb-2;
+  @apply mb-2 font-medium text-amber-900;
 }
 
 .warning-list {
-  @apply text-sm text-amber-800 space-y-1 list-disc list-inside;
+  @apply list-inside list-disc space-y-1 text-sm text-amber-800;
 }
 
 .codes-section {
-  @apply p-6 space-y-4;
+  @apply space-y-4 p-6;
 }
 
 .codes-header {
@@ -421,35 +422,31 @@ const printCodes = () => {
 }
 
 .action-btn {
-  @apply inline-flex items-center space-x-1 px-3 py-1 text-sm font-medium 
-         border border-gray-300 rounded-lg hover:bg-gray-50 
-         transition-colors duration-200;
+  @apply inline-flex items-center space-x-1 rounded-lg border border-gray-300 px-3 py-1 text-sm font-medium transition-colors duration-200 hover:bg-gray-50;
 }
 
 .action-btn.copy {
-  @apply text-blue-700 border-blue-300 hover:bg-blue-50;
+  @apply border-blue-300 text-blue-700 hover:bg-blue-50;
 }
 
 .action-btn.print {
-  @apply text-green-700 border-green-300 hover:bg-green-50;
+  @apply border-green-300 text-green-700 hover:bg-green-50;
 }
 
 .codes-grid {
-  @apply grid grid-cols-1 sm:grid-cols-2 gap-3;
+  @apply grid grid-cols-1 gap-3 sm:grid-cols-2;
 }
 
 .code-item {
-  @apply flex items-center space-x-3 p-3 border border-gray-200 rounded-lg 
-         bg-gray-50 transition-all duration-200;
+  @apply flex items-center space-x-3 rounded-lg border border-gray-200 bg-gray-50 p-3 transition-all duration-200;
 }
 
 .code-item.used {
-  @apply bg-red-50 border-red-200 opacity-60;
+  @apply border-red-200 bg-red-50 opacity-60;
 }
 
 .code-number {
-  @apply w-6 h-6 bg-blue-600 text-white text-sm font-medium rounded-full 
-         flex items-center justify-center flex-shrink-0;
+  @apply flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-medium text-white;
 }
 
 .code-item.used .code-number {
@@ -457,7 +454,7 @@ const printCodes = () => {
 }
 
 .code-value {
-  @apply flex-1 flex items-center space-x-2;
+  @apply flex flex-1 items-center space-x-2;
 }
 
 .code-text {
@@ -465,23 +462,23 @@ const printCodes = () => {
 }
 
 .code-item.used .code-text {
-  @apply line-through text-gray-500;
+  @apply text-gray-500 line-through;
 }
 
 .copy-code-btn {
-  @apply text-gray-400 hover:text-gray-600 transition-colors duration-200;
+  @apply text-gray-400 transition-colors duration-200 hover:text-gray-600;
 }
 
 .used-indicator {
-  @apply flex items-center space-x-1 text-xs text-red-600 font-medium;
+  @apply flex items-center space-x-1 text-xs font-medium text-red-600;
 }
 
 .no-codes {
-  @apply text-center py-8 text-gray-500 space-y-2;
+  @apply space-y-2 py-8 text-center text-gray-500;
 }
 
 .download-section {
-  @apply mx-6 mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-4;
+  @apply mx-6 mb-6 space-y-4 rounded-lg border border-blue-200 bg-blue-50 p-4;
 }
 
 .download-title {
@@ -497,9 +494,7 @@ const printCodes = () => {
 }
 
 .download-btn {
-  @apply w-full flex items-start space-x-3 p-3 bg-white border border-blue-200 
-         rounded-lg hover:border-blue-300 hover:bg-blue-50 
-         transition-all duration-200 text-left;
+  @apply flex w-full items-start space-x-3 rounded-lg border border-blue-200 bg-white p-3 text-left transition-all duration-200 hover:border-blue-300 hover:bg-blue-50;
 }
 
 .download-info h5 {
@@ -507,11 +502,11 @@ const printCodes = () => {
 }
 
 .download-info p {
-  @apply text-sm text-gray-600 mt-1;
+  @apply mt-1 text-sm text-gray-600;
 }
 
 .modal-footer {
-  @apply p-6 border-t border-gray-200 space-y-4;
+  @apply space-y-4 border-t border-gray-200 p-6;
 }
 
 .confirmation-section {
@@ -519,7 +514,7 @@ const printCodes = () => {
 }
 
 .confirmation-checkbox {
-  @apply flex items-start space-x-3 cursor-pointer;
+  @apply flex cursor-pointer items-start space-x-3;
 }
 
 .checkbox-input {
@@ -527,21 +522,20 @@ const printCodes = () => {
 }
 
 .checkbox-custom {
-  @apply w-4 h-4 border-2 border-gray-300 rounded flex-shrink-0 mt-0.5
-         transition-all duration-200;
+  @apply mt-0.5 h-4 w-4 flex-shrink-0 rounded border-2 border-gray-300 transition-all duration-200;
 }
 
 .checkbox-input:checked + .checkbox-custom {
-  @apply bg-blue-600 border-blue-600;
+  @apply border-blue-600 bg-blue-600;
 }
 
 .checkbox-input:checked + .checkbox-custom::after {
   content: '✓';
-  @apply text-white text-xs flex items-center justify-center;
+  @apply flex items-center justify-center text-xs text-white;
 }
 
 .checkbox-label {
-  @apply text-sm text-gray-700 font-medium;
+  @apply text-sm font-medium text-gray-700;
 }
 
 .footer-actions {
@@ -549,14 +543,11 @@ const printCodes = () => {
 }
 
 .btn-primary {
-  @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 
-         rounded-lg transition-colors duration-200 inline-flex items-center 
-         space-x-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply inline-flex items-center space-x-2 rounded-lg bg-blue-600 px-6 py-2 font-medium text-white transition-colors duration-200 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50;
 }
 
 .btn-secondary {
-  @apply bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 
-         font-medium py-2 px-6 rounded-lg transition-colors duration-200;
+  @apply rounded-lg border border-gray-300 bg-white px-6 py-2 font-medium text-gray-700 transition-colors duration-200 hover:bg-gray-50;
 }
 
 .print-template {
@@ -568,15 +559,15 @@ const printCodes = () => {
   .modal-content {
     @apply m-2;
   }
-  
+
   .codes-grid {
     @apply grid-cols-1;
   }
-  
+
   .codes-header {
     @apply flex-col items-start space-y-2;
   }
-  
+
   .codes-actions-top {
     @apply w-full justify-end;
   }

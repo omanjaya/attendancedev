@@ -8,16 +8,16 @@ class FaceRecognitionAPIService {
     this.baseURL = '/api/face-recognition'
     this.defaultHeaders = {
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'X-Requested-With': 'XMLHttpRequest'
+      Accept: 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
     }
-    
+
     // Add CSRF token if available
     const token = document.querySelector('meta[name="csrf-token"]')
     if (token) {
       this.defaultHeaders['X-CSRF-TOKEN'] = token.getAttribute('content')
     }
-    
+
     this.requestInterceptors = []
     this.responseInterceptors = []
   }
@@ -44,7 +44,7 @@ class FaceRecognitionAPIService {
     const config = {
       method: 'GET',
       headers: { ...this.defaultHeaders },
-      ...options
+      ...options,
     }
 
     // Apply request interceptors
@@ -56,7 +56,7 @@ class FaceRecognitionAPIService {
 
     try {
       const response = await fetch(url, config)
-      
+
       // Apply response interceptors
       for (const interceptor of this.responseInterceptors) {
         if (interceptor.response) {
@@ -87,7 +87,7 @@ class FaceRecognitionAPIService {
   async enrollEmployee(employeeData) {
     return this.request(`${this.baseURL}/employees/enroll`, {
       method: 'POST',
-      body: JSON.stringify(employeeData)
+      body: JSON.stringify(employeeData),
     })
   }
 
@@ -98,13 +98,13 @@ class FaceRecognitionAPIService {
   async updateEmployeeTemplate(employeeId, templateData) {
     return this.request(`${this.baseURL}/employees/${employeeId}/template`, {
       method: 'PUT',
-      body: JSON.stringify(templateData)
+      body: JSON.stringify(templateData),
     })
   }
 
   async deleteEmployeeTemplate(employeeId) {
     return this.request(`${this.baseURL}/employees/${employeeId}/template`, {
-      method: 'DELETE'
+      method: 'DELETE',
     })
   }
 
@@ -119,38 +119,38 @@ class FaceRecognitionAPIService {
   async detectFace(imageData, options = {}) {
     const formData = new FormData()
     formData.append('image', imageData)
-    
-    Object.keys(options).forEach(key => {
+
+    Object.keys(options).forEach((key) => {
       formData.append(key, options[key])
     })
 
     return this.request(`${this.baseURL}/detect`, {
       method: 'POST',
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
         'X-Requested-With': 'XMLHttpRequest',
-        'X-CSRF-TOKEN': this.defaultHeaders['X-CSRF-TOKEN']
+        'X-CSRF-TOKEN': this.defaultHeaders['X-CSRF-TOKEN'],
       },
-      body: formData
+      body: formData,
     })
   }
 
   async recognizeFace(imageData, options = {}) {
     const formData = new FormData()
     formData.append('image', imageData)
-    
-    Object.keys(options).forEach(key => {
+
+    Object.keys(options).forEach((key) => {
       formData.append(key, options[key])
     })
 
     return this.request(`${this.baseURL}/recognize`, {
       method: 'POST',
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
         'X-Requested-With': 'XMLHttpRequest',
-        'X-CSRF-TOKEN': this.defaultHeaders['X-CSRF-TOKEN']
+        'X-CSRF-TOKEN': this.defaultHeaders['X-CSRF-TOKEN'],
       },
-      body: formData
+      body: formData,
     })
   }
 
@@ -158,19 +158,19 @@ class FaceRecognitionAPIService {
     const formData = new FormData()
     formData.append('image', imageData)
     formData.append('employee_id', employeeId)
-    
-    Object.keys(options).forEach(key => {
+
+    Object.keys(options).forEach((key) => {
       formData.append(key, options[key])
     })
 
     return this.request(`${this.baseURL}/verify`, {
       method: 'POST',
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
         'X-Requested-With': 'XMLHttpRequest',
-        'X-CSRF-TOKEN': this.defaultHeaders['X-CSRF-TOKEN']
+        'X-CSRF-TOKEN': this.defaultHeaders['X-CSRF-TOKEN'],
       },
-      body: formData
+      body: formData,
     })
   }
 
@@ -180,7 +180,7 @@ class FaceRecognitionAPIService {
   async startLivenessSession(options = {}) {
     return this.request(`${this.baseURL}/liveness/start`, {
       method: 'POST',
-      body: JSON.stringify(options)
+      body: JSON.stringify(options),
     })
   }
 
@@ -194,18 +194,18 @@ class FaceRecognitionAPIService {
     return this.request(`${this.baseURL}/liveness/gesture`, {
       method: 'POST',
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
         'X-Requested-With': 'XMLHttpRequest',
-        'X-CSRF-TOKEN': this.defaultHeaders['X-CSRF-TOKEN']
+        'X-CSRF-TOKEN': this.defaultHeaders['X-CSRF-TOKEN'],
       },
-      body: formData
+      body: formData,
     })
   }
 
   async completeLivenessSession(sessionId) {
     return this.request(`${this.baseURL}/liveness/complete`, {
       method: 'POST',
-      body: JSON.stringify({ session_id: sessionId })
+      body: JSON.stringify({ session_id: sessionId }),
     })
   }
 
@@ -215,7 +215,7 @@ class FaceRecognitionAPIService {
   async processAttendance(attendanceData) {
     return this.request(`${this.baseURL}/attendance/process`, {
       method: 'POST',
-      body: JSON.stringify(attendanceData)
+      body: JSON.stringify(attendanceData),
     })
   }
 
@@ -243,7 +243,7 @@ class FaceRecognitionAPIService {
   async generateReport(reportType, options = {}) {
     return this.request(`${this.baseURL}/reports/${reportType}`, {
       method: 'POST',
-      body: JSON.stringify(options)
+      body: JSON.stringify(options),
     })
   }
 
@@ -251,10 +251,10 @@ class FaceRecognitionAPIService {
     const response = await fetch(`${this.baseURL}/reports/${reportId}/export?format=${format}`, {
       method: 'GET',
       headers: {
-        'Accept': 'application/octet-stream',
+        Accept: 'application/octet-stream',
         'X-Requested-With': 'XMLHttpRequest',
-        'X-CSRF-TOKEN': this.defaultHeaders['X-CSRF-TOKEN']
-      }
+        'X-CSRF-TOKEN': this.defaultHeaders['X-CSRF-TOKEN'],
+      },
     })
 
     if (!response.ok) {
@@ -274,7 +274,7 @@ class FaceRecognitionAPIService {
   async updateSettings(settings) {
     return this.request(`${this.baseURL}/settings`, {
       method: 'PUT',
-      body: JSON.stringify(settings)
+      body: JSON.stringify(settings),
     })
   }
 
@@ -284,13 +284,13 @@ class FaceRecognitionAPIService {
 
   async runDiagnostics() {
     return this.request(`${this.baseURL}/system/diagnostics`, {
-      method: 'POST'
+      method: 'POST',
     })
   }
 
   async clearCache() {
     return this.request(`${this.baseURL}/system/cache`, {
-      method: 'DELETE'
+      method: 'DELETE',
     })
   }
 
@@ -300,7 +300,7 @@ class FaceRecognitionAPIService {
   async createBackup(options = {}) {
     return this.request(`${this.baseURL}/backup/create`, {
       method: 'POST',
-      body: JSON.stringify(options)
+      body: JSON.stringify(options),
     })
   }
 
@@ -312,10 +312,10 @@ class FaceRecognitionAPIService {
     const response = await fetch(`${this.baseURL}/backup/${backupId}/download`, {
       method: 'GET',
       headers: {
-        'Accept': 'application/octet-stream',
+        Accept: 'application/octet-stream',
         'X-Requested-With': 'XMLHttpRequest',
-        'X-CSRF-TOKEN': this.defaultHeaders['X-CSRF-TOKEN']
-      }
+        'X-CSRF-TOKEN': this.defaultHeaders['X-CSRF-TOKEN'],
+      },
     })
 
     if (!response.ok) {
@@ -327,13 +327,13 @@ class FaceRecognitionAPIService {
 
   async restoreBackup(backupId) {
     return this.request(`${this.baseURL}/backup/${backupId}/restore`, {
-      method: 'POST'
+      method: 'POST',
     })
   }
 
   async deleteBackup(backupId) {
     return this.request(`${this.baseURL}/backup/${backupId}`, {
-      method: 'DELETE'
+      method: 'DELETE',
     })
   }
 
@@ -343,19 +343,19 @@ class FaceRecognitionAPIService {
   async uploadFaceImage(imageBlob, metadata = {}) {
     const formData = new FormData()
     formData.append('image', imageBlob)
-    
-    Object.keys(metadata).forEach(key => {
+
+    Object.keys(metadata).forEach((key) => {
       formData.append(key, metadata[key])
     })
 
     return this.request(`${this.baseURL}/images/upload`, {
       method: 'POST',
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
         'X-Requested-With': 'XMLHttpRequest',
-        'X-CSRF-TOKEN': this.defaultHeaders['X-CSRF-TOKEN']
+        'X-CSRF-TOKEN': this.defaultHeaders['X-CSRF-TOKEN'],
       },
-      body: formData
+      body: formData,
     })
   }
 
@@ -363,10 +363,10 @@ class FaceRecognitionAPIService {
     const response = await fetch(`${this.baseURL}/images/${imageId}`, {
       method: 'GET',
       headers: {
-        'Accept': 'image/*',
+        Accept: 'image/*',
         'X-Requested-With': 'XMLHttpRequest',
-        'X-CSRF-TOKEN': this.defaultHeaders['X-CSRF-TOKEN']
-      }
+        'X-CSRF-TOKEN': this.defaultHeaders['X-CSRF-TOKEN'],
+      },
     })
 
     if (!response.ok) {
@@ -378,7 +378,7 @@ class FaceRecognitionAPIService {
 
   async deleteFaceImage(imageId) {
     return this.request(`${this.baseURL}/images/${imageId}`, {
-      method: 'DELETE'
+      method: 'DELETE',
     })
   }
 
@@ -390,8 +390,8 @@ class FaceRecognitionAPIService {
       method: 'POST',
       body: JSON.stringify({
         template_ids: templateIds,
-        updates: updates
-      })
+        updates: updates,
+      }),
     })
   }
 
@@ -399,8 +399,8 @@ class FaceRecognitionAPIService {
     return this.request(`${this.baseURL}/templates/batch-delete`, {
       method: 'POST',
       body: JSON.stringify({
-        template_ids: templateIds
-      })
+        template_ids: templateIds,
+      }),
     })
   }
 
@@ -409,14 +409,14 @@ class FaceRecognitionAPIService {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/octet-stream',
+        Accept: 'application/octet-stream',
         'X-Requested-With': 'XMLHttpRequest',
-        'X-CSRF-TOKEN': this.defaultHeaders['X-CSRF-TOKEN']
+        'X-CSRF-TOKEN': this.defaultHeaders['X-CSRF-TOKEN'],
       },
       body: JSON.stringify({
         template_ids: templateIds,
-        format: format
-      })
+        format: format,
+      }),
     })
 
     if (!response.ok) {
@@ -435,7 +435,7 @@ class FaceRecognitionAPIService {
     }
 
     const eventSource = new EventSource(`${this.baseURL}/stream/updates`)
-    
+
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
@@ -485,13 +485,13 @@ class FaceRecognitionAPIService {
         if (attempt === maxRetries) {
           throw error
         }
-        
+
         // Only retry on network errors or server errors
         if (this.isNetworkError(error) || this.isServerError(error)) {
-          await new Promise(resolve => setTimeout(resolve, delay * attempt))
+          await new Promise((resolve) => setTimeout(resolve, delay * attempt))
           continue
         }
-        
+
         throw error
       }
     }
@@ -504,9 +504,9 @@ class FaceRecognitionAPIService {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest()
       const formData = new FormData()
-      
+
       formData.append('file', file)
-      Object.keys(metadata).forEach(key => {
+      Object.keys(metadata).forEach((key) => {
         formData.append(key, metadata[key])
       })
 
@@ -556,13 +556,13 @@ class FaceRecognitionAPIService {
       return {
         success: true,
         latency: endTime - startTime,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       }
     } catch (error) {
       return {
         success: false,
         error: error.message,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       }
     }
   }
@@ -579,8 +579,9 @@ class FaceRecognitionAPIService {
       if (!imageData.type.startsWith('image/')) {
         throw new Error('Invalid image format')
       }
-      
-      if (imageData.size > 10 * 1024 * 1024) { // 10MB limit
+
+      if (imageData.size > 10 * 1024 * 1024) {
+        // 10MB limit
         throw new Error('Image size too large (max 10MB)')
       }
     }
@@ -590,8 +591,8 @@ class FaceRecognitionAPIService {
 
   validateEmployeeData(employeeData) {
     const required = ['name', 'employee_id']
-    const missing = required.filter(field => !employeeData[field])
-    
+    const missing = required.filter((field) => !employeeData[field])
+
     if (missing.length > 0) {
       throw new Error(`Missing required fields: ${missing.join(', ')}`)
     }
@@ -609,7 +610,7 @@ class FaceRecognitionAPIService {
       duration,
       success,
       timestamp: new Date().toISOString(),
-      user_agent: navigator.userAgent
+      user_agent: navigator.userAgent,
     }
 
     // Send to monitoring service if available
@@ -617,7 +618,9 @@ class FaceRecognitionAPIService {
       window.monitoringService.logAPICall(logData)
     }
 
-    console.log(`API Call: ${method} ${endpoint} - ${duration}ms - ${success ? 'Success' : 'Failed'}`)
+    console.log(
+      `API Call: ${method} ${endpoint} - ${duration}ms - ${success ? 'Success' : 'Failed'}`
+    )
   }
 }
 
@@ -629,13 +632,13 @@ faceRecognitionAPI.addRequestInterceptor({
   request: async (config) => {
     // Add timing
     config.startTime = Date.now()
-    
+
     // Add authentication token if available
     const token = localStorage.getItem('auth_token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
-  }
+  },
 })
 
 faceRecognitionAPI.addResponseInterceptor({
@@ -647,14 +650,19 @@ faceRecognitionAPI.addResponseInterceptor({
   error: async (error) => {
     // Log failed API calls
     const duration = Date.now() - error.config?.startTime || 0
-    faceRecognitionAPI.logAPICall(error.config?.url || 'unknown', error.config?.method || 'GET', duration, false)
-    
+    faceRecognitionAPI.logAPICall(
+      error.config?.url || 'unknown',
+      error.config?.method || 'GET',
+      duration,
+      false
+    )
+
     // Handle specific error types
     if (faceRecognitionAPI.isAuthError(error)) {
       // Redirect to login or refresh token
       window.location.href = '/login'
     }
-  }
+  },
 })
 
 export default faceRecognitionAPI

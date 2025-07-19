@@ -100,19 +100,19 @@ class UserDevice extends Model
         }
 
         $parts = [];
-        
+
         if ($this->browser_name) {
             $parts[] = $this->browser_name;
         }
-        
+
         if ($this->os_name) {
             $parts[] = "on {$this->os_name}";
         }
-        
+
         if (empty($parts)) {
-            return ucfirst($this->device_type) . ' Device';
+            return ucfirst($this->device_type).' Device';
         }
-        
+
         return implode(' ', $parts);
     }
 

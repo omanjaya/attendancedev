@@ -1,17 +1,14 @@
-const CACHE_NAME = 'attendance-app-v1.1.0';
-const STATIC_CACHE_NAME = 'attendance-static-v1.1.0';
-const DYNAMIC_CACHE_NAME = 'attendance-dynamic-v1.1.0';
-const IMAGE_CACHE_NAME = 'attendance-images-v1.1.0';
+const CACHE_NAME = 'attendance-app-v1.1.1';
+const STATIC_CACHE_NAME = 'attendance-static-v1.1.1';
+const DYNAMIC_CACHE_NAME = 'attendance-dynamic-v1.1.1';
+const IMAGE_CACHE_NAME = 'attendance-images-v1.1.1';
 
 // Critical static assets for immediate caching
 const STATIC_ASSETS = [
   '/',
-  '/css/app.css',
-  '/js/app.js',
   '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png',
   '/offline.html'
+  // Note: Vite assets are dynamically generated and will be cached on-demand
 ];
 
 // Routes for dynamic caching
@@ -45,7 +42,7 @@ const API_CACHE_PATTERNS = [
 
 // Install event - cache critical resources
 self.addEventListener('install', event => {
-  console.log('Service Worker: Installing v1.1.0');
+  console.log('Service Worker: Installing v1.1.1');
   
   event.waitUntil(
     Promise.all([
@@ -72,7 +69,7 @@ self.addEventListener('install', event => {
 
 // Activate event - clean up old caches and claim clients
 self.addEventListener('activate', event => {
-  console.log('Service Worker: Activating v1.1.0');
+  console.log('Service Worker: Activating v1.1.1');
   
   event.waitUntil(
     Promise.all([

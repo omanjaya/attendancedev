@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             RolesAndPermissionsSeeder::class,
+            SuperAdminSeeder::class,
             PeriodSeeder::class,
             EmployeeSeeder::class,
             ScheduleSeeder::class,
@@ -23,12 +24,12 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // Create additional test user if needed
-        if (!User::where('email', 'test@example.com')->exists()) {
+        if (! User::where('email', 'test@example.com')->exists()) {
             $testUser = User::factory()->create([
                 'name' => 'Test User',
                 'email' => 'test@example.com',
             ]);
-            $testUser->assignRole('teacher');
+            $testUser->assignRole('guru');
         }
     }
 }

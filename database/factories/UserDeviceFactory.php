@@ -20,7 +20,7 @@ class UserDeviceFactory extends Factory
         $deviceTypes = ['desktop', 'mobile', 'tablet'];
         $browsers = ['Chrome', 'Firefox', 'Safari', 'Edge'];
         $operatingSystems = ['Windows', 'macOS', 'Linux', 'iOS', 'Android'];
-        
+
         return [
             'user_id' => User::factory(),
             'device_fingerprint' => hash('sha256', $this->faker->uuid),
@@ -45,7 +45,9 @@ class UserDeviceFactory extends Factory
                     'accept_language' => 'en-US,en;q=0.9',
                     'accept_encoding' => 'gzip, deflate, br',
                 ],
-                'device_name' => $this->faker->optional()->randomElement(['iPhone', 'Samsung Galaxy', 'MacBook Pro']),
+                'device_name' => $this->faker
+                    ->optional()
+                    ->randomElement(['iPhone', 'Samsung Galaxy', 'MacBook Pro']),
                 'languages' => ['en-US', 'en'],
             ],
             'metadata' => [
@@ -60,10 +62,12 @@ class UserDeviceFactory extends Factory
      */
     public function trusted(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'is_trusted' => true,
-            'trusted_at' => $this->faker->dateTimeBetween('-30 days', 'now'),
-        ]);
+        return $this->state(
+            fn (array $attributes) => [
+                'is_trusted' => true,
+                'trusted_at' => $this->faker->dateTimeBetween('-30 days', 'now'),
+            ],
+        );
     }
 
     /**
@@ -71,10 +75,12 @@ class UserDeviceFactory extends Factory
      */
     public function untrusted(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'is_trusted' => false,
-            'trusted_at' => null,
-        ]);
+        return $this->state(
+            fn (array $attributes) => [
+                'is_trusted' => false,
+                'trusted_at' => null,
+            ],
+        );
     }
 
     /**
@@ -82,11 +88,17 @@ class UserDeviceFactory extends Factory
      */
     public function mobile(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'device_type' => 'mobile',
-            'browser_name' => $this->faker->randomElement(['Chrome Mobile', 'Safari Mobile', 'Firefox Mobile']),
-            'os_name' => $this->faker->randomElement(['iOS', 'Android']),
-        ]);
+        return $this->state(
+            fn (array $attributes) => [
+                'device_type' => 'mobile',
+                'browser_name' => $this->faker->randomElement([
+                    'Chrome Mobile',
+                    'Safari Mobile',
+                    'Firefox Mobile',
+                ]),
+                'os_name' => $this->faker->randomElement(['iOS', 'Android']),
+            ],
+        );
     }
 
     /**
@@ -94,10 +106,12 @@ class UserDeviceFactory extends Factory
      */
     public function desktop(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'device_type' => 'desktop',
-            'browser_name' => $this->faker->randomElement(['Chrome', 'Firefox', 'Safari', 'Edge']),
-            'os_name' => $this->faker->randomElement(['Windows', 'macOS', 'Linux']),
-        ]);
+        return $this->state(
+            fn (array $attributes) => [
+                'device_type' => 'desktop',
+                'browser_name' => $this->faker->randomElement(['Chrome', 'Firefox', 'Safari', 'Edge']),
+                'os_name' => $this->faker->randomElement(['Windows', 'macOS', 'Linux']),
+            ],
+        );
     }
 }

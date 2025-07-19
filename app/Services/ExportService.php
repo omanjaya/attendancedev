@@ -25,11 +25,11 @@ class ExportService
             $query->whereBetween('date', [$filters['start_date'], $filters['end_date']]);
         }
 
-        if (isset($filters['employee_ids']) && !empty($filters['employee_ids'])) {
+        if (isset($filters['employee_ids']) && ! empty($filters['employee_ids'])) {
             $query->whereIn('employee_id', $filters['employee_ids']);
         }
 
-        if (isset($filters['status']) && !empty($filters['status'])) {
+        if (isset($filters['status']) && ! empty($filters['status'])) {
             $query->whereIn('status', $filters['status']);
         }
 
@@ -59,15 +59,15 @@ class ExportService
             $query->whereBetween('start_date', [$filters['start_date'], $filters['end_date']]);
         }
 
-        if (isset($filters['employee_ids']) && !empty($filters['employee_ids'])) {
+        if (isset($filters['employee_ids']) && ! empty($filters['employee_ids'])) {
             $query->whereIn('employee_id', $filters['employee_ids']);
         }
 
-        if (isset($filters['status']) && !empty($filters['status'])) {
+        if (isset($filters['status']) && ! empty($filters['status'])) {
             $query->whereIn('status', $filters['status']);
         }
 
-        if (isset($filters['leave_type_ids']) && !empty($filters['leave_type_ids'])) {
+        if (isset($filters['leave_type_ids']) && ! empty($filters['leave_type_ids'])) {
             $query->whereIn('leave_type_id', $filters['leave_type_ids']);
         }
 
@@ -97,11 +97,11 @@ class ExportService
             $query->whereBetween('payroll_period_start', [$filters['start_date'], $filters['end_date']]);
         }
 
-        if (isset($filters['employee_ids']) && !empty($filters['employee_ids'])) {
+        if (isset($filters['employee_ids']) && ! empty($filters['employee_ids'])) {
             $query->whereIn('employee_id', $filters['employee_ids']);
         }
 
-        if (isset($filters['status']) && !empty($filters['status'])) {
+        if (isset($filters['status']) && ! empty($filters['status'])) {
             $query->whereIn('status', $filters['status']);
         }
 
@@ -127,7 +127,7 @@ class ExportService
         $query = Employee::with(['user', 'location']);
 
         // Apply filters
-        if (isset($filters['employee_type']) && !empty($filters['employee_type'])) {
+        if (isset($filters['employee_type']) && ! empty($filters['employee_type'])) {
             $query->whereIn('employee_type', $filters['employee_type']);
         }
 
@@ -135,7 +135,7 @@ class ExportService
             $query->where('is_active', $filters['is_active']);
         }
 
-        if (isset($filters['location_ids']) && !empty($filters['location_ids'])) {
+        if (isset($filters['location_ids']) && ! empty($filters['location_ids'])) {
             $query->whereIn('location_id', $filters['location_ids']);
         }
 
@@ -173,7 +173,7 @@ class ExportService
     private function exportAttendanceCSV(Collection $records)
     {
         $csv = Writer::createFromString('');
-        
+
         // Add headers
         $csv->insertOne([
             'Date',
@@ -184,7 +184,7 @@ class ExportService
             'Total Hours',
             'Status',
             'Late (Minutes)',
-            'Notes'
+            'Notes',
         ]);
 
         // Add data rows
@@ -202,15 +202,15 @@ class ExportService
                 number_format($record->total_hours ?? 0, 2),
                 ucfirst($record->status),
                 $lateMinutes,
-                $record->check_in_notes . ' ' . $record->check_out_notes
+                $record->check_in_notes.' '.$record->check_out_notes,
             ]);
         }
 
-        $filename = 'attendance_report_' . date('Y-m-d_H-i-s') . '.csv';
-        
+        $filename = 'attendance_report_'.date('Y-m-d_H-i-s').'.csv';
+
         return response($csv->toString())
             ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+            ->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
     }
 
     private function exportAttendanceExcel(Collection $records)
@@ -218,9 +218,9 @@ class ExportService
         // For now, return CSV format with .xlsx extension
         // In a full implementation, you'd use a library like PhpSpreadsheet
         $csv = $this->exportAttendanceCSV($records);
-        $filename = 'attendance_report_' . date('Y-m-d_H-i-s') . '.xlsx';
-        
-        return $csv->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        $filename = 'attendance_report_'.date('Y-m-d_H-i-s').'.xlsx';
+
+        return $csv->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
     }
 
     private function exportAttendancePDF(Collection $records, array $filters)
@@ -229,10 +229,10 @@ class ExportService
             'records' => $records,
             'filters' => $filters,
             'generated_at' => now(),
-            'generated_by' => auth()->user()->name
+            'generated_by' => auth()->user()->name,
         ])->render();
 
-        return $this->generatePDF($html, 'attendance_report_' . date('Y-m-d_H-i-s') . '.pdf');
+        return $this->generatePDF($html, 'attendance_report_'.date('Y-m-d_H-i-s').'.pdf');
     }
 
     // Leave Export Methods
@@ -240,7 +240,7 @@ class ExportService
     private function exportLeaveCSV(Collection $records)
     {
         $csv = Writer::createFromString('');
-        
+
         // Add headers
         $csv->insertOne([
             'Employee ID',
@@ -254,7 +254,7 @@ class ExportService
             'Applied Date',
             'Approved By',
             'Approved Date',
-            'Approval Notes'
+            'Approval Notes',
         ]);
 
         // Add data rows
@@ -271,23 +271,23 @@ class ExportService
                 $record->created_at->format('Y-m-d'),
                 $record->approver->full_name ?? '',
                 $record->approved_at ? $record->approved_at->format('Y-m-d') : '',
-                $record->approval_notes ?? ''
+                $record->approval_notes ?? '',
             ]);
         }
 
-        $filename = 'leave_report_' . date('Y-m-d_H-i-s') . '.csv';
-        
+        $filename = 'leave_report_'.date('Y-m-d_H-i-s').'.csv';
+
         return response($csv->toString())
             ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+            ->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
     }
 
     private function exportLeaveExcel(Collection $records)
     {
         $csv = $this->exportLeaveCSV($records);
-        $filename = 'leave_report_' . date('Y-m-d_H-i-s') . '.xlsx';
-        
-        return $csv->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        $filename = 'leave_report_'.date('Y-m-d_H-i-s').'.xlsx';
+
+        return $csv->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
     }
 
     private function exportLeavePDF(Collection $records, array $filters)
@@ -296,10 +296,10 @@ class ExportService
             'records' => $records,
             'filters' => $filters,
             'generated_at' => now(),
-            'generated_by' => auth()->user()->name
+            'generated_by' => auth()->user()->name,
         ])->render();
 
-        return $this->generatePDF($html, 'leave_report_' . date('Y-m-d_H-i-s') . '.pdf');
+        return $this->generatePDF($html, 'leave_report_'.date('Y-m-d_H-i-s').'.pdf');
     }
 
     // Payroll Export Methods
@@ -307,7 +307,7 @@ class ExportService
     private function exportPayrollCSV(Collection $records)
     {
         $csv = Writer::createFromString('');
-        
+
         // Add headers
         $csv->insertOne([
             'Employee ID',
@@ -321,7 +321,7 @@ class ExportService
             'Net Salary',
             'Worked Hours',
             'Overtime Hours',
-            'Status'
+            'Status',
         ]);
 
         // Add data rows
@@ -338,23 +338,23 @@ class ExportService
                 number_format($record->net_salary, 2),
                 number_format($record->worked_hours, 2),
                 number_format($record->overtime_hours, 2),
-                ucfirst($record->status)
+                ucfirst($record->status),
             ]);
         }
 
-        $filename = 'payroll_report_' . date('Y-m-d_H-i-s') . '.csv';
-        
+        $filename = 'payroll_report_'.date('Y-m-d_H-i-s').'.csv';
+
         return response($csv->toString())
             ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+            ->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
     }
 
     private function exportPayrollExcel(Collection $records)
     {
         $csv = $this->exportPayrollCSV($records);
-        $filename = 'payroll_report_' . date('Y-m-d_H-i-s') . '.xlsx';
-        
-        return $csv->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        $filename = 'payroll_report_'.date('Y-m-d_H-i-s').'.xlsx';
+
+        return $csv->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
     }
 
     private function exportPayrollPDF(Collection $records, array $filters)
@@ -371,10 +371,10 @@ class ExportService
                 'net_salary' => $records->sum('net_salary'),
                 'worked_hours' => $records->sum('worked_hours'),
                 'overtime_hours' => $records->sum('overtime_hours'),
-            ]
+            ],
         ])->render();
 
-        return $this->generatePDF($html, 'payroll_report_' . date('Y-m-d_H-i-s') . '.pdf');
+        return $this->generatePDF($html, 'payroll_report_'.date('Y-m-d_H-i-s').'.pdf');
     }
 
     // Employee Export Methods
@@ -382,7 +382,7 @@ class ExportService
     private function exportEmployeesCSV(Collection $records)
     {
         $csv = Writer::createFromString('');
-        
+
         // Add headers
         $csv->insertOne([
             'Employee ID',
@@ -396,7 +396,7 @@ class ExportService
             'Salary Amount',
             'Hourly Rate',
             'Location',
-            'Status'
+            'Status',
         ]);
 
         // Add data rows
@@ -413,23 +413,23 @@ class ExportService
                 number_format($record->salary_amount ?? 0, 2),
                 number_format($record->hourly_rate ?? 0, 2),
                 $record->location->name ?? '',
-                $record->is_active ? 'Active' : 'Inactive'
+                $record->is_active ? 'Active' : 'Inactive',
             ]);
         }
 
-        $filename = 'employees_report_' . date('Y-m-d_H-i-s') . '.csv';
-        
+        $filename = 'employees_report_'.date('Y-m-d_H-i-s').'.csv';
+
         return response($csv->toString())
             ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+            ->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
     }
 
     private function exportEmployeesExcel(Collection $records)
     {
         $csv = $this->exportEmployeesCSV($records);
-        $filename = 'employees_report_' . date('Y-m-d_H-i-s') . '.xlsx';
-        
-        return $csv->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        $filename = 'employees_report_'.date('Y-m-d_H-i-s').'.xlsx';
+
+        return $csv->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
     }
 
     private function exportEmployeesPDF(Collection $records, array $filters)
@@ -438,10 +438,10 @@ class ExportService
             'records' => $records,
             'filters' => $filters,
             'generated_at' => now(),
-            'generated_by' => auth()->user()->name
+            'generated_by' => auth()->user()->name,
         ])->render();
 
-        return $this->generatePDF($html, 'employees_report_' . date('Y-m-d_H-i-s') . '.pdf');
+        return $this->generatePDF($html, 'employees_report_'.date('Y-m-d_H-i-s').'.pdf');
     }
 
     // Analytics Export Methods
@@ -451,43 +451,49 @@ class ExportService
         $html = view('exports.analytics-summary-pdf', [
             'data' => $data,
             'generated_at' => now(),
-            'generated_by' => auth()->user()->name
+            'generated_by' => auth()->user()->name,
         ])->render();
 
-        return $this->generatePDF($html, 'analytics_summary_' . date('Y-m-d_H-i-s') . '.pdf');
+        return $this->generatePDF($html, 'analytics_summary_'.date('Y-m-d_H-i-s').'.pdf');
     }
 
     private function exportAnalyticsSummaryCSV(array $data)
     {
         $csv = Writer::createFromString('');
-        
+
         // Add KPI section
         $csv->insertOne(['KEY PERFORMANCE INDICATORS']);
         $csv->insertOne(['Metric', 'Value']);
-        
+
         if (isset($data['kpis']['attendance'])) {
             $csv->insertOne(['Attendance Rate (%)', $data['kpis']['attendance']['rate']]);
             $csv->insertOne(['Punctuality Rate (%)', $data['kpis']['attendance']['punctuality_rate']]);
             $csv->insertOne(['Absenteeism Rate (%)', $data['kpis']['attendance']['absenteeism_rate']]);
         }
-        
+
         if (isset($data['kpis']['leave'])) {
             $csv->insertOne(['Leave Approval Rate (%)', $data['kpis']['leave']['approval_rate']]);
             $csv->insertOne(['Total Leave Requests', $data['kpis']['leave']['total_requests']]);
         }
-        
+
         if (isset($data['kpis']['payroll'])) {
-            $csv->insertOne(['Total Payroll Amount', number_format($data['kpis']['payroll']['total_amount'], 2)]);
-            $csv->insertOne(['Average Salary', number_format($data['kpis']['payroll']['average_salary'], 2)]);
+            $csv->insertOne([
+                'Total Payroll Amount',
+                number_format($data['kpis']['payroll']['total_amount'], 2),
+            ]);
+            $csv->insertOne([
+                'Average Salary',
+                number_format($data['kpis']['payroll']['average_salary'], 2),
+            ]);
         }
 
         $csv->insertOne(['']); // Empty row
 
-        $filename = 'analytics_summary_' . date('Y-m-d_H-i-s') . '.csv';
-        
+        $filename = 'analytics_summary_'.date('Y-m-d_H-i-s').'.csv';
+
         return response($csv->toString())
             ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+            ->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
     }
 
     // Helper Methods
@@ -496,20 +502,20 @@ class ExportService
     {
         // For this implementation, we'll return the HTML as a PDF-like response
         // In a full implementation, you'd use a library like DomPDF or wkhtmltopdf
-        
+
         return response($html)
             ->header('Content-Type', 'text/html')
-            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+            ->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
     }
 
     private function calculateLateMinutes($attendance)
     {
-        if (!$attendance->check_in_time || $attendance->status !== 'late') {
+        if (! $attendance->check_in_time || $attendance->status !== 'late') {
             return 0;
         }
 
         // Assuming standard start time is 9:00 AM
-        $standardStartTime = Carbon::parse($attendance->date->format('Y-m-d') . ' 09:00:00');
+        $standardStartTime = Carbon::parse($attendance->date->format('Y-m-d').' 09:00:00');
         $checkInTime = Carbon::parse($attendance->check_in_time);
 
         if ($checkInTime->isAfter($standardStartTime)) {

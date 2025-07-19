@@ -2,9 +2,9 @@
 
 namespace App\Listeners;
 
-use App\Events\UserLoginEvent;
 use App\Events\AttendanceEvent;
 use App\Events\SecurityEvent;
+use App\Events\UserLoginEvent;
 use App\Models\AuditLog;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Audit Event Listener
- * 
+ *
  * Handles logging of all audit events to the database and log files.
  * Implements ShouldQueue for performance.
  */
@@ -35,12 +35,12 @@ class LogAuditEventListener implements ShouldQueue
     {
         $auditData = $event->getAuditData();
         $riskLevel = $event->getRiskLevel();
-        
+
         // Determine log level based on risk
-        $logLevel = match($riskLevel) {
+        $logLevel = match ($riskLevel) {
             'high' => 'warning',
             'medium' => 'notice',
-            default => 'info'
+            default => 'info',
         };
 
         $this->logEvent($auditData, $logLevel);
@@ -57,7 +57,7 @@ class LogAuditEventListener implements ShouldQueue
     public function handleSecurity(SecurityEvent $event): void
     {
         $auditData = $event->getAuditData();
-        
+
         $this->logEvent($auditData, $event->severity);
 
         // Log to separate security log for critical events
@@ -78,24 +78,23 @@ class LogAuditEventListener implements ShouldQueue
                 'event_type' => $eventData['event_type'],
                 'action' => $this->extractAction($eventData['event_type']),
                 'model_type' => $this->extractModelType($eventData),
-                'model_id' => $eventData['attendance_id'] ?? $eventData['employee_id'] ?? null,
+                'model_id' => $eventData['attendance_id'] ?? ($eventData['employee_id'] ?? null),
                 'old_values' => null,
                 'new_values' => $eventData['metadata'] ?? null,
                 'url' => request()->fullUrl(),
                 'ip_address' => $eventData['ip_address'] ?? request()->ip(),
                 'user_agent' => $eventData['user_agent'] ?? request()->userAgent(),
                 'risk_level' => $this->calculateRiskLevel($eventData),
-                'metadata' => $eventData
+                'metadata' => $eventData,
             ]);
 
             // Log to file system
             Log::channel('audit')->log($logLevel, $eventData['event_type'], $eventData);
-
         } catch (\Exception $e) {
             // Fallback logging if database fails
             Log::error('Failed to log audit event', [
                 'error' => $e->getMessage(),
-                'event_data' => $eventData
+                'event_data' => $eventData,
             ]);
         }
     }
@@ -106,6 +105,7 @@ class LogAuditEventListener implements ShouldQueue
     private function extractAction(string $eventType): string
     {
         $parts = explode('_', $eventType);
+
         return end($parts);
     }
 
@@ -140,9 +140,9 @@ class LogAuditEventListener implements ShouldQueue
             $locationVerified = $eventData['metadata']['location_verified'] ?? true;
             $faceVerified = $eventData['metadata']['face_verified'] ?? true;
 
-            if (!$locationVerified && !$faceVerified) {
+            if (! $locationVerified && ! $faceVerified) {
                 return 'high';
-            } elseif (!$locationVerified || !$faceVerified) {
+            } elseif (! $locationVerified || ! $faceVerified) {
                 return 'medium';
             }
         }
@@ -150,6 +150,7 @@ class LogAuditEventListener implements ShouldQueue
         // Login events
         if (str_contains($eventData['event_type'], 'login')) {
             $twoFactorRequired = $eventData['two_factor_required'] ?? false;
+
             return $twoFactorRequired ? 'medium' : 'low';
         }
 
@@ -164,7 +165,7 @@ class LogAuditEventListener implements ShouldQueue
         Log::error('Audit logging failed', [
             'event' => get_class($event),
             'exception' => $exception->getMessage(),
-            'trace' => $exception->getTraceAsString()
+            'trace' => $exception->getTraceAsString(),
         ]);
     }
 }

@@ -2,9 +2,9 @@
 
 namespace App\Console\Commands;
 
-use App\Models\User;
 use App\Models\Employee;
 use App\Models\Location;
+use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -35,15 +35,19 @@ class MakeAdminUser extends Command
         $password = $this->option('password') ?: $this->secret('Password (leave empty for random)');
 
         // Validate email
-        $validator = Validator::make(['email' => $email], [
-            'email' => 'required|email|unique:users,email'
-        ]);
+        $validator = Validator::make(
+            ['email' => $email],
+            [
+                'email' => 'required|email|unique:users,email',
+            ],
+        );
 
         if ($validator->fails()) {
             $this->error('Validation failed:');
             foreach ($validator->errors()->all() as $error) {
-                $this->error('- ' . $error);
+                $this->error('- '.$error);
             }
+
             return 1;
         }
 
@@ -68,21 +72,24 @@ class MakeAdminUser extends Command
             $user->assignRole($adminRole);
 
             // Create or get main location
-            $location = Location::firstOrCreate([
-                'name' => 'Head Office'
-            ], [
-                'address' => 'Main Office Location',
-                'latitude' => -6.2088,
-                'longitude' => 106.8456,
-                'radius' => 100,
-                'is_active' => true,
-            ]);
+            $location = Location::firstOrCreate(
+                [
+                    'name' => 'Head Office',
+                ],
+                [
+                    'address' => 'Main Office Location',
+                    'latitude' => -6.2088,
+                    'longitude' => 106.8456,
+                    'radius' => 100,
+                    'is_active' => true,
+                ],
+            );
 
             // Create employee record
             $employee = Employee::create([
                 'user_id' => $user->id,
                 'location_id' => $location->id,
-                'employee_id' => 'ADM' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT),
+                'employee_id' => 'ADM'.str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT),
                 'first_name' => $this->getFirstName($name),
                 'last_name' => $this->getLastName($name),
                 'position' => 'System Administrator',
@@ -104,17 +111,17 @@ class MakeAdminUser extends Command
                     ['Role', 'Admin'],
                     ['Location', $location->name],
                     ['Created', $user->created_at->format('Y-m-d H:i:s')],
-                ]
+                ],
             );
 
-            if (!$this->option('password')) {
+            if (! $this->option('password')) {
                 $this->warn('⚠️  Remember to save the generated password!');
             }
 
             return 0;
-
         } catch (\Exception $e) {
-            $this->error('Failed to create admin user: ' . $e->getMessage());
+            $this->error('Failed to create admin user: '.$e->getMessage());
+
             return 1;
         }
     }
@@ -135,7 +142,7 @@ class MakeAdminUser extends Command
         $password .= $numbers[rand(0, strlen($numbers) - 1)];
         $password .= $symbols[rand(0, strlen($symbols) - 1)];
 
-        $allChars = $uppercase . $lowercase . $numbers . $symbols;
+        $allChars = $uppercase.$lowercase.$numbers.$symbols;
         for ($i = 4; $i < $length; $i++) {
             $password .= $allChars[rand(0, strlen($allChars) - 1)];
         }
@@ -146,22 +153,25 @@ class MakeAdminUser extends Command
     /**
      * Extract first name from full name
      */
-    private function getFirstName(string $fullName): string
+    private function getFirstName(string $full_name): string
     {
-        $parts = explode(' ', trim($fullName));
-        return $parts[0] ?? $fullName;
+        $parts = explode(' ', trim($full_name));
+
+        return $parts[0] ?? $full_name;
     }
 
     /**
      * Extract last name from full name
      */
-    private function getLastName(string $fullName): string
+    private function getLastName(string $full_name): string
     {
-        $parts = explode(' ', trim($fullName));
+        $parts = explode(' ', trim($full_name));
         if (count($parts) > 1) {
             array_shift($parts);
+
             return implode(' ', $parts);
         }
+
         return '';
     }
 }

@@ -11,9 +11,7 @@ use OpenApi\Annotations as OA;
  */
 class SimpleEmployeeApiController extends BaseApiController
 {
-    public function __construct(
-        protected EmployeeRepositoryInterface $employeeRepository
-    ) {}
+    public function __construct(protected EmployeeRepositoryInterface $employeeRepository) {}
 
     /**
      * @OA\Get(
@@ -23,31 +21,40 @@ class SimpleEmployeeApiController extends BaseApiController
      *     summary="Get list of employees",
      *     description="Retrieve a paginated list of employees with optional filtering",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(
      *         name="page",
      *         in="query",
      *         description="Page number",
      *         required=false,
+     *
      *         @OA\Schema(type="integer", minimum=1, default=1)
      *     ),
+     *
      *     @OA\Parameter(
      *         name="search",
      *         in="query",
      *         description="Search by name, employee code, or email",
      *         required=false,
+     *
      *         @OA\Schema(type="string")
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Successful operation",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="success", type="boolean", example=true),
      *             @OA\Property(property="message", type="string", example="Employees retrieved successfully"),
      *             @OA\Property(
      *                 property="data",
      *                 type="array",
+     *
      *                 @OA\Items(
      *                     type="object",
+     *
      *                     @OA\Property(property="id", type="string", example="550e8400-e29b-41d4-a716-446655440000"),
      *                     @OA\Property(property="full_name", type="string", example="John Doe"),
      *                     @OA\Property(property="employee_code", type="string", example="EMP2024001"),
@@ -60,19 +67,25 @@ class SimpleEmployeeApiController extends BaseApiController
      *             @OA\Property(property="timestamp", type="string", format="date-time")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=401,
      *         description="Unauthorized",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="success", type="boolean", example=false),
      *             @OA\Property(property="message", type="string", example="Unauthenticated"),
      *             @OA\Property(property="timestamp", type="string", format="date-time")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=403,
      *         description="Forbidden - Insufficient permissions",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="success", type="boolean", example=false),
      *             @OA\Property(property="message", type="string", example="This action is unauthorized"),
      *             @OA\Property(property="timestamp", type="string", format="date-time")
@@ -88,7 +101,7 @@ class SimpleEmployeeApiController extends BaseApiController
 
         $employees = $this->employeeRepository->getAll(
             array_filter($filters),
-            $request->get('per_page', 15)
+            $request->get('per_page', 15),
         );
 
         return $this->paginatedResponse($employees, 'Employees retrieved successfully');
@@ -102,11 +115,14 @@ class SimpleEmployeeApiController extends BaseApiController
      *     summary="Create a new employee",
      *     description="Create a new employee record",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\RequestBody(
      *         required=true,
      *         description="Employee data",
+     *
      *         @OA\JsonContent(
      *             required={"full_name", "email", "department", "position", "employment_type", "salary_type", "base_salary", "hire_date"},
+     *
      *             @OA\Property(property="full_name", type="string", maxLength=255, example="John Doe"),
      *             @OA\Property(property="email", type="string", format="email", example="john.doe@school.com"),
      *             @OA\Property(property="phone", type="string", maxLength=20, nullable=true, example="+1234567890"),
@@ -120,10 +136,13 @@ class SimpleEmployeeApiController extends BaseApiController
      *             @OA\Property(property="is_active", type="boolean", example=true)
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=201,
      *         description="Employee created successfully",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="success", type="boolean", example=true),
      *             @OA\Property(property="message", type="string", example="Employee created successfully"),
      *             @OA\Property(
@@ -138,10 +157,13 @@ class SimpleEmployeeApiController extends BaseApiController
      *             @OA\Property(property="timestamp", type="string", format="date-time")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=422,
      *         description="Validation error",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="success", type="boolean", example=false),
      *             @OA\Property(property="message", type="string", example="Validation failed"),
      *             @OA\Property(
@@ -150,9 +172,11 @@ class SimpleEmployeeApiController extends BaseApiController
      *                 @OA\Property(
      *                     property="email",
      *                     type="array",
+     *
      *                     @OA\Items(type="string", example="The email field is required.")
      *                 )
      *             ),
+     *
      *             @OA\Property(property="timestamp", type="string", format="date-time")
      *         )
      *     )
@@ -173,19 +197,19 @@ class SimpleEmployeeApiController extends BaseApiController
             'salary_type' => 'required|in:monthly,hourly',
             'base_salary' => 'required|numeric|min:0',
             'hire_date' => 'required|date',
-            'is_active' => 'boolean'
+            'is_active' => 'boolean',
         ]);
 
         try {
             $employee = $this->employeeRepository->create($validated);
-            
+
             return $this->apiResponse(
-                $employee->load(['user', 'location']), 
-                'Employee created successfully', 
-                201
+                $employee->load(['user', 'location']),
+                'Employee created successfully',
+                201,
             );
         } catch (\Exception $e) {
-            return $this->errorResponse('Failed to create employee: ' . $e->getMessage(), 500);
+            return $this->errorResponse('Failed to create employee: '.$e->getMessage(), 500);
         }
     }
 
@@ -197,10 +221,13 @@ class SimpleEmployeeApiController extends BaseApiController
      *     summary="Get employee statistics",
      *     description="Get statistical overview of employees including totals, attendance rates, etc.",
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Statistics retrieved successfully",
+     *
      *         @OA\JsonContent(
+     *
      *             @OA\Property(property="success", type="boolean", example=true),
      *             @OA\Property(property="message", type="string", example="Statistics retrieved successfully"),
      *             @OA\Property(

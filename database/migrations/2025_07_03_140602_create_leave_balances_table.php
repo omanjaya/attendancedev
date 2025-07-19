@@ -20,12 +20,13 @@ return new class extends Migration
             $table->decimal('used_days', 5, 2)->default(0);
             $table->decimal('remaining_days', 5, 2)->default(0);
             $table->decimal('carried_forward', 5, 2)->default(0);
+            $table->boolean('is_active')->default(true);
             $table->json('metadata')->nullable();
             $table->timestamps();
-            
+
             $table->foreign('employee_id')->references('id')->on('employees')->onDelete('cascade');
             $table->foreign('leave_type_id')->references('id')->on('leave_types')->onDelete('cascade');
-            
+
             $table->unique(['employee_id', 'leave_type_id', 'year']);
             $table->index('year');
         });

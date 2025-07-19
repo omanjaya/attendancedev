@@ -2,37 +2,38 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
 use App\Models\Employee;
 use App\Models\Leave;
-use App\Models\LeaveType;
 use App\Models\LeaveBalance;
-use Tests\TestCase;
+use App\Models\LeaveType;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
-use Carbon\Carbon;
+use Tests\TestCase;
 
 class LeaveManagementTest extends TestCase
 {
     use RefreshDatabase, WithFaker;
 
     private User $user;
+
     private Employee $employee;
+
     private LeaveType $leaveType;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->user = User::factory()->create();
         $this->employee = Employee::factory()->create([
             'user_id' => $this->user->id,
         ]);
         $this->leaveType = LeaveType::factory()->create([
             'name' => 'Annual Leave',
-            'days_per_year' => 21
+            'days_per_year' => 21,
         ]);
-        
+
         // Create leave balance
         LeaveBalance::factory()->create([
             'employee_id' => $this->employee->id,
@@ -40,7 +41,7 @@ class LeaveManagementTest extends TestCase
             'year' => date('Y'),
             'allocated_days' => 21,
             'used_days' => 0,
-            'remaining_days' => 21
+            'remaining_days' => 21,
         ]);
 
         $this->actingAs($this->user);
@@ -49,7 +50,7 @@ class LeaveManagementTest extends TestCase
     public function test_can_view_leave_request_form(): void
     {
         $response = $this->get(route('leave.create'));
-        
+
         $response->assertStatus(200);
         $response->assertViewIs('leave.create');
         $response->assertViewHas('leaveTypes');
@@ -62,11 +63,11 @@ class LeaveManagementTest extends TestCase
             'start_date' => now()->addDays(7)->format('Y-m-d'),
             'end_date' => now()->addDays(9)->format('Y-m-d'),
             'reason' => 'Family vacation',
-            'is_half_day' => false
+            'is_half_day' => false,
         ];
 
         $response = $this->post(route('leave.store'), $leaveData);
-        
+
         $response->assertRedirect();
         $response->assertSessionHas('success');
 
@@ -75,7 +76,7 @@ class LeaveManagementTest extends TestCase
             'leave_type_id' => $this->leaveType->id,
             'start_date' => $leaveData['start_date'],
             'end_date' => $leaveData['end_date'],
-            'status' => 'pending'
+            'status' => 'pending',
         ]);
     }
 
@@ -84,7 +85,7 @@ class LeaveManagementTest extends TestCase
         // Update balance to have no remaining days
         $this->employee->leaveBalances()->update([
             'used_days' => 21,
-            'remaining_days' => 0
+            'remaining_days' => 0,
         ]);
 
         $leaveData = [
@@ -92,11 +93,11 @@ class LeaveManagementTest extends TestCase
             'start_date' => now()->addDays(7)->format('Y-m-d'),
             'end_date' => now()->addDays(9)->format('Y-m-d'),
             'reason' => 'Family vacation',
-            'is_half_day' => false
+            'is_half_day' => false,
         ];
 
         $response = $this->post(route('leave.store'), $leaveData);
-        
+
         $response->assertSessionHasErrors(['days_requested']);
     }
 
@@ -107,7 +108,7 @@ class LeaveManagementTest extends TestCase
             'employee_id' => $this->employee->id,
             'start_date' => now()->addDays(5),
             'end_date' => now()->addDays(10),
-            'status' => 'approved'
+            'status' => 'approved',
         ]);
 
         $leaveData = [
@@ -115,22 +116,24 @@ class LeaveManagementTest extends TestCase
             'start_date' => now()->addDays(7)->format('Y-m-d'), // Overlaps with existing
             'end_date' => now()->addDays(9)->format('Y-m-d'),
             'reason' => 'Another vacation',
-            'is_half_day' => false
+            'is_half_day' => false,
         ];
 
         $response = $this->post(route('leave.store'), $leaveData);
-        
+
         $response->assertSessionHasErrors(['date_range']);
     }
 
     public function test_can_view_leave_requests(): void
     {
-        Leave::factory()->count(3)->create([
-            'employee_id' => $this->employee->id,
-        ]);
+        Leave::factory()
+            ->count(3)
+            ->create([
+                'employee_id' => $this->employee->id,
+            ]);
 
         $response = $this->get(route('leave.requests'));
-        
+
         $response->assertStatus(200);
         $response->assertViewIs('leave.requests');
     }
@@ -138,7 +141,7 @@ class LeaveManagementTest extends TestCase
     public function test_can_view_leave_balance(): void
     {
         $response = $this->get(route('leave.balance.index'));
-        
+
         $response->assertStatus(200);
         $response->assertViewIs('leave.balance.index');
         $response->assertViewHas('balances');
@@ -149,12 +152,14 @@ class LeaveManagementTest extends TestCase
         // Give user approval permission
         $this->user->givePermissionTo('approve_leave');
 
-        Leave::factory()->count(3)->create([
-            'status' => 'pending'
-        ]);
+        Leave::factory()
+            ->count(3)
+            ->create([
+                'status' => 'pending',
+            ]);
 
         $response = $this->get(route('leave.approvals'));
-        
+
         $response->assertStatus(200);
         $response->assertViewIs('leave.approvals.index');
     }
@@ -165,11 +170,11 @@ class LeaveManagementTest extends TestCase
 
         $leave = Leave::factory()->create([
             'status' => 'pending',
-            'days_requested' => 3
+            'days_requested' => 3,
         ]);
 
         $response = $this->post(route('leave.approvals.approve', $leave), [
-            'admin_notes' => 'Approved for family vacation'
+            'admin_notes' => 'Approved for family vacation',
         ]);
 
         $response->assertRedirect();
@@ -186,11 +191,11 @@ class LeaveManagementTest extends TestCase
         $this->user->givePermissionTo('approve_leave');
 
         $leave = Leave::factory()->create([
-            'status' => 'pending'
+            'status' => 'pending',
         ]);
 
         $response = $this->post(route('leave.approvals.reject', $leave), [
-            'admin_notes' => 'Insufficient coverage during requested period'
+            'admin_notes' => 'Insufficient coverage during requested period',
         ]);
 
         $response->assertRedirect();
@@ -209,11 +214,11 @@ class LeaveManagementTest extends TestCase
             'end_date' => now()->addDays(7)->format('Y-m-d'),
             'reason' => 'Medical appointment',
             'is_half_day' => true,
-            'half_day_period' => 'morning'
+            'half_day_period' => 'morning',
         ];
 
         $response = $this->post(route('leave.store'), $leaveData);
-        
+
         $response->assertRedirect();
 
         $leave = Leave::where('employee_id', $this->employee->id)->first();
@@ -233,7 +238,7 @@ class LeaveManagementTest extends TestCase
             'employee_id' => $this->employee->id,
             'leave_type_id' => $this->leaveType->id,
             'status' => 'pending',
-            'days_requested' => 3
+            'days_requested' => 3,
         ]);
 
         $this->post(route('leave.approvals.approve', $leave));
@@ -246,7 +251,7 @@ class LeaveManagementTest extends TestCase
     public function test_can_view_leave_calendar(): void
     {
         $response = $this->get(route('leave.calendar'));
-        
+
         $response->assertStatus(200);
         $response->assertViewIs('leave.calendar.index');
     }
@@ -257,20 +262,14 @@ class LeaveManagementTest extends TestCase
             'employee_id' => $this->employee->id,
             'start_date' => now()->addDays(5),
             'end_date' => now()->addDays(7),
-            'status' => 'approved'
+            'status' => 'approved',
         ]);
 
         $response = $this->getJson(route('leave.calendar.data'));
-        
+
         $response->assertStatus(200);
         $response->assertJsonStructure([
-            '*' => [
-                'id',
-                'title',
-                'start',
-                'end',
-                'backgroundColor'
-            ]
+            '*' => ['id', 'title', 'start', 'end', 'backgroundColor'],
         ]);
     }
 
@@ -278,16 +277,18 @@ class LeaveManagementTest extends TestCase
     {
         $this->user->givePermissionTo('approve_leave');
 
-        $leaves = Leave::factory()->count(3)->create([
-            'status' => 'pending'
-        ]);
+        $leaves = Leave::factory()
+            ->count(3)
+            ->create([
+                'status' => 'pending',
+            ]);
 
         $leaveIds = $leaves->pluck('id')->toArray();
 
         $response = $this->post(route('leave.approvals.bulk-approve'), [
             'leave_ids' => $leaveIds,
             'action' => 'approve',
-            'admin_notes' => 'Bulk approved'
+            'admin_notes' => 'Bulk approved',
         ]);
 
         $response->assertRedirect();
@@ -305,11 +306,11 @@ class LeaveManagementTest extends TestCase
 
         $leave = Leave::factory()->create([
             'employee_id' => $this->employee->id,
-            'status' => 'pending'
+            'status' => 'pending',
         ]);
 
         $response = $this->post(route('leave.approvals.approve', $leave));
-        
+
         $response->assertStatus(403);
     }
 
@@ -323,19 +324,14 @@ class LeaveManagementTest extends TestCase
         ];
 
         $response = $this->post(route('leave.store'), $invalidData);
-        
-        $response->assertSessionHasErrors([
-            'leave_type_id',
-            'start_date',
-            'end_date',
-            'reason'
-        ]);
+
+        $response->assertSessionHasErrors(['leave_type_id', 'start_date', 'end_date', 'reason']);
     }
 
     public function test_mobile_leave_interface(): void
     {
         $response = $this->get(route('leave.mobile'));
-        
+
         $response->assertStatus(200);
         $response->assertViewIs('leave.mobile.index');
     }
@@ -343,7 +339,7 @@ class LeaveManagementTest extends TestCase
     public function test_mobile_leave_request_form(): void
     {
         $response = $this->get(route('leave.mobile.request'));
-        
+
         $response->assertStatus(200);
         $response->assertViewIs('leave.mobile.request');
     }
@@ -353,12 +349,18 @@ class LeaveManagementTest extends TestCase
         $this->user->givePermissionTo('approve_leave');
 
         // Create various leave records
-        Leave::factory()->count(5)->create(['status' => 'approved']);
-        Leave::factory()->count(2)->create(['status' => 'pending']);
-        Leave::factory()->count(1)->create(['status' => 'rejected']);
+        Leave::factory()
+            ->count(5)
+            ->create(['status' => 'approved']);
+        Leave::factory()
+            ->count(2)
+            ->create(['status' => 'pending']);
+        Leave::factory()
+            ->count(1)
+            ->create(['status' => 'rejected']);
 
         $response = $this->get(route('leave.analytics'));
-        
+
         $response->assertStatus(200);
         $response->assertViewIs('leave.analytics');
     }
@@ -370,25 +372,25 @@ class LeaveManagementTest extends TestCase
             'name' => 'Sick Leave',
             'days_per_year' => 10,
             'requires_medical_certificate' => true,
-            'min_days_notice' => 0
+            'min_days_notice' => 0,
         ]);
 
         LeaveBalance::factory()->create([
             'employee_id' => $this->employee->id,
             'leave_type_id' => $sickLeave->id,
             'allocated_days' => 10,
-            'remaining_days' => 10
+            'remaining_days' => 10,
         ]);
 
         $leaveData = [
             'leave_type_id' => $sickLeave->id,
             'start_date' => now()->format('Y-m-d'), // Same day (allowed for sick leave)
             'end_date' => now()->format('Y-m-d'),
-            'reason' => 'Flu symptoms'
+            'reason' => 'Flu symptoms',
         ];
 
         $response = $this->post(route('leave.store'), $leaveData);
-        
+
         $response->assertRedirect();
         $response->assertSessionHas('success');
     }

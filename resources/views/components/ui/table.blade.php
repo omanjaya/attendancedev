@@ -10,7 +10,8 @@
 ])
 
 @php
-    $tableClasses = 'w-full caption-bottom text-sm';
+    // Use design system classes
+    $tableClasses = 'table';
     
     if ($striped) {
         $tableClasses .= ' [&>tbody>tr:nth-child(odd)]:bg-muted/50';

@@ -37,7 +37,7 @@ trait Auditable
                 [],
                 $this->getAuditableAttributes(),
                 null,
-                $this->getAuditTags()
+                $this->getAuditTags(),
             );
         }
     }
@@ -50,22 +50,22 @@ trait Auditable
         if ($this->shouldAudit('updated')) {
             $changes = $this->getChanges();
             $original = $this->getOriginal();
-            
-            if (!empty($changes)) {
+
+            if (! empty($changes)) {
                 // Filter out timestamps if not specifically tracking them
-                if (!$this->shouldAuditTimestamps()) {
+                if (! $this->shouldAuditTimestamps()) {
                     unset($changes['updated_at'], $original['updated_at']);
                 }
-                
+
                 // Only log if there are actual changes
-                if (!empty($changes)) {
+                if (! empty($changes)) {
                     AuditLog::createLog(
                         'updated',
                         $this,
                         array_intersect_key($original, $changes),
                         $changes,
                         null,
-                        $this->getAuditTags()
+                        $this->getAuditTags(),
                     );
                 }
             }
@@ -84,7 +84,7 @@ trait Auditable
                 $this->getAuditableAttributes(),
                 [],
                 null,
-                array_merge($this->getAuditTags(), ['deletion'])
+                array_merge($this->getAuditTags(), ['deletion']),
             );
         }
     }
@@ -95,12 +95,12 @@ trait Auditable
     protected function shouldAudit(string $event): bool
     {
         // Check if auditing is enabled
-        if (!config('audit.enabled', true)) {
+        if (! config('audit.enabled', true)) {
             return false;
         }
 
         // Check if this model should be audited
-        if (property_exists($this, 'auditEnabled') && !$this->auditEnabled) {
+        if (property_exists($this, 'auditEnabled') && ! $this->auditEnabled) {
             return false;
         }
 
@@ -119,17 +119,17 @@ trait Auditable
     protected function getAuditableAttributes(): array
     {
         $attributes = $this->getAttributes();
-        
+
         // Remove excluded attributes
         if (property_exists($this, 'auditExclude')) {
             $attributes = array_diff_key($attributes, array_flip($this->auditExclude));
         }
-        
+
         // Only include specified attributes if defined
         if (property_exists($this, 'auditInclude')) {
             $attributes = array_intersect_key($attributes, array_flip($this->auditInclude));
         }
-        
+
         return $attributes;
     }
 
@@ -139,11 +139,11 @@ trait Auditable
     protected function getAuditTags(): array
     {
         $tags = [class_basename(static::class)];
-        
+
         if (property_exists($this, 'auditTags')) {
             $tags = array_merge($tags, $this->auditTags);
         }
-        
+
         return $tags;
     }
 
@@ -166,7 +166,7 @@ trait Auditable
             [],
             $context,
             null,
-            array_merge($this->getAuditTags(), $tags)
+            array_merge($this->getAuditTags(), $tags),
         );
     }
 
@@ -183,10 +183,6 @@ trait Auditable
      */
     public function recentAuditLogs(int $limit = 10)
     {
-        return $this->auditLogs()
-            ->with('user')
-            ->latest()
-            ->limit($limit)
-            ->get();
+        return $this->auditLogs()->with('user')->latest()->limit($limit)->get();
     }
 }

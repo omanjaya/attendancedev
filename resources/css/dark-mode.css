@@ -1,0 +1,291 @@
+/* Dark Mode Enhancements */
+
+/* Smooth transitions for theme switching */
+* {
+  @apply transition-colors duration-200;
+}
+
+/* Prevent transition on page load */
+html.no-transition * {
+  transition: none !important;
+}
+
+/* Enhanced scrollbar styling for dark mode */
+.dark ::-webkit-scrollbar {
+  @apply w-2 h-2;
+}
+
+.dark ::-webkit-scrollbar-track {
+  @apply bg-gray-800;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  @apply bg-gray-600 rounded-full;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-500;
+}
+
+/* Dark mode form inputs enhancement */
+.dark input[type="text"],
+.dark input[type="email"],
+.dark input[type="password"],
+.dark input[type="number"],
+.dark input[type="date"],
+.dark input[type="time"],
+.dark textarea,
+.dark select {
+  @apply bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-400;
+}
+
+.dark input[type="text"]:focus,
+.dark input[type="email"]:focus,
+.dark input[type="password"]:focus,
+.dark input[type="number"]:focus,
+.dark input[type="date"]:focus,
+.dark input[type="time"]:focus,
+.dark textarea:focus,
+.dark select:focus {
+  @apply border-emerald-500 ring-emerald-500;
+}
+
+/* Dark mode table enhancements */
+.dark table {
+  @apply border-gray-700;
+}
+
+.dark th {
+  @apply bg-gray-800 text-gray-100 border-gray-700;
+}
+
+.dark td {
+  @apply border-gray-700 text-gray-300;
+}
+
+.dark tr:hover {
+  @apply bg-gray-800/50;
+}
+
+/* Dark mode card enhancements */
+.dark .card {
+  @apply bg-gray-800 border-gray-700;
+}
+
+.dark .card-header {
+  @apply bg-gray-900 border-gray-700;
+}
+
+/* Dark mode dropdown enhancements */
+.dark .dropdown-menu {
+  @apply bg-gray-800 border-gray-700;
+}
+
+.dark .dropdown-item {
+  @apply text-gray-300 hover:bg-gray-700 hover:text-gray-100;
+}
+
+/* Dark mode modal enhancements */
+.dark .modal-content {
+  @apply bg-gray-800 border-gray-700;
+}
+
+.dark .modal-header {
+  @apply border-gray-700;
+}
+
+.dark .modal-footer {
+  @apply border-gray-700;
+}
+
+/* Dark mode badge enhancements */
+.dark .badge {
+  @apply bg-gray-700 text-gray-300;
+}
+
+.dark .badge-primary {
+  @apply bg-blue-600 text-white;
+}
+
+.dark .badge-success {
+  @apply bg-green-600 text-white;
+}
+
+.dark .badge-warning {
+  @apply bg-yellow-600 text-white;
+}
+
+.dark .badge-danger {
+  @apply bg-red-600 text-white;
+}
+
+/* Dark mode tooltip enhancements */
+.dark .tooltip {
+  @apply bg-gray-900 text-gray-100;
+}
+
+.dark .tooltip-arrow {
+  @apply text-gray-900;
+}
+
+/* Dark mode chart enhancements */
+.dark .chart-container {
+  @apply bg-gray-800 border-gray-700;
+}
+
+/* Dark mode calendar enhancements */
+.dark .calendar-day {
+  @apply bg-gray-800 border-gray-700 text-gray-300;
+}
+
+.dark .calendar-day:hover {
+  @apply bg-gray-700;
+}
+
+.dark .calendar-day.selected {
+  @apply bg-emerald-600 text-white;
+}
+
+.dark .calendar-day.today {
+  @apply ring-2 ring-emerald-500;
+}
+
+/* Dark mode navigation enhancements */
+.dark .nav-link {
+  @apply text-gray-300 hover:text-gray-100;
+}
+
+.dark .nav-link.active {
+  @apply bg-gray-800 text-emerald-400;
+}
+
+/* Dark mode breadcrumb enhancements */
+.dark .breadcrumb {
+  @apply bg-gray-800;
+}
+
+.dark .breadcrumb-item {
+  @apply text-gray-400;
+}
+
+.dark .breadcrumb-item.active {
+  @apply text-gray-100;
+}
+
+/* Dark mode alert enhancements */
+.dark .alert {
+  @apply bg-gray-800 border-gray-700 text-gray-300;
+}
+
+.dark .alert-success {
+  @apply bg-green-900 border-green-700 text-green-300;
+}
+
+.dark .alert-warning {
+  @apply bg-yellow-900 border-yellow-700 text-yellow-300;
+}
+
+.dark .alert-danger {
+  @apply bg-red-900 border-red-700 text-red-300;
+}
+
+.dark .alert-info {
+  @apply bg-blue-900 border-blue-700 text-blue-300;
+}
+
+/* Dark mode pagination enhancements */
+.dark .pagination {
+  @apply bg-gray-800;
+}
+
+.dark .page-link {
+  @apply bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700 hover:text-gray-100;
+}
+
+.dark .page-link.active {
+  @apply bg-emerald-600 border-emerald-600 text-white;
+}
+
+/* Dark mode progress bar enhancements */
+.dark .progress {
+  @apply bg-gray-700;
+}
+
+.dark .progress-bar {
+  @apply bg-emerald-600;
+}
+
+/* Dark mode switch/toggle enhancements */
+.dark .switch {
+  @apply bg-gray-700;
+}
+
+.dark .switch.checked {
+  @apply bg-emerald-600;
+}
+
+/* Dark mode file input enhancements */
+.dark input[type="file"] {
+  @apply text-gray-300;
+}
+
+.dark input[type="file"]::file-selector-button {
+  @apply bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600;
+}
+
+/* Dark mode code block enhancements */
+.dark pre {
+  @apply bg-gray-900 text-gray-300 border-gray-700;
+}
+
+.dark code {
+  @apply bg-gray-800 text-emerald-400;
+}
+
+/* Dark mode divider enhancements */
+.dark hr {
+  @apply border-gray-700;
+}
+
+/* Dark mode skeleton loader */
+.dark .skeleton {
+  @apply bg-gray-700;
+}
+
+.dark .skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.05),
+    transparent
+  );
+}
+
+/* Dark mode focus states */
+.dark *:focus {
+  @apply outline-none ring-2 ring-emerald-500 ring-offset-2 ring-offset-gray-800;
+}
+
+/* Dark mode selection */
+.dark ::selection {
+  @apply bg-emerald-600 text-white;
+}
+
+/* Dark mode placeholder text */
+.dark ::placeholder {
+  @apply text-gray-500;
+}
+
+/* Ensure smooth theme switching */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    @apply transition-none;
+  }
+  
+  html.theme-transition,
+  html.theme-transition *,
+  html.theme-transition *::before,
+  html.theme-transition *::after {
+    @apply transition-colors duration-200 !important;
+  }
+}

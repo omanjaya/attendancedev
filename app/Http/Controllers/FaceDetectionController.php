@@ -3,169 +3,135 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
+use App\Repositories\FaceRecognitionRepository;
+use App\Services\FaceRecognitionService;
+use App\Traits\ApiResponseTrait;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class FaceDetectionController extends Controller
 {
+    use ApiResponseTrait;
+
+    protected $faceRecognitionService;
+
+    protected $faceRecognitionRepository;
+
+    public function __construct(
+        FaceRecognitionService $faceRecognitionService,
+        FaceRecognitionRepository $faceRecognitionRepository
+    ) {
+        $this->middleware('auth:sanctum');
+        $this->faceRecognitionService = $faceRecognitionService;
+        $this->faceRecognitionRepository = $faceRecognitionRepository;
+    }
+
     /**
      * Register a face for an employee.
      */
-    public function registerFace(Request $request)
+    public function registerFace(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'employee_id' => 'required|exists:employees,id',
             'face_data' => 'required|array',
-            'face_data.descriptor' => 'required|array',
-            'face_data.confidence' => 'required|numeric|min:0|max:1',
-            'face_image' => 'nullable|image|max:2048', // 2MB max
+            'face_data.descriptor' => 'required|array|size:128',
+            'face_data.confidence' => 'required|numeric|min:0.7|max:1',
+            'face_data.algorithm' => 'nullable|string',
+            'face_data.model_version' => 'nullable|string',
+            'face_data.device_info' => 'nullable|array',
+            'face_data.landmarks' => 'nullable|array',
+            'face_data.pose' => 'nullable|array',
+            'face_data.expressions' => 'nullable|array',
+            'face_image' => 'nullable|image|mimes:jpeg,png|max:2048',
+            'require_liveness' => 'boolean',
+            'liveness_data' => 'nullable|array',
         ]);
 
         try {
-            DB::beginTransaction();
+            $result = $this->faceRecognitionService->registerFace(
+                $validated['employee_id'],
+                $validated['face_data'],
+                $request->file('face_image')
+            );
 
-            $employee = Employee::findOrFail($validated['employee_id']);
-            
-            // Store face image if provided
-            $imagePath = null;
-            if ($request->hasFile('face_image')) {
-                $imagePath = $request->file('face_image')->store(
-                    'face-images/' . $employee->id, 
-                    'private'
-                );
-            }
-
-            // Prepare face data for storage
-            $faceData = [
-                'descriptor' => $validated['face_data']['descriptor'],
-                'confidence' => $validated['face_data']['confidence'],
-                'registered_at' => now()->toISOString(),
-                'image_path' => $imagePath,
-                'algorithm' => $request->input('algorithm', 'face-api.js'),
-            ];
-
-            // Store in employee metadata
-            $metadata = $employee->metadata ?? [];
-            $metadata['face_recognition'] = $faceData;
-            
-            $employee->update(['metadata' => $metadata]);
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Face registered successfully',
-                'data' => [
-                    'employee_id' => $employee->id,
-                    'confidence' => $validated['face_data']['confidence'],
-                    'image_stored' => !is_null($imagePath)
-                ]
-            ]);
-
+            return $this->successResponse(
+                $result,
+                'Face registered successfully'
+            );
         } catch (\Exception $e) {
-            DB::rollBack();
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Face registration failed: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse(
+                'Face registration failed: '.$e->getMessage(),
+                422
+            );
         }
     }
 
     /**
      * Verify a face against registered employees.
      */
-    public function verifyFace(Request $request)
+    public function verifyFace(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'face_data' => 'required|array',
-            'face_data.descriptor' => 'required|array',
-            'face_data.confidence' => 'required|numeric|min:0|max:1',
+            'face_data.descriptor' => 'required|array|size:128',
+            'face_data.confidence' => 'required|numeric|min:0.5|max:1',
+            'face_data.landmarks' => 'nullable|array',
+            'face_data.pose' => 'nullable|array',
+            'face_data.expressions' => 'nullable|array',
             'location' => 'nullable|array',
             'location.latitude' => 'nullable|numeric',
             'location.longitude' => 'nullable|numeric',
+            'require_liveness' => 'boolean',
+            'liveness_data' => 'nullable|array',
+            'enforce_schedule' => 'boolean',
         ]);
 
         try {
-            $inputDescriptor = $validated['face_data']['descriptor'];
-            $threshold = 0.6; // Similarity threshold
-            
-            // Get all employees with face data
-            $employees = Employee::whereNotNull('metadata->face_recognition->descriptor')
-                               ->where('is_active', true)
-                               ->get();
+            $options = [
+                'location' => $validated['location'] ?? null,
+                'require_liveness' => $validated['require_liveness'] ?? true,
+                'enforce_schedule' => $validated['enforce_schedule'] ?? false,
+            ];
 
-            $bestMatch = null;
-            $bestSimilarity = 0;
+            $result = $this->faceRecognitionService->verifyFace(
+                $validated['face_data'],
+                $options
+            );
 
-            foreach ($employees as $employee) {
-                $storedDescriptor = $employee->metadata['face_recognition']['descriptor'] ?? null;
-                
-                if (!$storedDescriptor) continue;
-
-                $similarity = $this->calculateCosineSimilarity($inputDescriptor, $storedDescriptor);
-                
-                if ($similarity > $threshold && $similarity > $bestSimilarity) {
-                    $bestMatch = $employee;
-                    $bestSimilarity = $similarity;
-                }
+            if ($result['success']) {
+                return $this->successResponse(
+                    $result,
+                    'Face verified successfully'
+                );
+            } else {
+                return $this->errorResponse(
+                    $result['message'],
+                    404,
+                    $result
+                );
             }
-
-            if ($bestMatch) {
-                // Verify location if provided
-                $locationVerified = true;
-                if (isset($validated['location']) && $bestMatch->location) {
-                    $locationVerified = $this->verifyLocation(
-                        $validated['location'],
-                        $bestMatch->location
-                    );
-                }
-
-                return response()->json([
-                    'success' => true,
-                    'employee' => [
-                        'id' => $bestMatch->id,
-                        'name' => $bestMatch->full_name,
-                        'employee_id' => $bestMatch->employee_id,
-                        'employee_type' => $bestMatch->employee_type,
-                    ],
-                    'confidence' => $bestSimilarity,
-                    'location_verified' => $locationVerified,
-                    'timestamp' => now()->toISOString()
-                ]);
-            }
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Face not recognized',
-                'confidence' => $bestSimilarity,
-                'timestamp' => now()->toISOString()
-            ]);
-
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Face verification failed: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse(
+                'Face verification failed: '.$e->getMessage(),
+                500
+            );
         }
     }
 
     /**
      * Get all registered faces for face recognition training.
      */
-    public function getRegisteredFaces()
+    public function getRegisteredFaces(): JsonResponse
     {
         try {
-            $employees = Employee::whereNotNull('metadata->face_recognition->descriptor')
-                               ->where('is_active', true)
-                               ->get(['id', 'first_name', 'last_name', 'employee_id', 'metadata']);
+            $employees = $this->faceRecognitionRepository->getEmployeesWithFaceData();
 
             $faces = $employees->map(function ($employee) {
                 $faceData = $employee->metadata['face_recognition'] ?? null;
-                
-                if (!$faceData) return null;
+
+                if (! $faceData) {
+                    return null;
+                }
 
                 return [
                     'employee_id' => $employee->id,
@@ -173,124 +139,76 @@ class FaceDetectionController extends Controller
                     'employee_code' => $employee->employee_id,
                     'descriptor' => $faceData['descriptor'],
                     'confidence' => $faceData['confidence'],
+                    'quality_score' => $faceData['quality_score'] ?? null,
                     'algorithm' => $faceData['algorithm'] ?? 'face-api.js',
+                    'model_version' => $faceData['model_version'] ?? '1.0',
+                    'registered_at' => $faceData['registered_at'] ?? null,
                 ];
             })->filter()->values();
 
-            return response()->json([
-                'success' => true,
+            return $this->successResponse([
                 'faces' => $faces,
-                'count' => $faces->count()
+                'count' => $faces->count(),
             ]);
-
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve faces: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse(
+                'Failed to retrieve faces: '.$e->getMessage(),
+                500
+            );
         }
     }
 
     /**
      * Update face data for an employee.
      */
-    public function updateFace(Request $request, Employee $employee)
+    public function updateFace(Request $request, Employee $employee): JsonResponse
     {
         $validated = $request->validate([
             'face_data' => 'required|array',
-            'face_data.descriptor' => 'required|array',
-            'face_data.confidence' => 'required|numeric|min:0|max:1',
-            'face_image' => 'nullable|image|max:2048',
+            'face_data.descriptor' => 'required|array|size:128',
+            'face_data.confidence' => 'required|numeric|min:0.7|max:1',
+            'face_data.algorithm' => 'nullable|string',
+            'face_data.model_version' => 'nullable|string',
+            'face_data.device_info' => 'nullable|array',
+            'face_image' => 'nullable|image|mimes:jpeg,png|max:2048',
         ]);
 
         try {
-            DB::beginTransaction();
+            $result = $this->faceRecognitionService->updateFace(
+                $employee->id,
+                $validated['face_data'],
+                $request->file('face_image')
+            );
 
-            // Delete old face image if exists
-            $oldImagePath = $employee->metadata['face_recognition']['image_path'] ?? null;
-            if ($oldImagePath && Storage::disk('private')->exists($oldImagePath)) {
-                Storage::disk('private')->delete($oldImagePath);
-            }
-
-            // Store new face image if provided
-            $imagePath = null;
-            if ($request->hasFile('face_image')) {
-                $imagePath = $request->file('face_image')->store(
-                    'face-images/' . $employee->id, 
-                    'private'
-                );
-            }
-
-            // Update face data
-            $faceData = [
-                'descriptor' => $validated['face_data']['descriptor'],
-                'confidence' => $validated['face_data']['confidence'],
-                'updated_at' => now()->toISOString(),
-                'image_path' => $imagePath,
-                'algorithm' => $request->input('algorithm', 'face-api.js'),
-            ];
-
-            $metadata = $employee->metadata ?? [];
-            $metadata['face_recognition'] = $faceData;
-            
-            $employee->update(['metadata' => $metadata]);
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Face data updated successfully',
-                'data' => [
-                    'employee_id' => $employee->id,
-                    'confidence' => $validated['face_data']['confidence'],
-                    'image_updated' => !is_null($imagePath)
-                ]
-            ]);
-
+            return $this->successResponse(
+                $result,
+                'Face data updated successfully'
+            );
         } catch (\Exception $e) {
-            DB::rollBack();
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Face update failed: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse(
+                'Face update failed: '.$e->getMessage(),
+                422
+            );
         }
     }
 
     /**
      * Delete face data for an employee.
      */
-    public function deleteFace(Employee $employee)
+    public function deleteFace(Employee $employee): JsonResponse
     {
         try {
-            DB::beginTransaction();
+            $result = $this->faceRecognitionService->deleteFace($employee->id);
 
-            // Delete face image if exists
-            $imagePath = $employee->metadata['face_recognition']['image_path'] ?? null;
-            if ($imagePath && Storage::disk('private')->exists($imagePath)) {
-                Storage::disk('private')->delete($imagePath);
-            }
-
-            // Remove face data from metadata
-            $metadata = $employee->metadata ?? [];
-            unset($metadata['face_recognition']);
-            
-            $employee->update(['metadata' => $metadata]);
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Face data deleted successfully'
-            ]);
-
+            return $this->successResponse(
+                ['deleted' => $result],
+                'Face data deleted successfully'
+            );
         } catch (\Exception $e) {
-            DB::rollBack();
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Face deletion failed: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse(
+                'Face deletion failed: '.$e->getMessage(),
+                422
+            );
         }
     }
 
@@ -314,7 +232,7 @@ class FaceDetectionController extends Controller
         }
 
         $magnitude = sqrt($norm1) * sqrt($norm2);
-        
+
         return $magnitude == 0 ? 0 : $dotProduct / $magnitude;
     }
 
@@ -325,8 +243,8 @@ class FaceDetectionController extends Controller
     {
         // This is a simplified location verification
         // In production, you'd want more sophisticated geofencing
-        
-        if (!isset($currentLocation['latitude']) || !isset($currentLocation['longitude'])) {
+
+        if (! isset($currentLocation['latitude']) || ! isset($currentLocation['longitude'])) {
             return false;
         }
 
@@ -337,31 +255,134 @@ class FaceDetectionController extends Controller
     /**
      * Get face detection statistics.
      */
-    public function getStatistics()
+    public function getStatistics(): JsonResponse
     {
         try {
-            $totalEmployees = Employee::where('is_active', true)->count();
-            $registeredFaces = Employee::whereNotNull('metadata->face_recognition->descriptor')
-                                     ->where('is_active', true)
-                                     ->count();
-            
-            $statistics = [
-                'total_employees' => $totalEmployees,
-                'registered_faces' => $registeredFaces,
-                'registration_percentage' => $totalEmployees > 0 ? round(($registeredFaces / $totalEmployees) * 100, 2) : 0,
-                'algorithms_used' => $this->getAlgorithmUsage(),
-            ];
+            $statistics = $this->faceRecognitionService->getStatistics();
 
-            return response()->json([
-                'success' => true,
-                'statistics' => $statistics
-            ]);
-
+            return $this->successResponse($statistics);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve statistics: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse(
+                'Failed to retrieve statistics: '.$e->getMessage(),
+                500
+            );
+        }
+    }
+
+    /**
+     * Get employees without face data
+     */
+    public function getEmployeesWithoutFace(Request $request): JsonResponse
+    {
+        try {
+            $locationId = $request->query('location_id');
+            $employees = $this->faceRecognitionRepository->getEmployeesWithoutFaceData($locationId);
+
+            return $this->successResponse([
+                'employees' => $employees,
+                'count' => $employees->count(),
+            ]);
+        } catch (\Exception $e) {
+            return $this->errorResponse(
+                'Failed to retrieve employees: '.$e->getMessage(),
+                500
+            );
+        }
+    }
+
+    /**
+     * Get employees with low quality faces
+     */
+    public function getLowQualityFaces(Request $request): JsonResponse
+    {
+        try {
+            $threshold = $request->query('threshold', 0.7);
+            $employees = $this->faceRecognitionRepository->getEmployeesWithLowQualityFaces($threshold);
+
+            return $this->successResponse([
+                'employees' => $employees,
+                'count' => $employees->count(),
+                'threshold' => $threshold,
+            ]);
+        } catch (\Exception $e) {
+            return $this->errorResponse(
+                'Failed to retrieve employees: '.$e->getMessage(),
+                500
+            );
+        }
+    }
+
+    /**
+     * Get face recognition performance metrics
+     */
+    public function getPerformanceMetrics(Request $request): JsonResponse
+    {
+        try {
+            $days = $request->query('days', 30);
+            $metrics = $this->faceRecognitionRepository->getFaceRecognitionPerformance($days);
+
+            return $this->successResponse($metrics);
+        } catch (\Exception $e) {
+            return $this->errorResponse(
+                'Failed to retrieve performance metrics: '.$e->getMessage(),
+                500
+            );
+        }
+    }
+
+    /**
+     * Batch verify faces
+     */
+    public function batchVerify(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'faces' => 'required|array|max:50',
+            'faces.*.descriptor' => 'required|array|size:128',
+            'faces.*.confidence' => 'required|numeric|min:0.5|max:1',
+        ]);
+
+        try {
+            $results = $this->faceRecognitionService->batchVerify($validated['faces']);
+
+            return $this->successResponse([
+                'results' => $results,
+                'total_processed' => count($results),
+                'successful_matches' => count(array_filter($results, fn ($r) => $r['success'])),
+            ]);
+        } catch (\Exception $e) {
+            return $this->errorResponse(
+                'Batch verification failed: '.$e->getMessage(),
+                500
+            );
+        }
+    }
+
+    /**
+     * Search employees by face status
+     */
+    public function searchByFaceStatus(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:registered,not_registered,low_quality',
+            'query' => 'nullable|string|max:255',
+        ]);
+
+        try {
+            $employees = $this->faceRecognitionRepository->searchByFaceStatus(
+                $validated['status'],
+                $validated['query'] ?? null
+            );
+
+            return $this->successResponse([
+                'employees' => $employees,
+                'count' => $employees->count(),
+                'status' => $validated['status'],
+            ]);
+        } catch (\Exception $e) {
+            return $this->errorResponse(
+                'Search failed: '.$e->getMessage(),
+                500
+            );
         }
     }
 
@@ -371,8 +392,8 @@ class FaceDetectionController extends Controller
     private function getAlgorithmUsage()
     {
         $employees = Employee::whereNotNull('metadata->face_recognition->algorithm')
-                           ->where('is_active', true)
-                           ->get(['metadata']);
+            ->where('is_active', true)
+            ->get(['metadata']);
 
         $algorithms = [];
         foreach ($employees as $employee) {

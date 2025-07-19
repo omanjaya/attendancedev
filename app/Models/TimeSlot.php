@@ -2,28 +2,21 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class TimeSlot extends Model
 {
     use HasFactory, HasUuids;
 
-    protected $fillable = [
-        'name',
-        'start_time',
-        'end_time',
-        'order',
-        'is_active',
-        'metadata'
-    ];
+    protected $fillable = ['name', 'start_time', 'end_time', 'order', 'is_active', 'metadata'];
 
     protected $casts = [
         'is_active' => 'boolean',
         'metadata' => 'array',
         'start_time' => 'datetime:H:i',
-        'end_time' => 'datetime:H:i'
+        'end_time' => 'datetime:H:i',
     ];
 
     // Relationships
@@ -46,7 +39,7 @@ class TimeSlot extends Model
     // Accessors
     public function getFormattedTimeAttribute()
     {
-        return $this->start_time->format('H:i') . ' - ' . $this->end_time->format('H:i');
+        return $this->start_time->format('H:i').' - '.$this->end_time->format('H:i');
     }
 
     public function getDurationInMinutesAttribute()

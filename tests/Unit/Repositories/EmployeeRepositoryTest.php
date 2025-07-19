@@ -3,12 +3,12 @@
 namespace Tests\Unit\Repositories;
 
 use App\Models\Employee;
-use App\Models\User;
 use App\Models\Location;
+use App\Models\User;
 use App\Repositories\EmployeeRepository;
-use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Tests\TestCase;
 
 class EmployeeRepositoryTest extends TestCase
 {
@@ -19,12 +19,14 @@ class EmployeeRepositoryTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->employeeRepository = new EmployeeRepository();
+        $this->employeeRepository = new EmployeeRepository;
     }
 
     public function test_get_all_returns_paginated_employees(): void
     {
-        Employee::factory()->count(15)->create(['is_active' => true]);
+        Employee::factory()
+            ->count(15)
+            ->create(['is_active' => true]);
 
         $result = $this->employeeRepository->getAll();
 
@@ -35,16 +37,20 @@ class EmployeeRepositoryTest extends TestCase
     public function test_get_all_with_filters(): void
     {
         $location = Location::factory()->create();
-        
-        Employee::factory()->count(3)->create([
-            'is_active' => true,
-            'location_id' => $location->id,
-        ]);
-        
-        Employee::factory()->count(2)->create([
-            'is_active' => false,
-            'location_id' => $location->id,
-        ]);
+
+        Employee::factory()
+            ->count(3)
+            ->create([
+                'is_active' => true,
+                'location_id' => $location->id,
+            ]);
+
+        Employee::factory()
+            ->count(2)
+            ->create([
+                'is_active' => false,
+                'location_id' => $location->id,
+            ]);
 
         // Filter by active status
         $activeEmployees = $this->employeeRepository->getAll(['is_active' => true]);
@@ -200,13 +206,17 @@ class EmployeeRepositoryTest extends TestCase
 
     public function test_get_active_employees(): void
     {
-        Employee::factory()->count(3)->create(['is_active' => true]);
-        Employee::factory()->count(2)->create(['is_active' => false]);
+        Employee::factory()
+            ->count(3)
+            ->create(['is_active' => true]);
+        Employee::factory()
+            ->count(2)
+            ->create(['is_active' => false]);
 
         $result = $this->employeeRepository->getActiveEmployees();
 
         $this->assertEquals(3, $result->count());
-        
+
         foreach ($result as $employee) {
             $this->assertTrue($employee->is_active);
         }
@@ -217,13 +227,17 @@ class EmployeeRepositoryTest extends TestCase
         $location1 = Location::factory()->create();
         $location2 = Location::factory()->create();
 
-        Employee::factory()->count(3)->create(['location_id' => $location1->id]);
-        Employee::factory()->count(2)->create(['location_id' => $location2->id]);
+        Employee::factory()
+            ->count(3)
+            ->create(['location_id' => $location1->id]);
+        Employee::factory()
+            ->count(2)
+            ->create(['location_id' => $location2->id]);
 
         $result = $this->employeeRepository->getEmployeesByLocation($location1->id);
 
         $this->assertEquals(3, $result->count());
-        
+
         foreach ($result as $employee) {
             $this->assertEquals($location1->id, $employee->location_id);
         }
@@ -231,13 +245,17 @@ class EmployeeRepositoryTest extends TestCase
 
     public function test_get_employees_by_department(): void
     {
-        Employee::factory()->count(4)->create(['department' => 'IT']);
-        Employee::factory()->count(2)->create(['department' => 'HR']);
+        Employee::factory()
+            ->count(4)
+            ->create(['department' => 'IT']);
+        Employee::factory()
+            ->count(2)
+            ->create(['department' => 'HR']);
 
         $result = $this->employeeRepository->getEmployeesByDepartment('IT');
 
         $this->assertEquals(4, $result->count());
-        
+
         foreach ($result as $employee) {
             $this->assertEquals('IT', $employee->department);
         }
@@ -248,17 +266,21 @@ class EmployeeRepositoryTest extends TestCase
         $location1 = Location::factory()->create();
         $location2 = Location::factory()->create();
 
-        Employee::factory()->count(3)->create([
-            'is_active' => true,
-            'location_id' => $location1->id,
-            'department' => 'IT',
-        ]);
+        Employee::factory()
+            ->count(3)
+            ->create([
+                'is_active' => true,
+                'location_id' => $location1->id,
+                'department' => 'IT',
+            ]);
 
-        Employee::factory()->count(2)->create([
-            'is_active' => true,
-            'location_id' => $location2->id,
-            'department' => 'HR',
-        ]);
+        Employee::factory()
+            ->count(2)
+            ->create([
+                'is_active' => true,
+                'location_id' => $location2->id,
+                'department' => 'HR',
+            ]);
 
         Employee::factory()->create([
             'is_active' => false,
@@ -286,7 +308,7 @@ class EmployeeRepositoryTest extends TestCase
     public function test_get_employees_with_upcoming_birthdays(): void
     {
         $today = now();
-        
+
         // Employee with birthday tomorrow
         Employee::factory()->create([
             'date_of_birth' => $today->copy()->addDay()->subYears(25),
@@ -346,7 +368,9 @@ class EmployeeRepositoryTest extends TestCase
 
     public function test_bulk_update_status(): void
     {
-        $employees = Employee::factory()->count(5)->create(['is_active' => true]);
+        $employees = Employee::factory()
+            ->count(5)
+            ->create(['is_active' => true]);
         $employeeIds = $employees->pluck('id')->toArray();
 
         $updated = $this->employeeRepository->bulkUpdateStatus($employeeIds, false);
@@ -354,10 +378,8 @@ class EmployeeRepositoryTest extends TestCase
         $this->assertEquals(5, $updated);
 
         // Verify all employees are now inactive
-        $inactiveCount = Employee::whereIn('id', $employeeIds)
-            ->where('is_active', false)
-            ->count();
-        
+        $inactiveCount = Employee::whereIn('id', $employeeIds)->where('is_active', false)->count();
+
         $this->assertEquals(5, $inactiveCount);
     }
 
@@ -365,7 +387,7 @@ class EmployeeRepositoryTest extends TestCase
     {
         $user = User::factory()->create();
         $location = Location::factory()->create();
-        
+
         $employee = Employee::factory()->create([
             'user_id' => $user->id,
             'location_id' => $location->id,
@@ -374,7 +396,7 @@ class EmployeeRepositoryTest extends TestCase
         $result = $this->employeeRepository->getEmployeesWithRelations(['user', 'location']);
 
         $employee = $result->first();
-        
+
         // Check that relations are loaded
         $this->assertTrue($employee->relationLoaded('user'));
         $this->assertTrue($employee->relationLoaded('location'));

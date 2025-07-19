@@ -1,78 +1,41 @@
-@extends('layouts.app')
+@extends('layouts.authenticated-unified')
 
-@section('title', 'Calendar View - Academic Schedules')
+@section('title', 'Tampilan Kalender - Jadwal Akademik')
 
-@section('content')
-<div class="container-fluid py-4">
-    <div class="row">
-        <div class="col-12">
-            <!-- Page Header -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h2 class="h3 font-weight-bold text-gray-800">Academic Schedule Calendar</h2>
-                    <p class="text-muted mb-0">Manage weekly schedules with drag & drop interface</p>
-                </div>
-                <div>
-                    <a href="{{ route('academic.schedules.index') }}" class="btn btn-outline-secondary btn-sm">
-                        <i class="fas fa-list me-1"></i> List View
-                    </a>
-                </div>
+@section('page-content')
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-blue-900 dark:to-indigo-900">
+    <div class="p-6 lg:p-8">
+        <x-layouts.base-page
+            title="Kalender Jadwal Akademik"
+            subtitle="Kelola jadwal mingguan dengan antarmuka drag & drop"
+            :breadcrumbs="[
+                ['label' => 'Dashboard', 'url' => route('dashboard')],
+                ['label' => 'Akademik'],
+                ['label' => 'Jadwal', 'url' => route('academic.schedules.index')],
+                ['label' => 'Kalender']
+            ]">
+            <x-slot name="actions">
+                <x-ui.button variant="secondary" href="{{ route('academic.schedules.index') }}">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                    Tampilan Daftar
+                </x-ui.button>
+            </x-slot>
+        </x-layouts.base-page>
+
+        <!-- Vue.js Calendar Component within a Glassmorphism Card -->
+        <div class="mt-6 group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out">
+            <div id="schedule-calendar-app">
+                <jadwal-patra-calendar-view 
+                    :academic-classes="{{ json_encode($academicClasses) }}"
+                    :time-slots="{{ json_encode($timeSlots) }}"
+                ></jadwal-patra-calendar-view>
             </div>
         </div>
     </div>
-
-    <!-- Vue.js Calendar Component -->
-    <div id="schedule-calendar-app">
-        <jadwal-patra-calendar-view 
-            :academic-classes="{{ json_encode($academicClasses) }}"
-            :time-slots="{{ json_encode($timeSlots) }}"
-        ></jadwal-patra-calendar-view>
-    </div>
 </div>
 @endsection
-
-@push('styles')
-<style>
-/* Custom styles for schedule calendar */
-.schedule-calendar-container {
-    min-height: calc(100vh - 200px);
-}
-
-/* Override any Bootstrap conflicting styles */
-.schedule-calendar-container * {
-    box-sizing: border-box;
-}
-
-/* Ensure proper spacing */
-.schedule-calendar-container .bg-white {
-    background-color: #ffffff !important;
-}
-
-.schedule-calendar-container .rounded-xl {
-    border-radius: 12px !important;
-}
-
-/* Custom scrollbar for better UX */
-.schedule-calendar-container ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-.schedule-calendar-container ::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 4px;
-}
-
-.schedule-calendar-container ::-webkit-scrollbar-thumb {
-    background: #cbd5e0;
-    border-radius: 4px;
-}
-
-.schedule-calendar-container ::-webkit-scrollbar-thumb:hover {
-    background: #a0aec0;
-}
-</style>
-@endpush
 
 @push('scripts')
 <script type="module">

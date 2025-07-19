@@ -6,17 +6,20 @@ use App\Http\Controllers\Controller;
 use App\Models\UserDevice;
 use App\Services\DeviceService;
 use App\Services\SecurityNotificationService;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 class DeviceController extends Controller
 {
     private DeviceService $deviceService;
+
     private SecurityNotificationService $notificationService;
 
-    public function __construct(DeviceService $deviceService, SecurityNotificationService $notificationService)
-    {
+    public function __construct(
+        DeviceService $deviceService,
+        SecurityNotificationService $notificationService,
+    ) {
         $this->deviceService = $deviceService;
         $this->notificationService = $notificationService;
     }
@@ -27,7 +30,7 @@ class DeviceController extends Controller
     public function index(Request $request): JsonResponse
     {
         $devices = $this->deviceService->getUserDevices($request->user());
-        
+
         return response()->json([
             'devices' => $devices->map(function ($device) {
                 return [
@@ -57,11 +60,14 @@ class DeviceController extends Controller
             ->where('device_fingerprint', $fingerprint)
             ->first();
 
-        if (!$device) {
-            return response()->json([
-                'message' => 'Device not found',
-                'is_new' => true,
-            ], 404);
+        if (! $device) {
+            return response()->json(
+                [
+                    'message' => 'Device not found',
+                    'is_new' => true,
+                ],
+                404,
+            );
         }
 
         return response()->json([
@@ -117,12 +123,9 @@ class DeviceController extends Controller
             ]);
 
             $google2fa = app('pragmarx.google2fa');
-            $valid = $google2fa->verifyKey(
-                $request->user()->getTwoFactorSecret(),
-                $request->code
-            );
+            $valid = $google2fa->verifyKey($request->user()->getTwoFactorSecret(), $request->code);
 
-            if (!$valid) {
+            if (! $valid) {
                 throw ValidationException::withMessages([
                     'code' => ['Invalid 2FA code'],
                 ]);
@@ -130,7 +133,7 @@ class DeviceController extends Controller
         }
 
         $this->deviceService->trustDevice($device, $request->user());
-        
+
         // Send device trusted notification
         $this->notificationService->notifyDeviceTrusted($request->user(), $device, $request);
 
@@ -174,9 +177,12 @@ class DeviceController extends Controller
         // Don't allow removing current device
         $currentFingerprint = $this->deviceService->generateFingerprint($request);
         if ($device->device_fingerprint === $currentFingerprint) {
-            return response()->json([
-                'message' => 'Cannot remove current device',
-            ], 400);
+            return response()->json(
+                [
+                    'message' => 'Cannot remove current device',
+                ],
+                400,
+            );
         }
 
         $this->deviceService->removeDevice($device, $request->user());
@@ -198,12 +204,9 @@ class DeviceController extends Controller
             ]);
 
             $google2fa = app('pragmarx.google2fa');
-            $valid = $google2fa->verifyKey(
-                $request->user()->getTwoFactorSecret(),
-                $request->code
-            );
+            $valid = $google2fa->verifyKey($request->user()->getTwoFactorSecret(), $request->code);
 
-            if (!$valid) {
+            if (! $valid) {
                 throw ValidationException::withMessages([
                     'code' => ['Invalid 2FA code'],
                 ]);
@@ -213,7 +216,9 @@ class DeviceController extends Controller
         $currentFingerprint = $this->deviceService->generateFingerprint($request);
         $removedCount = 0;
 
-        $devices = $request->user()->devices()
+        $devices = $request
+            ->user()
+            ->devices()
             ->where('device_fingerprint', '!=', $currentFingerprint)
             ->get();
 

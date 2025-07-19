@@ -5,10 +5,10 @@ namespace Tests\Unit\Services;
 use App\Models\User;
 use App\Services\UserSecurityService;
 use Carbon\Carbon;
-use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Hash;
+use Tests\TestCase;
 
 class UserSecurityServiceTest extends TestCase
 {
@@ -19,7 +19,7 @@ class UserSecurityServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->userSecurityService = new UserSecurityService();
+        $this->userSecurityService = new UserSecurityService;
     }
 
     public function test_has_two_factor_enabled_returns_true_when_enabled(): void
@@ -232,7 +232,7 @@ class UserSecurityServiceTest extends TestCase
 
         $this->assertIsArray($codes);
         $this->assertCount(10, $codes); // Default backup codes count
-        
+
         foreach ($codes as $code) {
             $this->assertIsString($code);
             $this->assertGreaterThan(5, strlen($code));
@@ -313,8 +313,8 @@ class UserSecurityServiceTest extends TestCase
                     'device_id' => 'device_123',
                     'device_name' => 'iPhone 12',
                     'last_used_at' => Carbon::now()->toISOString(),
-                ]
-            ]
+                ],
+            ],
         ]);
 
         $devices = $this->userSecurityService->getTrustedDevices($user);
@@ -327,7 +327,7 @@ class UserSecurityServiceTest extends TestCase
     public function test_add_trusted_device_adds_device_to_user(): void
     {
         $user = User::factory()->create([
-            'trusted_devices' => []
+            'trusted_devices' => [],
         ]);
 
         $this->userSecurityService->addTrustedDevice($user, 'device_456', 'Android Phone');
@@ -348,8 +348,8 @@ class UserSecurityServiceTest extends TestCase
                     'device_id' => 'device_123',
                     'device_name' => 'iPhone 12',
                     'last_used_at' => Carbon::now()->toISOString(),
-                ]
-            ]
+                ],
+            ],
         ]);
 
         $this->userSecurityService->removeTrustedDevice($user, 'device_123');
@@ -366,8 +366,8 @@ class UserSecurityServiceTest extends TestCase
                     'device_id' => 'device_123',
                     'device_name' => 'iPhone 12',
                     'last_used_at' => Carbon::now()->toISOString(),
-                ]
-            ]
+                ],
+            ],
         ]);
 
         $result = $this->userSecurityService->isDeviceTrusted($user, 'device_123');
@@ -378,7 +378,7 @@ class UserSecurityServiceTest extends TestCase
     public function test_is_device_trusted_returns_false_for_untrusted_device(): void
     {
         $user = User::factory()->create([
-            'trusted_devices' => []
+            'trusted_devices' => [],
         ]);
 
         $result = $this->userSecurityService->isDeviceTrusted($user, 'unknown_device');

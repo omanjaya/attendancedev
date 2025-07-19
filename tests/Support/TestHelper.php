@@ -2,14 +2,14 @@
 
 namespace Tests\Support;
 
-use App\Models\User;
-use App\Models\Employee;
-use App\Models\Location;
 use App\Models\Attendance;
+use App\Models\Employee;
 use App\Models\Leave;
 use App\Models\LeaveType;
+use App\Models\Location;
 use App\Models\Payroll;
 use App\Models\PayrollItem;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Hash;
 
@@ -27,11 +27,16 @@ class TestHelper
 
         $location = Location::factory()->create();
 
-        $employee = Employee::factory()->create(array_merge([
-            'user_id' => $user->id,
-            'location_id' => $location->id,
-            'is_active' => true,
-        ], $overrides));
+        $employee = Employee::factory()->create(
+            array_merge(
+                [
+                    'user_id' => $user->id,
+                    'location_id' => $location->id,
+                    'is_active' => true,
+                ],
+                $overrides,
+            ),
+        );
 
         return [
             'user' => $user,
@@ -45,19 +50,22 @@ class TestHelper
      */
     public static function createAttendanceScenario(Employee $employee, array $config = []): array
     {
-        $config = array_merge([
-            'days' => 5,
-            'start_date' => Carbon::now()->startOfWeek(),
-            'hours_per_day' => 8,
-            'include_overtime' => false,
-        ], $config);
+        $config = array_merge(
+            [
+                'days' => 5,
+                'start_date' => Carbon::now()->startOfWeek(),
+                'hours_per_day' => 8,
+                'include_overtime' => false,
+            ],
+            $config,
+        );
 
         $attendances = [];
         $currentDate = $config['start_date'];
 
         for ($i = 0; $i < $config['days']; $i++) {
             $hours = $config['hours_per_day'];
-            
+
             if ($config['include_overtime'] && $i === $config['days'] - 1) {
                 $hours += 2; // Add 2 hours overtime on last day
             }
@@ -83,12 +91,15 @@ class TestHelper
      */
     public static function createLeaveScenario(Employee $employee, array $config = []): array
     {
-        $config = array_merge([
-            'leave_days' => 3,
-            'start_date' => Carbon::now()->addDays(7),
-            'status' => 'approved',
-            'is_paid' => true,
-        ], $config);
+        $config = array_merge(
+            [
+                'leave_days' => 3,
+                'start_date' => Carbon::now()->addDays(7),
+                'status' => 'approved',
+                'is_paid' => true,
+            ],
+            $config,
+        );
 
         $leaveType = LeaveType::factory()->create([
             'name' => 'Annual Leave',
@@ -115,14 +126,17 @@ class TestHelper
      */
     public static function createPayrollScenario(Employee $employee, array $config = []): array
     {
-        $config = array_merge([
-            'period_start' => Carbon::now()->startOfMonth(),
-            'period_end' => Carbon::now()->endOfMonth(),
-            'basic_salary' => 5000,
-            'include_overtime' => false,
-            'include_bonus' => false,
-            'include_deductions' => false,
-        ], $config);
+        $config = array_merge(
+            [
+                'period_start' => Carbon::now()->startOfMonth(),
+                'period_end' => Carbon::now()->endOfMonth(),
+                'basic_salary' => 5000,
+                'include_overtime' => false,
+                'include_bonus' => false,
+                'include_deductions' => false,
+            ],
+            $config,
+        );
 
         $payroll = Payroll::factory()->create([
             'employee_id' => $employee->id,
@@ -191,12 +205,15 @@ class TestHelper
      */
     public static function createSecurityScenario(User $user, array $config = []): array
     {
-        $config = array_merge([
-            'failed_attempts' => 3,
-            'is_locked' => false,
-            'has_2fa' => false,
-            'trusted_devices' => [],
-        ], $config);
+        $config = array_merge(
+            [
+                'failed_attempts' => 3,
+                'is_locked' => false,
+                'has_2fa' => false,
+                'trusted_devices' => [],
+            ],
+            $config,
+        );
 
         $user->update([
             'failed_login_attempts' => $config['failed_attempts'],
@@ -237,15 +254,15 @@ class TestHelper
         $baseLatitude = -6.2088; // Jakarta
         $baseLongitude = 106.8456;
 
-        if (!$withinRadius) {
+        if (! $withinRadius) {
             // Generate coordinates far from base location
             $baseLatitude += 0.1; // ~11km away
             $baseLongitude += 0.1;
         }
 
         return [
-            'latitude' => $baseLatitude + (rand(-100, 100) / 100000), // Small random variation
-            'longitude' => $baseLongitude + (rand(-100, 100) / 100000),
+            'latitude' => $baseLatitude + rand(-100, 100) / 100000, // Small random variation
+            'longitude' => $baseLongitude + rand(-100, 100) / 100000,
             'accuracy' => rand(5, 20),
             'timestamp' => now()->toISOString(),
         ];
@@ -256,11 +273,14 @@ class TestHelper
      */
     public static function getApiHeaders(array $additional = []): array
     {
-        return array_merge([
-            'Accept' => 'application/json',
-            'Content-Type' => 'application/json',
-            'X-Requested-With' => 'XMLHttpRequest',
-        ], $additional);
+        return array_merge(
+            [
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+                'X-Requested-With' => 'XMLHttpRequest',
+            ],
+            $additional,
+        );
     }
 
     /**
@@ -269,9 +289,9 @@ class TestHelper
     public static function assertAuditLogExists(array $criteria): void
     {
         $auditLog = \App\Models\AuditLog::where($criteria)->first();
-        
-        if (!$auditLog) {
-            throw new \Exception('Expected audit log entry not found: ' . json_encode($criteria));
+
+        if (! $auditLog) {
+            throw new \Exception('Expected audit log entry not found: '.json_encode($criteria));
         }
     }
 
@@ -280,20 +300,26 @@ class TestHelper
      */
     public static function createTestNotification(User $user, array $config = []): array
     {
-        $config = array_merge([
-            'type' => 'security_alert',
-            'title' => 'Security Alert',
-            'message' => 'A security event has been detected',
-            'data' => [],
-        ], $config);
+        $config = array_merge(
+            [
+                'type' => 'security_alert',
+                'title' => 'Security Alert',
+                'message' => 'A security event has been detected',
+                'data' => [],
+            ],
+            $config,
+        );
 
         $notification = $user->notifications()->create([
             'id' => \Illuminate\Support\Str::uuid(),
             'type' => $config['type'],
-            'data' => array_merge([
-                'title' => $config['title'],
-                'message' => $config['message'],
-            ], $config['data']),
+            'data' => array_merge(
+                [
+                    'title' => $config['title'],
+                    'message' => $config['message'],
+                ],
+                $config['data'],
+            ),
             'read_at' => null,
         ]);
 
@@ -308,18 +334,48 @@ class TestHelper
     public static function mockExternalServices(): void
     {
         // Mock face detection service
-        app()->instance(\App\Services\FaceDetectionService::class, new class {
-            public function verify($faceData, $storedEmbedding) { return true; }
-            public function register($faceData) { return true; }
-            public function extractFeatures($imageData) { return TestHelper::generateTestFaceData(); }
-        });
+        app()->instance(
+            \App\Services\FaceDetectionService::class,
+            new class
+            {
+                public function verify($faceData, $storedEmbedding)
+                {
+                    return true;
+                }
+
+                public function register($faceData)
+                {
+                    return true;
+                }
+
+                public function extractFeatures($imageData)
+                {
+                    return TestHelper::generateTestFaceData();
+                }
+            },
+        );
 
         // Mock location service
-        app()->instance(\App\Services\LocationService::class, new class {
-            public function isWithinRadius($userCoords, $allowedCoords, $radius) { return true; }
-            public function validateCoordinates($latitude, $longitude) { return true; }
-            public function calculateDistance($coords1, $coords2) { return 0.5; }
-        });
+        app()->instance(
+            \App\Services\LocationService::class,
+            new class
+            {
+                public function isWithinRadius($userCoords, $allowedCoords, $radius)
+                {
+                    return true;
+                }
+
+                public function validateCoordinates($latitude, $longitude)
+                {
+                    return true;
+                }
+
+                public function calculateDistance($coords1, $coords2)
+                {
+                    return 0.5;
+                }
+            },
+        );
     }
 
     /**
@@ -329,10 +385,10 @@ class TestHelper
     {
         // Clear any cached data
         cache()->flush();
-        
+
         // Reset any global state
         Carbon::setTestNow();
-        
+
         // Clear any mocked services
         app()->forgetInstance(\App\Services\FaceDetectionService::class);
         app()->forgetInstance(\App\Services\LocationService::class);
@@ -341,10 +397,11 @@ class TestHelper
     /**
      * Set up time-based testing.
      */
-    public static function freezeTime(Carbon $time = null): Carbon
+    public static function freezeTime(?Carbon $time = null): Carbon
     {
         $frozenTime = $time ?: Carbon::now();
         Carbon::setTestNow($frozenTime);
+
         return $frozenTime;
     }
 
@@ -355,7 +412,7 @@ class TestHelper
     {
         $locations = Location::factory()->count(5)->create();
         $users = User::factory()->count($count)->create();
-        
+
         $employees = [];
         foreach ($users as $user) {
             $employees[] = Employee::factory()->create([

@@ -24,9 +24,9 @@ class TwoFactorRateLimit
     {
         $ip = $request->ip();
         $user = auth()->user();
-        
+
         // Create identifier based on user + IP for authenticated requests
-        $identifier = $user ? $user->id . '_' . $ip : $ip;
+        $identifier = $user ? $user->id.'_'.$ip : $ip;
 
         // Check for security lockdown (for authenticated users)
         if ($user && $this->securityService->is2FALockedDown($identifier)) {
@@ -62,24 +62,31 @@ class TwoFactorRateLimit
             'sms_request' => 'Too many SMS requests. Please wait before requesting another code.',
             'emergency_recovery' => 'Emergency recovery requests are limited. Please contact support.',
             'setup_attempt' => 'Too many setup attempts. Please wait before trying again.',
-            'general' => 'Too many requests. Please wait before trying again.'
+            'general' => 'Too many requests. Please wait before trying again.',
         ];
 
         $message = $messages[$action] ?? $messages['general'];
 
         if (request()->expectsJson()) {
-            return response()->json([
-                'error' => $message,
-                'rate_limited' => true,
-                'retry_after' => $this->getRetryAfter($action)
-            ], 429);
+            return response()->json(
+                [
+                    'error' => $message,
+                    'rate_limited' => true,
+                    'retry_after' => $this->getRetryAfter($action),
+                ],
+                429,
+            );
         }
 
-        return response()->view('errors.rate-limited', [
-            'message' => $message,
-            'action' => $action,
-            'retry_after' => $this->getRetryAfter($action)
-        ], 429);
+        return response()->view(
+            'errors.rate-limited',
+            [
+                'message' => $message,
+                'action' => $action,
+                'retry_after' => $this->getRetryAfter($action),
+            ],
+            429,
+        );
     }
 
     /**
@@ -87,19 +94,27 @@ class TwoFactorRateLimit
      */
     private function createLockdownResponse(): Response
     {
-        $message = 'Account temporarily locked due to security concerns. Please contact support for assistance.';
+        $message =
+          'Account temporarily locked due to security concerns. Please contact support for assistance.';
 
         if (request()->expectsJson()) {
-            return response()->json([
-                'error' => $message,
-                'lockdown' => true,
-                'admin_required' => true
-            ], 423);
+            return response()->json(
+                [
+                    'error' => $message,
+                    'lockdown' => true,
+                    'admin_required' => true,
+                ],
+                423,
+            );
         }
 
-        return response()->view('errors.security-lockdown', [
-            'message' => $message
-        ], 423);
+        return response()->view(
+            'errors.security-lockdown',
+            [
+                'message' => $message,
+            ],
+            423,
+        );
     }
 
     /**
@@ -108,12 +123,12 @@ class TwoFactorRateLimit
     private function getRetryAfter(string $action): int
     {
         $retryTimes = [
-            'verification' => 900,      // 15 minutes
-            'recovery_code' => 3600,    // 1 hour
-            'sms_request' => 3600,      // 1 hour
+            'verification' => 900, // 15 minutes
+            'recovery_code' => 3600, // 1 hour
+            'sms_request' => 3600, // 1 hour
             'emergency_recovery' => 86400, // 24 hours
-            'setup_attempt' => 3600,    // 1 hour
-            'general' => 3600           // 1 hour
+            'setup_attempt' => 3600, // 1 hour
+            'general' => 3600, // 1 hour
         ];
 
         return $retryTimes[$action] ?? $retryTimes['general'];

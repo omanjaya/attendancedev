@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class TeacherSubject extends Model
 {
@@ -16,14 +16,14 @@ class TeacherSubject extends Model
         'is_primary',
         'max_hours_per_week',
         'competencies',
-        'is_active'
+        'is_active',
     ];
 
     protected $casts = [
         'is_primary' => 'boolean',
         'is_active' => 'boolean',
         'competencies' => 'array',
-        'max_hours_per_week' => 'integer'
+        'max_hours_per_week' => 'integer',
     ];
 
     // Relationships
@@ -52,9 +52,9 @@ class TeacherSubject extends Model
     public function getCurrentWeeklyHours()
     {
         return WeeklySchedule::where('employee_id', $this->employee_id)
-                            ->where('subject_id', $this->subject_id)
-                            ->where('is_active', true)
-                            ->count();
+            ->where('subject_id', $this->subject_id)
+            ->where('is_active', true)
+            ->count();
     }
 
     public function hasCapacityForMoreHours()

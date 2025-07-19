@@ -2,17 +2,20 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
-use Illuminate\Http\Request;
 
 class PerformanceMonitorService
 {
     private array $metrics = [];
+
     private float $startTime;
+
     private int $startMemory;
+
     private array $queryLog = [];
 
     public function __construct()
@@ -111,9 +114,11 @@ class PerformanceMonitorService
             }
 
             // Detect potential N+1 problems
-            if (str_contains(strtolower($query['query']), 'select') && 
-                str_contains(strtolower($query['query']), 'where') && 
-                !str_contains(strtolower($query['query']), 'in (')) {
+            if (
+                str_contains(strtolower($query['query']), 'select') &&
+                str_contains(strtolower($query['query']), 'where') &&
+                ! str_contains(strtolower($query['query']), 'in (')
+            ) {
                 $analysis['n_plus_one_potential'][] = [
                     'sql' => $query['query'],
                     'time' => $time,
@@ -130,7 +135,7 @@ class PerformanceMonitorService
     private function getSystemMetrics(): array
     {
         $loadAverage = function_exists('sys_getloadavg') ? sys_getloadavg() : [0, 0, 0];
-        
+
         return [
             'php_version' => PHP_VERSION,
             'memory_limit' => ini_get('memory_limit'),
@@ -157,16 +162,21 @@ class PerformanceMonitorService
             if (config('cache.default') === 'redis') {
                 $redis = Redis::connection();
                 $info = $redis->info('stats');
-                
+
                 $metrics['cache_hits'] = $info['keyspace_hits'] ?? 0;
                 $metrics['cache_misses'] = $info['keyspace_misses'] ?? 0;
                 $metrics['connected_clients'] = $info['connected_clients'] ?? 0;
                 $metrics['used_memory'] = $this->formatBytes($info['used_memory'] ?? 0);
-                $metrics['hit_rate'] = $metrics['cache_hits'] > 0 ? 
-                    round(($metrics['cache_hits'] / ($metrics['cache_hits'] + $metrics['cache_misses'])) * 100, 2) : 0;
+                $metrics['hit_rate'] =
+                  $metrics['cache_hits'] > 0
+                    ? round(
+                        ($metrics['cache_hits'] / ($metrics['cache_hits'] + $metrics['cache_misses'])) * 100,
+                        2,
+                    )
+                    : 0;
             }
         } catch (\Exception $e) {
-            Log::warning('Failed to get cache metrics: ' . $e->getMessage());
+            Log::warning('Failed to get cache metrics: '.$e->getMessage());
         }
 
         return $metrics;
@@ -205,7 +215,7 @@ class PerformanceMonitorService
         // Store operation metrics
         $this->storeOperationMetrics($operation, $metrics);
 
-        if (!$success) {
+        if (! $success) {
             Log::error("Operation '{$operation}' failed", $metrics);
         }
 
@@ -218,10 +228,10 @@ class PerformanceMonitorService
     public function getPerformanceSummary(int $hours = 24): array
     {
         $key = "performance_summary_{$hours}h";
-        
+
         return Cache::remember($key, 300, function () use ($hours) {
             $since = now()->subHours($hours);
-            
+
             // Get cached metrics
             $metrics = Cache::get('performance_metrics', []);
             $recentMetrics = array_filter($metrics, function ($metric) use ($since) {
@@ -243,7 +253,7 @@ class PerformanceMonitorService
                 'min_response_time' => min($executionTimes),
                 'avg_memory_usage' => $this->formatBytes(array_sum($memoryUsages) / count($memoryUsages)),
                 'avg_queries_per_request' => round(array_sum($queryCounts) / count($queryCounts), 1),
-                'slow_requests' => count(array_filter($executionTimes, fn($time) => $time > 1000)),
+                'slow_requests' => count(array_filter($executionTimes, fn ($time) => $time > 1000)),
                 'error_rate' => $this->calculateErrorRate($recentMetrics),
                 'period_hours' => $hours,
                 'last_updated' => now()->toISOString(),
@@ -315,12 +325,12 @@ class PerformanceMonitorService
         // Store in cache (keep last 1000 entries)
         $allMetrics = Cache::get('performance_metrics', []);
         $allMetrics[] = $metrics;
-        
+
         // Keep only last 1000 entries
         if (count($allMetrics) > 1000) {
             $allMetrics = array_slice($allMetrics, -1000);
         }
-        
+
         Cache::put('performance_metrics', $allMetrics, 86400); // 24 hours
     }
 
@@ -332,12 +342,12 @@ class PerformanceMonitorService
         $key = "operation_metrics_{$operation}";
         $operationMetrics = Cache::get($key, []);
         $operationMetrics[] = $metrics;
-        
+
         // Keep only last 100 entries per operation
         if (count($operationMetrics) > 100) {
             $operationMetrics = array_slice($operationMetrics, -100);
         }
-        
+
         Cache::put($key, $operationMetrics, 3600); // 1 hour
     }
 
@@ -347,7 +357,7 @@ class PerformanceMonitorService
     private function logPerformanceData(): void
     {
         $performance = $this->metrics['performance'] ?? [];
-        
+
         if (($performance['execution_time'] ?? 0) > 2000) {
             Log::warning('Slow request detected', [
                 'url' => $this->metrics['request']['url'] ?? 'unknown',
@@ -375,23 +385,23 @@ class PerformanceMonitorService
         $bytes = max($bytes, 0);
         $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
         $pow = min($pow, count($units) - 1);
-        
+
         $bytes /= pow(1024, $pow);
-        
-        return round($bytes, 2) . ' ' . $units[$pow];
+
+        return round($bytes, 2).' '.$units[$pow];
     }
 
     private function parseMemoryLimit(string $memoryLimit): int
     {
         $memoryLimit = strtolower($memoryLimit);
         $multipliers = ['k' => 1024, 'm' => 1024 * 1024, 'g' => 1024 * 1024 * 1024];
-        
+
         foreach ($multipliers as $suffix => $multiplier) {
             if (str_ends_with($memoryLimit, $suffix)) {
                 return (int) substr($memoryLimit, 0, -1) * $multiplier;
             }
         }
-        
+
         return (int) $memoryLimit;
     }
 

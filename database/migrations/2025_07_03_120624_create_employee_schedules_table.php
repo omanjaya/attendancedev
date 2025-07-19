@@ -21,7 +21,7 @@ return new class extends Migration
             $table->jsonb('metadata')->default('{}');
             $table->timestamps();
             $table->softDeletes();
-            
+
             // Indexes
             $table->index('employee_id');
             $table->index('period_id');

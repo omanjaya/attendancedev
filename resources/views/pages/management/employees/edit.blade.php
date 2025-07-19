@@ -1,306 +1,258 @@
-@extends('layouts.authenticated')
+@extends('layouts.authenticated-unified')
 
-@section('title', 'Edit Employee')
+@section('title', 'Edit Pegawai')
 
 @section('page-content')
-<div class="py-6">
-    <div class="max-w-7xl mx-auto px-8">
-        <!-- Page Header -->
-        <div class="mb-8 mt-6">
-            <h2 class="text-3xl font-bold text-gray-900">Edit Employee: {{ $employee->full_name }}</h2>
-            <div class="text-gray-600 mt-1">Employees - Update employee profile information</div>
-        </div>
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-blue-900 dark:to-indigo-900">
+    <div class="p-6 lg:p-8">
+        <x-layouts.base-page
+            title="Edit Pegawai: {{ $employee->full_name }}"
+            subtitle="Perbarui informasi profil {{ $employee->full_name }}"
+            :breadcrumbs="[
+                ['label' => 'Dashboard', 'url' => route('dashboard')],
+                ['label' => 'Pegawai', 'url' => route('employees.index')],
+                ['label' => 'Edit Pegawai']
+            ]">
+            <x-slot name="actions">
+                <x-ui.button variant="secondary" href="{{ route('employees.show', $employee) }}">
+                    <svg class="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                    Lihat Profil
+                </x-ui.button>
+                <x-ui.button variant="secondary" href="{{ route('employees.index') }}">
+                    <svg class="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                    Kembali ke Daftar
+                </x-ui.button>
+            </x-slot>
+        </x-layouts.base-page>
 
-        <form action="{{ route('employees.update', $employee) }}" method="POST" enctype="multipart/form-data">
+        <form action="{{ route('employees.update', $employee) }}" method="POST" enctype="multipart/form-data" class="space-y-6">
             @csrf
             @method('PUT')
             
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-2">
-                    <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-                        <div class="px-6 py-4 border-b border-gray-200">
-                            <h3 class="text-lg font-medium text-gray-900">Employee Information</h3>
-                        </div>
-                        <div class="p-6">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Employee ID <span class="text-red-500">*</span></label>
-                                    <input type="text" name="employee_id" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('employee_id') border-red-300 text-red-900 placeholder-red-300 focus:ring-red-500 focus:border-red-500 @enderror" 
-                                           value="{{ old('employee_id', $employee->employee_id) }}" placeholder="EMP001" required>
-                                    @error('employee_id')
-                                        <div class="mt-2 text-sm text-red-600">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                                
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Employee Type <span class="text-red-500">*</span></label>
-                                    <select name="employee_type" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('employee_type') border-red-300 text-red-900 focus:ring-red-500 focus:border-red-500 @enderror" required>
-                                        <option value="">Select Type</option>
-                                        <option value="permanent" {{ old('employee_type', $employee->employee_type) == 'permanent' ? 'selected' : '' }}>Permanent</option>
-                                        <option value="honorary" {{ old('employee_type', $employee->employee_type) == 'honorary' ? 'selected' : '' }}>Honorary Teacher</option>
-                                        <option value="staff" {{ old('employee_type', $employee->employee_type) == 'staff' ? 'selected' : '' }}>Staff</option>
-                                    </select>
-                                    @error('employee_type')
-                                        <div class="mt-2 text-sm text-red-600">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
-                    
-                    <div class="grid grid-cols-12 gap-4 mb-3">
-                        <div class="md:col-span-6">
-                            <div class="block text-sm font-medium text-gray-700 required">First Name</div>
-                            <input type="text" name="first_name" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('first_name') border-red-300 text-red-900 focus:ring-red-500 focus:border-red-500 @enderror" 
-                                   value="{{ old('first_name', $employee->first_name) }}" required>
-                            @error('first_name')
-                                <div class="mt-2 text-sm text-red-600">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        
-                        <div class="md:col-span-6">
-                            <div class="block text-sm font-medium text-gray-700 required">Last Name</div>
-                            <input type="text" name="last_name" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('last_name') border-red-300 text-red-900 focus:ring-red-500 focus:border-red-500 @enderror" 
-                                   value="{{ old('last_name', $employee->last_name) }}" required>
-                            @error('last_name')
-                                <div class="mt-2 text-sm text-red-600">{{ $message }}</div>
-                            @enderror
-                        </div>
+            <div class="group relative glassmorphism-green-card">
+                <h3 class="text-xl font-semibold text-slate-800 dark:text-white mb-4 flex items-center">
+                    <svg class="w-6 h-6 mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    Informasi Pribadi
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <x-ui.label for="employee_id" value="ID Pegawai" required class="text-slate-700 dark:text-slate-300" />
+                        <x-ui.input type="text" name="employee_id" 
+                                   value="{{ old('employee_id', $employee->employee_id) }}" placeholder="EMP001" required 
+                                   class="glassmorphism-green-input" />
+                        @error('employee_id')
+                            <p class="text-sm text-red-500 mt-1">{{ $message }}</p>
+                        @enderror
                     </div>
-                    
-                    <div class="grid grid-cols-12 gap-4 mb-3">
-                        <div class="md:col-span-6">
-                            <div class="block text-sm font-medium text-gray-700 required">Email Address</div>
-                            <input type="email" name="email" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('email') border-red-300 text-red-900 focus:ring-red-500 focus:border-red-500 @enderror" 
-                                   value="{{ old('email', $employee->user->email) }}" required>
-                            @error('email')
-                                <div class="mt-2 text-sm text-red-600">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        
-                        <div class="md:col-span-6">
-                            <div class="block text-sm font-medium text-gray-700">Phone Number</div>
-                            <input type="text" name="phone" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('phone') border-red-300 text-red-900 focus:ring-red-500 focus:border-red-500 @enderror" 
-                                   value="{{ old('phone', $employee->phone) }}" placeholder="+1234567890">
-                            @error('phone')
-                                <div class="mt-2 text-sm text-red-600">{{ $message }}</div>
-                            @enderror
-                        </div>
+
+                    <div>
+                        <x-ui.label for="employee_type" value="Jenis Pegawai" required class="text-slate-700 dark:text-slate-300" />
+                        <x-ui.select name="employee_type" 
+                                   class="glassmorphism-green-select" required>
+                            <option value="">Pilih Jenis</option>
+                            <option value="permanent" {{ old('employee_type', $employee->employee_type) == 'permanent' ? 'selected' : '' }}>Tetap</option>
+                            <option value="honorary" {{ old('employee_type', $employee->employee_type) == 'honorary' ? 'selected' : '' }}>Guru Honorer</option>
+                            <option value="staff" {{ old('employee_type', $employee->employee_type) == 'staff' ? 'selected' : '' }}>Staf</option>
+                        </x-ui.select>
+                        @error('employee_type')
+                            <p class="text-sm text-red-500 mt-1">{{ $message }}</p>
+                        @enderror
                     </div>
-                    
-                    <div class="grid grid-cols-12 gap-4 mb-3">
-                        <div class="md:col-span-6">
-                            <div class="block text-sm font-medium text-gray-700">Employee Photo</div>
-                            <input type="file" name="photo" id="photo" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('photo') border-red-300 text-red-900 focus:ring-red-500 focus:border-red-500 @enderror" 
-                                   accept="image/jpeg,image/png,image/jpg">
-                            @error('photo')
-                                <div class="mt-2 text-sm text-red-600">{{ $message }}</div>
-                            @enderror
-                            <small class="mt-2 text-sm text-gray-500">Upload a new photo to replace current one. Max size: 2MB. Formats: JPEG, PNG, JPG</small>
-                        </div>
-                        
-                        <div class="md:col-span-6">
-                            <div class="block text-sm font-medium text-gray-700">Photo Preview</div>
-                            <div class="photo-preview-max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                                <img id="photoPreview" src="{{ $employee->photo_url }}" 
-                                     alt="{{ $employee->full_name }}" class="avatar avatar-xl rounded">
-                                <div class="small text-gray-600 mt-2">
-                                    Current photo used for face recognition
-                                </div>
-                            </div>
-                        </div>
+
+                    <div class="md:col-span-2">
+                        <x-ui.label for="full_name" value="Nama Lengkap" required class="text-slate-700 dark:text-slate-300" />
+                        <x-ui.input type="text" name="full_name" 
+                                   value="{{ old('full_name', $employee->full_name) }}" placeholder="I Made Ngurah Agung Wijaya" required 
+                                   class="glassmorphism-green-input" />
+                        @error('full_name')
+                            <p class="text-sm text-red-500 mt-1">{{ $message }}</p>
+                        @enderror
+                        <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Masukkan nama lengkap pegawai sesuai dengan identitas resmi.</p>
                     </div>
-                    
-                    <div class="grid grid-cols-12 gap-4 mb-3">
-                        <div class="md:col-span-6">
-                            <div class="block text-sm font-medium text-gray-700 required">Hire Date</div>
-                            <input type="date" name="hire_date" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('hire_date') border-red-300 text-red-900 focus:ring-red-500 focus:border-red-500 @enderror" 
-                                   value="{{ old('hire_date', $employee->hire_date->format('Y-m-d')) }}" required>
-                            @error('hire_date')
-                                <div class="mt-2 text-sm text-red-600">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        
-                        <div class="md:col-span-6">
-                            <div class="block text-sm font-medium text-gray-700 required">Role</div>
-                            <select name="role" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('role') border-red-300 text-red-900 focus:ring-red-500 focus:border-red-500 @enderror" required>
-                                <option value="">Select Role</option>
+
+                    <div>
+                        <x-ui.label for="email" value="Alamat Email" required class="text-slate-700 dark:text-slate-300" />
+                        <x-ui.input type="email" name="email" 
+                                   value="{{ old('email', $employee->email) }}" 
+                                   class="glassmorphism-green-input" />
+                        @error('email')
+                            <p class="text-sm text-red-500 mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div>
+                        <x-ui.label for="phone" value="Nomor Telepon" class="text-slate-700 dark:text-slate-300" />
+                        <x-ui.input type="tel" name="phone" 
+                                   value="{{ old('phone', $employee->phone) }}" placeholder="+1 (555) 123-4567" 
+                                   class="glassmorphism-green-input" />
+                        @error('phone')
+                            <p class="text-sm text-red-500 mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div>
+                        <x-ui.label for="date_of_birth" value="Tanggal Lahir" class="text-slate-700 dark:text-slate-300" />
+                        <x-ui.input type="date" name="date_of_birth" 
+                                   value="{{ old('date_of_birth', $employee->date_of_birth?->format('Y-m-d')) }}" 
+                                   class="glassmorphism-green-input" />
+                        @error('date_of_birth')
+                            <p class="text-sm text-red-500 mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div>
+                        <x-ui.label for="gender" value="Jenis Kelamin" class="text-slate-700 dark:text-slate-300" />
+                        <x-ui.select name="gender" 
+                                   class="glassmorphism-green-select">
+                            <option value="">Pilih Jenis Kelamin</option>
+                            <option value="male" {{ old('gender', $employee->gender) == 'male' ? 'selected' : '' }}>Laki-laki</option>
+                            <option value="female" {{ old('gender', $employee->gender) == 'female' ? 'selected' : '' }}>Perempuan</option>
+                            <option value="other" {{ old('gender', $employee->gender) == 'other' ? 'selected' : '' }}>Lainnya</option>
+                        </x-ui.select>
+                        @error('gender')
+                            <p class="text-sm text-red-500 mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+            </div>
+
+            <div class="group relative glassmorphism-green-card">
+                <h3 class="text-xl font-semibold text-slate-800 dark:text-white mb-4 flex items-center">
+                    <svg class="w-6 h-6 mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                    Akun & Lokasi
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <x-ui.label for="role" value="Peran" required class="text-slate-700 dark:text-slate-300" />
+                        <x-ui.select name="role" 
+                                   class="glassmorphism-green-select" required>
+                            <option value="">Pilih Peran</option>
+                            @if($roles)
                                 @foreach($roles as $role)
-                                    <option value="{{ $role->name }}" {{ old('role', $employee->user->roles->first()->name ?? '') == $role->name ? 'selected' : '' }}>
-                                        {{ ucfirst($role->name) }}
+                                    <option value="{{ is_object($role) ? $role->name : $role }}" 
+                                            {{ old('role', $employee->user?->roles?->first()?->name ?? '') == (is_object($role) ? $role->name : $role) ? 'selected' : '' }}>
+                                        {{ ucfirst(is_object($role) ? $role->name : $role) }}
                                     </option>
                                 @endforeach
-                            </select>
-                            @error('role')
-                                <div class="mt-2 text-sm text-red-600">{{ $message }}</div>
-                            @enderror
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-12 gap-4 mb-3">
-                        <div class="md:col-span-6">
-                            <div class="block text-sm font-medium text-gray-700">Work Location</div>
-                            <select name="location_id" id="location_id" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('location_id') border-red-300 text-red-900 focus:ring-red-500 focus:border-red-500 @enderror" 
-                                    data-selected="{{ old('location_id', $employee->location_id) }}">
-                                <option value="">Select Location</option>
-                            </select>
-                            @error('location_id')
-                                <div class="mt-2 text-sm text-red-600">{{ $message }}</div>
-                            @enderror
-                            <small class="mt-2 text-sm text-gray-500">Primary work location for attendance verification</small>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-12 gap-4 mb-3">
-                        <div class="md:col-span-6">
-                            <div class="block text-sm font-medium text-gray-700">Status</div>
-                            <div class="flex items-center form-switch">
-                                <input type="hidden" name="is_active" value="0">
-                                <input class="flex items-center-input" type="checkbox" name="is_active" value="1" 
-                                       {{ old('is_active', $employee->is_active) ? 'checked' : '' }}>
-                                <label class="flex items-center-label">Active Employee</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="lg:col-span-4">
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h3 class="text-lg font-medium text-gray-900">Salary Information</h3>
-                </div>
-                <div class="p-6">
-                    <div class="mb-3">
-                        <div class="block text-sm font-medium text-gray-700 required">Salary Type</div>
-                        <select name="salary_type" id="salary_type" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('salary_type') border-red-300 text-red-900 focus:ring-red-500 focus:border-red-500 @enderror" required>
-                            <option value="">Select Type</option>
-                            <option value="monthly" {{ old('salary_type', $employee->salary_type) == 'monthly' ? 'selected' : '' }}>Monthly</option>
-                            <option value="hourly" {{ old('salary_type', $employee->salary_type) == 'hourly' ? 'selected' : '' }}>Hourly</option>
-                            <option value="fixed" {{ old('salary_type', $employee->salary_type) == 'fixed' ? 'selected' : '' }}>Fixed</option>
-                        </select>
-                        @error('salary_type')
-                            <div class="mt-2 text-sm text-red-600">{{ $message }}</div>
+                            @endif
+                        </x-ui.select>
+                        @error('role')
+                            <p class="text-sm text-red-500 mt-1">{{ $message }}</p>
                         @enderror
                     </div>
-                    
-                    <div class="mb-3" id="salary_amount_field" style="display: none;">
-                        <div class="block text-sm font-medium text-gray-700">Monthly Salary</div>
-                        <div class="flex rounded-md shadow-sm">
-                            <span class="flex rounded-md shadow-sm-text">$</span>
-                            <input type="number" name="salary_amount" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('salary_amount') border-red-300 text-red-900 focus:ring-red-500 focus:border-red-500 @enderror" 
-                                   value="{{ old('salary_amount', $employee->salary_amount) }}" step="0.01" min="0">
-                        </div>
-                        @error('salary_amount')
-                            <div class="mt-2 text-sm text-red-600">{{ $message }}</div>
+
+                    <div>
+                        <x-ui.label for="location_id" value="Lokasi" required class="text-slate-700 dark:text-slate-300" />
+                        <x-ui.select name="location_id" 
+                                   class="glassmorphism-green-select" required>
+                            <option value="">Pilih Lokasi</option>
+                            @if($locations)
+                                @foreach($locations as $id => $name)
+                                    <option value="{{ $id }}" {{ old('location_id', $employee->location_id) == $id ? 'selected' : '' }}>
+                                        {{ $name }}
+                                    </option>
+                                @endforeach
+                            @endif
+                        </x-ui.select>
+                        @error('location_id')
+                            <p class="text-sm text-red-500 mt-1">{{ $message }}</p>
                         @enderror
                     </div>
-                    
-                    <div class="mb-3" id="hourly_rate_field" style="display: none;">
-                        <div class="block text-sm font-medium text-gray-700">Hourly Rate</div>
-                        <div class="flex rounded-md shadow-sm">
-                            <span class="flex rounded-md shadow-sm-text">$</span>
-                            <input type="number" name="hourly_rate" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('hourly_rate') border-red-300 text-red-900 focus:ring-red-500 focus:border-red-500 @enderror" 
-                                   value="{{ old('hourly_rate', $employee->hourly_rate) }}" step="0.01" min="0">
-                            <span class="flex rounded-md shadow-sm-text">/hour</span>
-                        </div>
-                        @error('hourly_rate')
-                            <div class="mt-2 text-sm text-red-600">{{ $message }}</div>
+
+                    <div>
+                        <x-ui.label for="is_active" value="Status" required class="text-slate-700 dark:text-slate-300" />
+                        <x-ui.select name="is_active" 
+                                   class="glassmorphism-green-select" required>
+                            <option value="1" {{ old('is_active', $employee->is_active) ? 'selected' : '' }}>Aktif</option>
+                            <option value="0" {{ old('is_active', $employee->is_active) ? '' : 'selected' }}>Tidak Aktif</option>
+                        </x-ui.select>
+                        @error('is_active')
+                            <p class="text-sm text-red-500 mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div>
+                        <x-ui.label for="hire_date" value="Tanggal Bergabung" class="text-slate-700 dark:text-slate-300" />
+                        <x-ui.input type="date" name="hire_date" 
+                                   value="{{ old('hire_date', $employee->hire_date?->format('Y-m-d')) }}" 
+                                   class="glassmorphism-green-input" />
+                        @error('hire_date')
+                            <p class="text-sm text-red-500 mt-1">{{ $message }}</p>
                         @enderror
                     </div>
                 </div>
             </div>
-            
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mt-4">
-                <div class="p-6">
-                    <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-full">
-                        <svg class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                            <path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1"/>
-                            <path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z"/>
-                            <path d="M16 5l3 3"/>
-                        </svg>
-                        Update Employee
-                    </button>
-                    <a href="{{ route('employees.index') }}" class="inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-full mt-2">
-                        Cancel
-                    </a>
+
+            <div class="group relative glassmorphism-green-card">
+                <h3 class="text-xl font-semibold text-slate-800 dark:text-white mb-4 flex items-center">
+                    <svg class="w-6 h-6 mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    Informasi Alamat
+                </h3>
+                <div class="grid grid-cols-1 gap-6">
+                    <div>
+                        <x-ui.label for="address" value="Alamat" class="text-slate-700 dark:text-slate-300" />
+                        <textarea name="address" rows="3" 
+                                  class="glassmorphism-green-textarea" 
+                                  placeholder="Masukkan alamat lengkap...">{{ old('address', $employee->address) }}</textarea>
+                        @error('address')
+                            <p class="text-sm text-red-500 mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
                 </div>
             </div>
-        </div>
+
+            <div class="group relative glassmorphism-green-card">
+                <h3 class="text-xl font-semibold text-slate-800 dark:text-white mb-4">Tindakan Formulir</h3>
+                <div class="flex items-center justify-end space-x-4">
+                    <x-ui.button variant="secondary" href="{{ route('employees.index') }}">
+                        Batal
+                    </x-ui.button>
+                    <x-ui.button type="submit" variant="primary">
+                        <svg class="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        Perbarui Pegawai
+                    </x-ui.button>
+                </div>
+            </div>
+        </form>
     </div>
-</form>
+</div>
 @endsection
 
 @push('scripts')
 <script>
-$(document).ready(function() {
-    // Show/hide salary fields based on type
-    function updateSalaryFields() {
-        const salaryType = $('#salary_type').val();
+    // Form validation and enhancement
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        const submitButton = form.querySelector('button[type="submit"]');
         
-        $('#salary_amount_field').hide();
-        $('#hourly_rate_field').hide();
-        
-        if (salaryType === 'monthly' || salaryType === 'fixed') {
-            $('#salary_amount_field').show();
-        } else if (salaryType === 'hourly') {
-            $('#hourly_rate_field').show();
-        }
-    }
-    
-    $('#salary_type').on('change', updateSalaryFields);
-    updateSalaryFields(); // Initialize on page load
-    
-    // Auto-set employee type based on role
-    $('[name="role"]').on('change', function() {
-        const role = $(this).val();
-        if (role === 'teacher') {
-            $('[name="employee_type"]').val('honorary');
-        }
-    });
-    
-    // Photo preview functionality
-    $('#photo').on('change', function() {
-        const file = this.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                $('#photoPreview').attr('src', e.target.result);
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-    
-    // Load locations
-    function loadLocations() {
-        const selectedLocationId = $('#location_id').data('selected');
-        
-        $.ajax({
-            url: '/api/v1/locations/select',
-            method: 'GET',
-            headers: {
-                'Authorization': 'Bearer ' + $('meta[name="api-token"]').attr('content'),
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            },
-            success: function(locations) {
-                const select = $('#location_id');
-                select.empty().append('<option value="">Select Location</option>');
-                
-                locations.forEach(function(location) {
-                    const displayText = location.address 
-                        ? `${location.name} (${location.address})`
-                        : location.name;
-                    const isSelected = location.id == selectedLocationId ? 'selected' : '';
-                    select.append(`<option value="${location.id}" ${isSelected}>${displayText}</option>`);
-                });
-            },
-            error: function(xhr) {
-                console.error('Failed to load locations:', xhr);
-            }
+        // Add loading state to submit button
+        form.addEventListener('submit', function() {
+            submitButton.disabled = true;
+            submitButton.innerHTML = `
+                <span class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
+                Memperbarui...
+            `;
         });
-    }
-    
-    loadLocations();
-});
+        
+        // Auto-format phone number
+        const phoneInput = form.querySelector('input[name="phone"]');
+        if (phoneInput) {
+            phoneInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length >= 10) {
+                    value = value.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
+                }
+                e.target.value = value;
+            });
+        }
+        
+        // Employee ID validation
+        const employeeIdInput = form.querySelector('input[name="employee_id"]');
+        if (employeeIdInput) {
+            employeeIdInput.addEventListener('input', function(e) {
+                e.target.value = e.target.value.toUpperCase();
+            });
+        }
+    });
 </script>
 @endpush

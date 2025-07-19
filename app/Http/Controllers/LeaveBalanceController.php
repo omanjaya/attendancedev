@@ -8,7 +8,6 @@ use App\Models\LeaveType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
-use Carbon\Carbon;
 
 class LeaveBalanceController extends Controller
 {
@@ -18,15 +17,16 @@ class LeaveBalanceController extends Controller
     public function index()
     {
         $employeeId = auth()->user()->employee?->id;
-        
-        if (!$employeeId) {
-            return redirect()->route('dashboard')
+
+        if (! $employeeId) {
+            return redirect()
+                ->route('dashboard')
                 ->with('error', 'Employee profile not found. Please contact administrator.');
         }
 
         $currentYear = date('Y');
         $employee = Employee::with('user')->find($employeeId);
-        
+
         // Get current year balances
         $leaveBalances = LeaveBalance::where('employee_id', $employeeId)
             ->currentYear()
@@ -35,12 +35,12 @@ class LeaveBalanceController extends Controller
 
         // Get all leave types to show missing balances
         $leaveTypes = LeaveType::active()->get();
-        
+
         // Calculate summary statistics
         $totalAllocated = $leaveBalances->sum('allocated_days');
         $totalUsed = $leaveBalances->sum('used_days');
         $totalRemaining = $leaveBalances->sum('remaining_days');
-        
+
         // Get recent leave balance history (last 5 years)
         $balanceHistory = LeaveBalance::where('employee_id', $employeeId)
             ->with('leaveType')
@@ -50,16 +50,19 @@ class LeaveBalanceController extends Controller
             ->get()
             ->groupBy('year');
 
-        return view('pages.leave.balance.index', compact(
-            'employee', 
-            'leaveBalances', 
-            'leaveTypes', 
-            'totalAllocated', 
-            'totalUsed', 
-            'totalRemaining',
-            'balanceHistory',
-            'currentYear'
-        ));
+        return view(
+            'pages.leave.balance.index',
+            compact(
+                'employee',
+                'leaveBalances',
+                'leaveTypes',
+                'totalAllocated',
+                'totalUsed',
+                'totalRemaining',
+                'balanceHistory',
+                'currentYear',
+            ),
+        );
     }
 
     /**
@@ -68,7 +71,7 @@ class LeaveBalanceController extends Controller
     public function manage()
     {
         $this->authorize('manage_leave_balances');
-        
+
         $currentYear = date('Y');
         $employees = Employee::with('user')->where('is_active', true)->get();
         $leaveTypes = LeaveType::active()->get();
@@ -82,13 +85,12 @@ class LeaveBalanceController extends Controller
     public function data(Request $request)
     {
         $this->authorize('manage_leave_balances');
-        
+
         $year = $request->get('year', date('Y'));
         $employeeId = $request->get('employee_id');
         $leaveTypeId = $request->get('leave_type_id');
 
-        $query = LeaveBalance::with(['employee.user', 'leaveType'])
-            ->forYear($year);
+        $query = LeaveBalance::with(['employee.user', 'leaveType'])->forYear($year);
 
         if ($employeeId) {
             $query->where('employee_id', $employeeId);
@@ -111,27 +113,44 @@ class LeaveBalanceController extends Controller
             ->addColumn('utilization_percentage', function ($balance) {
                 if ($balance->allocated_days > 0) {
                     $percentage = ($balance->used_days / $balance->allocated_days) * 100;
-                    return round($percentage, 1) . '%';
+
+                    return round($percentage, 1).'%';
                 }
+
                 return '0%';
             })
             ->addColumn('progress_bar', function ($balance) {
                 if ($balance->allocated_days > 0) {
                     $percentage = ($balance->used_days / $balance->allocated_days) * 100;
                     $color = $percentage < 50 ? 'success' : ($percentage < 80 ? 'warning' : 'danger');
+
                     return '<div class="progress progress-sm">
-                        <div class="progress-bar bg-' . $color . '" style="width: ' . $percentage . '%"></div>
+                        <div class="progress-bar bg-'.
+                      $color.
+                      '" style="width: '.
+                      $percentage.
+                      '%"></div>
                     </div>';
                 }
+
                 return '<div class="progress progress-sm">
                     <div class="progress-bar bg-secondary" style="width: 0%"></div>
                 </div>';
             })
             ->addColumn('actions', function ($balance) {
                 $actions = '<div class="btn-list">';
-                $actions .= '<button class="btn btn-sm btn-primary edit-balance" data-id="' . $balance->id . '">Edit</button>';
-                $actions .= '<button class="btn btn-sm btn-info view-history" data-employee-id="' . $balance->employee_id . '" data-leave-type-id="' . $balance->leave_type_id . '">History</button>';
+                $actions .=
+                  '<button class="btn btn-sm btn-primary edit-balance" data-id="'.
+                  $balance->id.
+                  '">Edit</button>';
+                $actions .=
+                  '<button class="btn btn-sm btn-info view-history" data-employee-id="'.
+                  $balance->employee_id.
+                  '" data-leave-type-id="'.
+                  $balance->leave_type_id.
+                  '">History</button>';
                 $actions .= '</div>';
+
                 return $actions;
             })
             ->rawColumns(['progress_bar', 'actions'])
@@ -149,21 +168,24 @@ class LeaveBalanceController extends Controller
             'allocated_days' => 'required|numeric|min:0|max:365',
             'used_days' => 'required|numeric|min:0',
             'carried_forward' => 'nullable|numeric|min:0|max:365',
-            'reason' => 'nullable|string|max:500'
+            'reason' => 'nullable|string|max:500',
         ]);
 
         // Validate that used days don't exceed allocated days
         if ($validated['used_days'] > $validated['allocated_days']) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Used days cannot exceed allocated days.'
-            ], 400);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Used days cannot exceed allocated days.',
+                ],
+                400,
+            );
         }
 
         DB::beginTransaction();
         try {
             $oldBalance = $leaveBalance->toArray();
-            
+
             $leaveBalance->update([
                 'allocated_days' => $validated['allocated_days'],
                 'used_days' => $validated['used_days'],
@@ -171,14 +193,18 @@ class LeaveBalanceController extends Controller
                 'metadata' => array_merge($leaveBalance->metadata ?? [], [
                     'last_updated_by' => auth()->user()->id,
                     'last_updated_at' => now()->toISOString(),
-                    'update_reason' => $validated['reason'] ?? 'Manual adjustment'
-                ])
+                    'update_reason' => $validated['reason'] ?? 'Manual adjustment',
+                ]),
             ]);
 
             $leaveBalance->updateRemainingDays();
 
             // Log the change for audit trail
-            $this->logBalanceChange($leaveBalance, $oldBalance, $validated['reason'] ?? 'Manual adjustment');
+            $this->logBalanceChange(
+                $leaveBalance,
+                $oldBalance,
+                $validated['reason'] ?? 'Manual adjustment',
+            );
 
             DB::commit();
 
@@ -189,15 +215,19 @@ class LeaveBalanceController extends Controller
                     'allocated_days' => $leaveBalance->allocated_days,
                     'used_days' => $leaveBalance->used_days,
                     'remaining_days' => $leaveBalance->remaining_days,
-                    'carried_forward' => $leaveBalance->carried_forward
-                ]
+                    'carried_forward' => $leaveBalance->carried_forward,
+                ],
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update leave balance: ' . $e->getMessage()
-            ], 500);
+
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to update leave balance: '.$e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -211,11 +241,11 @@ class LeaveBalanceController extends Controller
         $validated = $request->validate([
             'employee_id' => 'required|exists:employees,id',
             'leave_type_id' => 'required|exists:leave_types,id',
-            'year' => 'required|integer|min:2020|max:' . (date('Y') + 5),
+            'year' => 'required|integer|min:2020|max:'.(date('Y') + 5),
             'allocated_days' => 'required|numeric|min:0|max:365',
             'used_days' => 'nullable|numeric|min:0',
             'carried_forward' => 'nullable|numeric|min:0|max:365',
-            'reason' => 'nullable|string|max:500'
+            'reason' => 'nullable|string|max:500',
         ]);
 
         $validated['used_days'] = $validated['used_days'] ?? 0;
@@ -227,18 +257,24 @@ class LeaveBalanceController extends Controller
             ->first();
 
         if ($existingBalance) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Leave balance already exists for this employee, leave type, and year.'
-            ], 400);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Leave balance already exists for this employee, leave type, and year.',
+                ],
+                400,
+            );
         }
 
         // Validate that used days don't exceed allocated days
         if ($validated['used_days'] > $validated['allocated_days']) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Used days cannot exceed allocated days.'
-            ], 400);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Used days cannot exceed allocated days.',
+                ],
+                400,
+            );
         }
 
         DB::beginTransaction();
@@ -253,8 +289,8 @@ class LeaveBalanceController extends Controller
                 'metadata' => [
                     'created_by' => auth()->user()->id,
                     'created_at' => now()->toISOString(),
-                    'creation_reason' => $validated['reason'] ?? 'Manual creation'
-                ]
+                    'creation_reason' => $validated['reason'] ?? 'Manual creation',
+                ],
             ]);
 
             $leaveBalance->updateRemainingDays();
@@ -264,14 +300,18 @@ class LeaveBalanceController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Leave balance created successfully.',
-                'balance' => $leaveBalance->load(['employee.user', 'leaveType'])
+                'balance' => $leaveBalance->load(['employee.user', 'leaveType']),
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create leave balance: ' . $e->getMessage()
-            ], 500);
+
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to create leave balance: '.$e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -283,15 +323,15 @@ class LeaveBalanceController extends Controller
         $this->authorize('manage_leave_balances');
 
         $validated = $request->validate([
-            'year' => 'required|integer|min:2020|max:' . (date('Y') + 5),
+            'year' => 'required|integer|min:2020|max:'.(date('Y') + 5),
             'leave_type_id' => 'required|exists:leave_types,id',
             'allocated_days' => 'required|numeric|min:0|max:365',
-            'overwrite_existing' => 'boolean'
+            'overwrite_existing' => 'boolean',
         ]);
 
         $leaveType = LeaveType::find($validated['leave_type_id']);
         $employees = Employee::where('is_active', true)->get();
-        
+
         $created = 0;
         $updated = 0;
         $errors = [];
@@ -310,8 +350,8 @@ class LeaveBalanceController extends Controller
                             'allocated_days' => $validated['allocated_days'],
                             'metadata' => array_merge($existingBalance->metadata ?? [], [
                                 'bulk_updated_by' => auth()->user()->id,
-                                'bulk_updated_at' => now()->toISOString()
-                            ])
+                                'bulk_updated_at' => now()->toISOString(),
+                            ]),
                         ]);
                         $existingBalance->updateRemainingDays();
                         $updated++;
@@ -327,8 +367,8 @@ class LeaveBalanceController extends Controller
                         'carried_forward' => 0,
                         'metadata' => [
                             'bulk_created_by' => auth()->user()->id,
-                            'bulk_created_at' => now()->toISOString()
-                        ]
+                            'bulk_created_at' => now()->toISOString(),
+                        ],
                     ]);
                     $created++;
                 }
@@ -342,15 +382,19 @@ class LeaveBalanceController extends Controller
                 'stats' => [
                     'created' => $created,
                     'updated' => $updated,
-                    'total_employees' => $employees->count()
-                ]
+                    'total_employees' => $employees->count(),
+                ],
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Bulk operation failed: ' . $e->getMessage()
-            ], 500);
+
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Bulk operation failed: '.$e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -364,11 +408,14 @@ class LeaveBalanceController extends Controller
         $employeeId = $request->get('employee_id');
         $leaveTypeId = $request->get('leave_type_id');
 
-        if (!$employeeId || !$leaveTypeId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Employee ID and Leave Type ID are required.'
-            ], 400);
+        if (! $employeeId || ! $leaveTypeId) {
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Employee ID and Leave Type ID are required.',
+                ],
+                400,
+            );
         }
 
         $history = LeaveBalance::where('employee_id', $employeeId)
@@ -379,7 +426,7 @@ class LeaveBalanceController extends Controller
 
         return response()->json([
             'success' => true,
-            'history' => $history
+            'history' => $history,
         ]);
     }
 
@@ -392,11 +439,14 @@ class LeaveBalanceController extends Controller
         $leaveTypeId = $request->get('leave_type_id');
         $year = $request->get('year', date('Y'));
 
-        if (!$employeeId || !$leaveTypeId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Employee ID and Leave Type ID are required.'
-            ], 400);
+        if (! $employeeId || ! $leaveTypeId) {
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Employee ID and Leave Type ID are required.',
+                ],
+                400,
+            );
         }
 
         $balance = LeaveBalance::where('employee_id', $employeeId)
@@ -404,11 +454,14 @@ class LeaveBalanceController extends Controller
             ->where('year', $year)
             ->first();
 
-        if (!$balance) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Leave balance not found.'
-            ], 404);
+        if (! $balance) {
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Leave balance not found.',
+                ],
+                404,
+            );
         }
 
         return response()->json([
@@ -417,8 +470,8 @@ class LeaveBalanceController extends Controller
                 'allocated_days' => $balance->allocated_days,
                 'used_days' => $balance->used_days,
                 'remaining_days' => $balance->remaining_days,
-                'carried_forward' => $balance->carried_forward
-            ]
+                'carried_forward' => $balance->carried_forward,
+            ],
         ]);
     }
 
@@ -434,21 +487,21 @@ class LeaveBalanceController extends Controller
             if ($oldBalance[$field] != $balance->$field) {
                 $changes[$field] = [
                     'old' => $oldBalance[$field],
-                    'new' => $balance->$field
+                    'new' => $balance->$field,
                 ];
             }
         }
 
-        if (!empty($changes)) {
+        if (! empty($changes)) {
             $metadata = $balance->metadata ?? [];
             $metadata['audit_trail'] = $metadata['audit_trail'] ?? [];
             $metadata['audit_trail'][] = [
                 'timestamp' => now()->toISOString(),
                 'user_id' => auth()->user()->id,
                 'reason' => $reason,
-                'changes' => $changes
+                'changes' => $changes,
             ];
-            
+
             $balance->update(['metadata' => $metadata]);
         }
     }

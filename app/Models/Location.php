@@ -2,14 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Location extends Model
 {
-    use HasFactory, SoftDeletes, HasUuids;
+    use HasFactory, HasUuids, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -19,7 +19,7 @@ class Location extends Model
         'radius_meters',
         'wifi_ssid',
         'is_active',
-        'metadata'
+        'metadata',
     ];
 
     protected $casts = [
@@ -27,8 +27,16 @@ class Location extends Model
         'metadata' => 'array',
         'latitude' => 'float',
         'longitude' => 'float',
-        'radius_meters' => 'integer'
+        'radius_meters' => 'integer',
     ];
+
+    /**
+     * Scope a query to only include active locations.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
 
     /**
      * Get the employees for the location.

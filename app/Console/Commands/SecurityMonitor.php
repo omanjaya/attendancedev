@@ -2,13 +2,11 @@
 
 namespace App\Console\Commands;
 
-use App\Models\User;
 use App\Models\AuditLog;
 use App\Services\SecurityService;
-use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class SecurityMonitor extends Command
 {
@@ -56,31 +54,31 @@ class SecurityMonitor extends Command
 
         // Monitor failed logins
         $failedLogins = $this->monitorFailedLogins($timeframe, $threshold);
-        if (!empty($failedLogins)) {
+        if (! empty($failedLogins)) {
             $alerts = array_merge($alerts, $failedLogins);
         }
 
         // Monitor suspicious activities
         $suspiciousActivities = $this->monitorSuspiciousActivities($timeframe, $threshold);
-        if (!empty($suspiciousActivities)) {
+        if (! empty($suspiciousActivities)) {
             $alerts = array_merge($alerts, $suspiciousActivities);
         }
 
         // Monitor account lockouts
         $accountLockouts = $this->monitorAccountLockouts($timeframe);
-        if (!empty($accountLockouts)) {
+        if (! empty($accountLockouts)) {
             $alerts = array_merge($alerts, $accountLockouts);
         }
 
         // Monitor permission changes
         $permissionChanges = $this->monitorPermissionChanges($timeframe);
-        if (!empty($permissionChanges)) {
+        if (! empty($permissionChanges)) {
             $alerts = array_merge($alerts, $permissionChanges);
         }
 
         // Monitor unusual login patterns
         $unusualLogins = $this->monitorUnusualLogins($timeframe);
-        if (!empty($unusualLogins)) {
+        if (! empty($unusualLogins)) {
             $alerts = array_merge($alerts, $unusualLogins);
         }
 
@@ -88,7 +86,7 @@ class SecurityMonitor extends Command
         $this->displayMonitoringResults($alerts, $periodHours);
 
         // Send notifications if requested and there are high-risk alerts
-        if ($notify && !empty($alerts)) {
+        if ($notify && ! empty($alerts)) {
             $this->sendSecurityNotifications($alerts);
         }
 
@@ -157,7 +155,8 @@ class SecurityMonitor extends Command
 
             foreach ($groupedEvents as $action => $events) {
                 $count = $events->count();
-                if ($count >= 3) { // Multiple occurrences of same suspicious activity
+                if ($count >= 3) {
+                    // Multiple occurrences of same suspicious activity
                     $alerts[] = [
                         'type' => 'suspicious_activity',
                         'severity' => 'high',
@@ -192,7 +191,8 @@ class SecurityMonitor extends Command
 
         $alerts = [];
 
-        if ($lockoutEvents->count() > 5) { // More than 5 lockouts in the period
+        if ($lockoutEvents->count() > 5) {
+            // More than 5 lockouts in the period
             $alerts[] = [
                 'type' => 'mass_lockouts',
                 'severity' => 'high',
@@ -274,7 +274,9 @@ class SecurityMonitor extends Command
 
             $this->warn("  ⚠️  {$unusualHourLogins->count()} logins outside normal hours");
         } else {
-            $this->info("  ✅ Normal login hour patterns ({$unusualHourLogins->count()} after-hours logins)");
+            $this->info(
+                "  ✅ Normal login hour patterns ({$unusualHourLogins->count()} after-hours logins)",
+            );
         }
 
         return $alerts;
@@ -290,13 +292,14 @@ class SecurityMonitor extends Command
         $this->info('=============================');
 
         if (empty($alerts)) {
-            $this->info('🎉 No security alerts detected in the last ' . $periodHours . ' hour(s)');
+            $this->info('🎉 No security alerts detected in the last '.$periodHours.' hour(s)');
+
             return;
         }
 
-        $criticalCount = count(array_filter($alerts, fn($alert) => $alert['severity'] === 'critical'));
-        $highCount = count(array_filter($alerts, fn($alert) => $alert['severity'] === 'high'));
-        $mediumCount = count(array_filter($alerts, fn($alert) => $alert['severity'] === 'medium'));
+        $criticalCount = count(array_filter($alerts, fn ($alert) => $alert['severity'] === 'critical'));
+        $highCount = count(array_filter($alerts, fn ($alert) => $alert['severity'] === 'high'));
+        $mediumCount = count(array_filter($alerts, fn ($alert) => $alert['severity'] === 'medium'));
 
         $this->error("🚨 {$criticalCount} Critical alerts");
         $this->warn("⚠️  {$highCount} High-severity alerts");
@@ -307,11 +310,11 @@ class SecurityMonitor extends Command
         $this->line('==============');
 
         foreach ($alerts as $alert) {
-            $severityIcon = match($alert['severity']) {
+            $severityIcon = match ($alert['severity']) {
                 'critical' => '🚨',
                 'high' => '⚠️',
                 'medium' => '📋',
-                default => 'ℹ️'
+                default => 'ℹ️',
             };
 
             $this->line("{$severityIcon} [{$alert['severity']}] {$alert['message']}");
@@ -325,18 +328,20 @@ class SecurityMonitor extends Command
     {
         $this->line('📧 Sending security notifications...');
 
-        $criticalAlerts = array_filter($alerts, fn($alert) => $alert['severity'] === 'critical');
-        $highAlerts = array_filter($alerts, fn($alert) => $alert['severity'] === 'high');
+        $criticalAlerts = array_filter($alerts, fn ($alert) => $alert['severity'] === 'critical');
+        $highAlerts = array_filter($alerts, fn ($alert) => $alert['severity'] === 'high');
 
         if (empty($criticalAlerts) && empty($highAlerts)) {
             $this->info('  ℹ️  No high-priority alerts to notify about');
+
             return;
         }
 
         $adminEmail = config('security.monitoring.admin_notification_email');
-        
-        if (!$adminEmail) {
+
+        if (! $adminEmail) {
             $this->warn('  ⚠️  No admin notification email configured');
+
             return;
         }
 
@@ -344,7 +349,7 @@ class SecurityMonitor extends Command
         Log::warning('Security Alert Notification', [
             'critical_alerts' => count($criticalAlerts),
             'high_alerts' => count($highAlerts),
-            'alerts' => array_merge($criticalAlerts, $highAlerts)
+            'alerts' => array_merge($criticalAlerts, $highAlerts),
         ]);
 
         $this->info("  ✅ Security notifications logged (would be sent to {$adminEmail})");
@@ -362,16 +367,16 @@ class SecurityMonitor extends Command
             'monitoring_period_hours' => $periodHours,
             'total_alerts' => count($alerts),
             'alert_breakdown' => [
-                'critical' => count(array_filter($alerts, fn($alert) => $alert['severity'] === 'critical')),
-                'high' => count(array_filter($alerts, fn($alert) => $alert['severity'] === 'high')),
-                'medium' => count(array_filter($alerts, fn($alert) => $alert['severity'] === 'medium')),
+                'critical' => count(array_filter($alerts, fn ($alert) => $alert['severity'] === 'critical')),
+                'high' => count(array_filter($alerts, fn ($alert) => $alert['severity'] === 'high')),
+                'medium' => count(array_filter($alerts, fn ($alert) => $alert['severity'] === 'medium')),
             ],
             'alerts' => $alerts,
-            'system_metrics' => $this->securityService->getSecurityMetrics()
+            'system_metrics' => $this->securityService->getSecurityMetrics(),
         ];
 
-        $filename = 'security-monitor-' . date('Y-m-d-H-i-s') . '.json';
-        $filepath = storage_path('logs/' . $filename);
+        $filename = 'security-monitor-'.date('Y-m-d-H-i-s').'.json';
+        $filepath = storage_path('logs/'.$filename);
 
         file_put_contents($filepath, json_encode($reportData, JSON_PRETTY_PRINT));
 

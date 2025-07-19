@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Cache;
 
 /**
  * User Security Service
- * 
+ *
  * Handles all security-related operations for users including:
  * - Two-Factor Authentication management
  * - Account locking/unlocking
@@ -22,13 +22,13 @@ class UserSecurityService
     /**
      * Two-Factor Authentication Methods
      */
-    
+
     /**
      * Check if user has 2FA enabled.
      */
     public function hasTwoFactorEnabled(User $user): bool
     {
-        return $user->two_factor_enabled && !empty($user->two_factor_secret);
+        return $user->two_factor_enabled && ! empty($user->two_factor_secret);
     }
 
     /**
@@ -45,8 +45,9 @@ class UserSecurityService
         } catch (\Exception $e) {
             \Log::warning('Failed to decrypt 2FA secret for user', [
                 'user_id' => $user->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -58,7 +59,7 @@ class UserSecurityService
     {
         $user->update([
             'two_factor_secret' => encrypt($secret),
-            'two_factor_enabled' => true
+            'two_factor_enabled' => true,
         ]);
     }
 
@@ -70,7 +71,7 @@ class UserSecurityService
         $user->update([
             'two_factor_enabled' => false,
             'two_factor_secret' => null,
-            'two_factor_recovery_codes' => null
+            'two_factor_recovery_codes' => null,
         ]);
 
         // Log security event
@@ -91,8 +92,9 @@ class UserSecurityService
         } catch (\Exception $e) {
             \Log::warning('Failed to decrypt recovery codes for user', [
                 'user_id' => $user->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return [];
         }
     }
@@ -108,10 +110,10 @@ class UserSecurityService
         }
 
         $this->setRecoveryCodes($user, $codes);
-        
+
         // Log security event
         \Log::info('Recovery codes regenerated for user', ['user_id' => $user->id]);
-        
+
         return $codes;
     }
 
@@ -121,7 +123,7 @@ class UserSecurityService
     public function setRecoveryCodes(User $user, array $codes): void
     {
         $user->update([
-            'two_factor_recovery_codes' => encrypt(json_encode($codes))
+            'two_factor_recovery_codes' => encrypt(json_encode($codes)),
         ]);
     }
 
@@ -136,13 +138,13 @@ class UserSecurityService
         if ($index !== false) {
             unset($codes[$index]);
             $this->setRecoveryCodes($user, array_values($codes));
-            
+
             // Log security event
             \Log::info('Recovery code used', [
                 'user_id' => $user->id,
-                'remaining_codes' => count($codes) - 1
+                'remaining_codes' => count($codes) - 1,
             ]);
-            
+
             return true;
         }
 
@@ -172,18 +174,21 @@ class UserSecurityService
     /**
      * Lock user account.
      */
-    public function lockAccount(User $user, Carbon $until = null, string $reason = 'Manual lock'): void
-    {
+    public function lockAccount(
+        User $user,
+        ?Carbon $until = null,
+        string $reason = 'Manual lock',
+    ): void {
         $user->update([
             'locked_until' => $until,
-            'account_locked' => $until === null
+            'account_locked' => $until === null,
         ]);
 
         // Log security event
         \Log::warning('User account locked', [
             'user_id' => $user->id,
             'locked_until' => $until?->toDateTimeString(),
-            'reason' => $reason
+            'reason' => $reason,
         ]);
     }
 
@@ -195,13 +200,13 @@ class UserSecurityService
         $user->update([
             'locked_until' => null,
             'account_locked' => false,
-            'failed_login_attempts' => 0
+            'failed_login_attempts' => 0,
         ]);
 
         // Log security event
         \Log::info('User account unlocked', [
             'user_id' => $user->id,
-            'reason' => $reason
+            'reason' => $reason,
         ]);
     }
 
@@ -212,16 +217,20 @@ class UserSecurityService
     /**
      * Increment failed login attempts.
      */
-    public function incrementFailedLogins(User $user, string $ipAddress = null): void
+    public function incrementFailedLogins(User $user, ?string $ipAddress = null): void
     {
         $attempts = $user->failed_login_attempts + 1;
         $user->update(['failed_login_attempts' => $attempts]);
-        
+
         // Auto-lock after configured attempts
         $maxAttempts = config('security.rate_limiting.login.max_attempts', 5);
         if ($attempts >= $maxAttempts) {
             $lockoutMinutes = config('security.rate_limiting.login.lockout_minutes', 60);
-            $this->lockAccount($user, now()->addMinutes($lockoutMinutes), 'Too many failed login attempts');
+            $this->lockAccount(
+                $user,
+                now()->addMinutes($lockoutMinutes),
+                'Too many failed login attempts',
+            );
         }
 
         // Log security event
@@ -229,7 +238,7 @@ class UserSecurityService
             'user_id' => $user->id,
             'attempt_count' => $attempts,
             'ip_address' => $ipAddress,
-            'locked' => $attempts >= $maxAttempts
+            'locked' => $attempts >= $maxAttempts,
         ]);
     }
 
@@ -244,18 +253,18 @@ class UserSecurityService
     /**
      * Update last login information.
      */
-    public function updateLastLogin(User $user, string $ipAddress = null): void
+    public function updateLastLogin(User $user, ?string $ipAddress = null): void
     {
         $user->update([
             'last_login_at' => now(),
             'last_login_ip' => $ipAddress,
-            'failed_login_attempts' => 0
+            'failed_login_attempts' => 0,
         ]);
 
         // Log successful login
         \Log::info('User logged in successfully', [
             'user_id' => $user->id,
-            'ip_address' => $ipAddress
+            'ip_address' => $ipAddress,
         ]);
     }
 
@@ -287,7 +296,7 @@ class UserSecurityService
     {
         $user->update([
             'password_changed_at' => now(),
-            'force_password_change' => false
+            'force_password_change' => false,
         ]);
 
         // Log security event
@@ -304,7 +313,7 @@ class UserSecurityService
         // Log security event
         \Log::warning('Password change forced for user', [
             'user_id' => $user->id,
-            'reason' => $reason
+            'reason' => $reason,
         ]);
     }
 
@@ -323,22 +332,22 @@ class UserSecurityService
         }
 
         // Check uppercase requirement
-        if (($config['require_uppercase'] ?? true) && !preg_match('/[A-Z]/', $password)) {
+        if (($config['require_uppercase'] ?? true) && ! preg_match('/[A-Z]/', $password)) {
             $errors[] = 'Password must contain at least one uppercase letter';
         }
 
         // Check lowercase requirement
-        if (($config['require_lowercase'] ?? true) && !preg_match('/[a-z]/', $password)) {
+        if (($config['require_lowercase'] ?? true) && ! preg_match('/[a-z]/', $password)) {
             $errors[] = 'Password must contain at least one lowercase letter';
         }
 
         // Check number requirement
-        if (($config['require_numbers'] ?? true) && !preg_match('/[0-9]/', $password)) {
+        if (($config['require_numbers'] ?? true) && ! preg_match('/[0-9]/', $password)) {
             $errors[] = 'Password must contain at least one number';
         }
 
         // Check special character requirement
-        if (($config['require_special'] ?? true) && !preg_match('/[^A-Za-z0-9]/', $password)) {
+        if (($config['require_special'] ?? true) && ! preg_match('/[^A-Za-z0-9]/', $password)) {
             $errors[] = 'Password must contain at least one special character';
         }
 
@@ -355,6 +364,7 @@ class UserSecurityService
     public function getSecurityPreference(User $user, string $key, $default = null)
     {
         $preferences = $user->security_preferences ?? [];
+
         return $preferences[$key] ?? $default;
     }
 
@@ -365,14 +375,14 @@ class UserSecurityService
     {
         $preferences = $user->security_preferences ?? [];
         $preferences[$key] = $value;
-        
+
         $user->update(['security_preferences' => $preferences]);
 
         // Log preference change
         \Log::info('Security preference updated', [
             'user_id' => $user->id,
             'preference' => $key,
-            'value' => $value
+            'value' => $value,
         ]);
     }
 
@@ -434,7 +444,8 @@ class UserSecurityService
     public function isNewDevice(User $user, string $deviceFingerprint): bool
     {
         $knownDevices = Cache::get("user_devices_{$user->id}", []);
-        return !in_array($deviceFingerprint, $knownDevices);
+
+        return ! in_array($deviceFingerprint, $knownDevices);
     }
 
     /**
@@ -443,22 +454,22 @@ class UserSecurityService
     public function rememberDevice(User $user, string $deviceFingerprint): void
     {
         $knownDevices = Cache::get("user_devices_{$user->id}", []);
-        
-        if (!in_array($deviceFingerprint, $knownDevices)) {
+
+        if (! in_array($deviceFingerprint, $knownDevices)) {
             $knownDevices[] = $deviceFingerprint;
-            
+
             // Keep only last 5 devices
             if (count($knownDevices) > 5) {
                 $knownDevices = array_slice($knownDevices, -5);
             }
-            
+
             Cache::put("user_devices_{$user->id}", $knownDevices, 86400 * 30); // 30 days
 
             // Log device registration
             \Log::info('New device registered for user', [
                 'user_id' => $user->id,
-                'device_fingerprint' => substr($deviceFingerprint, 0, 8) . '...',
-                'total_devices' => count($knownDevices)
+                'device_fingerprint' => substr($deviceFingerprint, 0, 8).'...',
+                'total_devices' => count($knownDevices),
             ]);
         }
     }
@@ -469,7 +480,7 @@ class UserSecurityService
     public function forgetAllDevices(User $user): void
     {
         Cache::forget("user_devices_{$user->id}");
-        
+
         // Log security event
         \Log::info('All devices forgotten for user', ['user_id' => $user->id]);
     }
@@ -483,7 +494,7 @@ class UserSecurityService
             'date' => $user->last_login_at?->format('Y-m-d H:i:s'),
             'ip' => $user->last_login_ip,
             'human_date' => $user->last_login_at?->diffForHumans(),
-            'location' => $this->getLocationFromIP($user->last_login_ip)
+            'location' => $this->getLocationFromIP($user->last_login_ip),
         ];
     }
 
@@ -499,7 +510,7 @@ class UserSecurityService
         $score = 0;
 
         // Base score for active account
-        if ($user->is_active && !$this->isAccountLocked($user)) {
+        if ($user->is_active && ! $this->isAccountLocked($user)) {
             $score += 20;
         }
 
@@ -531,12 +542,12 @@ class UserSecurityService
     {
         $recommendations = [];
 
-        if (!$this->hasTwoFactorEnabled($user)) {
+        if (! $this->hasTwoFactorEnabled($user)) {
             $recommendations[] = [
                 'type' => 'warning',
                 'title' => 'Enable Two-Factor Authentication',
                 'description' => 'Add an extra layer of security to your account',
-                'action' => 'setup_2fa'
+                'action' => 'setup_2fa',
             ];
         }
 
@@ -545,7 +556,7 @@ class UserSecurityService
                 'type' => 'error',
                 'title' => 'Password Change Required',
                 'description' => 'Your password needs to be updated',
-                'action' => 'change_password'
+                'action' => 'change_password',
             ];
         }
 
@@ -554,7 +565,7 @@ class UserSecurityService
                 'type' => 'info',
                 'title' => 'Recent Failed Login Attempts',
                 'description' => "There have been {$user->failed_login_attempts} failed login attempts",
-                'action' => 'review_activity'
+                'action' => 'review_activity',
             ];
         }
 
@@ -570,7 +581,7 @@ class UserSecurityService
      */
     private function getLocationFromIP(?string $ip): ?string
     {
-        if (!$ip || $ip === '127.0.0.1') {
+        if (! $ip || $ip === '127.0.0.1') {
             return 'Local';
         }
 

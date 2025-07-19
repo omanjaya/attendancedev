@@ -3,44 +3,40 @@
     <!-- QR Code Container -->
     <div class="qr-container">
       <div v-if="loading" class="loading-state">
-        <div class="spinner"></div>
-        <p class="loading-text">Generating QR Code...</p>
+        <div class="spinner" />
+        <p class="loading-text">
+          Generating QR Code...
+        </p>
       </div>
-      
+
       <div v-else-if="error" class="error-state">
         <Icon name="x-circle" class="error-icon" />
-        <p class="error-text">{{ error }}</p>
-        <button @click="$emit('retry')" class="retry-btn">
-          <Icon name="refresh" class="w-4 h-4 mr-2" />
+        <p class="error-text">
+          {{ error }}
+        </p>
+        <button class="retry-btn" @click="$emit('retry')">
+          <Icon name="refresh" class="mr-2 h-4 w-4" />
           Retry
         </button>
       </div>
-      
+
       <div v-else class="qr-content">
         <div class="qr-image-container">
-          <img 
-            :src="qrCodeUrl" 
+          <img
+            :src="qrCodeUrl"
             :alt="altText"
             class="qr-image"
             @load="onImageLoad"
             @error="onImageError"
-          />
-          
+          >
+
           <!-- QR Code Actions -->
           <div class="qr-actions">
-            <button 
-              @click="downloadQR" 
-              class="action-btn"
-              title="Download QR Code"
-            >
-              <Icon name="download" class="w-4 h-4" />
+            <button class="action-btn" title="Download QR Code" @click="downloadQR">
+              <Icon name="download" class="h-4 w-4" />
             </button>
-            <button 
-              @click="refreshQR" 
-              class="action-btn"
-              title="Refresh QR Code"
-            >
-              <Icon name="refresh" class="w-4 h-4" />
+            <button class="action-btn" title="Refresh QR Code" @click="refreshQR">
+              <Icon name="refresh" class="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -65,7 +61,9 @@
         <div class="security-notice">
           <Icon name="shield-check" class="security-icon" />
           <div class="security-text">
-            <p class="security-title">Secure Setup</p>
+            <p class="security-title">
+              Secure Setup
+            </p>
             <p class="security-desc">
               This QR code contains your unique secret key. Keep it private and secure.
             </p>
@@ -77,7 +75,7 @@
     <!-- Instructions -->
     <div v-if="showInstructions" class="instructions">
       <h4 class="instructions-title">
-        <Icon name="info" class="w-4 h-4 mr-2" />
+        <Icon name="info" class="mr-2 h-4 w-4" />
         How to scan this QR code:
       </h4>
       <ol class="instructions-list">
@@ -91,26 +89,24 @@
 
     <!-- Alternative Apps -->
     <div v-if="showAppSuggestions" class="app-suggestions">
-      <h4 class="suggestions-title">Recommended Authenticator Apps:</h4>
+      <h4 class="suggestions-title">
+        Recommended Authenticator Apps:
+      </h4>
       <div class="apps-grid">
-        <div 
-          v-for="app in recommendedApps" 
-          :key="app.name"
-          class="app-card"
-        >
+        <div v-for="app in recommendedApps" :key="app.name" class="app-card">
           <div class="app-icon">
-            <Icon :name="app.icon" class="w-6 h-6" />
+            <Icon :name="app.icon" class="h-6 w-6" />
           </div>
           <div class="app-info">
-            <h5 class="app-name">{{ app.name }}</h5>
-            <p class="app-platforms">{{ app.platforms.join(', ') }}</p>
+            <h5 class="app-name">
+              {{ app.name }}
+            </h5>
+            <p class="app-platforms">
+              {{ app.platforms.join(', ') }}
+            </p>
           </div>
-          <button 
-            @click="openAppStore(app)" 
-            class="app-download"
-            :title="`Download ${app.name}`"
-          >
-            <Icon name="external-link" class="w-4 h-4" />
+          <button class="app-download" :title="`Download ${app.name}`" @click="openAppStore(app)">
+            <Icon name="external-link" class="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -126,36 +122,36 @@ import { useToast } from '@/composables/useToast'
 const props = defineProps({
   qrCodeUrl: {
     type: String,
-    required: true
+    required: true,
   },
   secretKey: {
     type: String,
-    required: true
+    required: true,
   },
   companyName: {
     type: String,
-    default: 'Attendance System'
+    default: 'Attendance System',
   },
   userEmail: {
     type: String,
-    required: true
+    required: true,
   },
   loading: {
     type: Boolean,
-    default: false
+    default: false,
   },
   error: {
     type: String,
-    default: ''
+    default: '',
   },
   showInstructions: {
     type: Boolean,
-    default: true
+    default: true,
   },
   showAppSuggestions: {
     type: Boolean,
-    default: true
-  }
+    default: true,
+  },
 })
 
 // Emits
@@ -176,8 +172,9 @@ const recommendedApps = computed(() => [
     platforms: ['iOS', 'Android'],
     urls: {
       ios: 'https://apps.apple.com/app/google-authenticator/id388497605',
-      android: 'https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2'
-    }
+      android:
+        'https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2',
+    },
   },
   {
     name: 'Authy',
@@ -185,8 +182,8 @@ const recommendedApps = computed(() => [
     platforms: ['iOS', 'Android', 'Desktop'],
     urls: {
       ios: 'https://apps.apple.com/app/authy/id494168017',
-      android: 'https://play.google.com/store/apps/details?id=com.authy.authy'
-    }
+      android: 'https://play.google.com/store/apps/details?id=com.authy.authy',
+    },
   },
   {
     name: 'Microsoft Authenticator',
@@ -194,9 +191,9 @@ const recommendedApps = computed(() => [
     platforms: ['iOS', 'Android'],
     urls: {
       ios: 'https://apps.apple.com/app/microsoft-authenticator/id983156458',
-      android: 'https://play.google.com/store/apps/details?id=com.azure.authenticator'
-    }
-  }
+      android: 'https://play.google.com/store/apps/details?id=com.azure.authenticator',
+    },
+  },
 ])
 
 // Methods
@@ -213,7 +210,7 @@ const downloadQR = async () => {
     // Convert data URL to blob
     const response = await fetch(props.qrCodeUrl)
     const blob = await response.blob()
-    
+
     // Create download link
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -223,7 +220,7 @@ const downloadQR = async () => {
     link.click()
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
-    
+
     toast.success('QR code downloaded successfully')
   } catch (error) {
     toast.error('Failed to download QR code')
@@ -237,7 +234,7 @@ const refreshQR = () => {
 const openAppStore = (app) => {
   const platform = navigator.platform.toLowerCase()
   let url = ''
-  
+
   if (platform.includes('iphone') || platform.includes('ipad')) {
     url = app.urls.ios
   } else if (platform.includes('android')) {
@@ -246,7 +243,7 @@ const openAppStore = (app) => {
     // Default to iOS App Store for desktop users
     url = app.urls.ios
   }
-  
+
   if (url) {
     window.open(url, '_blank', 'noopener,noreferrer')
   }
@@ -259,15 +256,15 @@ const openAppStore = (app) => {
 }
 
 .qr-container {
-  @apply bg-white rounded-lg border-2 border-gray-200 p-6 text-center;
+  @apply rounded-lg border-2 border-gray-200 bg-white p-6 text-center;
 }
 
 .loading-state {
-  @apply flex flex-col items-center justify-center h-64;
+  @apply flex h-64 flex-col items-center justify-center;
 }
 
 .spinner {
-  @apply animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4;
+  @apply mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600;
 }
 
 .loading-text {
@@ -275,11 +272,11 @@ const openAppStore = (app) => {
 }
 
 .error-state {
-  @apply flex flex-col items-center justify-center h-64 text-red-600;
+  @apply flex h-64 flex-col items-center justify-center text-red-600;
 }
 
 .error-icon {
-  @apply w-8 h-8 mb-2;
+  @apply mb-2 h-8 w-8;
 }
 
 .error-text {
@@ -287,8 +284,7 @@ const openAppStore = (app) => {
 }
 
 .retry-btn {
-  @apply bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg 
-         transition-colors duration-200 inline-flex items-center;
+  @apply inline-flex items-center rounded-lg bg-red-600 px-4 py-2 text-white transition-colors duration-200 hover:bg-red-700;
 }
 
 .qr-content {
@@ -300,20 +296,19 @@ const openAppStore = (app) => {
 }
 
 .qr-image {
-  @apply w-64 h-64 border border-gray-300 rounded-lg;
+  @apply h-64 w-64 rounded-lg border border-gray-300;
 }
 
 .qr-actions {
-  @apply absolute top-2 right-2 flex space-x-1;
+  @apply absolute right-2 top-2 flex space-x-1;
 }
 
 .action-btn {
-  @apply bg-white hover:bg-gray-50 text-gray-600 p-2 rounded-md shadow-sm 
-         border border-gray-200 transition-colors duration-200;
+  @apply rounded-md border border-gray-200 bg-white p-2 text-gray-600 shadow-sm transition-colors duration-200 hover:bg-gray-50;
 }
 
 .qr-info {
-  @apply bg-gray-50 rounded-lg p-4 space-y-2;
+  @apply space-y-2 rounded-lg bg-gray-50 p-4;
 }
 
 .info-item {
@@ -329,12 +324,11 @@ const openAppStore = (app) => {
 }
 
 .security-notice {
-  @apply flex items-start space-x-3 bg-green-50 border border-green-200 
-         rounded-lg p-4;
+  @apply flex items-start space-x-3 rounded-lg border border-green-200 bg-green-50 p-4;
 }
 
 .security-icon {
-  @apply w-5 h-5 text-green-600 mt-0.5;
+  @apply mt-0.5 h-5 w-5 text-green-600;
 }
 
 .security-text {
@@ -342,7 +336,7 @@ const openAppStore = (app) => {
 }
 
 .security-title {
-  @apply font-medium text-green-800 mb-1;
+  @apply mb-1 font-medium text-green-800;
 }
 
 .security-desc {
@@ -350,15 +344,15 @@ const openAppStore = (app) => {
 }
 
 .instructions {
-  @apply bg-blue-50 border border-blue-200 rounded-lg p-4;
+  @apply rounded-lg border border-blue-200 bg-blue-50 p-4;
 }
 
 .instructions-title {
-  @apply font-medium text-blue-800 mb-3 flex items-center;
+  @apply mb-3 flex items-center font-medium text-blue-800;
 }
 
 .instructions-list {
-  @apply list-decimal list-inside space-y-1 text-sm text-blue-700;
+  @apply list-inside list-decimal space-y-1 text-sm text-blue-700;
 }
 
 .app-suggestions {
@@ -370,12 +364,11 @@ const openAppStore = (app) => {
 }
 
 .apps-grid {
-  @apply grid grid-cols-1 md:grid-cols-3 gap-3;
+  @apply grid grid-cols-1 gap-3 md:grid-cols-3;
 }
 
 .app-card {
-  @apply bg-white border border-gray-200 rounded-lg p-3 flex items-center 
-         space-x-3 hover:border-gray-300 transition-colors duration-200;
+  @apply flex items-center space-x-3 rounded-lg border border-gray-200 bg-white p-3 transition-colors duration-200 hover:border-gray-300;
 }
 
 .app-icon {
@@ -383,11 +376,11 @@ const openAppStore = (app) => {
 }
 
 .app-info {
-  @apply flex-1 min-w-0;
+  @apply min-w-0 flex-1;
 }
 
 .app-name {
-  @apply font-medium text-sm text-gray-900;
+  @apply text-sm font-medium text-gray-900;
 }
 
 .app-platforms {
@@ -395,15 +388,15 @@ const openAppStore = (app) => {
 }
 
 .app-download {
-  @apply text-blue-600 hover:text-blue-700 p-1 rounded transition-colors duration-200;
+  @apply rounded p-1 text-blue-600 transition-colors duration-200 hover:text-blue-700;
 }
 
 /* Responsive adjustments */
 @media (max-width: 640px) {
   .qr-image {
-    @apply w-48 h-48;
+    @apply h-48 w-48;
   }
-  
+
   .apps-grid {
     @apply grid-cols-1;
   }

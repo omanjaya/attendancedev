@@ -1,3 +1,4 @@
+# Laravel
 *.log
 .DS_Store
 .env
@@ -22,3 +23,35 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Database
+/database/*.sqlite
+/database/*.sqlite-journal
+
+# Development files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Cache and compiled assets
+bootstrap/cache/*.php
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+
+# AI Models (large files)
+public/models/*.bin
+public/models/*-shard*
+public/models/*-weights_manifest.json
+!public/models/README.md
+
+# Uploads
+storage/app/public/uploads/*
+!storage/app/public/uploads/.gitkeep
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old

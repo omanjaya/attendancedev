@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\UserNotificationPreferences;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class NotificationPreferencesController extends Controller
@@ -15,8 +15,10 @@ class NotificationPreferencesController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $preferences = $request->user()->notificationPreferences ?? $this->createDefaultPreferences($request->user());
-        
+        $preferences =
+          $request->user()->notificationPreferences ??
+          $this->createDefaultPreferences($request->user());
+
         return response()->json([
             'preferences' => [
                 'id' => $preferences->id,
@@ -70,11 +72,13 @@ class NotificationPreferencesController extends Controller
             'timezone' => 'required_if:enabled,true|nullable|string|timezone',
         ]);
 
-        $quietHours = $validated['enabled'] ? [
-            'start' => $validated['start'],
-            'end' => $validated['end'],
-            'timezone' => $validated['timezone'] ?? config('app.timezone'),
-        ] : null;
+        $quietHours = $validated['enabled']
+          ? [
+              'start' => $validated['start'],
+              'end' => $validated['end'],
+              'timezone' => $validated['timezone'] ?? config('app.timezone'),
+          ]
+          : null;
 
         $preferences->update(['quiet_hours' => $quietHours]);
 
@@ -117,7 +121,7 @@ class NotificationPreferencesController extends Controller
         ]);
 
         $user = $request->user();
-        
+
         // Create a test notification
         $testData = [
             'message' => 'This is a test notification to verify your settings are working correctly.',
@@ -137,10 +141,13 @@ class NotificationPreferencesController extends Controller
                 'type' => $validated['type'],
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Failed to send test notification',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(
+                [
+                    'message' => 'Failed to send test notification',
+                    'error' => $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -149,7 +156,8 @@ class NotificationPreferencesController extends Controller
      */
     public function history(Request $request): JsonResponse
     {
-        $notifications = $request->user()
+        $notifications = $request
+            ->user()
             ->notifications()
             ->orderBy('created_at', 'desc')
             ->limit(50)
@@ -187,7 +195,8 @@ class NotificationPreferencesController extends Controller
             $user->unreadNotifications()->update(['read_at' => now()]);
             $message = 'All notifications marked as read';
         } else {
-            $user->notifications()
+            $user
+                ->notifications()
                 ->whereIn('id', $validated['notification_ids'] ?? [])
                 ->update(['read_at' => now()]);
             $message = 'Selected notifications marked as read';
@@ -263,7 +272,7 @@ class NotificationPreferencesController extends Controller
     private function createDefaultPreferences($user): UserNotificationPreferences
     {
         return UserNotificationPreferences::create(
-            array_merge(['user_id' => $user->id], UserNotificationPreferences::getDefaults())
+            array_merge(['user_id' => $user->id], UserNotificationPreferences::getDefaults()),
         );
     }
 }

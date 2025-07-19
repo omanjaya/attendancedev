@@ -2,14 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class LeaveType extends Model
 {
-    use HasFactory, SoftDeletes, HasUuids;
+    use HasFactory, HasUuids, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -19,7 +19,7 @@ class LeaveType extends Model
         'requires_approval',
         'is_paid',
         'is_active',
-        'metadata'
+        'metadata',
     ];
 
     protected $casts = [
@@ -27,7 +27,7 @@ class LeaveType extends Model
         'is_paid' => 'boolean',
         'is_active' => 'boolean',
         'metadata' => 'array',
-        'default_days_per_year' => 'integer'
+        'default_days_per_year' => 'integer',
     ];
 
     /**
@@ -67,6 +67,6 @@ class LeaveType extends Model
      */
     public function getDisplayNameAttribute()
     {
-        return $this->name . ' (' . $this->code . ')';
+        return $this->name.' ('.$this->code.')';
     }
 }

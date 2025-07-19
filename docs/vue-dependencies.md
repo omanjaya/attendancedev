@@ -9,7 +9,7 @@ npm install vue@^3.3.0 @vitejs/plugin-vue
 # shadcn/ui Vue components (install via CLI)
 npx shadcn-vue@latest init
 npx shadcn-vue@latest add card
-npx shadcn-vue@latest add button  
+npx shadcn-vue@latest add button
 npx shadcn-vue@latest add badge
 
 # Lucide Vue icons
@@ -61,16 +61,19 @@ After running `npx shadcn-vue@latest init`, update your `components.json`:
 ## Installation Steps:
 
 1. **Install core dependencies:**
+
    ```bash
    npm install vue@^3.3.0 @vitejs/plugin-vue lucide-vue-next
    ```
 
 2. **Initialize shadcn/ui:**
+
    ```bash
    npx shadcn-vue@latest init
    ```
 
 3. **Add required components:**
+
    ```bash
    npx shadcn-vue@latest add card button badge
    ```
@@ -107,8 +110,9 @@ resources/
 ## Expected Result:
 
 After completing the installation, you'll have:
+
 - ✅ Fully functional Vue 3 dashboard
-- ✅ shadcn/ui components working 
+- ✅ shadcn/ui components working
 - ✅ Dark/light theme toggle
 - ✅ Responsive design
 - ✅ Laravel API integration ready

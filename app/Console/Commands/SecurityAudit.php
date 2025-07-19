@@ -3,12 +3,11 @@
 namespace App\Console\Commands;
 
 use App\Models\User;
-use App\Models\AuditLog;
 use App\Services\SecurityService;
 use App\Services\TwoFactorService;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class SecurityAudit extends Command
 {
@@ -34,6 +33,7 @@ class SecurityAudit extends Command
     protected $description = 'Perform security audit of the system';
 
     private SecurityService $securityService;
+
     private TwoFactorService $twoFactorService;
 
     public function __construct(SecurityService $securityService, TwoFactorService $twoFactorService)
@@ -56,15 +56,26 @@ class SecurityAudit extends Command
         if ($this->option('all')) {
             $audits = ['users', 'passwords', '2fa', 'sessions', 'permissions'];
         } else {
-            if ($this->option('users')) $audits[] = 'users';
-            if ($this->option('passwords')) $audits[] = 'passwords';
-            if ($this->option('2fa')) $audits[] = '2fa';
-            if ($this->option('sessions')) $audits[] = 'sessions';
-            if ($this->option('permissions')) $audits[] = 'permissions';
+            if ($this->option('users')) {
+                $audits[] = 'users';
+            }
+            if ($this->option('passwords')) {
+                $audits[] = 'passwords';
+            }
+            if ($this->option('2fa')) {
+                $audits[] = '2fa';
+            }
+            if ($this->option('sessions')) {
+                $audits[] = 'sessions';
+            }
+            if ($this->option('permissions')) {
+                $audits[] = 'permissions';
+            }
         }
 
         if (empty($audits)) {
             $this->error('No audit types specified. Use --all or specify individual audits.');
+
             return 1;
         }
 
@@ -117,7 +128,7 @@ class SecurityAudit extends Command
         $inactiveUsers = User::where('is_active', false)->count();
         $lockedUsers = User::locked()->count();
         $usersWithFailedLogins = User::where('failed_login_attempts', '>', 0)->count();
-        
+
         // Users who haven't logged in for 90+ days
         $dormantUsers = User::where('last_login_at', '<', Carbon::now()->subDays(90))
             ->orWhereNull('last_login_at')
@@ -134,7 +145,7 @@ class SecurityAudit extends Command
             'users_with_failed_logins' => $usersWithFailedLogins,
             'dormant_users' => $dormantUsers,
             'admin_users' => $adminUsers,
-            'issues' => []
+            'issues' => [],
         ];
 
         // Identify issues
@@ -150,7 +161,9 @@ class SecurityAudit extends Command
             $results['issues'][] = "⚠️  {$dormantUsers} users haven't logged in for 90+ days";
         }
 
-        $this->info("  ✓ Total users: {$totalUsers} (Active: {$activeUsers}, Inactive: {$inactiveUsers})");
+        $this->info(
+            "  ✓ Total users: {$totalUsers} (Active: {$activeUsers}, Inactive: {$inactiveUsers})",
+        );
         $this->info("  ✓ Locked users: {$lockedUsers}");
         $this->info("  ✓ Dormant users: {$dormantUsers}");
 
@@ -173,7 +186,7 @@ class SecurityAudit extends Command
             'expired_passwords' => 0,
             'force_change_users' => 0,
             'never_changed_passwords' => 0,
-            'issues' => []
+            'issues' => [],
         ];
 
         // Users who need to change passwords
@@ -204,7 +217,9 @@ class SecurityAudit extends Command
             $results['issues'][] = "⚠️  {$neverChangedUsers} users never changed their passwords";
         }
 
-        $this->info("  ✓ Password expiry policy: " . ($expiryDays > 0 ? "{$expiryDays} days" : "Disabled"));
+        $this->info(
+            '  ✓ Password expiry policy: '.($expiryDays > 0 ? "{$expiryDays} days" : 'Disabled'),
+        );
         $this->info("  ✓ Users requiring password change: {$forceChangeUsers}");
         $this->info("  ✓ Users with expired passwords: {$results['expired_passwords']}");
 
@@ -219,14 +234,14 @@ class SecurityAudit extends Command
         $this->line('🛡️  Auditing 2FA compliance...');
 
         $stats = $this->twoFactorService->getStatistics();
-        
+
         $results = [
             'total_users' => $stats['total_users'],
             'enabled_2fa' => $stats['enabled_users'],
             'required_2fa' => $stats['required_users'],
             'compliance_rate' => $stats['compliance_rate'],
             'non_compliant' => $stats['required_users'] - $stats['enabled_users'],
-            'issues' => []
+            'issues' => [],
         ];
 
         // Check compliance
@@ -235,7 +250,9 @@ class SecurityAudit extends Command
         }
 
         if ($results['non_compliant'] > 0) {
-            $results['issues'][] = "⚠️  {$results['non_compliant']} required users don't have 2FA enabled";
+            $results[
+              'issues'
+            ][] = "⚠️  {$results['non_compliant']} required users don't have 2FA enabled";
         }
 
         $this->info("  ✓ 2FA enabled users: {$stats['enabled_users']}/{$stats['total_users']}");
@@ -265,7 +282,7 @@ class SecurityAudit extends Command
             'total_sessions' => $totalSessions,
             'active_sessions' => $activeSessions,
             'old_sessions' => $oldSessions,
-            'issues' => []
+            'issues' => [],
         ];
 
         if ($oldSessions > 100) {
@@ -298,7 +315,7 @@ class SecurityAudit extends Command
             'teacher_users' => $teacherUsers,
             'staff_users' => $staffUsers,
             'users_without_roles' => $usersWithoutRoles,
-            'issues' => []
+            'issues' => [],
         ];
 
         if ($adminUsers > 5) {
@@ -328,10 +345,10 @@ class SecurityAudit extends Command
 
         $totalIssues = 0;
         foreach ($results as $auditType => $result) {
-            if (isset($result['issues']) && !empty($result['issues'])) {
+            if (isset($result['issues']) && ! empty($result['issues'])) {
                 $issueCount = count($result['issues']);
                 $totalIssues += $issueCount;
-                
+
                 $this->warn("{$auditType}: {$issueCount} issues found");
                 foreach ($result['issues'] as $issue) {
                     $this->line("  {$issue}");
@@ -345,7 +362,7 @@ class SecurityAudit extends Command
         if ($totalIssues > 0) {
             $this->error("Total security issues found: {$totalIssues}");
         } else {
-            $this->info("🎉 No security issues found! System appears secure.");
+            $this->info('🎉 No security issues found! System appears secure.');
         }
     }
 
@@ -362,12 +379,12 @@ class SecurityAudit extends Command
             'system_info' => [
                 'php_version' => PHP_VERSION,
                 'laravel_version' => app()->version(),
-                'environment' => app()->environment()
-            ]
+                'environment' => app()->environment(),
+            ],
         ];
 
-        $filename = 'security-audit-' . date('Y-m-d-H-i-s') . '.json';
-        $filepath = storage_path('logs/' . $filename);
+        $filename = 'security-audit-'.date('Y-m-d-H-i-s').'.json';
+        $filepath = storage_path('logs/'.$filename);
 
         file_put_contents($filepath, json_encode($reportData, JSON_PRETTY_PRINT));
 

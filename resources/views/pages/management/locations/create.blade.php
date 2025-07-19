@@ -1,165 +1,154 @@
-@extends('layouts.authenticated')
+@extends('layouts.authenticated-unified')
 
-@section('title', 'Add New Location')
-
-@section('page-header')
-@section('page-pretitle', 'Locations')
-@section('page-title', 'Add New Location')
-@endsection
+@section('title', 'Tambah Lokasi Baru')
 
 @section('page-content')
-<form action="{{ route('locations.store') }}" method="POST">
-    @csrf
-    
-    <div class="grid grid-cols-12 gap-4">
-        <div class="lg:col-span-8">
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200-header">
-                    <h3 class="bg-white rounded-lg shadow-sm border border-gray-200-title">Location Information</h3>
-                </div>
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200-body">
-                    <div class="grid grid-cols-12 gap-4 mb-3">
-                        <div class="md:col-span-6">
-                            <div class="block text-sm font-medium text-gray-700 required">Location Name</div>
-                            <input type="text" name="name" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('name') is-invalid @enderror" 
-                                   value="{{ old('name') }}" placeholder="Main Campus" required>
-                            @error('name')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-blue-900 dark:to-indigo-900">
+    <div class="p-6 lg:p-8">
+        <x-layouts.base-page
+            title="Tambah Lokasi Baru"
+            subtitle="Kelola lokasi verifikasi absensi dan pengaturan GPS"
+            :breadcrumbs="[
+                ['label' => 'Dashboard', 'url' => route('dashboard')],
+                ['label' => 'Manajemen'],
+                ['label' => 'Lokasi', 'url' => route('locations.index')],
+                ['label' => 'Tambah Baru']
+            ]">
+        </x-layouts.base-page>
+
+        <form action="{{ route('locations.store') }}" method="POST">
+            @csrf
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2 group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out">
+                    <h3 class="text-xl font-semibold text-slate-800 dark:text-white mb-4">Informasi Lokasi</h3>
+                    
+                    <div class="space-y-6">
+                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                            <div class="space-y-2">
+                                <x-ui.label for="name" value="Nama Lokasi" required class="text-slate-700 dark:text-slate-300" />
+                                <x-ui.input type="text" name="name" 
+                                           value="{{ old('name') }}" placeholder="Kampus Utama" required 
+                                           class="bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300" />
+                                @error('name')
+                                    <p class="text-sm text-red-500 mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <x-ui.label for="radius_meters" value="Radius yang Diizinkan (meter)" required class="text-slate-700 dark:text-slate-300" />
+                                <div class="flex">
+                                    <x-ui.input type="number" name="radius_meters" 
+                                               value="{{ old('radius_meters', 100) }}" min="10" max="1000" required 
+                                               class="flex-1 rounded-r-none bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300" />
+                                    <span class="inline-flex items-center px-3 py-2 rounded-r-xl border border-l-0 border-white/40 bg-white/30 text-slate-700 dark:text-slate-300 text-sm">meter</span>
+                                </div>
+                                @error('radius_meters')
+                                    <p class="text-sm text-red-500 mt-1">{{ $message }}</p>
+                                @enderror
+                                <p class="text-xs text-slate-600 dark:text-slate-400">Seberapa dekat karyawan harus berada untuk verifikasi lokasi</p>
+                            </div>
                         </div>
                         
-                        <div class="md:col-span-6">
-                            <div class="block text-sm font-medium text-gray-700 required">Allowed Radius</div>
-                            <div class="flex rounded-md shadow-sm">
-                                <input type="number" name="radius_meters" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('radius_meters') is-invalid @enderror" 
-                                       value="{{ old('radius_meters', 100) }}" min="10" max="1000" required>
-                                <span class="flex rounded-md shadow-sm-text">meters</span>
-                            </div>
-                            @error('radius_meters')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <small class="form-hint">How close employees need to be for location verification</small>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-12 gap-4 mb-3">
-                        <div class="col-span-12">
-                            <div class="block text-sm font-medium text-gray-700">Address</div>
-                            <textarea name="address" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('address') is-invalid @enderror" 
-                                      rows="2" placeholder="123 Main Street, City, State, ZIP">{{ old('address') }}</textarea>
+                        <div class="space-y-2">
+                            <x-ui.label for="address" value="Alamat" class="text-slate-700 dark:text-slate-300" />
+                            <textarea name="address" 
+                                      class="flex min-h-[80px] w-full rounded-md border border-white/40 bg-white/30 backdrop-blur-sm px-3 py-2 text-sm ring-offset-background placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:border-blue-500/50 disabled:cursor-not-allowed disabled:opacity-50 text-slate-800 dark:text-white transition-all duration-300" 
+                                      rows="2" placeholder="123 Jalan Utama, Kota, Provinsi, Kode Pos">{{ old('address') }}</textarea>
                             @error('address')
-                                <div class="invalid-feedback">{{ $message }}</div>
+                                <p class="text-sm text-red-500 mt-1">{{ $message }}</p>
                             @enderror
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-12 gap-4 mb-3">
-                        <div class="md:col-span-6">
-                            <div class="block text-sm font-medium text-gray-700">Latitude</div>
-                            <input type="number" name="latitude" id="latitude" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('latitude') is-invalid @enderror" 
-                                   value="{{ old('latitude') }}" step="0.000001" placeholder="40.712776">
-                            @error('latitude')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <small class="form-hint">For GPS-based attendance verification</small>
                         </div>
                         
-                        <div class="md:col-span-6">
-                            <div class="block text-sm font-medium text-gray-700">Longitude</div>
-                            <input type="number" name="longitude" id="longitude" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('longitude') is-invalid @enderror" 
-                                   value="{{ old('longitude') }}" step="0.000001" placeholder="-74.005974">
-                            @error('longitude')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <small class="form-hint">For GPS-based attendance verification</small>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-12 gap-4 mb-3">
-                        <div class="col-span-12">
-                            <button type="button" id="getCurrentLocation" class="inline-flex items-center px-4 py-2 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                <svg class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
-                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                    <path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-4.5 -7l-7 -4.5a.55 .55 0 0 1 0 -1l18 -6.5"/>
-                                </svg>
-                                Get Current Location
-                            </button>
-                            <span id="locationStatus" class="text-gray-600 ml-2"></span>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-12 gap-4 mb-3">
-                        <div class="md:col-span-6">
-                            <div class="block text-sm font-medium text-gray-700">WiFi Network Name (SSID)</div>
-                            <input type="text" name="wifi_ssid" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('wifi_ssid') is-invalid @enderror" 
-                                   value="{{ old('wifi_ssid') }}" placeholder="School-WiFi">
-                            @error('wifi_ssid')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <small class="form-hint">Optional: For WiFi-based location verification</small>
-                        </div>
-                        
-                        <div class="md:col-span-6">
-                            <div class="block text-sm font-medium text-gray-700">Status</div>
-                            <div class="flex items-center form-switch">
-                                <input type="hidden" name="is_active" value="0">
-                                <input class="flex items-center-input" type="checkbox" name="is_active" value="1" 
-                                       {{ old('is_active', true) ? 'checked' : '' }}>
-                                <label class="flex items-center-label">Active Location</label>
+                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                            <div class="space-y-2">
+                                <x-ui.label for="latitude" value="Lintang" class="text-slate-700 dark:text-slate-300" />
+                                <x-ui.input type="number" name="latitude" id="latitude" 
+                                           value="{{ old('latitude') }}" step="0.000001" placeholder="-6.2088" 
+                                           class="bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300" />
+                                @error('latitude')
+                                    <p class="text-sm text-red-500 mt-1">{{ $message }}</p>
+                                @enderror
+                                <p class="text-xs text-slate-600 dark:text-slate-400">Untuk verifikasi absensi berbasis GPS</p>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <x-ui.label for="longitude" value="Bujur" class="text-slate-700 dark:text-slate-300" />
+                                <x-ui.input type="number" name="longitude" id="longitude" 
+                                           value="{{ old('longitude') }}" step="0.000001" placeholder="106.8456" 
+                                           class="bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300" />
+                                @error('longitude')
+                                    <p class="text-sm text-red-500 mt-1">{{ $message }}</p>
+                                @enderror
+                                <p class="text-xs text-slate-600 dark:text-slate-400">Untuk verifikasi absensi berbasis GPS</p>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="lg:col-span-4">
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200-header">
-                    <h3 class="bg-white rounded-lg shadow-sm border border-gray-200-title">Location Preview</h3>
-                </div>
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200-body">
-                    <div id="mapContainer" style="height: 300px; background-color: #f8f9fa; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px dashed #dee2e6;">
-                        <div class="text-center text-gray-600">
-                            <svg class="icon mb-2" width="48" height="48" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
-                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                <path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-4.5 -7l-7 -4.5a.55 .55 0 0 1 0 -1l18 -6.5"/>
-                            </svg>
-                            <div>Enter coordinates to preview location</div>
+                        
+                        <div class="space-y-2">
+                            <x-ui.button type="button" id="getCurrentLocation" variant="secondary">
+                                <svg class="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-4.5 -7l-7 -4.5a.55 .55 0 0 1 0 -1l18 -6.5"/></svg>
+                                Dapatkan Lokasi Saat Ini
+                            </x-ui.button>
+                            <span id="locationStatus" class="text-slate-600 dark:text-slate-400 ml-2"></span>
                         </div>
-                    </div>
-                    
-                    <div class="mt-4">
-                        <div class="grid grid-cols-12 gap-4">
-                            <div class="col-span-12">
-                                <strong>Verification Methods:</strong>
-                                <div id="verificationMethods" class="mt-1">
-                                    <span class="text-gray-600">None configured</span>
+                        
+                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                            <div class="space-y-2">
+                                <x-ui.label for="wifi_ssid" value="Nama Jaringan WiFi (SSID)" class="text-slate-700 dark:text-slate-300" />
+                                <x-ui.input type="text" name="wifi_ssid" 
+                                           value="{{ old('wifi_ssid') }}" placeholder="School-WiFi" 
+                                           class="bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300" />
+                                @error('wifi_ssid')
+                                    <p class="text-sm text-red-500 mt-1">{{ $message }}</p>
+                                @enderror
+                                <p class="text-xs text-slate-600 dark:text-slate-400">Opsional: Untuk verifikasi lokasi berbasis WiFi</p>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <x-ui.label value="Status" class="text-slate-700 dark:text-slate-300" />
+                                <div class="flex items-center space-x-3">
+                                    <input type="hidden" name="is_active" value="0">
+                                    <x-ui.checkbox name="is_active" value="1" 
+                                                   {{ old('is_active', true) ? 'checked' : '' }} />
+                                    <span class="text-sm font-medium text-slate-800 dark:text-white">Lokasi Aktif</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mt-4">
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200-body">
-                    <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-full">
-                        <svg class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                            <path d="M12 5l0 14"/>
-                            <path d="M5 12l14 0"/>
-                        </svg>
-                        Create Location
-                    </button>
-                    <a href="{{ route('locations.index') }}" class="btn btn-link w-full mt-2">
-                        Cancel
-                    </a>
+                
+                <div class="lg:col-span-1 space-y-6">
+                    <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out">
+                        <h3 class="text-xl font-semibold text-slate-800 dark:text-white mb-4">Pratinjau Lokasi</h3>
+                        <div id="mapContainer" style="height: 300px;" class="bg-white/10 rounded-lg flex items-center justify-center border border-white/20 text-slate-600 dark:text-slate-400">
+                            <div class="text-center">
+                                <svg class="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-4.5 -7l-7 -4.5a.55 .55 0 0 1 0 -1l18 -6.5"/></svg>
+                                <div>Masukkan koordinat untuk pratinjau lokasi</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <h4 class="text-lg font-semibold text-slate-800 dark:text-white mb-2">Metode Verifikasi:</h4>
+                            <div id="verificationMethods" class="flex flex-wrap gap-2">
+                                <span class="text-slate-600 dark:text-slate-400">Tidak ada yang dikonfigurasi</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out">
+                        <x-ui.button type="submit" variant="primary" class="w-full">
+                            <svg class="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5l0 14"/><path d="M5 12l14 0"/></svg>
+                            Buat Lokasi
+                        </x-ui.button>
+                        <x-ui.button type="button" variant="secondary" class="w-full mt-2" onclick="window.location.href='{{ route('locations.index') }}'">
+                            Batal
+                        </x-ui.button>
+                    </div>
                 </div>
             </div>
-        </div>
+        </form>
     </div>
-</form>
+</div>
 @endsection
 
 @push('scripts')
@@ -174,18 +163,18 @@ $(document).ready(function() {
         let methods = [];
         
         if (latitude && longitude) {
-            methods.push('<span class="badge bg-blue-lt">GPS Location</span>');
+            methods.push('<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r from-green-500 to-emerald-600 shadow-lg">Lokasi GPS</span>');
         }
         
         if (wifiSsid) {
-            methods.push('<span class="badge bg-green-lt">WiFi Network</span>');
+            methods.push('<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r from-blue-500 to-cyan-500 shadow-lg">Jaringan WiFi</span>');
         }
         
-        const max-w-7xl mx-auto px-4 = $('#verificationMethods');
+        const verificationMethodsDiv = $('#verificationMethods');
         if (methods.length > 0) {
-            max-w-7xl mx-auto px-4.html(methods.join(' '));
+            verificationMethodsDiv.html(methods.join(' '));
         } else {
-            max-w-7xl mx-auto px-4.html('<span class="text-gray-600">None configured</span>');
+            verificationMethodsDiv.html('<span class="text-slate-600 dark:text-slate-400">Tidak ada yang dikonfigurasi</span>');
         }
     }
     
@@ -198,23 +187,17 @@ $(document).ready(function() {
         
         if (latitude && longitude) {
             mapContainer.html(`
-                <div class="text-center text-success">
-                    <svg class="icon mb-2" width="48" height="48" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                        <path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-4.5 -7l-7 -4.5a.55 .55 0 0 1 0 -1l18 -6.5"/>
-                    </svg>
-                    <div><strong>Location Set</strong></div>
+                <div class="text-center text-emerald-600">
+                    <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-4.5 -7l-7 -4.5a.55 .55 0 0 1 0 -1l18 -6.5"/></svg>
+                    <div><strong>Lokasi Ditetapkan</strong></div>
                     <small>${latitude}, ${longitude}</small>
                 </div>
             `);
         } else {
             mapContainer.html(`
-                <div class="text-center text-gray-600">
-                    <svg class="icon mb-2" width="48" height="48" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                        <path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-4.5 -7l-7 -4.5a.55 .55 0 0 1 0 -1l18 -6.5"/>
-                    </svg>
-                    <div>Enter coordinates to preview location</div>
+                <div class="text-center text-slate-600 dark:text-slate-400">
+                    <svg class="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-4.5 -7l-7 -4.5a.55 .55 0 0 1 0 -1l18 -6.5"/></svg>
+                    <div>Masukkan koordinat untuk pratinjau lokasi</div>
                 </div>
             `);
         }
@@ -232,54 +215,48 @@ $(document).ready(function() {
         const status = $('#locationStatus');
         
         if (!navigator.geolocation) {
-            status.text('Geolocation is not supported by this browser.').removeClass('text-gray-600').addClass('text-danger');
+            status.text('Geolocation tidak didukung oleh browser ini.').removeClass('text-slate-600 dark:text-slate-400').addClass('text-red-500');
             return;
         }
         
         button.prop('disabled', true).html(`
-            <span class="spinner-border spinner-border-sm mr-2" role="status"></span>
-            Getting location...
+            <span class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
+            Mendapatkan lokasi...
         `);
-        status.text('Requesting location permission...').removeClass('text-danger').addClass('text-gray-600');
+        status.text('Meminta izin lokasi...').removeClass('text-red-500').addClass('text-slate-600 dark:text-slate-400');
         
         navigator.geolocation.getCurrentPosition(
             function(position) {
                 $('#latitude').val(position.coords.latitude.toFixed(6));
                 $('#longitude').val(position.coords.longitude.toFixed(6));
                 
-                status.text('Location retrieved successfully!').removeClass('text-gray-600').addClass('text-success');
+                status.text('Lokasi berhasil diambil!').removeClass('text-red-500').addClass('text-green-500');
                 updateVerificationMethods();
                 updateMapPreview();
                 
                 button.prop('disabled', false).html(`
-                    <svg class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                        <path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-4.5 -7l-7 -4.5a.55 .55 0 0 1 0 -1l18 -6.5"/>
-                    </svg>
-                    Get Current Location
+                    <svg class="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-4.5 -7l-7 -4.5a.55 .55 0 0 1 0 -1l18 -6.5"/></svg>
+                    Dapatkan Lokasi Saat Ini
                 `);
             },
             function(error) {
-                let message = 'Unable to retrieve location.';
+                let message = 'Tidak dapat mengambil lokasi.';
                 switch(error.code) {
                     case error.PERMISSION_DENIED:
-                        message = 'Location access denied by user.';
+                        message = 'Akses lokasi ditolak oleh pengguna.';
                         break;
                     case error.POSITION_UNAVAILABLE:
-                        message = 'Location information unavailable.';
+                        message = 'Informasi lokasi tidak tersedia.';
                         break;
                     case error.TIMEOUT:
-                        message = 'Location request timed out.';
+                        message = 'Permintaan lokasi habis waktu.';
                         break;
                 }
                 
-                status.text(message).removeClass('text-gray-600').addClass('text-danger');
+                status.text(message).removeClass('text-slate-600 dark:text-slate-400').addClass('text-red-500');
                 button.prop('disabled', false).html(`
-                    <svg class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                        <path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-4.5 -7l-7 -4.5a.55 .55 0 0 1 0 -1l18 -6.5"/>
-                    </svg>
-                    Get Current Location
+                    <svg class="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-4.5 -7l-7 -4.5a.55 .55 0 0 1 0 -1l18 -6.5"/></svg>
+                    Dapatkan Lokasi Saat Ini
                 `);
             },
             {

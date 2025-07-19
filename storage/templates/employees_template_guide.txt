@@ -1,0 +1,34 @@
+EMPLOYEE IMPORT TEMPLATE GUIDE
+================================
+
+FIELD DESCRIPTIONS:
+- employee_id: Unique identifier for employee (e.g., EMP001)
+- first_name: Employee's first name
+- last_name: Employee's last name
+- email: Valid email address (must be unique)
+- phone: Phone number with country code (e.g., +1234567890)
+- employee_type: permanent, honorary, or staff
+- role: employee, teacher, manager, or admin
+- location_id: Location ID number (check with admin for valid IDs)
+- date_of_birth: Date format: YYYY-MM-DD (e.g., 1990-01-15)
+- gender: male, female, or other
+- hire_date: Date format: YYYY-MM-DD (e.g., 2024-01-01)
+- address: Full address in quotes if contains commas
+- is_active: 1 for active, 0 for inactive
+
+VALIDATION RULES:
+- employee_id: Required, must be unique
+- first_name: Required, max 50 characters
+- last_name: Required, max 50 characters
+- email: Required, valid email format, must be unique
+- employee_type: Required, must be one of: permanent, honorary, staff
+- role: Required, must be valid role in system
+- location_id: Required, must exist in system
+- is_active: Required, must be 1 or 0
+
+NOTES:
+- Remove example rows before importing
+- Keep header row intact
+- Save as CSV format
+- Maximum 100 rows per import
+- Duplicate emails will be rejected

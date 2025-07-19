@@ -2,19 +2,17 @@
 
 namespace App\Providers;
 
-use Illuminate\Auth\Events\Registered;
-use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
-use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
-use Illuminate\Support\Facades\Event;
-
-// Import Events
-use App\Events\UserLoginEvent;
 use App\Events\AttendanceEvent;
 use App\Events\SecurityEvent;
-
-// Import Listeners
+use App\Events\UserLoginEvent;
 use App\Listeners\LogAuditEventListener;
+// Import Events
 use App\Listeners\SecurityAlertListener;
+use Illuminate\Auth\Events\Registered;
+use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
+// Import Listeners
+use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
+use Illuminate\Support\Facades\Event;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -24,25 +22,21 @@ class EventServiceProvider extends ServiceProvider
      * @var array<class-string, array<int, class-string>>
      */
     protected $listen = [
-        Registered::class => [
-            SendEmailVerificationNotification::class,
-        ],
+        Registered::class => [SendEmailVerificationNotification::class],
 
         // User Authentication Events
-        UserLoginEvent::class => [
-            LogAuditEventListener::class . '@handleUserLogin',
-        ],
+        UserLoginEvent::class => [LogAuditEventListener::class.'@handleUserLogin'],
 
         // Attendance Events
         AttendanceEvent::class => [
-            LogAuditEventListener::class . '@handleAttendance',
-            SecurityAlertListener::class . '@handleHighRiskAttendance',
+            LogAuditEventListener::class.'@handleAttendance',
+            SecurityAlertListener::class.'@handleHighRiskAttendance',
         ],
 
         // Security Events
         SecurityEvent::class => [
-            LogAuditEventListener::class . '@handleSecurity',
-            SecurityAlertListener::class . '@handleSecurityEvent',
+            LogAuditEventListener::class.'@handleSecurity',
+            SecurityAlertListener::class.'@handleSecurityEvent',
         ],
     ];
 
@@ -54,14 +48,14 @@ class EventServiceProvider extends ServiceProvider
         // Register Laravel's built-in authentication events
         Event::listen('auth.login', function ($event, $payload) {
             $user = $payload[0] ?? auth()->user();
-            
+
             if ($user) {
                 UserLoginEvent::dispatch(
                     user: $user,
                     ipAddress: request()->ip() ?? '',
                     userAgent: request()->userAgent() ?? '',
                     deviceFingerprint: $this->generateDeviceFingerprint(),
-                    isTwoFactorRequired: $user->requires2FA()
+                    isTwoFactorRequired: $user->requires2FA(),
                 );
             }
         });
@@ -70,10 +64,10 @@ class EventServiceProvider extends ServiceProvider
         Event::listen('auth.failed', function ($event, $payload) {
             $credentials = $payload[0] ?? [];
             $email = $credentials['email'] ?? '';
-            
+
             if ($email) {
                 $user = \App\Models\User::where('email', $email)->first();
-                
+
                 SecurityEvent::dispatch(
                     eventType: 'failed_login',
                     user: $user,
@@ -82,8 +76,8 @@ class EventServiceProvider extends ServiceProvider
                     userAgent: request()->userAgent() ?? '',
                     metadata: [
                         'attempted_email' => $email,
-                        'credentials_provided' => array_keys($credentials)
-                    ]
+                        'credentials_provided' => array_keys($credentials),
+                    ],
                 );
             }
         });
@@ -101,8 +95,8 @@ class EventServiceProvider extends ServiceProvider
                 userAgent: $request->userAgent() ?? '',
                 metadata: [
                     'lockout_reason' => 'too_many_failed_attempts',
-                    'attempted_email' => $email
-                ]
+                    'attempted_email' => $email,
+                ],
             );
         });
     }
@@ -124,7 +118,7 @@ class EventServiceProvider extends ServiceProvider
             request()->userAgent() ?? '',
             request()->header('Accept-Language', ''),
             request()->header('Accept-Encoding', ''),
-            request()->ip() ?? ''
+            request()->ip() ?? '',
         ];
 
         return md5(implode('|', $components));

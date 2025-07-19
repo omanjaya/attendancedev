@@ -2,15 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Payroll extends Model
 {
-    use HasFactory, SoftDeletes, HasUuids;
+    use HasFactory, HasUuids, SoftDeletes;
 
     protected $fillable = [
         'employee_id',
@@ -32,7 +32,7 @@ class Payroll extends Model
         'processed_by',
         'processed_at',
         'notes',
-        'metadata'
+        'metadata',
     ];
 
     protected $casts = [
@@ -50,17 +50,22 @@ class Payroll extends Model
         'leave_days_unpaid' => 'decimal:2',
         'approved_at' => 'datetime',
         'processed_at' => 'datetime',
-        'metadata' => 'array'
+        'metadata' => 'array',
     ];
 
     /**
      * The statuses available for payroll.
      */
     const STATUS_DRAFT = 'draft';
+
     const STATUS_PENDING = 'pending';
+
     const STATUS_APPROVED = 'approved';
+
     const STATUS_PROCESSED = 'processed';
+
     const STATUS_PAID = 'paid';
+
     const STATUS_CANCELLED = 'cancelled';
 
     /**
@@ -100,7 +105,8 @@ class Payroll extends Model
      */
     public function attendanceRecords()
     {
-        return $this->employee->attendances()
+        return $this->employee
+            ->attendances()
             ->whereBetween('date', [$this->payroll_period_start, $this->payroll_period_end]);
     }
 
@@ -109,14 +115,19 @@ class Payroll extends Model
      */
     public function leaveRecords()
     {
-        return $this->employee->leaves()
+        return $this->employee
+            ->leaves()
             ->where('status', Leave::STATUS_APPROVED)
             ->where(function ($query) {
-                $query->whereBetween('start_date', [$this->payroll_period_start, $this->payroll_period_end])
+                $query
+                    ->whereBetween('start_date', [$this->payroll_period_start, $this->payroll_period_end])
                     ->orWhereBetween('end_date', [$this->payroll_period_start, $this->payroll_period_end])
                     ->orWhere(function ($q) {
-                        $q->where('start_date', '<=', $this->payroll_period_start)
-                          ->where('end_date', '>=', $this->payroll_period_end);
+                        $q->where('start_date', '<=', $this->payroll_period_start)->where(
+                            'end_date',
+                            '>=',
+                            $this->payroll_period_end,
+                        );
                     });
             });
     }
@@ -174,7 +185,8 @@ class Payroll extends Model
      */
     public function scopeForPeriod($query, $startDate, $endDate)
     {
-        return $query->where('payroll_period_start', '>=', $startDate)
+        return $query
+            ->where('payroll_period_start', '>=', $startDate)
             ->where('payroll_period_end', '<=', $endDate);
     }
 
@@ -185,6 +197,7 @@ class Payroll extends Model
     {
         $startOfMonth = Carbon::now()->startOfMonth();
         $endOfMonth = Carbon::now()->endOfMonth();
+
         return $query->forPeriod($startOfMonth, $endOfMonth);
     }
 
@@ -257,7 +270,9 @@ class Payroll extends Model
      */
     public function getPayrollPeriodAttribute()
     {
-        return $this->payroll_period_start->format('M j') . ' - ' . $this->payroll_period_end->format('M j, Y');
+        return $this->payroll_period_start->format('M j').
+          ' - '.
+          $this->payroll_period_end->format('M j, Y');
     }
 
     /**
@@ -265,14 +280,14 @@ class Payroll extends Model
      */
     public function getStatusColorAttribute()
     {
-        return match($this->status) {
+        return match ($this->status) {
             self::STATUS_DRAFT => 'secondary',
             self::STATUS_PENDING => 'warning',
             self::STATUS_APPROVED => 'info',
             self::STATUS_PROCESSED => 'primary',
             self::STATUS_PAID => 'success',
             self::STATUS_CANCELLED => 'danger',
-            default => 'secondary'
+            default => 'secondary',
         };
     }
 
@@ -281,7 +296,7 @@ class Payroll extends Model
      */
     public function getFormattedGrossSalaryAttribute()
     {
-        return '$' . number_format($this->gross_salary, 2);
+        return '$'.number_format($this->gross_salary, 2);
     }
 
     /**
@@ -289,7 +304,7 @@ class Payroll extends Model
      */
     public function getFormattedNetSalaryAttribute()
     {
-        return '$' . number_format($this->net_salary, 2);
+        return '$'.number_format($this->net_salary, 2);
     }
 
     /**
@@ -297,7 +312,7 @@ class Payroll extends Model
      */
     public function getFormattedTotalDeductionsAttribute()
     {
-        return '$' . number_format($this->total_deductions, 2);
+        return '$'.number_format($this->total_deductions, 2);
     }
 
     /**
@@ -305,7 +320,7 @@ class Payroll extends Model
      */
     public function getFormattedTotalBonusesAttribute()
     {
-        return '$' . number_format($this->total_bonuses, 2);
+        return '$'.number_format($this->total_bonuses, 2);
     }
 
     /**
@@ -323,6 +338,7 @@ class Payroll extends Model
     {
         $this->net_salary = $this->calculateNetSalary();
         $this->save();
+
         return $this->net_salary;
     }
 
@@ -333,6 +349,7 @@ class Payroll extends Model
     {
         $employeeId = $this->employee->employee_id;
         $period = $this->payroll_period_start->format('Ym');
+
         return "PAY-{$employeeId}-{$period}";
     }
 
@@ -349,8 +366,8 @@ class Payroll extends Model
      */
     public function approve($approvedBy = null)
     {
-        if (!$this->canBeApproved()) {
-            throw new \Exception('Payroll cannot be approved in current status: ' . $this->status);
+        if (! $this->canBeApproved()) {
+            throw new \Exception('Payroll cannot be approved in current status: '.$this->status);
         }
 
         $this->status = self::STATUS_APPROVED;
@@ -366,8 +383,8 @@ class Payroll extends Model
      */
     public function process($processedBy = null)
     {
-        if (!$this->canBeProcessed()) {
-            throw new \Exception('Payroll cannot be processed in current status: ' . $this->status);
+        if (! $this->canBeProcessed()) {
+            throw new \Exception('Payroll cannot be processed in current status: '.$this->status);
         }
 
         $this->status = self::STATUS_PROCESSED;
@@ -398,8 +415,8 @@ class Payroll extends Model
      */
     public function cancel()
     {
-        if (!$this->canBeEdited()) {
-            throw new \Exception('Payroll cannot be cancelled in current status: ' . $this->status);
+        if (! $this->canBeEdited()) {
+            throw new \Exception('Payroll cannot be cancelled in current status: '.$this->status);
         }
 
         $this->status = self::STATUS_CANCELLED;
@@ -445,9 +462,7 @@ class Payroll extends Model
      */
     public function calculateTotalEarnings()
     {
-        return $this->payrollItems()
-            ->where('type', 'earning')
-            ->sum('amount');
+        return $this->payrollItems()->where('type', 'earning')->sum('amount');
     }
 
     /**
@@ -455,9 +470,7 @@ class Payroll extends Model
      */
     public function calculateTotalDeductions()
     {
-        return $this->payrollItems()
-            ->where('type', 'deduction')
-            ->sum('amount');
+        return $this->payrollItems()->where('type', 'deduction')->sum('amount');
     }
 
     /**
@@ -465,9 +478,7 @@ class Payroll extends Model
      */
     public function calculateTotalBonuses()
     {
-        return $this->payrollItems()
-            ->where('type', 'bonus')
-            ->sum('amount');
+        return $this->payrollItems()->where('type', 'bonus')->sum('amount');
     }
 
     /**

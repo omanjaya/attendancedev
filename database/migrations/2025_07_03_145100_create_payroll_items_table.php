@@ -22,16 +22,18 @@ return new class extends Migration
             $table->decimal('rate', 8, 2)->nullable();
             $table->boolean('is_taxable')->default(true);
             $table->boolean('is_statutory')->default(false);
-            $table->enum('calculation_method', ['fixed', 'percentage', 'hourly', 'daily', 'computed'])->default('fixed');
+            $table
+                ->enum('calculation_method', ['fixed', 'percentage', 'hourly', 'daily', 'computed'])
+                ->default('fixed');
             $table->jsonb('reference_data')->default('{}');
             $table->text('notes')->nullable();
             $table->jsonb('metadata')->default('{}');
             $table->timestamps();
             $table->softDeletes();
-            
+
             // Foreign keys
             $table->foreign('payroll_id')->references('id')->on('payrolls')->onDelete('cascade');
-            
+
             // Indexes
             $table->index('payroll_id');
             $table->index('type');

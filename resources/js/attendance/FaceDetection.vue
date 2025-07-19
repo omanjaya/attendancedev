@@ -2,55 +2,67 @@
   <div class="face-detection-component">
     <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
       <div class="flex flex-col space-y-1.5 p-6">
-        <h3 class="text-2xl font-semibold leading-none tracking-tight">Face Detection</h3>
+        <h3 class="text-2xl font-semibold leading-none tracking-tight">
+          Face Detection
+        </h3>
       </div>
       <div class="p-6 pt-0">
         <div v-if="!cameraActive" class="text-center">
-          <button @click="startCamera" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
-            <i class="ti ti-camera mr-2"></i> Start Camera
+          <button
+            class="inline-flex h-10 items-center justify-center whitespace-nowrap rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground ring-offset-background transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+            @click="startCamera"
+          >
+            <i class="ti ti-camera mr-2" /> Start Camera
           </button>
         </div>
-        
+
         <div v-else class="camera-container">
-          <video 
-            ref="videoElement" 
-            autoplay 
-            muted 
+          <video
+            ref="videoElement"
+            autoplay
+            muted
             playsinline
             class="camera-video"
-          ></video>
-          <canvas 
-            ref="canvasElement" 
-            class="camera-overlay"
-          ></canvas>
-          
+          />
+          <canvas ref="canvasElement" class="camera-overlay" />
+
           <div v-if="gesturePrompt" class="gesture-prompt">
-            <div class="rounded-lg border border-blue-200 bg-blue-50 p-4 text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
-              <div class="font-medium">Please {{ gesturePrompt.action }}</div>
-              <div class="w-full bg-blue-200 rounded-full h-2 mt-2 dark:bg-blue-700">
-                <div 
-                  class="bg-blue-600 h-2 rounded-full transition-all duration-300 dark:bg-blue-400" 
+            <div
+              class="rounded-lg border border-blue-200 bg-blue-50 p-4 text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200"
+            >
+              <div class="font-medium">
+                Please {{ gesturePrompt.action }}
+              </div>
+              <div class="mt-2 h-2 w-full rounded-full bg-blue-200 dark:bg-blue-700">
+                <div
+                  class="h-2 rounded-full bg-blue-600 transition-all duration-300 dark:bg-blue-400"
                   :style="{ width: gestureProgress + '%' }"
-                ></div>
+                />
               </div>
             </div>
           </div>
-          
-          <div class="camera-controls mt-6 text-center space-x-2">
-            <button @click="stopCamera" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+
+          <div class="camera-controls mt-6 space-x-2 text-center">
+            <button
+              class="inline-flex h-10 items-center justify-center whitespace-nowrap rounded-md border border-input bg-background px-4 py-2 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+              @click="stopCamera"
+            >
               Stop Camera
             </button>
-            <button 
-              v-if="faceDetected && !processing" 
-              @click="captureAndVerify" 
-              class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+            <button
+              v-if="faceDetected && !processing"
+              class="inline-flex h-10 items-center justify-center whitespace-nowrap rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground ring-offset-background transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+              @click="captureAndVerify"
             >
               Verify Face
             </button>
           </div>
         </div>
-        
-        <div v-if="error" class="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200 mt-4">
+
+        <div
+          v-if="error"
+          class="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200"
+        >
           {{ error }}
         </div>
       </div>
@@ -75,7 +87,7 @@ const {
   canvasElement,
   startCamera,
   stopCamera,
-  captureAndVerify
+  captureAndVerify,
 } = useFaceDetection()
 
 // Handle component cleanup

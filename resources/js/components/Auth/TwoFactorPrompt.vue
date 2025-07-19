@@ -5,7 +5,9 @@
       <div class="icon-container">
         <Icon name="shield-check" class="security-icon" />
       </div>
-      <h2 class="title">Two-Factor Authentication</h2>
+      <h2 class="title">
+        Two-Factor Authentication
+      </h2>
       <p class="subtitle">
         Enter the verification code from your authenticator app to complete login.
       </p>
@@ -13,26 +15,26 @@
 
     <!-- Alert Messages -->
     <div v-if="alert.show" class="alert" :class="alert.type">
-      <Icon :name="alert.icon" class="w-4 h-4" />
+      <Icon :name="alert.icon" class="h-4 w-4" />
       <span>{{ alert.message }}</span>
     </div>
 
     <!-- Main Form -->
-    <form @submit.prevent="handleSubmit" class="verification-form">
+    <form class="verification-form" @submit.prevent="handleSubmit">
       <!-- Code Input -->
       <div class="input-section">
         <VerificationInput
           v-model="verificationCode"
           :label="inputLabel"
           :placeholder="inputPlaceholder"
-          :code-type="verificationMethod"
+          :codeType="verificationMethod"
           :error="errors.code"
           :disabled="loading"
-          :show-timer="verificationMethod === 'totp'"
-          :show-alternatives="true"
-          :allow-recovery-code="true"
-          :allow-sms="user?.phone && smsEnabled"
-          :auto-submit="true"
+          :showTimer="verificationMethod === 'totp'"
+          :showAlternatives="true"
+          :allowRecoveryCode="true"
+          :allowSms="user?.phone && smsEnabled"
+          :autoSubmit="true"
           @complete="handleSubmit"
           @switch-to-recovery="switchToRecovery"
           @request-sms="requestSMS"
@@ -42,19 +44,15 @@
       <!-- Remember Device Option -->
       <div v-if="allowRememberDevice" class="remember-device">
         <label class="checkbox-container">
-          <input
-            v-model="rememberDevice"
-            type="checkbox"
-            class="checkbox-input"
-          />
-          <div class="checkbox-custom"></div>
+          <input v-model="rememberDevice" type="checkbox" class="checkbox-input">
+          <div class="checkbox-custom" />
           <span class="checkbox-label">
             Trust this device for 30 days
             <span class="tooltip-trigger">
-              <Icon name="info" class="w-3 h-3" />
+              <Icon name="info" class="h-3 w-3" />
               <div class="tooltip">
-                You won't need to enter a 2FA code on this device for 30 days.
-                Only enable this on trusted devices.
+                You won't need to enter a 2FA code on this device for 30 days. Only enable this on
+                trusted devices.
               </div>
             </span>
           </span>
@@ -63,13 +61,9 @@
 
       <!-- Action Buttons -->
       <div class="actions">
-        <button
-          type="submit"
-          class="btn-primary"
-          :disabled="!isValidCode || loading"
-        >
+        <button type="submit" class="btn-primary" :disabled="!isValidCode || loading">
           <div v-if="loading" class="spinner" />
-          <Icon v-else name="lock-open" class="w-4 h-4" />
+          <Icon v-else name="lock-open" class="h-4 w-4" />
           {{ loading ? 'Verifying...' : 'Verify & Continue' }}
         </button>
       </div>
@@ -85,41 +79,38 @@
         <!-- Use Recovery Code -->
         <button
           v-if="verificationMethod !== 'recovery'"
-          @click="switchToRecovery"
           class="alternative-btn"
+          @click="switchToRecovery"
         >
-          <Icon name="key" class="w-4 h-4" />
+          <Icon name="key" class="h-4 w-4" />
           Use Recovery Code
         </button>
 
         <!-- Back to Authenticator -->
         <button
           v-if="verificationMethod === 'recovery'"
-          @click="switchToAuthenticator"
           class="alternative-btn"
+          @click="switchToAuthenticator"
         >
-          <Icon name="smartphone" class="w-4 h-4" />
+          <Icon name="smartphone" class="h-4 w-4" />
           Use Authenticator App
         </button>
 
         <!-- Request SMS -->
         <button
           v-if="user?.phone && smsEnabled && verificationMethod !== 'sms'"
-          @click="requestSMS"
           class="alternative-btn"
           :disabled="smsLoading"
+          @click="requestSMS"
         >
           <div v-if="smsLoading" class="spinner-sm" />
-          <Icon v-else name="phone" class="w-4 h-4" />
+          <Icon v-else name="phone" class="h-4 w-4" />
           Send SMS Code
         </button>
 
         <!-- Emergency Recovery -->
-        <button
-          @click="showEmergencyRecovery"
-          class="alternative-btn emergency"
-        >
-          <Icon name="exclamation-triangle" class="w-4 h-4" />
+        <button class="alternative-btn emergency" @click="showEmergencyRecovery">
+          <Icon name="exclamation-triangle" class="h-4 w-4" />
           Emergency Access
         </button>
       </div>
@@ -136,13 +127,15 @@
     <div class="help-section">
       <details class="help-details">
         <summary class="help-summary">
-          <Icon name="help-circle" class="w-4 h-4" />
+          <Icon name="help-circle" class="h-4 w-4" />
           Need help with 2FA?
         </summary>
         <div class="help-content">
           <div class="help-item">
             <h4>Lost your authenticator device?</h4>
-            <p>Use one of your recovery codes or contact your administrator for emergency access.</p>
+            <p>
+              Use one of your recovery codes or contact your administrator for emergency access.
+            </p>
           </div>
           <div class="help-item">
             <h4>Code not working?</h4>
@@ -158,8 +151,8 @@
 
     <!-- Logout Option -->
     <div class="logout-section">
-      <button @click="logout" class="logout-btn">
-        <Icon name="log-out" class="w-4 h-4" />
+      <button class="logout-btn" @click="logout">
+        <Icon name="log-out" class="h-4 w-4" />
         Sign out and try different account
       </button>
     </div>
@@ -167,8 +160,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useToast } from '@/composables/useToast'
+import { useAuthErrorHandler } from '@/composables/useAuthErrorHandler'
 import { twoFactorService } from '@/services/twoFactor'
 import VerificationInput from '@/components/Security/VerificationInput.vue'
 import EmergencyRecoveryModal from '@/components/Auth/EmergencyRecoveryModal.vue'
@@ -217,6 +211,7 @@ const alert = reactive({
 
 // Composables
 const { toast } = useToast()
+const authErrorHandler = useAuthErrorHandler()
 
 // Computed
 const inputLabel = computed(() => {
@@ -245,26 +240,32 @@ const inputPlaceholder = computed(() => {
 })
 
 const isValidCode = computed(() => {
-  if (!verificationCode.value) return false
-  
-  switch (verificationMethod.value) {
-    case 'totp':
-    case 'sms':
-      return verificationCode.value.length === 6
-    case 'recovery':
-      return verificationCode.value.length === 8
-    default:
-      return false
-  }
+  const validation = authErrorHandler.validate2FACode(
+    verificationCode.value,
+    verificationMethod.value as 'totp' | 'sms' | 'recovery'
+  )
+  return validation.isValid
 })
 
 // Methods
 const handleSubmit = async () => {
-  if (!isValidCode.value || loading.value) return
+  if (!isValidCode.value || loading.value) {return}
+
+  // Validate code format first
+  const validation = authErrorHandler.validate2FACode(
+    verificationCode.value,
+    verificationMethod.value as 'totp' | 'sms' | 'recovery'
+  )
+
+  if (!validation.isValid) {
+    errors.code = validation.message || 'Invalid code format'
+    return
+  }
 
   loading.value = true
   errors.code = ''
   hideAlert()
+  authErrorHandler.clearError()
 
   try {
     const response = await twoFactorService.verify(
@@ -293,9 +294,13 @@ const handleSubmit = async () => {
       })
     }
   } catch (error) {
-    const message = error.message || 'Verification failed. Please try again.'
-    errors.code = message
-    showAlert('error', message, 'x-circle')
+    // Handle error with enhanced error handler
+    const authError = await authErrorHandler.handle2FAError(error, verificationMethod.value)
+    errors.code = authError.userMessage
+    showAlert('error', authError.userMessage, 'x-circle')
+
+    // Clear the code input for security
+    verificationCode.value = ''
   } finally {
     loading.value = false
   }
@@ -316,10 +321,10 @@ const switchToAuthenticator = () => {
 }
 
 const requestSMS = async () => {
-  if (smsLoading.value) return
+  if (smsLoading.value) {return}
 
   smsLoading.value = true
-  
+
   try {
     await twoFactorService.sendSMS()
     verificationMethod.value = 'sms'
@@ -360,7 +365,7 @@ const handleEmergencyRecovery = async (recoveryData) => {
     })
 
     const result = await response.json()
-    
+
     if (result.success) {
       showEmergencyModal.value = false
       showAlert('success', result.message, 'check-circle')
@@ -391,14 +396,14 @@ const hideAlert = () => {
 const autoHideAlert = () => {
   if (alert.show && alert.type !== 'error') {
     setTimeout(() => {
-      if (alert.show) hideAlert()
+      if (alert.show) {hideAlert()}
     }, 5000)
   }
 }
 
 // Watch for alert changes
 watch(() => alert.show, (show) => {
-  if (show) autoHideAlert()
+  if (show) {autoHideAlert()}
 })
 
 // Lifecycle
@@ -406,18 +411,18 @@ onMounted(() => {
   // Focus on the input when component mounts
   setTimeout(() => {
     const input = document.querySelector('input[type="text"]')
-    if (input) input.focus()
+    if (input) {input.focus()}
   }, 100)
 })
 </script>
 
 <style scoped>
 .two-factor-prompt {
-  @apply max-w-md mx-auto p-6 space-y-6;
+  @apply mx-auto max-w-md space-y-6 p-6;
 }
 
 .header-section {
-  @apply text-center space-y-3;
+  @apply space-y-3 text-center;
 }
 
 .icon-container {
@@ -425,7 +430,7 @@ onMounted(() => {
 }
 
 .security-icon {
-  @apply w-12 h-12 text-blue-600;
+  @apply h-12 w-12 text-blue-600;
 }
 
 .title {
@@ -437,23 +442,23 @@ onMounted(() => {
 }
 
 .alert {
-  @apply flex items-center space-x-2 p-3 rounded-lg text-sm font-medium;
+  @apply flex items-center space-x-2 rounded-lg p-3 text-sm font-medium;
 }
 
 .alert.info {
-  @apply bg-blue-50 text-blue-800 border border-blue-200;
+  @apply border border-blue-200 bg-blue-50 text-blue-800;
 }
 
 .alert.success {
-  @apply bg-green-50 text-green-800 border border-green-200;
+  @apply border border-green-200 bg-green-50 text-green-800;
 }
 
 .alert.warning {
-  @apply bg-yellow-50 text-yellow-800 border border-yellow-200;
+  @apply border border-yellow-200 bg-yellow-50 text-yellow-800;
 }
 
 .alert.error {
-  @apply bg-red-50 text-red-800 border border-red-200;
+  @apply border border-red-200 bg-red-50 text-red-800;
 }
 
 .verification-form {
@@ -469,7 +474,7 @@ onMounted(() => {
 }
 
 .checkbox-container {
-  @apply flex items-start space-x-3 cursor-pointer;
+  @apply flex cursor-pointer items-start space-x-3;
 }
 
 .checkbox-input {
@@ -477,21 +482,20 @@ onMounted(() => {
 }
 
 .checkbox-custom {
-  @apply w-4 h-4 border-2 border-gray-300 rounded flex-shrink-0 mt-0.5
-         transition-all duration-200;
+  @apply mt-0.5 h-4 w-4 flex-shrink-0 rounded border-2 border-gray-300 transition-all duration-200;
 }
 
 .checkbox-input:checked + .checkbox-custom {
-  @apply bg-blue-600 border-blue-600;
+  @apply border-blue-600 bg-blue-600;
 }
 
 .checkbox-input:checked + .checkbox-custom::after {
   content: '✓';
-  @apply text-white text-xs flex items-center justify-center;
+  @apply flex items-center justify-center text-xs text-white;
 }
 
 .checkbox-label {
-  @apply text-sm text-gray-700 flex items-center space-x-1;
+  @apply flex items-center space-x-1 text-sm text-gray-700;
 }
 
 .tooltip-trigger {
@@ -499,13 +503,11 @@ onMounted(() => {
 }
 
 .tooltip {
-  @apply absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1
-         bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap
-         opacity-0 invisible transition-all duration-200;
+  @apply invisible absolute bottom-full left-1/2 mb-1 -translate-x-1/2 transform whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 transition-all duration-200;
 }
 
 .tooltip-trigger:hover .tooltip {
-  @apply opacity-100 visible;
+  @apply visible opacity-100;
 }
 
 .actions {
@@ -513,13 +515,11 @@ onMounted(() => {
 }
 
 .btn-primary {
-  @apply w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 
-         rounded-lg transition-colors duration-200 inline-flex items-center 
-         justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply inline-flex w-full items-center justify-center space-x-2 rounded-lg bg-blue-600 px-4 py-3 font-medium text-white transition-colors duration-200 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50;
 }
 
 .spinner {
-  @apply animate-spin rounded-full h-4 w-4 border-b-2 border-white;
+  @apply h-4 w-4 animate-spin rounded-full border-b-2 border-white;
 }
 
 .alternatives-section {
@@ -544,22 +544,19 @@ onMounted(() => {
 }
 
 .alternative-actions {
-  @apply grid grid-cols-1 sm:grid-cols-2 gap-2;
+  @apply grid grid-cols-1 gap-2 sm:grid-cols-2;
 }
 
 .alternative-btn {
-  @apply px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300
-         rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-         transition-all duration-200 inline-flex items-center justify-center space-x-2
-         disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply inline-flex items-center justify-center space-x-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-all duration-200 hover:bg-gray-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50;
 }
 
 .alternative-btn.emergency {
-  @apply text-red-700 border-red-300 hover:bg-red-50;
+  @apply border-red-300 text-red-700 hover:bg-red-50;
 }
 
 .spinner-sm {
-  @apply animate-spin rounded-full h-3 w-3 border-b-2 border-current;
+  @apply h-3 w-3 animate-spin rounded-full border-b-2 border-current;
 }
 
 .help-section {
@@ -571,25 +568,23 @@ onMounted(() => {
 }
 
 .help-summary {
-  @apply flex items-center space-x-2 cursor-pointer text-sm font-medium text-gray-700
-         hover:text-gray-900 transition-colors duration-200;
+  @apply flex cursor-pointer items-center space-x-2 text-sm font-medium text-gray-700 transition-colors duration-200 hover:text-gray-900;
 }
 
 .help-content {
-  @apply space-y-3 mt-3 text-sm text-gray-600;
+  @apply mt-3 space-y-3 text-sm text-gray-600;
 }
 
 .help-item h4 {
-  @apply font-medium text-gray-900 mb-1;
+  @apply mb-1 font-medium text-gray-900;
 }
 
 .logout-section {
-  @apply text-center border-t border-gray-200 pt-4;
+  @apply border-t border-gray-200 pt-4 text-center;
 }
 
 .logout-btn {
-  @apply text-sm text-gray-500 hover:text-gray-700 inline-flex items-center space-x-2
-         transition-colors duration-200;
+  @apply inline-flex items-center space-x-2 text-sm text-gray-500 transition-colors duration-200 hover:text-gray-700;
 }
 
 /* Mobile optimizations */
@@ -597,7 +592,7 @@ onMounted(() => {
   .two-factor-prompt {
     @apply p-4;
   }
-  
+
   .alternative-actions {
     @apply grid-cols-1;
   }
@@ -608,19 +603,19 @@ onMounted(() => {
   .two-factor-prompt {
     @apply text-gray-100;
   }
-  
+
   .title {
     @apply text-gray-100;
   }
-  
+
   .subtitle {
     @apply text-gray-300;
   }
-  
+
   .checkbox-custom {
     @apply border-gray-600;
   }
-  
+
   .divider-text {
     @apply bg-gray-800;
   }

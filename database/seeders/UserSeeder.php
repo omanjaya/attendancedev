@@ -2,12 +2,12 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\User;
 use App\Models\Employee;
+use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class UserSeeder extends Seeder
 {
@@ -31,31 +31,56 @@ class UserSeeder extends Seeder
     {
         $roles = [
             'Super Admin' => [
-                'admin_access', 'manage_system', 'manage_users', 'manage_employees', 
-                'view_employees', 'create_employees', 'edit_employees', 'delete_employees',
-                'view_attendance', 'manage_all_attendance', 'view_attendance_reports',
-                'view_schedules', 'manage_schedules', 'view_payroll', 'create_payroll',
-                'view_payroll_reports', 'approve_leave', 'manage_leave_balances',
-                'view_leave_analytics', 'manage_locations', 'view_reports'
+                'admin_access',
+                'manage_system',
+                'manage_users',
+                'manage_employees',
+                'view_employees',
+                'create_employees',
+                'edit_employees',
+                'delete_employees',
+                'view_attendance',
+                'manage_all_attendance',
+                'view_attendance_reports',
+                'view_schedules',
+                'manage_schedules',
+                'view_payroll',
+                'create_payroll',
+                'view_payroll_reports',
+                'approve_leave',
+                'manage_leave_balances',
+                'view_leave_analytics',
+                'manage_locations',
+                'view_reports',
             ],
             'Admin' => [
-                'manage_employees', 'view_employees', 'create_employees', 'edit_employees',
-                'view_attendance', 'manage_all_attendance', 'view_attendance_reports',
-                'view_schedules', 'manage_schedules', 'view_payroll', 'approve_leave',
-                'view_reports'
+                'manage_employees',
+                'view_employees',
+                'create_employees',
+                'edit_employees',
+                'view_attendance',
+                'manage_all_attendance',
+                'view_attendance_reports',
+                'view_schedules',
+                'manage_schedules',
+                'view_payroll',
+                'approve_leave',
+                'view_reports',
             ],
             'Manager' => [
-                'view_employees', 'view_attendance', 'view_attendance_reports',
-                'view_schedules', 'approve_leave', 'view_reports'
+                'view_employees',
+                'view_attendance',
+                'view_attendance_reports',
+                'view_schedules',
+                'approve_leave',
+                'view_reports',
             ],
-            'Employee' => [
-                'view_own_attendance', 'manage_own_attendance', 'view_schedules'
-            ]
+            'Employee' => ['view_own_attendance', 'manage_own_attendance', 'view_schedules'],
         ];
 
         foreach ($roles as $roleName => $permissions) {
             $role = Role::firstOrCreate(['name' => $roleName]);
-            
+
             foreach ($permissions as $permissionName) {
                 $permission = Permission::firstOrCreate(['name' => $permissionName]);
                 $role->givePermissionTo($permission);
@@ -71,15 +96,14 @@ class UserSeeder extends Seeder
             'email' => 'admin@attendance.com',
             'password' => Hash::make('password123'),
             'email_verified_at' => now(),
-            'is_active' => true
+            'is_active' => true,
         ]);
 
         // Create admin employee
         $adminEmployee = Employee::create([
             'user_id' => $adminUser->id,
             'employee_id' => 'ADM001',
-            'first_name' => 'System',
-            'last_name' => 'Administrator',
+            'full_name' => 'System Administrator',
             'phone' => '+62812-3456-7890',
             'hire_date' => '2024-01-01',
             'employee_type' => 'permanent',
@@ -96,8 +120,8 @@ class UserSeeder extends Seeder
                 'address' => 'Jl. Admin No. 1, Jakarta',
                 'emergency_contact_name' => 'Emergency Contact',
                 'emergency_contact_phone' => '+62812-9876-5432',
-                'date_of_birth' => '1985-01-01'
-            ]
+                'date_of_birth' => '1985-01-01',
+            ],
         ]);
 
         // Assign Super Admin role
@@ -120,7 +144,7 @@ class UserSeeder extends Seeder
                 'department' => 'Management',
                 'employee_type' => 'permanent',
                 'salary' => 12000000,
-                'role' => 'Admin'
+                'role' => 'Admin',
             ],
             [
                 'employee_id' => 'MGR002',
@@ -132,7 +156,7 @@ class UserSeeder extends Seeder
                 'department' => 'Academic',
                 'employee_type' => 'permanent',
                 'salary' => 10000000,
-                'role' => 'Manager'
+                'role' => 'Manager',
             ],
 
             // Teachers
@@ -146,7 +170,7 @@ class UserSeeder extends Seeder
                 'department' => 'Exact Sciences',
                 'employee_type' => 'permanent',
                 'salary' => 8000000,
-                'role' => 'Employee'
+                'role' => 'Employee',
             ],
             [
                 'employee_id' => 'TCH002',
@@ -158,7 +182,7 @@ class UserSeeder extends Seeder
                 'department' => 'Language',
                 'employee_type' => 'permanent',
                 'salary' => 7500000,
-                'role' => 'Employee'
+                'role' => 'Employee',
             ],
             [
                 'employee_id' => 'TCH003',
@@ -170,7 +194,7 @@ class UserSeeder extends Seeder
                 'department' => 'Language',
                 'employee_type' => 'permanent',
                 'salary' => 7500000,
-                'role' => 'Employee'
+                'role' => 'Employee',
             ],
             [
                 'employee_id' => 'TCH004',
@@ -182,7 +206,7 @@ class UserSeeder extends Seeder
                 'department' => 'Exact Sciences',
                 'employee_type' => 'permanent',
                 'salary' => 8000000,
-                'role' => 'Employee'
+                'role' => 'Employee',
             ],
             [
                 'employee_id' => 'TCH005',
@@ -194,7 +218,7 @@ class UserSeeder extends Seeder
                 'department' => 'Exact Sciences',
                 'employee_type' => 'permanent',
                 'salary' => 8000000,
-                'role' => 'Employee'
+                'role' => 'Employee',
             ],
             [
                 'employee_id' => 'TCH006',
@@ -206,7 +230,7 @@ class UserSeeder extends Seeder
                 'department' => 'Exact Sciences',
                 'employee_type' => 'permanent',
                 'salary' => 7800000,
-                'role' => 'Employee'
+                'role' => 'Employee',
             ],
             [
                 'employee_id' => 'TCH007',
@@ -218,7 +242,7 @@ class UserSeeder extends Seeder
                 'department' => 'Social Sciences',
                 'employee_type' => 'permanent',
                 'salary' => 7200000,
-                'role' => 'Employee'
+                'role' => 'Employee',
             ],
             [
                 'employee_id' => 'TCH008',
@@ -230,7 +254,7 @@ class UserSeeder extends Seeder
                 'department' => 'Social Sciences',
                 'employee_type' => 'permanent',
                 'salary' => 7200000,
-                'role' => 'Employee'
+                'role' => 'Employee',
             ],
 
             // Honorary Teachers
@@ -244,7 +268,7 @@ class UserSeeder extends Seeder
                 'department' => 'Social Sciences',
                 'employee_type' => 'honorary',
                 'salary' => 4500000,
-                'role' => 'Employee'
+                'role' => 'Employee',
             ],
             [
                 'employee_id' => 'HON002',
@@ -256,7 +280,7 @@ class UserSeeder extends Seeder
                 'department' => 'Arts',
                 'employee_type' => 'honorary',
                 'salary' => 4000000,
-                'role' => 'Employee'
+                'role' => 'Employee',
             ],
 
             // Staff
@@ -270,7 +294,7 @@ class UserSeeder extends Seeder
                 'department' => 'Administration',
                 'employee_type' => 'permanent',
                 'salary' => 5500000,
-                'role' => 'Employee'
+                'role' => 'Employee',
             ],
             [
                 'employee_id' => 'STF002',
@@ -282,7 +306,7 @@ class UserSeeder extends Seeder
                 'department' => 'Library',
                 'employee_type' => 'permanent',
                 'salary' => 4800000,
-                'role' => 'Employee'
+                'role' => 'Employee',
             ],
             [
                 'employee_id' => 'STF003',
@@ -294,27 +318,26 @@ class UserSeeder extends Seeder
                 'department' => 'IT',
                 'employee_type' => 'permanent',
                 'salary' => 6500000,
-                'role' => 'Employee'
-            ]
+                'role' => 'Employee',
+            ],
         ];
 
         foreach ($sampleUsers as $userData) {
             // Create user first
             $user = User::create([
-                'name' => $userData['first_name'] . ' ' . $userData['last_name'],
+                'name' => $userData['first_name'].' '.$userData['last_name'],
                 'email' => $userData['email'],
                 'password' => Hash::make($userData['password']),
                 'email_verified_at' => now(),
-                'is_active' => true
+                'is_active' => true,
             ]);
 
             // Create employee
             $employee = Employee::create([
                 'user_id' => $user->id,
                 'employee_id' => $userData['employee_id'],
-                'first_name' => $userData['first_name'],
-                'last_name' => $userData['last_name'],
-                'phone' => '+62812-' . rand(1000, 9999) . '-' . rand(1000, 9999),
+                'full_name' => $userData['first_name'].' '.$userData['last_name'],
+                'phone' => '+62812-'.rand(1000, 9999).'-'.rand(1000, 9999),
                 'hire_date' => now()->subMonths(rand(1, 60))->format('Y-m-d'),
                 'employee_type' => $userData['employee_type'],
                 'salary_type' => $userData['employee_type'] === 'honorary' ? 'hourly' : 'monthly',
@@ -325,20 +348,22 @@ class UserSeeder extends Seeder
                     'position' => $userData['position'],
                     'department' => $userData['department'],
                     'date_of_birth' => now()->subYears(rand(25, 50))->format('Y-m-d'),
-                    'address' => 'Jl. Sample No. ' . rand(1, 100) . ', Jakarta',
+                    'address' => 'Jl. Sample No. '.rand(1, 100).', Jakarta',
                     'emergency_contact_name' => 'Emergency Contact',
-                    'emergency_contact_phone' => '+62812-' . rand(1000, 9999) . '-' . rand(1000, 9999),
+                    'emergency_contact_phone' => '+62812-'.rand(1000, 9999).'-'.rand(1000, 9999),
                     'blood_type' => collect(['A', 'B', 'AB', 'O'])->random(),
                     'religion' => collect(['Islam', 'Kristen', 'Hindu', 'Buddha'])->random(),
                     'marital_status' => collect(['single', 'married', 'divorced'])->random(),
-                    'education' => collect(['S1', 'S2', 'S3', 'D3'])->random() . ' ' . $userData['department']
-                ]
+                    'education' => collect(['S1', 'S2', 'S3', 'D3'])->random().' '.$userData['department'],
+                ],
             ]);
 
             // Assign role
             $user->assignRole($userData['role']);
 
-            $this->command->info("✅ Created user: {$userData['email']} / {$userData['password']} ({$userData['role']})");
+            $this->command->info(
+                "✅ Created user: {$userData['email']} / {$userData['password']} ({$userData['role']})",
+            );
         }
     }
 }

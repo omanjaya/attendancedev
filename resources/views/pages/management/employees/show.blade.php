@@ -1,4 +1,4 @@
-@extends('layouts.authenticated')
+@extends('layouts.authenticated-unified')
 
 @section('title', 'Employee Profile - ' . $employee->full_name)
 
@@ -36,7 +36,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Basic Information -->
         <div class="lg:col-span-2">
-            <x-layouts.glass-card>
+            <x-layouts.simple-card>
                 <div class="mb-6">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Employee Information</h3>
                     <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">Basic details and contact information</p>
@@ -115,12 +115,12 @@
                         </div>
                     </div>
                 </div>
-            </x-layouts.glass-card>
+            </x-layouts.simple-card>
         </div>
         
         <!-- Profile Photo & Quick Actions -->
         <div class="lg:col-span-1">
-            <x-layouts.glass-card>
+            <x-layouts.simple-card>
                 <div class="text-center">
                     <div class="mb-4">
                         <x-ui.avatar :name="$employee->full_name" size="xl" class="mx-auto" />
@@ -155,7 +155,7 @@
                         @endif
                     </div>
                 </div>
-            </x-layouts.glass-card>
+            </x-layouts.simple-card>
         </div>
     </div>
 

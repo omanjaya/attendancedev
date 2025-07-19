@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
 use App\Models\Employee;
-use Tests\TestCase;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
 {
@@ -103,7 +103,7 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        
+
         // Check that remember token was set
         $user->refresh();
         $this->assertNotNull($user->remember_token);
@@ -160,7 +160,7 @@ class AuthenticationTest extends TestCase
         $response = $this->get('/');
 
         $response->assertRedirect(route('dashboard'));
-        
+
         // Following the redirect should lead to login
         $redirectResponse = $this->get(route('dashboard'));
         $redirectResponse->assertRedirect(route('login'));
@@ -247,11 +247,13 @@ class AuthenticationTest extends TestCase
         ]);
 
         // Attempt login without CSRF token
-        $response = $this->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class)
-            ->post('/login', [
+        $response = $this->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class)->post(
+            '/login',
+            [
                 'email' => 'test@example.com',
                 'password' => 'password',
-            ]);
+            ],
+        );
 
         // Should still work if we disable CSRF for this test
         $this->assertAuthenticated();
@@ -289,7 +291,7 @@ class AuthenticationTest extends TestCase
         $response = $this->post('/login', []);
 
         $response->assertSessionHasErrors(['email', 'password']);
-        
+
         $errors = session('errors')->getBag('default');
         $this->assertStringContainsString('email', $errors->first('email'));
         $this->assertStringContainsString('password', $errors->first('password'));

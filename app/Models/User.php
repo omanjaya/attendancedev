@@ -3,18 +3,18 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Services\UserSecurityService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use Spatie\Permission\Traits\HasRoles;
 // use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Services\UserSecurityService;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens, HasRoles;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -71,6 +71,8 @@ class User extends Authenticatable
             'account_locked' => 'boolean',
             'failed_login_attempts' => 'integer',
             'security_preferences' => 'json',
+            'face_descriptor' => 'array',
+            'face_registered_at' => 'datetime',
         ];
     }
 
@@ -104,7 +106,7 @@ class User extends Authenticatable
 
     /**
      * Security Methods (delegated to UserSecurityService)
-     * 
+     *
      * These methods provide a clean API while delegating the actual
      * implementation to the dedicated security service.
      */
@@ -163,7 +165,7 @@ class User extends Authenticatable
         return $this->securityService()->isAccountLocked($this);
     }
 
-    public function lockAccount(\Carbon\Carbon $until = null, string $reason = 'Manual lock'): void
+    public function lockAccount(?\Carbon\Carbon $until = null, string $reason = 'Manual lock'): void
     {
         $this->securityService()->lockAccount($this, $until, $reason);
     }
@@ -173,7 +175,7 @@ class User extends Authenticatable
         $this->securityService()->unlockAccount($this, $reason);
     }
 
-    public function incrementFailedLogins(string $ipAddress = null): void
+    public function incrementFailedLogins(?string $ipAddress = null): void
     {
         $this->securityService()->incrementFailedLogins($this, $ipAddress);
     }
@@ -183,7 +185,7 @@ class User extends Authenticatable
         $this->securityService()->resetFailedLogins($this);
     }
 
-    public function updateLastLogin(string $ipAddress = null): void
+    public function updateLastLogin(?string $ipAddress = null): void
     {
         $this->securityService()->updateLastLogin($this, $ipAddress);
     }
@@ -279,12 +281,12 @@ class User extends Authenticatable
      */
     public function scopeActive($query)
     {
-        return $query->where('is_active', true)
-                    ->where('account_locked', false)
-                    ->where(function ($q) {
-                        $q->whereNull('locked_until')
-                          ->orWhere('locked_until', '<=', now());
-                    });
+        return $query
+            ->where('is_active', true)
+            ->where('account_locked', false)
+            ->where(function ($q) {
+                $q->whereNull('locked_until')->orWhere('locked_until', '<=', now());
+            });
     }
 
     /**
@@ -301,8 +303,7 @@ class User extends Authenticatable
     public function scopeLocked($query)
     {
         return $query->where(function ($q) {
-            $q->where('account_locked', true)
-              ->orWhere('locked_until', '>', now());
+            $q->where('account_locked', true)->orWhere('locked_until', '>', now());
         });
     }
 
@@ -332,7 +333,7 @@ class User extends Authenticatable
             'security_score' => $this->getSecurityScore(),
             'failed_attempts' => $this->failed_login_attempts,
             'last_login' => $this->getLastLoginInfo(),
-            'recommendations' => $this->getSecurityRecommendations()
+            'recommendations' => $this->getSecurityRecommendations(),
         ];
     }
 
@@ -358,6 +359,7 @@ class User extends Authenticatable
     public function getDisplayNameWithRole(): string
     {
         $role = $this->roles->first()?->name ?? 'User';
+
         return "{$this->name} ({$role})";
     }
 }

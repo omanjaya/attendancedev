@@ -2,41 +2,42 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use App\Models\Employee;
 use App\Models\Attendance;
+use App\Models\Employee;
 use App\Models\Location;
-use Tests\TestCase;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
-use Carbon\Carbon;
+use Tests\TestCase;
 
 class AttendanceTest extends TestCase
 {
     use RefreshDatabase, WithFaker;
 
     private User $user;
+
     private Employee $employee;
+
     private Location $location;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Create test user and employee
         $this->user = User::factory()->create();
         $this->employee = Employee::factory()->create([
             'user_id' => $this->user->id,
         ]);
         $this->location = Location::factory()->create();
-        
+
         $this->actingAs($this->user);
     }
 
     public function test_can_view_attendance_check_in_page(): void
     {
         $response = $this->get(route('attendance.check-in'));
-        
+
         $response->assertStatus(200);
         $response->assertViewIs('attendance.check-in');
     }
@@ -46,26 +47,22 @@ class AttendanceTest extends TestCase
         $attendanceData = [
             'location' => [
                 'latitude' => 40.7128,
-                'longitude' => -74.0060,
-                'accuracy' => 10
+                'longitude' => -74.006,
+                'accuracy' => 10,
             ],
             'face_detection' => [
                 'confidence' => 0.95,
-                'embedding' => 'test_embedding_data'
-            ]
+                'embedding' => 'test_embedding_data',
+            ],
         ];
 
         $response = $this->postJson(route('api.attendance.check-in'), $attendanceData);
-        
+
         $response->assertStatus(200);
         $response->assertJsonStructure([
             'success',
             'message',
-            'data' => [
-                'attendance_id',
-                'check_in_time',
-                'status'
-            ]
+            'data' => ['attendance_id', 'check_in_time', 'status'],
         ]);
 
         // Verify attendance record was created
@@ -83,23 +80,23 @@ class AttendanceTest extends TestCase
             'employee_id' => $this->employee->id,
             'date' => today(),
             'check_in_time' => now()->subHours(2),
-            'status' => 'present'
+            'status' => 'present',
         ]);
 
         $attendanceData = [
             'location' => [
                 'latitude' => 40.7128,
-                'longitude' => -74.0060,
-                'accuracy' => 10
+                'longitude' => -74.006,
+                'accuracy' => 10,
             ],
             'face_detection' => [
                 'confidence' => 0.95,
-                'embedding' => 'test_embedding_data'
-            ]
+                'embedding' => 'test_embedding_data',
+            ],
         ];
 
         $response = $this->postJson(route('api.attendance.check-in'), $attendanceData);
-        
+
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['check_in']);
     }
@@ -111,32 +108,28 @@ class AttendanceTest extends TestCase
             'employee_id' => $this->employee->id,
             'date' => today(),
             'check_in_time' => now()->subHours(4),
-            'status' => 'present'
+            'status' => 'present',
         ]);
 
         $checkOutData = [
             'location' => [
                 'latitude' => 40.7128,
-                'longitude' => -74.0060,
-                'accuracy' => 10
+                'longitude' => -74.006,
+                'accuracy' => 10,
             ],
             'face_detection' => [
                 'confidence' => 0.93,
-                'embedding' => 'test_embedding_data'
-            ]
+                'embedding' => 'test_embedding_data',
+            ],
         ];
 
         $response = $this->postJson(route('api.attendance.check-out'), $checkOutData);
-        
+
         $response->assertStatus(200);
         $response->assertJsonStructure([
             'success',
             'message',
-            'data' => [
-                'attendance_id',
-                'check_out_time',
-                'working_hours'
-            ]
+            'data' => ['attendance_id', 'check_out_time', 'working_hours'],
         ]);
 
         // Verify attendance was updated
@@ -150,17 +143,17 @@ class AttendanceTest extends TestCase
         $checkOutData = [
             'location' => [
                 'latitude' => 40.7128,
-                'longitude' => -74.0060,
-                'accuracy' => 10
+                'longitude' => -74.006,
+                'accuracy' => 10,
             ],
             'face_detection' => [
                 'confidence' => 0.93,
-                'embedding' => 'test_embedding_data'
-            ]
+                'embedding' => 'test_embedding_data',
+            ],
         ];
 
         $response = $this->postJson(route('api.attendance.check-out'), $checkOutData);
-        
+
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['check_out']);
     }
@@ -171,16 +164,16 @@ class AttendanceTest extends TestCase
             'location' => [
                 'latitude' => 90.1, // Invalid latitude
                 'longitude' => -200, // Invalid longitude
-                'accuracy' => 10
+                'accuracy' => 10,
             ],
             'face_detection' => [
                 'confidence' => 0.95,
-                'embedding' => 'test_embedding_data'
-            ]
+                'embedding' => 'test_embedding_data',
+            ],
         ];
 
         $response = $this->postJson(route('api.attendance.check-in'), $attendanceData);
-        
+
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['location.latitude', 'location.longitude']);
     }
@@ -190,17 +183,17 @@ class AttendanceTest extends TestCase
         $attendanceData = [
             'location' => [
                 'latitude' => 40.7128,
-                'longitude' => -74.0060,
-                'accuracy' => 10
+                'longitude' => -74.006,
+                'accuracy' => 10,
             ],
             'face_detection' => [
                 'confidence' => 0.5, // Too low confidence
-                'embedding' => 'test_embedding_data'
-            ]
+                'embedding' => 'test_embedding_data',
+            ],
         ];
 
         $response = $this->postJson(route('api.attendance.check-in'), $attendanceData);
-        
+
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['face_detection.confidence']);
     }
@@ -208,12 +201,14 @@ class AttendanceTest extends TestCase
     public function test_can_view_attendance_history(): void
     {
         // Create some attendance records
-        Attendance::factory()->count(5)->create([
-            'employee_id' => $this->employee->id,
-        ]);
+        Attendance::factory()
+            ->count(5)
+            ->create([
+                'employee_id' => $this->employee->id,
+            ]);
 
         $response = $this->get(route('attendance.history'));
-        
+
         $response->assertStatus(200);
         $response->assertViewIs('attendance.history');
         $response->assertViewHas('attendances');
@@ -222,9 +217,11 @@ class AttendanceTest extends TestCase
     public function test_can_export_attendance_csv(): void
     {
         // Create attendance records
-        Attendance::factory()->count(3)->create([
-            'employee_id' => $this->employee->id,
-        ]);
+        Attendance::factory()
+            ->count(3)
+            ->create([
+                'employee_id' => $this->employee->id,
+            ]);
 
         $response = $this->post(route('attendance.export'), [
             'format' => 'csv',
@@ -251,7 +248,7 @@ class AttendanceTest extends TestCase
 
         // Calculate expected working hours (8.5 hours)
         $expectedHours = $checkOutTime->diffInMinutes($checkInTime) / 60;
-        
+
         $this->assertEquals($expectedHours, $attendance->working_hours);
     }
 
@@ -264,7 +261,7 @@ class AttendanceTest extends TestCase
             'employee_id' => $this->employee->id,
             'date' => today(),
             'check_in_time' => $lateCheckIn,
-            'status' => 'late'
+            'status' => 'late',
         ]);
 
         $this->assertEquals('late', $attendance->status);
@@ -278,20 +275,15 @@ class AttendanceTest extends TestCase
             'employee_id' => $this->employee->id,
             'date' => today(),
             'check_in_time' => now()->subHours(2),
-            'status' => 'present'
+            'status' => 'present',
         ]);
 
         $response = $this->getJson(route('api.attendance.status'));
-        
+
         $response->assertStatus(200);
         $response->assertJsonStructure([
             'success',
-            'data' => [
-                'is_checked_in',
-                'check_in_time',
-                'working_hours',
-                'status'
-            ]
+            'data' => ['is_checked_in', 'check_in_time', 'working_hours', 'status'],
         ]);
     }
 
@@ -302,18 +294,18 @@ class AttendanceTest extends TestCase
             'employee_id' => $this->employee->id,
             'date' => today(),
             'status' => 'present',
-            'working_hours' => 8
+            'working_hours' => 8,
         ]);
 
         Attendance::factory()->create([
             'employee_id' => $this->employee->id,
             'date' => today()->subDay(),
             'status' => 'late',
-            'working_hours' => 7.5
+            'working_hours' => 7.5,
         ]);
 
         $response = $this->getJson(route('api.attendance.statistics'));
-        
+
         $response->assertStatus(200);
         $response->assertJsonStructure([
             'success',
@@ -323,8 +315,8 @@ class AttendanceTest extends TestCase
                 'late_days',
                 'absent_days',
                 'average_hours',
-                'attendance_rate'
-            ]
+                'attendance_rate',
+            ],
         ]);
     }
 
@@ -342,7 +334,7 @@ class AttendanceTest extends TestCase
     public function test_mobile_attendance_interface(): void
     {
         $response = $this->get(route('attendance.mobile'));
-        
+
         $response->assertStatus(200);
         $response->assertViewIs('attendance.mobile.check-in');
     }

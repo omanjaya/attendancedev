@@ -10,7 +10,7 @@
 <input 
     {{ $attributes->merge([
         'type' => 'checkbox',
-        'class' => 'h-4 w-4 text-primary focus:ring-primary border-input rounded'
+        'class' => 'form-checkbox'
     ]) }}
     @if($id) id="{{ $id }}" @endif
     @if($name) name="{{ $name }}" @endif

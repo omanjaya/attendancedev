@@ -4,13 +4,13 @@ namespace App\Repositories\Interfaces;
 
 use App\Models\Attendance;
 use App\Models\Employee;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Carbon\Carbon;
 
 /**
  * Attendance Repository Interface
- * 
+ *
  * Defines the contract for attendance data operations.
  */
 interface AttendanceRepositoryInterface
@@ -38,7 +38,11 @@ interface AttendanceRepositoryInterface
     /**
      * Get attendance for employee within date range.
      */
-    public function getEmployeeAttendanceInRange(Employee $employee, Carbon $startDate, Carbon $endDate): Collection;
+    public function getEmployeeAttendanceInRange(
+        Employee $employee,
+        Carbon $startDate,
+        Carbon $endDate,
+    ): Collection;
 
     /**
      * Create new attendance record.
@@ -103,7 +107,11 @@ interface AttendanceRepositoryInterface
     /**
      * Get employee attendance summary.
      */
-    public function getEmployeeAttendanceSummary(Employee $employee, Carbon $startDate, Carbon $endDate): array;
+    public function getEmployeeAttendanceSummary(
+        Employee $employee,
+        Carbon $startDate,
+        Carbon $endDate,
+    ): array;
 
     /**
      * Check if employee has checked in today.

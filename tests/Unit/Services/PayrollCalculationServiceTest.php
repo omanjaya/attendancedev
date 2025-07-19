@@ -2,18 +2,17 @@
 
 namespace Tests\Unit\Services;
 
-use App\Models\Employee;
-use App\Models\User;
-use App\Models\Payroll;
-use App\Models\PayrollItem;
 use App\Models\Attendance;
+use App\Models\Employee;
 use App\Models\Leave;
 use App\Models\LeaveType;
+use App\Models\Payroll;
+use App\Models\PayrollItem;
 use App\Services\PayrollCalculationService;
 use Carbon\Carbon;
-use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
+use Tests\TestCase;
 
 class PayrollCalculationServiceTest extends TestCase
 {
@@ -24,7 +23,7 @@ class PayrollCalculationServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->payrollService = new PayrollCalculationService();
+        $this->payrollService = new PayrollCalculationService;
     }
 
     public function test_calculate_payroll_creates_payroll_record(): void
@@ -41,7 +40,10 @@ class PayrollCalculationServiceTest extends TestCase
 
         $this->assertInstanceOf(Payroll::class, $payroll);
         $this->assertEquals($employee->id, $payroll->employee_id);
-        $this->assertEquals($periodStart->toDateString(), $payroll->payroll_period_start->toDateString());
+        $this->assertEquals(
+            $periodStart->toDateString(),
+            $payroll->payroll_period_start->toDateString(),
+        );
         $this->assertEquals($periodEnd->toDateString(), $payroll->payroll_period_end->toDateString());
         $this->assertEquals(Payroll::STATUS_DRAFT, $payroll->status);
     }
@@ -81,7 +83,9 @@ class PayrollCalculationServiceTest extends TestCase
             'gross_salary' => 1000, // Different from expected
         ]);
 
-        $payroll = $this->payrollService->calculatePayroll($employee, $periodStart, $periodEnd, ['force_recalculate' => true]);
+        $payroll = $this->payrollService->calculatePayroll($employee, $periodStart, $periodEnd, [
+            'force_recalculate' => true,
+        ]);
 
         $this->assertEquals($existingPayroll->id, $payroll->id);
         // Should have recalculated and updated totals
@@ -117,7 +121,7 @@ class PayrollCalculationServiceTest extends TestCase
     public function test_calculate_attendance_data_calculates_overtime(): void
     {
         Config::set('payroll.calculations.standard_hours_per_day', 8);
-        
+
         $employee = Employee::factory()->create();
         $periodStart = Carbon::now()->startOfMonth();
         $periodEnd = Carbon::now()->endOfMonth();
@@ -152,7 +156,8 @@ class PayrollCalculationServiceTest extends TestCase
         $payroll = $this->payrollService->calculatePayroll($employee, $periodStart, $periodEnd);
 
         // Should have a basic salary item
-        $basicSalaryItem = $payroll->payrollItems()
+        $basicSalaryItem = $payroll
+            ->payrollItems()
             ->where('category', PayrollItem::CATEGORY_BASIC_SALARY)
             ->first();
 
@@ -181,7 +186,8 @@ class PayrollCalculationServiceTest extends TestCase
         $payroll = $this->payrollService->calculatePayroll($employee, $periodStart, $periodEnd);
 
         // Should calculate based on hours worked
-        $basicSalaryItem = $payroll->payrollItems()
+        $basicSalaryItem = $payroll
+            ->payrollItems()
             ->where('category', PayrollItem::CATEGORY_BASIC_SALARY)
             ->first();
 
@@ -192,7 +198,7 @@ class PayrollCalculationServiceTest extends TestCase
     public function test_calculate_overtime_pay(): void
     {
         Config::set('payroll.calculations.overtime_multiplier', 1.5);
-        
+
         $employee = Employee::factory()->create([
             'salary_type' => 'hourly',
             'hourly_rate' => 20,
@@ -212,7 +218,8 @@ class PayrollCalculationServiceTest extends TestCase
         $payroll = $this->payrollService->calculatePayroll($employee, $periodStart, $periodEnd);
 
         // Should have overtime pay item
-        $overtimeItem = $payroll->payrollItems()
+        $overtimeItem = $payroll
+            ->payrollItems()
             ->where('category', PayrollItem::CATEGORY_OVERTIME)
             ->first();
 
@@ -225,7 +232,7 @@ class PayrollCalculationServiceTest extends TestCase
     {
         $employee = Employee::factory()->create();
         $leaveType = LeaveType::factory()->create(['is_paid' => true]);
-        
+
         $periodStart = Carbon::now()->startOfMonth();
         $periodEnd = Carbon::now()->endOfMonth();
 
@@ -248,13 +255,14 @@ class PayrollCalculationServiceTest extends TestCase
     {
         Config::set('payroll.bonuses.perfect_attendance.enabled', true);
         Config::set('payroll.bonuses.perfect_attendance.amount', 100);
-        
+
         $employee = Employee::factory()->create();
         $periodStart = Carbon::now()->startOfMonth();
         $periodEnd = Carbon::now()->endOfMonth();
 
         // Create perfect attendance (all working days present)
-        for ($i = 1; $i <= 22; $i++) { // 22 working days
+        for ($i = 1; $i <= 22; $i++) {
+            // 22 working days
             Attendance::factory()->create([
                 'employee_id' => $employee->id,
                 'date' => $periodStart->copy()->addDays($i),
@@ -265,7 +273,8 @@ class PayrollCalculationServiceTest extends TestCase
         $payroll = $this->payrollService->calculatePayroll($employee, $periodStart, $periodEnd);
 
         // Should have perfect attendance bonus
-        $bonusItem = $payroll->payrollItems()
+        $bonusItem = $payroll
+            ->payrollItems()
             ->where('type', PayrollItem::TYPE_BONUS)
             ->where('description', 'Perfect Attendance Bonus')
             ->first();
@@ -293,9 +302,7 @@ class PayrollCalculationServiceTest extends TestCase
         $payroll = $this->payrollService->calculatePayroll($employee, $periodStart, $periodEnd);
 
         // Should have tax deduction
-        $taxItem = $payroll->payrollItems()
-            ->where('category', PayrollItem::CATEGORY_TAX)
-            ->first();
+        $taxItem = $payroll->payrollItems()->where('category', PayrollItem::CATEGORY_TAX)->first();
 
         $this->assertNotNull($taxItem);
         $this->assertEquals(20, $taxItem->rate);
@@ -320,7 +327,8 @@ class PayrollCalculationServiceTest extends TestCase
         $payroll = $this->payrollService->calculatePayroll($employee, $periodStart, $periodEnd);
 
         // Should have social security deduction
-        $socialSecurityItem = $payroll->payrollItems()
+        $socialSecurityItem = $payroll
+            ->payrollItems()
             ->where('category', PayrollItem::CATEGORY_INSURANCE)
             ->where('description', 'like', '%Social Security%')
             ->first();
@@ -329,7 +337,8 @@ class PayrollCalculationServiceTest extends TestCase
         $this->assertEquals(6.2, $socialSecurityItem->rate);
 
         // Should have medicare deduction
-        $medicareItem = $payroll->payrollItems()
+        $medicareItem = $payroll
+            ->payrollItems()
             ->where('category', PayrollItem::CATEGORY_INSURANCE)
             ->where('description', 'like', '%Medicare%')
             ->first();
@@ -341,7 +350,7 @@ class PayrollCalculationServiceTest extends TestCase
     public function test_calculate_pay_date(): void
     {
         Config::set('payroll.calculations.pay_date_day', 15);
-        
+
         $employee = Employee::factory()->create();
         $periodStart = Carbon::create(2024, 1, 1);
         $periodEnd = Carbon::create(2024, 1, 31);
@@ -355,9 +364,9 @@ class PayrollCalculationServiceTest extends TestCase
     public function test_calculate_pay_date_adjusts_for_weekend(): void
     {
         Config::set('payroll.calculations.pay_date_day', 15);
-        
+
         $employee = Employee::factory()->create();
-        
+
         // Set up a scenario where the 15th falls on a weekend
         $periodStart = Carbon::create(2024, 6, 1); // June 2024
         $periodEnd = Carbon::create(2024, 6, 30);
@@ -366,25 +375,31 @@ class PayrollCalculationServiceTest extends TestCase
         $payroll = $this->payrollService->calculatePayroll($employee, $periodStart, $periodEnd);
 
         $payDate = $payroll->pay_date;
-        
+
         // Pay date should not be on weekend
         $this->assertFalse($payDate->isWeekend());
     }
 
     public function test_calculate_payroll_for_multiple_employees(): void
     {
-        $employees = Employee::factory()->count(3)->create([
-            'salary_type' => 'monthly',
-            'salary_amount' => 5000,
-        ]);
+        $employees = Employee::factory()
+            ->count(3)
+            ->create([
+                'salary_type' => 'monthly',
+                'salary_amount' => 5000,
+            ]);
 
         $periodStart = Carbon::now()->startOfMonth();
         $periodEnd = Carbon::now()->endOfMonth();
 
-        $payrolls = $this->payrollService->calculatePayrollForEmployees($employees, $periodStart, $periodEnd);
+        $payrolls = $this->payrollService->calculatePayrollForEmployees(
+            $employees,
+            $periodStart,
+            $periodEnd,
+        );
 
         $this->assertCount(3, $payrolls);
-        
+
         foreach ($payrolls as $payroll) {
             $this->assertInstanceOf(Payroll::class, $payroll);
             $this->assertEquals(Payroll::STATUS_DRAFT, $payroll->status);
@@ -393,11 +408,13 @@ class PayrollCalculationServiceTest extends TestCase
 
     public function test_calculate_monthly_payroll_for_all_employees(): void
     {
-        Employee::factory()->count(2)->create([
-            'is_active' => true,
-            'salary_type' => 'monthly',
-            'salary_amount' => 5000,
-        ]);
+        Employee::factory()
+            ->count(2)
+            ->create([
+                'is_active' => true,
+                'salary_type' => 'monthly',
+                'salary_amount' => 5000,
+            ]);
 
         // Create inactive employee (should be excluded)
         Employee::factory()->create([

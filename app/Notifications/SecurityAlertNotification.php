@@ -6,21 +6,18 @@ use App\Events\SecurityEvent;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Messages\DatabaseMessage;
 use Illuminate\Notifications\Notification;
 
 /**
  * Security Alert Notification
- * 
+ *
  * Sends security alerts to administrators via multiple channels.
  */
 class SecurityAlertNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(
-        public SecurityEvent $securityEvent
-    ) {}
+    public function __construct(public SecurityEvent $securityEvent) {}
 
     /**
      * Get the notification's delivery channels.
@@ -46,17 +43,24 @@ class SecurityAlertNotification extends Notification implements ShouldQueue
             ->subject($this->getEmailSubject())
             ->greeting('Security Alert')
             ->line($this->getSecurityMessage())
-            ->line('Event Type: ' . str_replace('_', ' ', ucwords($this->securityEvent->eventType)))
-            ->line('Severity: ' . ucfirst($this->securityEvent->severity))
-            ->line('Time: ' . now()->format('Y-m-d H:i:s'))
-            ->line('IP Address: ' . $this->securityEvent->ipAddress);
+            ->line('Event Type: '.str_replace('_', ' ', ucwords($this->securityEvent->eventType)))
+            ->line('Severity: '.ucfirst($this->securityEvent->severity))
+            ->line('Time: '.now()->format('Y-m-d H:i:s'))
+            ->line('IP Address: '.$this->securityEvent->ipAddress);
 
         if ($this->securityEvent->user) {
-            $message->line('User: ' . $this->securityEvent->user->name . ' (' . $this->securityEvent->user->email . ')');
+            $message->line(
+                'User: '.
+                  $this->securityEvent->user->name.
+                  ' ('.
+                  $this->securityEvent->user->email.
+                  ')',
+            );
         }
 
-        $message->action('View Security Dashboard', url('/admin/security'))
-                ->line('Please review this security event and take appropriate action if necessary.');
+        $message
+            ->action('View Security Dashboard', url('/admin/security'))
+            ->line('Please review this security event and take appropriate action if necessary.');
 
         if ($this->securityEvent->severity === 'critical') {
             $message->error();
@@ -81,7 +85,7 @@ class SecurityAlertNotification extends Notification implements ShouldQueue
             'metadata' => $this->securityEvent->metadata,
             'action_url' => url('/admin/security'),
             'action_text' => 'View Details',
-            'timestamp' => now()->toISOString()
+            'timestamp' => now()->toISOString(),
         ];
     }
 
@@ -90,14 +94,14 @@ class SecurityAlertNotification extends Notification implements ShouldQueue
      */
     private function getEmailSubject(): string
     {
-        $prefix = match($this->securityEvent->severity) {
+        $prefix = match ($this->securityEvent->severity) {
             'critical' => '🚨 CRITICAL SECURITY ALERT',
             'high' => '⚠️ Security Alert',
             'medium' => 'Security Notice',
-            default => 'Security Event'
+            default => 'Security Event',
         };
 
-        return $prefix . ' - ' . config('app.name');
+        return $prefix.' - '.config('app.name');
     }
 
     /**
@@ -105,7 +109,7 @@ class SecurityAlertNotification extends Notification implements ShouldQueue
      */
     private function getNotificationTitle(): string
     {
-        return match($this->securityEvent->eventType) {
+        return match ($this->securityEvent->eventType) {
             'failed_login' => 'Failed Login Attempt',
             'account_locked' => 'User Account Locked',
             'multiple_failed_logins' => 'Multiple Failed Login Attempts',
@@ -115,7 +119,8 @@ class SecurityAlertNotification extends Notification implements ShouldQueue
             'password_changed' => 'Password Changed',
             'privilege_escalation' => 'Privilege Escalation Attempt',
             'data_breach_attempt' => 'Potential Data Breach Attempt',
-            default => 'Security Event: ' . str_replace('_', ' ', ucwords($this->securityEvent->eventType))
+            default => 'Security Event: '.
+              str_replace('_', ' ', ucwords($this->securityEvent->eventType)),
         };
     }
 
@@ -125,24 +130,24 @@ class SecurityAlertNotification extends Notification implements ShouldQueue
     private function getSecurityMessage(): string
     {
         $baseMessage = $this->getNotificationTitle();
-        
+
         if ($this->securityEvent->user) {
-            $baseMessage .= ' for user ' . $this->securityEvent->user->name;
+            $baseMessage .= ' for user '.$this->securityEvent->user->name;
         }
 
         if ($this->securityEvent->ipAddress) {
-            $baseMessage .= ' from IP ' . $this->securityEvent->ipAddress;
+            $baseMessage .= ' from IP '.$this->securityEvent->ipAddress;
         }
 
         // Add specific details based on event type
-        $details = match($this->securityEvent->eventType) {
+        $details = match ($this->securityEvent->eventType) {
             'multiple_failed_logins' => $this->getFailedLoginDetails(),
             'suspicious_attendance' => $this->getSuspiciousAttendanceDetails(),
             'account_locked' => 'The user account has been automatically locked due to security policy violations.',
-            default => 'A security event has been detected and requires attention.'
+            default => 'A security event has been detected and requires attention.',
         };
 
-        return $baseMessage . '. ' . $details;
+        return $baseMessage.'. '.$details;
     }
 
     /**
@@ -151,6 +156,7 @@ class SecurityAlertNotification extends Notification implements ShouldQueue
     private function getFailedLoginDetails(): string
     {
         $count = $this->securityEvent->metadata['failed_count'] ?? 'multiple';
+
         return "There have been {$count} failed login attempts in a short period.";
     }
 
@@ -162,11 +168,11 @@ class SecurityAlertNotification extends Notification implements ShouldQueue
         $metadata = $this->securityEvent->metadata;
         $issues = [];
 
-        if (!($metadata['location_verified'] ?? true)) {
+        if (! ($metadata['location_verified'] ?? true)) {
             $issues[] = 'location verification failed';
         }
 
-        if (!($metadata['face_verified'] ?? true)) {
+        if (! ($metadata['face_verified'] ?? true)) {
             $issues[] = 'face recognition failed';
         }
 
@@ -174,6 +180,6 @@ class SecurityAlertNotification extends Notification implements ShouldQueue
             return 'Unusual attendance pattern detected.';
         }
 
-        return 'Attendance recorded with issues: ' . implode(' and ', $issues) . '.';
+        return 'Attendance recorded with issues: '.implode(' and ', $issues).'.';
     }
 }

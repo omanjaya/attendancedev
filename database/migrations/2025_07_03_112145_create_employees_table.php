@@ -16,8 +16,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('employee_id', 50)->unique();
             $table->enum('employee_type', ['permanent', 'honorary', 'staff']);
-            $table->string('first_name', 100);
-            $table->string('last_name', 100);
+            $table->string('full_name', 255);
             $table->string('phone', 20)->nullable();
             $table->date('hire_date');
             $table->enum('salary_type', ['hourly', 'monthly', 'fixed']);
@@ -28,11 +27,11 @@ return new class extends Migration
             $table->jsonb('metadata')->default('{}');
             $table->timestamps();
             $table->softDeletes();
-            
+
             // Indexes
             $table->index('employee_type');
             $table->index('is_active');
-            $table->index(['first_name', 'last_name']);
+            $table->index('full_name');
         });
     }
 

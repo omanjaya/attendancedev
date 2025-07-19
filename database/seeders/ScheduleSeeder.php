@@ -2,69 +2,96 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Employee;
-use App\Models\Period;
 use App\Models\EmployeeSchedule;
+use App\Models\Period;
 use Carbon\Carbon;
+use Illuminate\Database\Seeder;
 
 class ScheduleSeeder extends Seeder
 {
     public function run()
     {
         $employees = Employee::where('is_active', true)
-                           ->where('employee_type', '!=', 'staff') // Only teachers get period schedules
-                           ->get();
-        
+            ->where('employee_type', '!=', 'staff') // Only teachers get period schedules
+            ->get();
+
         $periods = Period::where('is_active', true)->get();
 
         if ($employees->isEmpty() || $periods->isEmpty()) {
-            $this->command->warn('Need employees and periods. Run EmployeeSeeder and ensure periods exist.');
+            $this->command->warn(
+                'Need employees and periods. Run EmployeeSeeder and ensure periods exist.',
+            );
+
             return;
         }
 
-        $this->command->info("Assigning schedules to {$employees->count()} employees across {$periods->count()} periods...");
+        $this->command->info(
+            "Assigning schedules to {$employees->count()} employees across {$periods->count()} periods...",
+        );
 
         // Subjects for assignment
-        $subjects = ['Mathematics', 'English', 'Science', 'History', 'Geography', 'Art', 'Physical Education', 'Computer Science'];
+        $subjects = [
+            'Mathematics',
+            'English',
+            'Science',
+            'History',
+            'Geography',
+            'Art',
+            'Physical Education',
+            'Computer Science',
+        ];
         $rooms = ['A101', 'A102', 'B201', 'B202', 'C301', 'C302', 'Lab-1', 'Lab-2', 'Gym', 'Library'];
 
         foreach ($employees as $employee) {
-            $this->command->info("Assigning schedule for: {$employee->first_name} {$employee->last_name}");
-            
+            $this->command->info(
+                "Assigning schedule for: {$employee->first_name} {$employee->last_name}",
+            );
+
             // Determine how many periods this employee should teach
-            $periodsToAssign = match($employee->employee_type) {
+            $periodsToAssign = match ($employee->employee_type) {
                 'permanent' => rand(8, 12), // Full-time teachers: 8-12 periods total
-                'honorary' => rand(2, 5),   // Part-time teachers: 2-5 periods total
+                'honorary' => rand(2, 5), // Part-time teachers: 2-5 periods total
                 default => rand(5, 8),
             };
 
-            $assignedPeriods = 0;
+            $assignedPeriodsCount = 0;
             $maxAttempts = $periodsToAssign * 5; // Prevent infinite loop
             $attempts = 0;
             $startDate = Carbon::now()->startOfWeek(); // This week
 
-            while ($assignedPeriods < $periodsToAssign && $attempts < $maxAttempts) {
+            // Keep track of periods already assigned to this employee for this effective_date
+            $assignedPeriodsForEmployeeAndDate = [];
+
+            while ($assignedPeriodsCount < $periodsToAssign && $attempts < $maxAttempts) {
                 $attempts++;
-                
+
                 // Pick a random period
                 $period = $periods->random();
-                
-                // Check if this employee is already assigned to this period (for this effective date)
+
+                // Check if this period has already been assigned to this employee for this effective_date in this loop iteration
+                if (in_array($period->id, $assignedPeriodsForEmployeeAndDate)) {
+                    continue; // Skip if already assigned in this run
+                }
+
+                // Check if this employee is already assigned to this period (for this effective date) in the database
                 $existingAssignment = EmployeeSchedule::where('employee_id', $employee->id)
-                                                   ->where('period_id', $period->id)
-                                                   ->where('effective_date', $startDate->format('Y-m-d'))
-                                                   ->exists();
+                    ->where('period_id', $period->id)
+                    ->where('effective_date', $startDate->format('Y-m-d'))
+                    ->exists();
 
                 if ($existingAssignment) {
-                    continue; // Skip if already assigned
+                    // Add to our in-memory tracking to avoid re-checking DB for this combination
+                    $assignedPeriodsForEmployeeAndDate[] = $period->id;
+
+                    continue; // Skip if already assigned in DB
                 }
 
                 // Check if this period is over-assigned (max 3 teachers per period)
                 $existingCount = EmployeeSchedule::where('period_id', $period->id)
-                                               ->where('effective_date', $startDate->format('Y-m-d'))
-                                               ->where('is_active', true)
-                                               ->count();
+                    ->where('effective_date', $startDate->format('Y-m-d'))
+                    ->where('is_active', true)
+                    ->count();
 
                 if ($existingCount >= 3) {
                     continue; // Skip if period is full
@@ -87,31 +114,34 @@ class ScheduleSeeder extends Seeder
                         'grade_level' => rand(1, 12),
                         'semester' => 'Fall 2024',
                         'notes' => rand(0, 10) < 2 ? 'Lab session' : null, // 20% chance of lab
-                    ])
+                    ]),
                 ]);
 
-                $assignedPeriods++;
+                $assignedPeriodsCount++;
+                $assignedPeriodsForEmployeeAndDate[] = $period->id; // Add to tracking
                 $this->command->line("  - Assigned {$subject} in {$room} at {$period->name}");
             }
 
-            $this->command->info("  Total periods assigned: {$assignedPeriods}");
+            $this->command->info("  Total periods assigned: {$assignedPeriodsCount}");
         }
 
         $this->command->info('Schedule seeding completed successfully!');
-        $this->command->info('Total schedule assignments: ' . EmployeeSchedule::count());
-        
+        $this->command->info('Total schedule assignments: '.EmployeeSchedule::count());
+
         // Show some statistics by employee type
         $stats = Employee::selectRaw('employee_type, COUNT(*) as employee_count')
-                        ->join('employee_schedules', 'employees.id', '=', 'employee_schedules.employee_id')
-                        ->where('employee_schedules.is_active', true)
-                        ->groupBy('employee_type')
-                        ->get();
-        
+            ->join('employee_schedules', 'employees.id', '=', 'employee_schedules.employee_id')
+            ->where('employee_schedules.is_active', true)
+            ->groupBy('employee_type')
+            ->get();
+
         $this->command->table(
             ['Employee Type', 'Scheduled Assignments'],
-            $stats->map(function($stat) {
-                return [ucfirst($stat->employee_type), $stat->employee_count];
-            })->toArray()
+            $stats
+                ->map(function ($stat) {
+                    return [ucfirst($stat->employee_type), $stat->employee_count];
+                })
+                ->toArray(),
         );
     }
 }

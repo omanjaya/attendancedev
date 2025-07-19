@@ -24,13 +24,13 @@ return new class extends Migration
             $table->text('user_agent')->nullable();
             $table->jsonb('tags')->nullable();
             $table->timestamp('created_at')->nullable()->index();
-            
+
             // Indexes for performance
             $table->index(['auditable_type', 'auditable_id']);
             $table->index(['user_id', 'created_at']);
             $table->index(['event_type', 'created_at']);
             // Note: created_at already has index from line above
-            
+
             // Foreign key constraint
             $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');
         });

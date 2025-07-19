@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('user_notification_preferences', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('user_id')->constrained()->onDelete('cascade');
-            
+
             // Security notification preferences
             $table->boolean('new_device_login_email')->default(true);
             $table->boolean('new_device_login_browser')->default(true);
@@ -32,7 +32,7 @@ return new class extends Migration
             $table->boolean('device_trusted_browser')->default(false);
             $table->boolean('admin_access_email')->default(true);
             $table->boolean('admin_access_browser')->default(true);
-            
+
             // System notification preferences
             $table->boolean('attendance_reminders_email')->default(true);
             $table->boolean('attendance_reminders_browser')->default(true);
@@ -42,13 +42,13 @@ return new class extends Migration
             $table->boolean('payroll_notifications_browser')->default(false);
             $table->boolean('system_maintenance_email')->default(false);
             $table->boolean('system_maintenance_browser')->default(true);
-            
+
             // Notification timing preferences
             $table->json('quiet_hours')->nullable(); // {start: "22:00", end: "08:00", timezone: "UTC"}
             $table->json('digest_frequency')->nullable(); // {security: "immediate", system: "daily"}
-            
+
             $table->timestamps();
-            
+
             $table->unique('user_id');
         });
     }

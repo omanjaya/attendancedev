@@ -2,10 +2,10 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\AuditLog;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use App\Models\AuditLog;
 
 class IPWhitelist
 {
@@ -15,23 +15,26 @@ class IPWhitelist
     public function handle(Request $request, Closure $next, ...$guards)
     {
         $clientIP = $this->getClientIP($request);
-        
+
         // Check if IP restrictions are enabled
-        if (!config('security.ip_whitelist.enabled', false)) {
+        if (! config('security.ip_whitelist.enabled', false)) {
             return $next($request);
         }
 
         // Get allowed IPs for the current route/guard
         $allowedIPs = $this->getAllowedIPs($guards);
-        
+
         // Check if client IP is whitelisted
-        if (!$this->isIPAllowed($clientIP, $allowedIPs)) {
+        if (! $this->isIPAllowed($clientIP, $allowedIPs)) {
             $this->logUnauthorizedAccess($request, $clientIP);
-            
-            return response()->json([
-                'error' => 'Access denied from this IP address',
-                'ip' => $clientIP
-            ], 403);
+
+            return response()->json(
+                [
+                    'error' => 'Access denied from this IP address',
+                    'ip' => $clientIP,
+                ],
+                403,
+            );
         }
 
         return $next($request);
@@ -44,22 +47,24 @@ class IPWhitelist
     {
         // Check for various headers that might contain the real IP
         $headers = [
-            'HTTP_CF_CONNECTING_IP',     // Cloudflare
-            'HTTP_X_REAL_IP',           // Nginx
-            'HTTP_X_FORWARDED_FOR',     // Load balancers
-            'HTTP_X_FORWARDED',         // Proxies
+            'HTTP_CF_CONNECTING_IP', // Cloudflare
+            'HTTP_X_REAL_IP', // Nginx
+            'HTTP_X_FORWARDED_FOR', // Load balancers
+            'HTTP_X_FORWARDED', // Proxies
             'HTTP_X_CLUSTER_CLIENT_IP', // Cluster
-            'HTTP_FORWARDED_FOR',       // Standard
-            'HTTP_FORWARDED',           // Standard
-            'REMOTE_ADDR'               // Standard
+            'HTTP_FORWARDED_FOR', // Standard
+            'HTTP_FORWARDED', // Standard
+            'REMOTE_ADDR', // Standard
         ];
 
         foreach ($headers as $header) {
             if ($request->server($header)) {
                 $ips = explode(',', $request->server($header));
                 $ip = trim($ips[0]);
-                
-                if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+
+                if (
+                    filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)
+                ) {
                     return $ip;
                 }
             }
@@ -84,7 +89,7 @@ class IPWhitelist
         // Add role-specific IPs if user is authenticated
         if (auth()->check()) {
             $userRoles = auth()->user()->getRoleNames();
-            
+
             foreach ($userRoles as $role) {
                 $roleIPs = config("security.ip_whitelist.roles.{$role}", []);
                 $allowedIPs = array_merge($allowedIPs, $roleIPs);
@@ -131,6 +136,7 @@ class IPWhitelist
         // Wildcard pattern (e.g., 192.168.1.*)
         if (str_contains($pattern, '*')) {
             $regex = str_replace('*', '\d+', preg_quote($pattern, '/'));
+
             return preg_match("/^{$regex}$/", $clientIP);
         }
 
@@ -143,8 +149,8 @@ class IPWhitelist
     private function ipInRange(string $ip, string $cidr): bool
     {
         [$subnet, $mask] = explode('/', $cidr);
-        
-        if ((ip2long($ip) & ~((1 << (32 - $mask)) - 1)) === ip2long($subnet)) {
+
+        if ((ip2long($ip) & ~((1 << 32 - $mask) - 1)) === ip2long($subnet)) {
             return true;
         }
 
@@ -178,7 +184,7 @@ class IPWhitelist
                 'new_values' => $data,
                 'ip_address' => $clientIP,
                 'user_agent' => $request->userAgent(),
-                'risk_level' => 'high'
+                'risk_level' => 'high',
             ]);
         }
     }

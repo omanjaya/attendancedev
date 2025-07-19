@@ -5,10 +5,14 @@
         <!-- Header -->
         <div class="modal-header">
           <div class="header-icon" :class="danger ? 'danger' : 'info'">
-            <Icon :name="danger ? 'exclamation-triangle' : 'help-circle'" class="w-8 h-8" />
+            <Icon :name="danger ? 'exclamation-triangle' : 'help-circle'" class="h-8 w-8" />
           </div>
-          <h2 class="modal-title">{{ title }}</h2>
-          <p class="modal-message">{{ message }}</p>
+          <h2 class="modal-title">
+            {{ title }}
+          </h2>
+          <p class="modal-message">
+            {{ message }}
+          </p>
         </div>
 
         <!-- Password Confirmation Form -->
@@ -26,32 +30,34 @@
                   v-model="password"
                   :type="showPassword ? 'text' : 'password'"
                   class="password-input"
-                  :class="{ 'error': errors.password }"
+                  :class="{ error: errors.password }"
                   placeholder="Enter your current password"
                   required
                   :disabled="loading"
                   @input="clearErrors"
-                />
+                >
                 <button
                   type="button"
-                  @click="togglePasswordVisibility"
                   class="password-toggle"
                   :disabled="loading"
+                  @click="togglePasswordVisibility"
                 >
-                  <Icon :name="showPassword ? 'eye-off' : 'eye'" class="w-4 h-4" />
+                  <Icon :name="showPassword ? 'eye-off' : 'eye'" class="h-4 w-4" />
                 </button>
               </div>
               <div v-if="errors.password" class="error-message">
-                <Icon name="x-circle" class="w-4 h-4" />
+                <Icon name="x-circle" class="h-4 w-4" />
                 {{ errors.password }}
               </div>
             </div>
 
             <!-- Additional Warning for Dangerous Actions -->
             <div v-if="danger" class="danger-warning">
-              <Icon name="exclamation-triangle" class="w-5 h-5 text-red-600" />
+              <Icon name="exclamation-triangle" class="h-5 w-5 text-red-600" />
               <div>
-                <h4 class="warning-title">This action cannot be undone</h4>
+                <h4 class="warning-title">
+                  This action cannot be undone
+                </h4>
                 <p class="warning-text">
                   Please make sure you understand the consequences before proceeding.
                 </p>
@@ -60,23 +66,23 @@
 
             <!-- Action Buttons -->
             <div class="form-actions">
-              <button 
-                type="button" 
-                @click="handleCancel" 
+              <button
+                type="button"
                 class="btn-secondary"
                 :disabled="loading"
+                @click="handleCancel"
               >
                 Cancel
               </button>
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 class="btn-primary"
                 :class="{ 'btn-danger': danger }"
                 :disabled="!password.trim() || loading"
               >
                 <div v-if="loading" class="spinner" />
-                <Icon v-else :name="danger ? 'exclamation-triangle' : 'check'" class="w-4 h-4" />
-                {{ loading ? 'Processing...' : (confirmText || 'Confirm') }}
+                <Icon v-else :name="danger ? 'exclamation-triangle' : 'check'" class="h-4 w-4" />
+                {{ loading ? 'Processing...' : confirmText || 'Confirm' }}
               </button>
             </div>
           </form>
@@ -84,7 +90,7 @@
 
         <!-- Security Notice -->
         <div class="security-notice">
-          <Icon name="shield" class="w-4 h-4 text-blue-600" />
+          <Icon name="shield" class="h-4 w-4 text-blue-600" />
           <p class="notice-text">
             We ask for your password to ensure account security and verify your identity.
           </p>
@@ -101,20 +107,20 @@ import { ref, reactive, nextTick, onMounted } from 'vue'
 const props = defineProps({
   title: {
     type: String,
-    required: true
+    required: true,
   },
   message: {
     type: String,
-    required: true
+    required: true,
   },
   confirmText: {
     type: String,
-    default: 'Confirm'
+    default: 'Confirm',
   },
   danger: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 })
 
 // Emits
@@ -127,7 +133,7 @@ const loading = ref(false)
 const passwordInput = ref(null)
 
 const errors = reactive({
-  password: ''
+  password: '',
 })
 
 // Methods
@@ -183,37 +189,41 @@ onMounted(() => {
 }
 
 .modal-backdrop {
-  @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4;
+  @apply fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4;
   animation: fadeIn 0.3s ease-out;
 }
 
 .modal-content {
-  @apply bg-white rounded-lg shadow-xl max-w-md w-full;
+  @apply w-full max-w-md rounded-lg bg-white shadow-xl;
   animation: slideIn 0.3s ease-out;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideIn {
-  from { 
-    opacity: 0; 
-    transform: translateY(20px) scale(0.95); 
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
   }
-  to { 
-    opacity: 1; 
-    transform: translateY(0) scale(1); 
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
 .modal-header {
-  @apply p-6 text-center space-y-4;
+  @apply space-y-4 p-6 text-center;
 }
 
 .header-icon {
-  @apply w-16 h-16 mx-auto rounded-full flex items-center justify-center;
+  @apply mx-auto flex h-16 w-16 items-center justify-center rounded-full;
 }
 
 .header-icon.info {
@@ -229,7 +239,7 @@ onMounted(() => {
 }
 
 .modal-message {
-  @apply text-gray-600 text-sm leading-relaxed;
+  @apply text-sm leading-relaxed text-gray-600;
 }
 
 .confirmation-form {
@@ -245,7 +255,7 @@ onMounted(() => {
 }
 
 .required {
-  @apply text-red-500 ml-1;
+  @apply ml-1 text-red-500;
 }
 
 .password-input-wrapper {
@@ -253,9 +263,7 @@ onMounted(() => {
 }
 
 .password-input {
-  @apply w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg 
-         focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-         transition-all duration-200;
+  @apply w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500;
 }
 
 .password-input.error {
@@ -263,22 +271,19 @@ onMounted(() => {
 }
 
 .password-input:disabled {
-  @apply bg-gray-100 cursor-not-allowed;
+  @apply cursor-not-allowed bg-gray-100;
 }
 
 .password-toggle {
-  @apply absolute right-2 top-1/2 transform -translate-y-1/2 
-         text-gray-400 hover:text-gray-600 transition-colors duration-200
-         disabled:opacity-50;
+  @apply absolute right-2 top-1/2 -translate-y-1/2 transform text-gray-400 transition-colors duration-200 hover:text-gray-600 disabled:opacity-50;
 }
 
 .error-message {
-  @apply text-sm text-red-600 flex items-center space-x-1;
+  @apply flex items-center space-x-1 text-sm text-red-600;
 }
 
 .danger-warning {
-  @apply flex items-start space-x-3 p-3 bg-red-50 border border-red-200 
-         rounded-lg mt-4;
+  @apply mt-4 flex items-start space-x-3 rounded-lg border border-red-200 bg-red-50 p-3;
 }
 
 .warning-title {
@@ -286,17 +291,15 @@ onMounted(() => {
 }
 
 .warning-text {
-  @apply text-sm text-red-800 mt-1;
+  @apply mt-1 text-sm text-red-800;
 }
 
 .form-actions {
-  @apply flex space-x-3 mt-6;
+  @apply mt-6 flex space-x-3;
 }
 
 .btn-primary {
-  @apply flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 
-         rounded-lg transition-colors duration-200 inline-flex items-center 
-         justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply inline-flex flex-1 items-center justify-center space-x-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50;
 }
 
 .btn-primary.btn-danger {
@@ -304,17 +307,15 @@ onMounted(() => {
 }
 
 .btn-secondary {
-  @apply flex-1 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 
-         font-medium py-2 px-4 rounded-lg transition-colors duration-200 
-         disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 font-medium text-gray-700 transition-colors duration-200 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50;
 }
 
 .spinner {
-  @apply animate-spin rounded-full h-4 w-4 border-b-2 border-white;
+  @apply h-4 w-4 animate-spin rounded-full border-b-2 border-white;
 }
 
 .security-notice {
-  @apply flex items-start space-x-2 p-4 bg-blue-50 border-t border-blue-200;
+  @apply flex items-start space-x-2 border-t border-blue-200 bg-blue-50 p-4;
 }
 
 .notice-text {
@@ -326,7 +327,7 @@ onMounted(() => {
   .modal-content {
     @apply m-2;
   }
-  
+
   .form-actions {
     @apply flex-col space-x-0 space-y-2;
   }
@@ -347,7 +348,7 @@ onMounted(() => {
   .modal-content {
     animation: none;
   }
-  
+
   .spinner {
     @apply animate-none;
   }

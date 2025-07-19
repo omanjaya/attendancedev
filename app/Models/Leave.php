@@ -2,15 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Leave extends Model
 {
-    use HasFactory, SoftDeletes, HasUuids;
+    use HasFactory, HasUuids, SoftDeletes;
 
     protected $fillable = [
         'employee_id',
@@ -26,7 +26,7 @@ class Leave extends Model
         'rejection_reason',
         'is_emergency',
         'attachments',
-        'metadata'
+        'metadata',
     ];
 
     protected $casts = [
@@ -36,15 +36,18 @@ class Leave extends Model
         'approved_at' => 'datetime',
         'is_emergency' => 'boolean',
         'attachments' => 'array',
-        'metadata' => 'array'
+        'metadata' => 'array',
     ];
 
     /**
      * The statuses available for leaves.
      */
     const STATUS_PENDING = 'pending';
+
     const STATUS_APPROVED = 'approved';
+
     const STATUS_REJECTED = 'rejected';
+
     const STATUS_CANCELLED = 'cancelled';
 
     /**
@@ -109,6 +112,7 @@ class Leave extends Model
     public function scopeCurrentYear($query)
     {
         $currentYear = date('Y');
+
         return $query->whereYear('start_date', $currentYear);
     }
 
@@ -126,9 +130,11 @@ class Leave extends Model
     public function scopeActive($query)
     {
         $today = Carbon::today();
-        return $query->where('start_date', '<=', $today)
-                    ->where('end_date', '>=', $today)
-                    ->where('status', self::STATUS_APPROVED);
+
+        return $query
+            ->where('start_date', '<=', $today)
+            ->where('end_date', '>=', $today)
+            ->where('status', self::STATUS_APPROVED);
     }
 
     /**
@@ -169,9 +175,8 @@ class Leave extends Model
     public function isActive()
     {
         $today = Carbon::today();
-        return $this->isApproved() && 
-               $this->start_date <= $today && 
-               $this->end_date >= $today;
+
+        return $this->isApproved() && $this->start_date <= $today && $this->end_date >= $today;
     }
 
     /**
@@ -179,8 +184,7 @@ class Leave extends Model
      */
     public function canBeCancelled()
     {
-        return $this->isPending() || 
-               ($this->isApproved() && $this->start_date > Carbon::today());
+        return $this->isPending() || ($this->isApproved() && $this->start_date > Carbon::today());
     }
 
     /**
@@ -190,18 +194,18 @@ class Leave extends Model
     {
         $start = Carbon::parse($startDate);
         $end = Carbon::parse($endDate);
-        
+
         $workingDays = 0;
         $current = $start->copy();
-        
+
         while ($current <= $end) {
             // Skip weekends (Saturday = 6, Sunday = 0)
-            if (!$current->isWeekend()) {
+            if (! $current->isWeekend()) {
                 $workingDays++;
             }
             $current->addDay();
         }
-        
+
         return $workingDays;
     }
 
@@ -215,7 +219,7 @@ class Leave extends Model
         } elseif ($this->days_requested == 1) {
             return '1 day';
         } else {
-            return $this->days_requested . ' days';
+            return $this->days_requested.' days';
         }
     }
 
@@ -224,12 +228,12 @@ class Leave extends Model
      */
     public function getStatusColorAttribute()
     {
-        return match($this->status) {
+        return match ($this->status) {
             self::STATUS_PENDING => 'warning',
             self::STATUS_APPROVED => 'success',
             self::STATUS_REJECTED => 'danger',
             self::STATUS_CANCELLED => 'secondary',
-            default => 'secondary'
+            default => 'secondary',
         };
     }
 
@@ -241,7 +245,7 @@ class Leave extends Model
         if ($this->start_date->eq($this->end_date)) {
             return $this->start_date->format('M j, Y');
         }
-        
-        return $this->start_date->format('M j') . ' - ' . $this->end_date->format('M j, Y');
+
+        return $this->start_date->format('M j').' - '.$this->end_date->format('M j, Y');
     }
 }

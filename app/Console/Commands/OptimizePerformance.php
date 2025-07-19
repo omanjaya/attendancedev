@@ -66,21 +66,23 @@ class OptimizePerformance extends Command
             }
 
             // If no specific options, show help
-            if (!$cache && !$config && !$routes && !$views && !$database && !$this->option('all')) {
+            if (! $cache && ! $config && ! $routes && ! $views && ! $database && ! $this->option('all')) {
                 $this->info('Use --all to run all optimizations, or specify individual options:');
                 $this->info('--cache    Clear application cache');
                 $this->info('--config   Clear config cache');
                 $this->info('--routes   Clear route cache');
                 $this->info('--views    Clear view cache');
                 $this->info('--database Optimize database');
+
                 return Command::SUCCESS;
             }
 
             $this->info('Performance optimization completed successfully!');
-            return Command::SUCCESS;
 
+            return Command::SUCCESS;
         } catch (\Exception $e) {
-            $this->error('Performance optimization failed: ' . $e->getMessage());
+            $this->error('Performance optimization failed: '.$e->getMessage());
+
             return Command::FAILURE;
         }
     }
@@ -110,7 +112,7 @@ class OptimizePerformance extends Command
                 $this->line('✓ Configuration cached');
             }
         } catch (\Exception $e) {
-            $this->warn('Failed to cache configuration: ' . $e->getMessage());
+            $this->warn('Failed to cache configuration: '.$e->getMessage());
         }
     }
 
@@ -178,13 +180,13 @@ class OptimizePerformance extends Command
                 $this->optimizeMySQL();
             } else {
                 $this->warn("Database optimization not implemented for {$driver} driver");
+
                 return;
             }
 
             $this->line('✓ Database optimization completed');
-
         } catch (\Exception $e) {
-            $this->error('Database optimization failed: ' . $e->getMessage());
+            $this->error('Database optimization failed: '.$e->getMessage());
         }
     }
 
@@ -202,7 +204,9 @@ class OptimizePerformance extends Command
             DB::statement('VACUUM');
             $this->line('✓ PostgreSQL: Database vacuumed');
         } catch (\Exception $e) {
-            $this->warn('PostgreSQL VACUUM failed (this is normal if not superuser): ' . $e->getMessage());
+            $this->warn(
+                'PostgreSQL VACUUM failed (this is normal if not superuser): '.$e->getMessage(),
+            );
         }
 
         // Get table statistics
@@ -230,24 +234,30 @@ class OptimizePerformance extends Command
     {
         // Get all tables
         $tables = DB::select('SHOW TABLES');
-        $tableColumn = 'Tables_in_' . config('database.connections.mysql.database');
+        $tableColumn = 'Tables_in_'.config('database.connections.mysql.database');
 
         foreach ($tables as $table) {
             $tableName = $table->$tableColumn;
-            
+
             try {
                 // Optimize table
                 DB::statement("OPTIMIZE TABLE `{$tableName}`");
                 $this->line("✓ MySQL: Optimized table {$tableName}");
             } catch (\Exception $e) {
-                $this->warn("Failed to optimize table {$tableName}: " . $e->getMessage());
+                $this->warn("Failed to optimize table {$tableName}: ".$e->getMessage());
             }
         }
 
         // Analyze tables
-        DB::statement('ANALYZE TABLE ' . implode(', ', array_map(function($table) use ($tableColumn) {
-            return '`' . $table->$tableColumn . '`';
-        }, $tables)));
+        DB::statement(
+            'ANALYZE TABLE '.
+              implode(
+                  ', ',
+                  array_map(function ($table) use ($tableColumn) {
+                      return '`'.$table->$tableColumn.'`';
+                  }, $tables),
+              ),
+        );
         $this->line('✓ MySQL: Tables analyzed');
     }
 
@@ -267,18 +277,18 @@ class OptimizePerformance extends Command
 
         foreach ($paths as $path) {
             if (File::exists($path)) {
-                $files = File::glob($path . '/*');
+                $files = File::glob($path.'/*');
                 $count = 0;
-                
+
                 foreach ($files as $file) {
                     if (File::isFile($file) && File::lastModified($file) < now()->subDays(7)->timestamp) {
                         File::delete($file);
                         $count++;
                     }
                 }
-                
+
                 if ($count > 0) {
-                    $this->line("✓ Cleaned {$count} old files from " . basename($path));
+                    $this->line("✓ Cleaned {$count} old files from ".basename($path));
                 }
             }
         }
@@ -290,9 +300,9 @@ class OptimizePerformance extends Command
     private function showRecommendations(): void
     {
         $this->info('Performance Recommendations:');
-        
+
         // Check OPcache
-        if (!function_exists('opcache_get_status') || !opcache_get_status()) {
+        if (! function_exists('opcache_get_status') || ! opcache_get_status()) {
             $this->warn('• Enable OPcache for better PHP performance');
         } else {
             $this->line('✓ OPcache is enabled');
@@ -307,7 +317,7 @@ class OptimizePerformance extends Command
                 $this->line('✓ Redis cache is working');
             }
         } catch (\Exception $e) {
-            $this->warn('• Redis connection issue: ' . $e->getMessage());
+            $this->warn('• Redis connection issue: '.$e->getMessage());
         }
 
         // Check queue driver

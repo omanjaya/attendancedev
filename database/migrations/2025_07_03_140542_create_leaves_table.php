@@ -20,20 +20,22 @@ return new class extends Migration
             $table->decimal('days_requested', 5, 2);
             $table->text('reason')->nullable();
             $table->enum('status', ['pending', 'approved', 'rejected', 'cancelled'])->default('pending');
+            $table->timestamp('applied_at')->nullable();
             $table->uuid('approved_by')->nullable();
             $table->timestamp('approved_at')->nullable();
             $table->text('approval_notes')->nullable();
             $table->text('rejection_reason')->nullable();
             $table->boolean('is_emergency')->default(false);
             $table->json('attachments')->nullable();
+            $table->text('employee_notes')->nullable();
             $table->json('metadata')->nullable();
             $table->timestamps();
             $table->softDeletes();
-            
+
             $table->foreign('employee_id')->references('id')->on('employees')->onDelete('cascade');
             $table->foreign('leave_type_id')->references('id')->on('leave_types')->onDelete('cascade');
             $table->foreign('approved_by')->references('id')->on('employees')->onDelete('set null');
-            
+
             $table->index('status');
             $table->index('start_date');
             $table->index('end_date');

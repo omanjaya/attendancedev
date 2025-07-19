@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Services\TwoFactorService;
-use App\Services\SecurityService;
-use App\Services\SecurityLogger;
-use App\Services\DeviceService;
-use App\Services\SecurityNotificationService;
 use App\Models\UserDevice;
+use App\Services\DeviceService;
+use App\Services\SecurityLogger;
+use App\Services\SecurityNotificationService;
+use App\Services\SecurityService;
+use App\Services\TwoFactorService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -16,13 +16,22 @@ use Illuminate\Validation\ValidationException;
 class TwoFactorController extends Controller
 {
     private TwoFactorService $twoFactorService;
+
     private SecurityService $securityService;
+
     private SecurityLogger $securityLogger;
+
     private DeviceService $deviceService;
+
     private SecurityNotificationService $notificationService;
 
-    public function __construct(TwoFactorService $twoFactorService, SecurityService $securityService, SecurityLogger $securityLogger, DeviceService $deviceService, SecurityNotificationService $notificationService)
-    {
+    public function __construct(
+        TwoFactorService $twoFactorService,
+        SecurityService $securityService,
+        SecurityLogger $securityLogger,
+        DeviceService $deviceService,
+        SecurityNotificationService $notificationService,
+    ) {
         $this->twoFactorService = $twoFactorService;
         $this->securityService = $securityService;
         $this->securityLogger = $securityLogger;
@@ -38,7 +47,7 @@ class TwoFactorController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->two_factor_enabled) {
+        if (! $user->two_factor_enabled) {
             return redirect()->route('dashboard');
         }
 
@@ -57,7 +66,7 @@ class TwoFactorController extends Controller
         $request->validate([
             'code' => 'required|string|min:6|max:8',
             'type' => 'in:totp,recovery,sms',
-            'remember_device' => 'sometimes|boolean'
+            'remember_device' => 'sometimes|boolean',
         ]);
 
         $user = Auth::user();
@@ -66,48 +75,54 @@ class TwoFactorController extends Controller
         $rememberDevice = $request->boolean('remember_device', false);
 
         // Create unique identifier for rate limiting (user ID + IP)
-        $identifier = $user->id . '_' . $request->ip();
+        $identifier = $user->id.'_'.$request->ip();
 
         // Check for security lockdown
         if ($this->securityService->is2FALockedDown($identifier)) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Account temporarily locked due to security concerns. Please contact support.',
-                'lockdown' => true
-            ], 423);
+            return response()->json(
+                [
+                    'success' => false,
+                    'error' => 'Account temporarily locked due to security concerns. Please contact support.',
+                    'lockdown' => true,
+                ],
+                423,
+            );
         }
 
         // Check rate limiting before processing
         if ($this->securityService->isRateLimited($request->ip(), "2fa_{$type}")) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Too many attempts. Please try again later.',
-                'rate_limited' => true
-            ], 429);
+            return response()->json(
+                [
+                    'success' => false,
+                    'error' => 'Too many attempts. Please try again later.',
+                    'rate_limited' => true,
+                ],
+                429,
+            );
         }
 
         $verified = match ($type) {
             'totp' => $this->twoFactorService->verifyUserCode($user, $code),
             'recovery' => $this->twoFactorService->verifyRecoveryCode($user, $code),
             'sms' => $this->twoFactorService->verifySMSCode($user, $code),
-            default => false
+            default => false,
         };
 
         // Track the attempt with enhanced security monitoring
         $attemptResult = $this->securityService->track2FAAttempt($identifier, $type, $verified);
-        
+
         // Log the 2FA attempt using SecurityLogger
         $this->securityLogger->log2FAAttempt($user, $type, $verified, $request, [
             'remaining_attempts' => $attemptResult['remaining_attempts'] ?? null,
-            'is_locked' => $attemptResult['is_locked'] ?? false
+            'is_locked' => $attemptResult['is_locked'] ?? false,
         ]);
 
         if ($verified) {
             $request->session()->regenerate();
-            
+
             // Mark session as 2FA verified
             \App\Http\Middleware\TwoFactorAuthentication::markSessionAsVerified();
-            
+
             // Handle device trust if user requested to remember device
             if ($rememberDevice) {
                 $deviceId = session('2fa_device_id');
@@ -117,27 +132,27 @@ class TwoFactorController extends Controller
                         $this->deviceService->trustDevice($device, $user);
                     }
                 }
-                
+
                 // Legacy middleware support
                 \App\Http\Middleware\TwoFactorAuthentication::rememberDevice($request);
             }
-            
+
             // Clear rate limits on successful verification
             $this->securityService->clearFailedLoginAttempts($identifier);
-            
+
             // Get remaining recovery codes for warning
             $remainingCodes = count($this->twoFactorService->getRecoveryCodes($user));
             $warning = null;
-            
+
             if ($type === 'recovery' && $remainingCodes <= 2) {
                 $warning = 'You have few recovery codes remaining. Consider regenerating them.';
             }
-            
+
             return response()->json([
                 'success' => true,
                 'redirect' => session('intended', route('dashboard')),
                 'warning' => $warning,
-                'remaining_codes' => $type === 'recovery' ? $remainingCodes : null
+                'remaining_codes' => $type === 'recovery' ? $remainingCodes : null,
             ]);
         }
 
@@ -149,20 +164,23 @@ class TwoFactorController extends Controller
 
         // Check if admin intervention is required
         if ($attemptResult['requires_admin_intervention']) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Account locked due to repeated security violations. Administrator assistance required.',
-                'admin_required' => true
-            ], 423);
+            return response()->json(
+                [
+                    'success' => false,
+                    'error' => 'Account locked due to repeated security violations. Administrator assistance required.',
+                    'admin_required' => true,
+                ],
+                423,
+            );
         }
 
         // Return attempt information for progressive feedback
-        $errorMessage = $attemptResult['is_locked'] 
-            ? "Too many failed attempts. Locked until " . $attemptResult['locked_until']->format('H:i:s')
-            : "Invalid code. {$attemptResult['remaining_attempts']} attempts remaining.";
+        $errorMessage = $attemptResult['is_locked']
+          ? 'Too many failed attempts. Locked until '.$attemptResult['locked_until']->format('H:i:s')
+          : "Invalid code. {$attemptResult['remaining_attempts']} attempts remaining.";
 
         throw ValidationException::withMessages([
-            'code' => [$errorMessage]
+            'code' => [$errorMessage],
         ]);
     }
 
@@ -173,14 +191,14 @@ class TwoFactorController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->two_factor_enabled) {
+        if (! $user->two_factor_enabled) {
             return redirect()->route('dashboard');
         }
 
         $recoveryCodes = $this->twoFactorService->getRecoveryCodes($user);
-        
+
         return view('pages.auth.2fa.recovery', [
-            'remaining_codes' => count($recoveryCodes)
+            'remaining_codes' => count($recoveryCodes),
         ]);
     }
 
@@ -190,7 +208,7 @@ class TwoFactorController extends Controller
     public function verifyRecovery(Request $request)
     {
         $request->validate([
-            'recovery_code' => 'required|string|size:8'
+            'recovery_code' => 'required|string|size:8',
         ]);
 
         $user = Auth::user();
@@ -198,26 +216,29 @@ class TwoFactorController extends Controller
 
         if ($this->twoFactorService->verifyRecoveryCode($user, $code)) {
             $request->session()->regenerate();
-            
+
             // Mark session as 2FA verified
             \App\Http\Middleware\TwoFactorAuthentication::markSessionAsVerified();
-            
+
             $remainingCodes = count($this->twoFactorService->getRecoveryCodes($user));
-            
+
             // Show warning if running low on codes
             if ($remainingCodes <= 2) {
-                session()->flash('warning', 'You have few recovery codes remaining. Consider regenerating them from your security settings.');
+                session()->flash(
+                    'warning',
+                    'You have few recovery codes remaining. Consider regenerating them from your security settings.',
+                );
             }
-            
+
             return response()->json([
                 'success' => true,
                 'redirect' => session('intended', route('dashboard')),
-                'remaining_codes' => $remainingCodes
+                'remaining_codes' => $remainingCodes,
             ]);
         }
 
         throw ValidationException::withMessages([
-            'recovery_code' => ['The provided recovery code is invalid or has already been used.']
+            'recovery_code' => ['The provided recovery code is invalid or has already been used.'],
         ]);
     }
 
@@ -229,11 +250,11 @@ class TwoFactorController extends Controller
         $request->validate([
             'reason' => 'required|string|max:500',
             'contact_method' => 'required|in:email,phone',
-            'emergency_contact' => 'required|string|max:255'
+            'emergency_contact' => 'required|string|max:255',
         ]);
 
         $user = Auth::user();
-        
+
         // Create emergency recovery request
         $recoveryData = [
             'user_id' => $user->id,
@@ -243,25 +264,21 @@ class TwoFactorController extends Controller
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'requested_at' => now()->toISOString(),
-            'status' => 'pending'
+            'status' => 'pending',
         ];
 
         // Store in cache for admin review
-        cache()->put(
-            "emergency_recovery_{$user->id}_" . time(),
-            $recoveryData,
-            now()->addHours(24)
-        );
+        cache()->put("emergency_recovery_{$user->id}_".time(), $recoveryData, now()->addHours(24));
 
         // Send notification to admins
         $this->notifyAdminsOfEmergencyRecovery($user, $recoveryData);
-        
+
         // Log emergency recovery request using SecurityLogger
         $this->securityLogger->logEmergencyRecovery($user, $recoveryData, $request);
 
         return response()->json([
             'success' => true,
-            'message' => 'Emergency recovery request submitted. An administrator will contact you within 24 hours.'
+            'message' => 'Emergency recovery request submitted. An administrator will contact you within 24 hours.',
         ]);
     }
 
@@ -284,7 +301,7 @@ class TwoFactorController extends Controller
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'session_id' => session()->getId(),
-            'timestamp' => now()->toISOString()
+            'timestamp' => now()->toISOString(),
         ];
 
         // Log to security channel
@@ -294,15 +311,15 @@ class TwoFactorController extends Controller
         $failureKey = "2fa_failures_{$user->id}";
         $failures = cache()->get($failureKey, 0);
         $failures++;
-        
+
         cache()->put($failureKey, $failures, now()->addMinutes(30));
 
         // Lock account after too many failures
         if ($failures >= 5) {
             $user->lockAccount(now()->addMinutes(30));
-            
+
             logger()->channel('security')->critical('Account Locked Due to 2FA Failures', $attemptData);
-            
+
             // Send security alert
             $this->sendSecurityAlert($user, 'Account locked due to repeated 2FA failures');
         }
@@ -315,17 +332,20 @@ class TwoFactorController extends Controller
     {
         // Get all admin users
         $admins = \App\Models\User::role(['admin', 'superadmin'])->get();
-        
+
         foreach ($admins as $admin) {
             // Send email notification (implement with your mail system)
-            \Mail::send('emails.emergency-recovery-request', [
-                'user' => $user,
-                'admin' => $admin,
-                'recovery_data' => $recoveryData
-            ], function ($message) use ($admin) {
-                $message->to($admin->email)
-                       ->subject('Emergency 2FA Recovery Request');
-            });
+            \Mail::send(
+                'emails.emergency-recovery-request',
+                [
+                    'user' => $user,
+                    'admin' => $admin,
+                    'recovery_data' => $recoveryData,
+                ],
+                function ($message) use ($admin) {
+                    $message->to($admin->email)->subject('Emergency 2FA Recovery Request');
+                },
+            );
         }
     }
 
@@ -335,15 +355,18 @@ class TwoFactorController extends Controller
     private function sendSecurityAlert($user, string $message): void
     {
         // Send email to user
-        \Mail::send('emails.security-alert', [
-            'user' => $user,
-            'message' => $message,
-            'timestamp' => now(),
-            'ip_address' => request()->ip()
-        ], function ($mail) use ($user) {
-            $mail->to($user->email)
-                 ->subject('Security Alert - ' . config('app.name'));
-        });
+        \Mail::send(
+            'emails.security-alert',
+            [
+                'user' => $user,
+                'message' => $message,
+                'timestamp' => now(),
+                'ip_address' => request()->ip(),
+            ],
+            function ($mail) use ($user) {
+                $mail->to($user->email)->subject('Security Alert - '.config('app.name'));
+            },
+        );
     }
 
     /**
@@ -369,7 +392,7 @@ class TwoFactorController extends Controller
     public function enable(Request $request)
     {
         $request->validate([
-            'code' => 'required|string|size:6'
+            'code' => 'required|string|size:6',
         ]);
 
         $user = Auth::user();
@@ -379,18 +402,18 @@ class TwoFactorController extends Controller
             // Log 2FA setup completion
             $this->securityLogger->log2FASetup($user, 'enabled', $request, [
                 'verification_code_used' => true,
-                'recovery_codes_generated' => true
+                'recovery_codes_generated' => true,
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Two-factor authentication has been enabled successfully.',
-                'recovery_codes' => $this->twoFactorService->getRecoveryCodes($user)
+                'recovery_codes' => $this->twoFactorService->getRecoveryCodes($user),
             ]);
         }
 
         throw ValidationException::withMessages([
-            'code' => ['The provided code is invalid. Please try again.']
+            'code' => ['The provided code is invalid. Please try again.'],
         ]);
     }
 
@@ -401,7 +424,7 @@ class TwoFactorController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->two_factor_enabled) {
+        if (! $user->two_factor_enabled) {
             return redirect()->route('2fa.setup');
         }
 
@@ -417,7 +440,7 @@ class TwoFactorController extends Controller
     public function disable(Request $request)
     {
         $request->validate([
-            'password' => 'required|string'
+            'password' => 'required|string',
         ]);
 
         $user = Auth::user();
@@ -426,7 +449,7 @@ class TwoFactorController extends Controller
         // Check if 2FA is required for this user's role
         if ($this->twoFactorService->isRequiredForUser($user)) {
             throw ValidationException::withMessages([
-                'password' => ['Two-factor authentication cannot be disabled for your role.']
+                'password' => ['Two-factor authentication cannot be disabled for your role.'],
             ]);
         }
 
@@ -434,19 +457,19 @@ class TwoFactorController extends Controller
             // Log 2FA disable action
             $this->securityLogger->log2FASetup($user, 'disabled', $request, [
                 'password_verified' => true,
-                'session_cleared' => true
+                'session_cleared' => true,
             ]);
 
             $this->twoFactorService->clearSessionVerification();
-            
+
             return response()->json([
                 'success' => true,
-                'message' => 'Two-factor authentication has been disabled.'
+                'message' => 'Two-factor authentication has been disabled.',
             ]);
         }
 
         throw ValidationException::withMessages([
-            'password' => ['The provided password is incorrect.']
+            'password' => ['The provided password is incorrect.'],
         ]);
     }
 
@@ -456,15 +479,15 @@ class TwoFactorController extends Controller
     public function regenerateRecoveryCodes(Request $request)
     {
         $request->validate([
-            'password' => 'required|string'
+            'password' => 'required|string',
         ]);
 
         $user = Auth::user();
         $password = $request->input('password');
 
-        if (!password_verify($password, $user->password)) {
+        if (! password_verify($password, $user->password)) {
             throw ValidationException::withMessages([
-                'password' => ['The provided password is incorrect.']
+                'password' => ['The provided password is incorrect.'],
             ]);
         }
 
@@ -473,13 +496,13 @@ class TwoFactorController extends Controller
         // Log recovery codes regeneration
         $this->securityLogger->log2FASetup($user, 'recovery_codes_regenerated', $request, [
             'password_verified' => true,
-            'new_codes_count' => count($newCodes)
+            'new_codes_count' => count($newCodes),
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'New recovery codes have been generated.',
-            'recovery_codes' => $newCodes
+            'recovery_codes' => $newCodes,
         ]);
     }
 
@@ -490,18 +513,21 @@ class TwoFactorController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->phone) {
+        if (! $user->phone) {
             throw ValidationException::withMessages([
-                'phone' => ['No phone number is configured for SMS verification.']
+                'phone' => ['No phone number is configured for SMS verification.'],
             ]);
         }
 
         // Check SMS rate limiting
         if ($this->securityService->isRateLimited($request->ip(), '2fa_sms_request')) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Too many SMS requests. Please try again later.'
-            ], 429);
+            return response()->json(
+                [
+                    'success' => false,
+                    'error' => 'Too many SMS requests. Please try again later.',
+                ],
+                429,
+            );
         }
 
         // Track SMS request attempt
@@ -510,12 +536,12 @@ class TwoFactorController extends Controller
         if ($this->twoFactorService->sendSMSCode($user)) {
             return response()->json([
                 'success' => true,
-                'message' => 'SMS verification code has been sent.'
+                'message' => 'SMS verification code has been sent.',
             ]);
         }
 
         throw ValidationException::withMessages([
-            'sms' => ['Failed to send SMS verification code.']
+            'sms' => ['Failed to send SMS verification code.'],
         ]);
     }
 
@@ -525,19 +551,22 @@ class TwoFactorController extends Controller
     public function initializeSetup()
     {
         $user = Auth::user();
-        
+
         if ($user->two_factor_enabled) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Two-factor authentication is already enabled.'
-            ], 400);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Two-factor authentication is already enabled.',
+                ],
+                400,
+            );
         }
 
         $secretKey = $this->twoFactorService->generateSecretKey($user);
         $qrCodeSvg = $this->twoFactorService->generateQRCode($user, $secretKey);
-        
+
         // Convert SVG to base64 data URL for frontend
-        $qrCodeDataUrl = 'data:image/svg+xml;base64,' . base64_encode($qrCodeSvg);
+        $qrCodeDataUrl = 'data:image/svg+xml;base64,'.base64_encode($qrCodeSvg);
 
         return response()->json([
             'success' => true,
@@ -546,8 +575,8 @@ class TwoFactorController extends Controller
                 'qr_code_url' => $qrCodeDataUrl,
                 'manual_entry_key' => $secretKey,
                 'company_name' => config('app.name', 'Attendance System'),
-                'user_email' => $user->email
-            ]
+                'user_email' => $user->email,
+            ],
         ]);
     }
 
@@ -558,7 +587,7 @@ class TwoFactorController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->two_factor_secret) {
+        if (! $user->two_factor_secret) {
             return response()->json(['error' => '2FA not configured'], 400);
         }
 
@@ -567,7 +596,7 @@ class TwoFactorController extends Controller
 
         return response()->json([
             'qr_code' => $qrCode,
-            'secret' => $secret
+            'secret' => $secret,
         ]);
     }
 
@@ -582,8 +611,8 @@ class TwoFactorController extends Controller
             'enabled' => $user->two_factor_enabled,
             'required' => $this->twoFactorService->isRequiredForUser($user),
             'verified' => $this->twoFactorService->isSessionVerified($user),
-            'has_recovery_codes' => !empty($user->two_factor_recovery_codes),
-            'recovery_codes_count' => count($this->twoFactorService->getRecoveryCodes($user))
+            'has_recovery_codes' => ! empty($user->two_factor_recovery_codes),
+            'recovery_codes_count' => count($this->twoFactorService->getRecoveryCodes($user)),
         ]);
     }
 }

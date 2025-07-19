@@ -34,7 +34,7 @@ class SuspiciousActivityNotification extends Notification implements ShouldQueue
         $activityType = $this->data['activity_type'];
         $riskLevel = strtoupper($this->data['risk_level']);
         $timestamp = $this->data['timestamp']->format('M j, Y \a\t g:i A');
-        
+
         $emoji = match ($this->data['risk_level']) {
             'high' => '🚨',
             'medium' => '⚠️',
@@ -46,7 +46,7 @@ class SuspiciousActivityNotification extends Notification implements ShouldQueue
             ->line("We've detected suspicious activity on your account that requires your attention.")
             ->line('')
             ->line('**Activity Details:**')
-            ->line("• Type: " . ucwords(str_replace('_', ' ', $activityType)))
+            ->line('• Type: '.ucwords(str_replace('_', ' ', $activityType)))
             ->line("• Risk Level: {$riskLevel}")
             ->line("• Time: {$timestamp}");
 
@@ -58,8 +58,7 @@ class SuspiciousActivityNotification extends Notification implements ShouldQueue
             $mailMessage->line("• Location: {$this->data['details']['location']}");
         }
 
-        $mailMessage->line('')
-            ->line('**What happened:**');
+        $mailMessage->line('')->line('**What happened:**');
 
         // Add specific details based on activity type
         switch ($activityType) {
@@ -88,8 +87,10 @@ class SuspiciousActivityNotification extends Notification implements ShouldQueue
             ->line('• Contact support if you need assistance')
             ->action('Review Security Activity', url('/settings/security'))
             ->line('')
-            ->line('If you believe this alert was triggered by your normal activity, you can safely ignore this message.')
-            ->salutation('Stay vigilant, ' . config('app.name') . ' Security Team');
+            ->line(
+                'If you believe this alert was triggered by your normal activity, you can safely ignore this message.',
+            )
+            ->salutation('Stay vigilant, '.config('app.name').' Security Team');
     }
 
     /**
@@ -98,7 +99,7 @@ class SuspiciousActivityNotification extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         $activityTitle = ucwords(str_replace('_', ' ', $this->data['activity_type']));
-        
+
         return [
             'type' => 'suspicious_activity',
             'title' => 'Suspicious Activity Detected',

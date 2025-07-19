@@ -9,10 +9,8 @@
     'loading' => false,
 ])
 
-<x-layouts.glass-card 
-    variant="default"
-    hover="true"
-    class="transition-all duration-200 hover:shadow-md"
+<x-ui.card 
+    class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 transition-all duration-200 hover:shadow-md"
     {{ $attributes }}>
     
     @if($loading)
@@ -66,4 +64,4 @@
             @endif
         </div>
     @endif
-</x-layouts.glass-card>
+</x-ui.card>

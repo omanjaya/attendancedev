@@ -28,7 +28,10 @@ class SecurityHeaders
 
         // HSTS (only for HTTPS)
         if ($request->isSecure()) {
-            $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+            $response->headers->set(
+                'Strict-Transport-Security',
+                'max-age=31536000; includeSubDomains; preload',
+            );
         }
 
         // Remove server information
@@ -62,12 +65,13 @@ class SecurityHeaders
             "base-uri 'self'",
             "form-action 'self'",
             "frame-ancestors 'none'",
-            "upgrade-insecure-requests"
+            'upgrade-insecure-requests',
         ];
 
         // Add development exceptions
         if (app()->environment('local', 'development')) {
-            $policies[] = "script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:* ws://localhost:* https://cdn.jsdelivr.net";
+            $policies[] =
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:* ws://localhost:* https://cdn.jsdelivr.net";
             $policies[] = "connect-src 'self' ws://localhost:* http://localhost:* https:";
         }
 
@@ -80,16 +84,16 @@ class SecurityHeaders
     private function buildPermissionsPolicy(): string
     {
         $policies = [
-            'camera=self',           // Required for face detection
-            'microphone=()',         // Disable microphone
-            'geolocation=self',      // Required for GPS verification
-            'accelerometer=()',      // Disable accelerometer
-            'autoplay=()',          // Disable autoplay
-            'encrypted-media=()',    // Disable encrypted media
-            'fullscreen=()',        // Disable fullscreen
-            'payment=()',           // Disable payment API
+            'camera=self', // Required for face detection
+            'microphone=()', // Disable microphone
+            'geolocation=self', // Required for GPS verification
+            'accelerometer=()', // Disable accelerometer
+            'autoplay=()', // Disable autoplay
+            'encrypted-media=()', // Disable encrypted media
+            'fullscreen=()', // Disable fullscreen
+            'payment=()', // Disable payment API
             'picture-in-picture=()', // Disable picture-in-picture
-            'usb=()',               // Disable USB
+            'usb=()', // Disable USB
         ];
 
         return implode(', ', $policies);

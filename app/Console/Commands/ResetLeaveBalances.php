@@ -7,7 +7,6 @@ use App\Models\LeaveBalance;
 use App\Models\LeaveType;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class ResetLeaveBalances extends Command
 {
@@ -34,15 +33,15 @@ class ResetLeaveBalances extends Command
      */
     public function handle()
     {
-        $year = $this->option('year') ?? (date('Y') + 1);
+        $year = $this->option('year') ?? date('Y') + 1;
         $carryForwardLimit = $this->option('carry-forward-limit') ?? 5;
         $dryRun = $this->option('dry-run');
         $force = $this->option('force');
 
         $this->info("Starting leave balance reset for year: {$year}");
-        
+
         if ($dryRun) {
-            $this->warn("DRY RUN MODE - No changes will be made");
+            $this->warn('DRY RUN MODE - No changes will be made');
         }
 
         // Get all active employees
@@ -54,19 +53,21 @@ class ResetLeaveBalances extends Command
         $this->info("Found {$leaveTypes->count()} active leave types");
 
         if ($employees->isEmpty() || $leaveTypes->isEmpty()) {
-            $this->error("No active employees or leave types found. Aborting.");
+            $this->error('No active employees or leave types found. Aborting.');
+
             return Command::FAILURE;
         }
 
         // Check if balances already exist for the target year
         $existingBalances = LeaveBalance::where('year', $year)->count();
-        if ($existingBalances > 0 && !$force) {
+        if ($existingBalances > 0 && ! $force) {
             $this->error("Leave balances already exist for year {$year}. Use --force to overwrite.");
+
             return Command::FAILURE;
         }
 
-        $this->info("Processing leave balance reset...");
-        
+        $this->info('Processing leave balance reset...');
+
         $created = 0;
         $updated = 0;
         $carried = 0;
@@ -76,12 +77,12 @@ class ResetLeaveBalances extends Command
         $progressBar->start();
 
         DB::beginTransaction();
-        
+
         try {
             foreach ($employees as $employee) {
                 foreach ($leaveTypes as $leaveType) {
                     $progressBar->advance();
-                    
+
                     try {
                         // Get previous year balance for carry-forward calculation
                         $previousBalance = LeaveBalance::where('employee_id', $employee->id)
@@ -103,9 +104,9 @@ class ResetLeaveBalances extends Command
                             ->first();
 
                         $allocatedDays = $leaveType->default_days_per_year ?? 20;
-                        
+
                         if ($existingBalance) {
-                            if ($force && !$dryRun) {
+                            if ($force && ! $dryRun) {
                                 $existingBalance->update([
                                     'allocated_days' => $allocatedDays,
                                     'used_days' => 0,
@@ -114,14 +115,14 @@ class ResetLeaveBalances extends Command
                                         'reset_at' => now()->toISOString(),
                                         'reset_by' => 'system_command',
                                         'carry_forward_from' => $year - 1,
-                                        'carry_forward_limit' => $carryForwardLimit
-                                    ]
+                                        'carry_forward_limit' => $carryForwardLimit,
+                                    ],
                                 ]);
                                 $existingBalance->updateRemainingDays();
                                 $updated++;
                             }
                         } else {
-                            if (!$dryRun) {
+                            if (! $dryRun) {
                                 LeaveBalance::create([
                                     'employee_id' => $employee->id,
                                     'leave_type_id' => $leaveType->id,
@@ -134,14 +135,15 @@ class ResetLeaveBalances extends Command
                                         'reset_at' => now()->toISOString(),
                                         'reset_by' => 'system_command',
                                         'carry_forward_from' => $year - 1,
-                                        'carry_forward_limit' => $carryForwardLimit
-                                    ]
+                                        'carry_forward_limit' => $carryForwardLimit,
+                                    ],
                                 ]);
                             }
                             $created++;
                         }
                     } catch (\Exception $e) {
-                        $errors[] = "Error processing {$employee->full_name} - {$leaveType->name}: " . $e->getMessage();
+                        $errors[] =
+                          "Error processing {$employee->full_name} - {$leaveType->name}: ".$e->getMessage();
                     }
                 }
             }
@@ -150,23 +152,23 @@ class ResetLeaveBalances extends Command
             $this->newLine();
 
             if ($dryRun) {
-                $this->info("DRY RUN RESULTS:");
+                $this->info('DRY RUN RESULTS:');
                 $this->info("- Would create: {$created} new balances");
                 $this->info("- Would update: {$updated} existing balances");
                 $this->info("- Total carry-forward days: {$carried}");
-                
+
                 DB::rollBack();
             } else {
                 DB::commit();
-                
-                $this->info("Leave balance reset completed successfully!");
+
+                $this->info('Leave balance reset completed successfully!');
                 $this->info("- Created: {$created} new balances");
                 $this->info("- Updated: {$updated} existing balances");
                 $this->info("- Total carry-forward days: {$carried}");
             }
 
-            if (!empty($errors)) {
-                $this->error("Errors encountered:");
+            if (! empty($errors)) {
+                $this->error('Errors encountered:');
                 foreach ($errors as $error) {
                     $this->error("- {$error}");
                 }
@@ -175,7 +177,8 @@ class ResetLeaveBalances extends Command
             return Command::SUCCESS;
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->error("Failed to reset leave balances: " . $e->getMessage());
+            $this->error('Failed to reset leave balances: '.$e->getMessage());
+
             return Command::FAILURE;
         }
     }

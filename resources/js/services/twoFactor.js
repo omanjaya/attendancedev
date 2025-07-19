@@ -14,20 +14,20 @@ class TwoFactorService {
   setupAxiosInterceptors() {
     // Request interceptor to add CSRF token
     axios.interceptors.request.use(
-      config => {
+      (config) => {
         const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
         if (token) {
           config.headers['X-CSRF-TOKEN'] = token
         }
         return config
       },
-      error => Promise.reject(error)
+      (error) => Promise.reject(error)
     )
 
     // Response interceptor for error handling
     axios.interceptors.response.use(
-      response => response,
-      error => {
+      (response) => response,
+      (error) => {
         if (error.response?.status === 401) {
           // Handle unauthorized access
           window.location.href = '/login'
@@ -58,7 +58,7 @@ class TwoFactorService {
   async verifySetup(code) {
     try {
       const response = await axios.post(`${this.baseURL}/setup/verify`, {
-        code: code.toString().padStart(6, '0')
+        code: code.toString().padStart(6, '0'),
       })
       return response.data
     } catch (error) {
@@ -76,7 +76,7 @@ class TwoFactorService {
     try {
       const response = await axios.post(`${this.baseURL}/verify`, {
         code: code.toString(),
-        type
+        type,
       })
       return response.data
     } catch (error) {
@@ -212,15 +212,15 @@ class TwoFactorService {
     ctx.textBaseline = 'top'
     ctx.font = '14px Arial'
     ctx.fillText('Device fingerprint', 2, 2)
-    
+
     const fingerprint = [
       navigator.userAgent,
       navigator.language,
       screen.width + 'x' + screen.height,
       new Date().getTimezoneOffset(),
-      canvas.toDataURL()
+      canvas.toDataURL(),
     ].join('|')
-    
+
     return btoa(fingerprint).slice(0, 32)
   }
 
@@ -246,8 +246,8 @@ class TwoFactorService {
           'Open the app and tap the "+" button',
           'Select "Scan a QR code"',
           'Point your camera at the QR code above',
-          'Enter the 6-digit code when prompted'
-        ]
+          'Enter the 6-digit code when prompted',
+        ],
       },
       {
         name: 'Authy',
@@ -257,8 +257,8 @@ class TwoFactorService {
           'Create an account and verify your phone number',
           'Tap "Add Account" and select "Scan QR Code"',
           'Scan the QR code with your camera',
-          'Enter the generated code to verify'
-        ]
+          'Enter the generated code to verify',
+        ],
       },
       {
         name: 'Microsoft Authenticator',
@@ -268,9 +268,9 @@ class TwoFactorService {
           'Open the app and tap "Add account"',
           'Select "Other account (Google, Facebook, etc.)"',
           'Scan the QR code',
-          'Use the generated code to verify setup'
-        ]
-      }
+          'Use the generated code to verify setup',
+        ],
+      },
     ]
   }
 
@@ -288,11 +288,11 @@ class TwoFactorService {
       formattedError.errors = data.errors || {}
       return formattedError
     }
-    
+
     if (error.request) {
       return new Error('Network error: Please check your internet connection')
     }
-    
+
     return new Error(error.message || 'An unexpected error occurred')
   }
 
@@ -345,7 +345,7 @@ class TwoFactorService {
      */
     clearVerificationAttempts() {
       sessionStorage.removeItem('2fa_verify_attempts')
-    }
+    },
   }
 
   /**
@@ -423,13 +423,13 @@ regenerate them immediately from your account settings.`
       let result = ''
       const randomArray = new Uint8Array(length)
       window.crypto.getRandomValues(randomArray)
-      
+
       for (let i = 0; i < length; i++) {
         result += chars[randomArray[i] % chars.length]
       }
-      
+
       return result
-    }
+    },
   }
 }
 

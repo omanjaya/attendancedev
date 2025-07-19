@@ -1,8 +1,8 @@
 <?php
 
-use App\Http\Controllers\Api\EmployeeApiController;
 use App\Http\Controllers\Api\AttendanceApiController;
 use App\Http\Controllers\Api\AuthApiController;
+use App\Http\Controllers\Api\EmployeeApiController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -25,7 +25,6 @@ Route::prefix('auth')->group(function () {
 
 // Protected API routes
 Route::middleware(['auth:sanctum'])->group(function () {
-    
     // Authentication management
     Route::prefix('auth')->group(function () {
         Route::post('/logout', [AuthApiController::class, 'logout']);
@@ -33,7 +32,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/refresh', [AuthApiController::class, 'refresh']);
         Route::post('/verify-email', [AuthApiController::class, 'verifyEmail']);
     });
-    
+
     // Employee management
     Route::prefix('employees')->group(function () {
         Route::get('/', [EmployeeApiController::class, 'index']);
@@ -44,7 +43,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::put('/{id}', [EmployeeApiController::class, 'update']);
         Route::delete('/{id}', [EmployeeApiController::class, 'destroy']);
     });
-    
+
     // Attendance management
     Route::prefix('attendance')->group(function () {
         Route::get('/', [AttendanceApiController::class, 'index']);
@@ -57,7 +56,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::put('/{id}', [AttendanceApiController::class, 'update']);
         Route::delete('/{id}', [AttendanceApiController::class, 'destroy']);
     });
-    
+
     // Leave management
     Route::prefix('leave')->group(function () {
         Route::get('/', [LeaveApiController::class, 'index']);
@@ -71,7 +70,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/{id}/approve', [LeaveApiController::class, 'approve']);
         Route::post('/{id}/reject', [LeaveApiController::class, 'reject']);
     });
-    
+
     // Schedule management
     Route::prefix('schedules')->group(function () {
         Route::get('/', [ScheduleApiController::class, 'index']);
@@ -81,7 +80,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::put('/{id}', [ScheduleApiController::class, 'update']);
         Route::delete('/{id}', [ScheduleApiController::class, 'destroy']);
     });
-    
+
     // Payroll management
     Route::prefix('payroll')->group(function () {
         Route::get('/', [PayrollApiController::class, 'index']);
@@ -90,7 +89,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/{id}', [PayrollApiController::class, 'show']);
         Route::put('/{id}', [PayrollApiController::class, 'update']);
     });
-    
+
     // Reports and analytics
     Route::prefix('reports')->group(function () {
         Route::get('/attendance', [ReportsApiController::class, 'attendance']);

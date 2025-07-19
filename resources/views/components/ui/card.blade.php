@@ -52,8 +52,8 @@
     
     $hoverClass = $hover ? 'transition-colors hover:bg-accent/5' : '';
     
-    // Use pure Tailwind classes
-    $baseClasses = "rounded-lg border bg-card text-card-foreground $shadowClass $hoverClass";
+    // Use design system classes
+    $baseClasses = "relative bg-card text-card-foreground rounded-xl border border-border $shadowClass $hoverClass";
 @endphp
 
 <div {{ $attributes->merge(['class' => $baseClasses]) }}>
@@ -68,10 +68,16 @@
     @if($variant === 'metric' && $value !== null)
         <div class="{{ $paddingClass }}">
             <div class="flex items-center">
-                @if($icon)
+                @if($icon || isset($icon))
                 <div class="flex-shrink-0">
                     <div class="w-12 h-12 rounded-lg {{ $colorClass }} flex items-center justify-center">
-                        <i class="{{ $icon }} text-xl"></i>
+                        @if(isset($icon))
+                            {!! $icon !!}
+                        @elseif(is_string($icon) && strpos($icon, '<svg') !== false)
+                            {!! $icon !!}
+                        @elseif(is_string($icon))
+                            <i class="{{ $icon }} text-xl"></i>
+                        @endif
                     </div>
                 </div>
                 @endif
@@ -131,7 +137,7 @@
     
     {{-- Interactive variant - hover effects and cursor pointer --}}
     @elseif($variant === 'interactive')
-        <div class="cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] {{ $paddingClass }}">
+        <div class="cursor-pointer transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-gray-700 {{ $paddingClass }}">
             @if($title || $subtitle)
             <div class="mb-4">
                 @if($title)

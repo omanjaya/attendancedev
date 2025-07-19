@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Location;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
 
 class LocationController extends Controller
@@ -14,7 +13,7 @@ class LocationController extends Controller
      */
     public function index()
     {
-        return view('pages.locations.index');
+        return view('pages.management.locations.index');
     }
 
     /**
@@ -30,14 +29,17 @@ class LocationController extends Controller
             })
             ->addColumn('coordinates', function ($location) {
                 if ($location->latitude && $location->longitude) {
-                    return number_format($location->latitude, 6) . ', ' . number_format($location->longitude, 6);
+                    return number_format($location->latitude, 6).
+                      ', '.
+                      number_format($location->longitude, 6);
                 }
+
                 return '<span class="text-muted">Not set</span>';
             })
             ->addColumn('status', function ($location) {
-                return $location->is_active 
-                    ? '<span class="badge bg-green">Active</span>' 
-                    : '<span class="badge bg-red">Inactive</span>';
+                return $location->is_active
+                  ? '<span class="badge bg-green">Active</span>'
+                  : '<span class="badge bg-red">Inactive</span>';
             })
             ->addColumn('verification_methods', function ($location) {
                 $methods = [];
@@ -47,18 +49,27 @@ class LocationController extends Controller
                 if ($location->wifi_ssid) {
                     $methods[] = '<span class="badge bg-green-lt">WiFi</span>';
                 }
-                return count($methods) > 0 ? implode(' ', $methods) : '<span class="text-muted">None</span>';
+
+                return count($methods) > 0
+                  ? implode(' ', $methods)
+                  : '<span class="text-muted">None</span>';
             })
             ->addColumn('actions', function ($location) {
                 return '
                     <div class="btn-list">
-                        <a href="' . route('locations.show', $location) . '" class="btn btn-sm btn-info">
+                        <a href="'.
+                  route('locations.show', $location).
+                  '" class="btn btn-sm btn-info">
                             View
                         </a>
-                        <a href="' . route('locations.edit', $location) . '" class="btn btn-sm btn-primary">
+                        <a href="'.
+                  route('locations.edit', $location).
+                  '" class="btn btn-sm btn-primary">
                             Edit
                         </a>
-                        <button class="btn btn-sm btn-danger delete-location" data-id="' . $location->id . '">
+                        <button class="btn btn-sm btn-danger delete-location" data-id="'.
+                  $location->id.
+                  '">
                             Delete
                         </button>
                     </div>
@@ -73,7 +84,7 @@ class LocationController extends Controller
      */
     public function create()
     {
-        return view('pages.locations.create');
+        return view('pages.management.locations.create');
     }
 
     /**
@@ -88,7 +99,7 @@ class LocationController extends Controller
             'longitude' => 'nullable|numeric|between:-180,180',
             'radius_meters' => 'required|integer|min:10|max:1000',
             'wifi_ssid' => 'nullable|string|max:255',
-            'is_active' => 'boolean'
+            'is_active' => 'boolean',
         ]);
 
         try {
@@ -102,11 +113,13 @@ class LocationController extends Controller
                 'is_active' => $validated['is_active'] ?? true,
             ]);
 
-            return redirect()->route('locations.index')
+            return redirect()
+                ->route('locations.index')
                 ->with('success', 'Location created successfully.');
         } catch (\Exception $e) {
-            return back()->withInput()
-                ->with('error', 'Failed to create location: ' . $e->getMessage());
+            return back()
+                ->withInput()
+                ->with('error', 'Failed to create location: '.$e->getMessage());
         }
     }
 
@@ -116,7 +129,8 @@ class LocationController extends Controller
     public function show(Location $location)
     {
         $location->load('employees.user');
-        return view('pages.locations.show', compact('location'));
+
+        return view('pages.management.locations.show', compact('location'));
     }
 
     /**
@@ -124,7 +138,7 @@ class LocationController extends Controller
      */
     public function edit(Location $location)
     {
-        return view('pages.locations.edit', compact('location'));
+        return view('pages.management.locations.edit', compact('location'));
     }
 
     /**
@@ -133,13 +147,13 @@ class LocationController extends Controller
     public function update(Request $request, Location $location)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:locations,name,' . $location->id,
+            'name' => 'required|string|max:255|unique:locations,name,'.$location->id,
             'address' => 'nullable|string|max:500',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'radius_meters' => 'required|integer|min:10|max:1000',
             'wifi_ssid' => 'nullable|string|max:255',
-            'is_active' => 'boolean'
+            'is_active' => 'boolean',
         ]);
 
         try {
@@ -153,11 +167,13 @@ class LocationController extends Controller
                 'is_active' => $validated['is_active'] ?? true,
             ]);
 
-            return redirect()->route('locations.index')
+            return redirect()
+                ->route('locations.index')
                 ->with('success', 'Location updated successfully.');
         } catch (\Exception $e) {
-            return back()->withInput()
-                ->with('error', 'Failed to update location: ' . $e->getMessage());
+            return back()
+                ->withInput()
+                ->with('error', 'Failed to update location: '.$e->getMessage());
         }
     }
 
@@ -169,23 +185,29 @@ class LocationController extends Controller
         try {
             // Check if location has employees
             if ($location->employees()->count() > 0) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cannot delete location with assigned employees. Please reassign employees first.'
-                ], 400);
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Cannot delete location with assigned employees. Please reassign employees first.',
+                    ],
+                    400,
+                );
             }
 
             $location->delete();
-            
+
             return response()->json([
                 'success' => true,
-                'message' => 'Location deleted successfully.'
+                'message' => 'Location deleted successfully.',
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete location: ' . $e->getMessage()
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to delete location: '.$e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -210,7 +232,7 @@ class LocationController extends Controller
         $validated = $request->validate([
             'latitude' => 'required|numeric|between:-90,90',
             'longitude' => 'required|numeric|between:-180,180',
-            'location_id' => 'nullable|exists:locations,id'
+            'location_id' => 'nullable|exists:locations,id',
         ]);
 
         if ($validated['location_id']) {
@@ -220,19 +242,19 @@ class LocationController extends Controller
             $location = $this->findNearestLocation($validated['latitude'], $validated['longitude']);
         }
 
-        if (!$location || !$location->latitude || !$location->longitude) {
+        if (! $location || ! $location->latitude || ! $location->longitude) {
             return response()->json([
                 'verified' => false,
                 'message' => 'No GPS-enabled location found.',
-                'location' => null
+                'location' => null,
             ]);
         }
 
         $distance = $this->calculateDistance(
-            $validated['latitude'], 
+            $validated['latitude'],
             $validated['longitude'],
-            $location->latitude, 
-            $location->longitude
+            $location->latitude,
+            $location->longitude,
         );
 
         $verified = $distance <= $location->radius_meters;
@@ -244,11 +266,11 @@ class LocationController extends Controller
             'location' => [
                 'id' => $location->id,
                 'name' => $location->name,
-                'address' => $location->address
+                'address' => $location->address,
             ],
-            'message' => $verified 
-                ? 'Location verified successfully.' 
-                : "You are {$distance}m away. Must be within {$location->radius_meters}m."
+            'message' => $verified
+              ? 'Location verified successfully.'
+              : "You are {$distance}m away. Must be within {$location->radius_meters}m.",
         ]);
     }
 
@@ -260,10 +282,13 @@ class LocationController extends Controller
         return Location::where('is_active', true)
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
-            ->selectRaw("
+            ->selectRaw(
+                '
                 *, 
                 (6371000 * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance
-            ", [$latitude, $longitude, $latitude])
+            ',
+                [$latitude, $longitude, $latitude],
+            )
             ->orderBy('distance')
             ->first();
     }
@@ -278,9 +303,9 @@ class LocationController extends Controller
         $latDelta = deg2rad($lat2 - $lat1);
         $lonDelta = deg2rad($lon2 - $lon1);
 
-        $a = sin($latDelta / 2) * sin($latDelta / 2) +
-             cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
-             sin($lonDelta / 2) * sin($lonDelta / 2);
+        $a =
+          sin($latDelta / 2) * sin($latDelta / 2) +
+          cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($lonDelta / 2) * sin($lonDelta / 2);
 
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
 

@@ -31,7 +31,7 @@ class RunTests extends Command
         $this->info('Running attendance system tests...');
 
         $command = $this->buildTestCommand();
-        
+
         $this->line("Executing: {$command}");
         $this->newLine();
 
@@ -45,7 +45,7 @@ class RunTests extends Command
         if ($exitCode === 0) {
             $this->newLine();
             $this->info('✓ All tests passed!');
-            
+
             if ($this->option('coverage')) {
                 $this->info('Coverage report generated in build/coverage/');
             }
@@ -67,7 +67,7 @@ class RunTests extends Command
         // Test suite selection
         if ($suite = $this->option('suite')) {
             if ($suite !== 'all') {
-                $command[] = '--testsuite=' . ucfirst($suite);
+                $command[] = '--testsuite='.ucfirst($suite);
             }
         }
 
@@ -80,12 +80,12 @@ class RunTests extends Command
 
         // Filter tests
         if ($filter = $this->option('filter')) {
-            $command[] = '--filter=' . escapeshellarg($filter);
+            $command[] = '--filter='.escapeshellarg($filter);
         }
 
         // Test groups
         if ($group = $this->option('group')) {
-            $command[] = '--group=' . escapeshellarg($group);
+            $command[] = '--group='.escapeshellarg($group);
         }
 
         // Stop on failure
@@ -111,14 +111,14 @@ class RunTests extends Command
     private function showTestStatistics(): void
     {
         $this->info('Test Statistics:');
-        
+
         // Count test files
         $unitTests = glob(base_path('tests/Unit/*Test.php'));
         $featureTests = glob(base_path('tests/Feature/*Test.php'));
-        
-        $this->line("Unit Tests: " . count($unitTests));
-        $this->line("Feature Tests: " . count($featureTests));
-        $this->line("Total Test Files: " . (count($unitTests) + count($featureTests)));
+
+        $this->line('Unit Tests: '.count($unitTests));
+        $this->line('Feature Tests: '.count($featureTests));
+        $this->line('Total Test Files: '.(count($unitTests) + count($featureTests)));
 
         // Test coverage recommendations
         $this->newLine();

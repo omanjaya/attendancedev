@@ -4,73 +4,81 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
 
 class RoleController extends Controller
 {
     public function getData()
     {
-        $roles = Role::with('permissions')->get();
-        
+        $roles = Role::withCount('permissions')->with('users')->get();
+
         return response()->json([
             'data' => $roles->map(function ($role) {
+                $actions = '';
+                if ($role->name !== 'superadmin') {
+                    $actions = '<button class="btn btn-sm btn-danger delete-role" data-role-id="'.$role->id.'">Delete</button>';
+                }
+
                 return [
                     'id' => $role->id,
-                    'name' => $role->name,
-                    'guard_name' => $role->guard_name,
-                    'permissions_count' => $role->permissions->count(),
-                    'created_at' => $role->created_at->format('Y-m-d H:i:s'),
+                    'name' => ucfirst($role->name),
+                    'permissions_count' => $role->permissions_count.' permissions',
+                    'users_count' => $role->users->count().' users',
+                    'created_at' => $role->created_at->format('M j, Y'),
+                    'actions' => $actions,
                 ];
-            })
+            }),
         ]);
     }
-    
+
     public function store(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:255|unique:roles,name',
-            'permissions' => 'array'
+            'permissions' => 'array',
         ]);
-        
+
         $role = Role::create(['name' => $request->name]);
-        
+
         if ($request->has('permissions')) {
             $role->syncPermissions($request->permissions);
         }
-        
+
         return response()->json([
             'message' => 'Role created successfully',
-            'role' => $role->load('permissions')
+            'role' => $role->load('permissions'),
         ]);
     }
-    
+
     public function updatePermissions(Request $request, Role $role)
     {
         $request->validate([
-            'permissions' => 'array'
+            'permissions' => 'array',
         ]);
-        
+
         $role->syncPermissions($request->permissions ?? []);
-        
+
         return response()->json([
             'message' => 'Role permissions updated successfully',
-            'role' => $role->load('permissions')
+            'role' => $role->load('permissions'),
         ]);
     }
-    
+
     public function destroy(Role $role)
     {
         // Prevent deletion of super-admin role
         if ($role->name === 'super-admin') {
-            return response()->json([
-                'error' => 'Cannot delete super-admin role'
-            ], 403);
+            return response()->json(
+                [
+                    'error' => 'Cannot delete super-admin role',
+                ],
+                403,
+            );
         }
-        
+
         $role->delete();
-        
+
         return response()->json([
-            'message' => 'Role deleted successfully'
+            'message' => 'Role deleted successfully',
         ]);
     }
 }

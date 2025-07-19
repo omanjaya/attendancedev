@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -14,10 +14,10 @@ return new class extends Migration
     {
         // First, backup any existing data
         DB::statement('CREATE TEMPORARY TABLE user_devices_backup AS SELECT * FROM user_devices');
-        
+
         // Drop the existing table
         Schema::dropIfExists('user_devices');
-        
+
         // Recreate with correct foreign key type
         Schema::create('user_devices', function (Blueprint $table) {
             $table->uuid('id')->primary();
@@ -38,11 +38,11 @@ return new class extends Migration
             $table->json('fingerprint_data');
             $table->json('metadata')->nullable();
             $table->timestamps();
-            
+
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->unique(['user_id', 'device_fingerprint'], 'unique_user_device');
         });
-        
+
         // Restore data if any existed (likely none since this is new)
         DB::statement('INSERT INTO user_devices SELECT * FROM user_devices_backup WHERE 1=0'); // Won't insert anything due to schema changes
         DB::statement('DROP TABLE user_devices_backup');
@@ -56,9 +56,9 @@ return new class extends Migration
         Schema::table('user_devices', function (Blueprint $table) {
             $table->dropForeign(['user_id']);
         });
-        
+
         Schema::dropIfExists('user_devices');
-        
+
         // Recreate original structure (UUID foreign key)
         Schema::create('user_devices', function (Blueprint $table) {
             $table->uuid('id')->primary();
@@ -79,7 +79,7 @@ return new class extends Migration
             $table->json('fingerprint_data');
             $table->json('metadata')->nullable();
             $table->timestamps();
-            
+
             $table->unique(['user_id', 'device_fingerprint'], 'unique_user_device');
         });
     }

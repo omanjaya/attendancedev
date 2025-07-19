@@ -2,32 +2,38 @@
 
 namespace App\Services;
 
-use App\Models\User;
 use App\Models\AuditLog;
+use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Http\Request;
-use Carbon\Carbon;
 
 class SecurityEventService
 {
     /**
      * Log 2FA-related security events with enhanced context.
      */
-    public function log2FAEvent(string $event, User $user, Request $request, array $additionalData = []): void
-    {
-        $eventData = array_merge([
-            'user_id' => $user->id,
-            'user_email' => $user->email,
-            'event_type' => $event,
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'session_id' => session()->getId(),
-            'timestamp' => now()->toISOString(),
-            'device_fingerprint' => $this->generateDeviceFingerprint($request),
-            'geolocation' => $this->getApproximateLocation($request->ip()),
-            'security_context' => $this->buildSecurityContext($user, $request)
-        ], $additionalData);
+    public function log2FAEvent(
+        string $event,
+        User $user,
+        Request $request,
+        array $additionalData = [],
+    ): void {
+        $eventData = array_merge(
+            [
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'event_type' => $event,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'session_id' => session()->getId(),
+                'timestamp' => now()->toISOString(),
+                'device_fingerprint' => $this->generateDeviceFingerprint($request),
+                'geolocation' => $this->getApproximateLocation($request->ip()),
+                'security_context' => $this->buildSecurityContext($user, $request),
+            ],
+            $additionalData,
+        );
 
         // Log to security channel
         Log::channel('security')->info("2FA Event: {$event}", $eventData);
@@ -43,7 +49,7 @@ class SecurityEventService
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'risk_level' => $this->calculateEventRiskLevel($event, $eventData),
-            'metadata' => json_encode($eventData)
+            'metadata' => json_encode($eventData),
         ]);
 
         // Track user activity patterns
@@ -56,24 +62,31 @@ class SecurityEventService
     /**
      * Log authentication events.
      */
-    public function logAuthEvent(string $event, ?User $user, Request $request, array $additionalData = []): void
-    {
-        $eventData = array_merge([
-            'user_id' => $user?->id,
-            'user_email' => $user?->email,
-            'event_type' => $event,
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'session_id' => session()->getId(),
-            'timestamp' => now()->toISOString(),
-            'device_fingerprint' => $this->generateDeviceFingerprint($request),
-            'geolocation' => $this->getApproximateLocation($request->ip()),
-            'login_method' => $this->detectLoginMethod($request)
-        ], $additionalData);
+    public function logAuthEvent(
+        string $event,
+        ?User $user,
+        Request $request,
+        array $additionalData = [],
+    ): void {
+        $eventData = array_merge(
+            [
+                'user_id' => $user?->id,
+                'user_email' => $user?->email,
+                'event_type' => $event,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'session_id' => session()->getId(),
+                'timestamp' => now()->toISOString(),
+                'device_fingerprint' => $this->generateDeviceFingerprint($request),
+                'geolocation' => $this->getApproximateLocation($request->ip()),
+                'login_method' => $this->detectLoginMethod($request),
+            ],
+            $additionalData,
+        );
 
         // Determine log level based on event
         $logLevel = $this->getLogLevel($event);
-        
+
         Log::channel('security')->{$logLevel}("Auth Event: {$event}", $eventData);
 
         // Create audit log for trackable events
@@ -88,7 +101,7 @@ class SecurityEventService
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
                 'risk_level' => $this->calculateEventRiskLevel($event, $eventData),
-                'metadata' => json_encode($eventData)
+                'metadata' => json_encode($eventData),
             ]);
         }
 
@@ -99,21 +112,27 @@ class SecurityEventService
     /**
      * Log security violations and potential attacks.
      */
-    public function logSecurityViolation(string $violationType, Request $request, array $details = []): void
-    {
-        $eventData = array_merge([
-            'violation_type' => $violationType,
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'url' => $request->fullUrl(),
-            'method' => $request->method(),
-            'timestamp' => now()->toISOString(),
-            'session_id' => session()->getId(),
-            'user_id' => auth()->id(),
-            'device_fingerprint' => $this->generateDeviceFingerprint($request),
-            'request_headers' => $this->sanitizeHeaders($request->headers->all()),
-            'severity' => $this->calculateViolationSeverity($violationType, $details)
-        ], $details);
+    public function logSecurityViolation(
+        string $violationType,
+        Request $request,
+        array $details = [],
+    ): void {
+        $eventData = array_merge(
+            [
+                'violation_type' => $violationType,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'url' => $request->fullUrl(),
+                'method' => $request->method(),
+                'timestamp' => now()->toISOString(),
+                'session_id' => session()->getId(),
+                'user_id' => auth()->id(),
+                'device_fingerprint' => $this->generateDeviceFingerprint($request),
+                'request_headers' => $this->sanitizeHeaders($request->headers->all()),
+                'severity' => $this->calculateViolationSeverity($violationType, $details),
+            ],
+            $details,
+        );
 
         // Log with appropriate level
         $logLevel = $eventData['severity'] === 'critical' ? 'critical' : 'warning';
@@ -130,7 +149,7 @@ class SecurityEventService
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'risk_level' => $eventData['severity'],
-            'metadata' => json_encode($eventData)
+            'metadata' => json_encode($eventData),
         ]);
 
         // Track violation patterns
@@ -145,8 +164,12 @@ class SecurityEventService
     /**
      * Log admin actions with enhanced tracking.
      */
-    public function logAdminAction(string $action, User $admin, array $targetData = [], array $changes = []): void
-    {
+    public function logAdminAction(
+        string $action,
+        User $admin,
+        array $targetData = [],
+        array $changes = [],
+    ): void {
         $eventData = [
             'admin_id' => $admin->id,
             'admin_email' => $admin->email,
@@ -158,7 +181,7 @@ class SecurityEventService
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
             'session_id' => session()->getId(),
-            'request_id' => uniqid()
+            'request_id' => uniqid(),
         ];
 
         Log::channel('security')->info("Admin Action: {$action}", $eventData);
@@ -174,7 +197,7 @@ class SecurityEventService
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
             'risk_level' => $this->calculateAdminActionRisk($action),
-            'metadata' => json_encode($eventData)
+            'metadata' => json_encode($eventData),
         ]);
 
         // Track admin activity patterns
@@ -184,17 +207,23 @@ class SecurityEventService
     /**
      * Log performance anomalies and system events.
      */
-    public function logSystemEvent(string $event, array $metrics = [], string $severity = 'info'): void
-    {
-        $eventData = array_merge([
-            'event_type' => $event,
-            'timestamp' => now()->toISOString(),
-            'server_info' => [
-                'memory_usage' => memory_get_usage(true),
-                'peak_memory' => memory_get_peak_usage(true),
-                'execution_time' => microtime(true) - LARAVEL_START
-            ]
-        ], $metrics);
+    public function logSystemEvent(
+        string $event,
+        array $metrics = [],
+        string $severity = 'info',
+    ): void {
+        $eventData = array_merge(
+            [
+                'event_type' => $event,
+                'timestamp' => now()->toISOString(),
+                'server_info' => [
+                    'memory_usage' => memory_get_usage(true),
+                    'peak_memory' => memory_get_peak_usage(true),
+                    'execution_time' => microtime(true) - LARAVEL_START,
+                ],
+            ],
+            $metrics,
+        );
 
         Log::channel('security')->{$severity}("System Event: {$event}", $eventData);
 
@@ -210,7 +239,7 @@ class SecurityEventService
                 'ip_address' => request()->ip() ?? 'system',
                 'user_agent' => 'system',
                 'risk_level' => $severity === 'critical' ? 'critical' : 'medium',
-                'metadata' => json_encode($eventData)
+                'metadata' => json_encode($eventData),
             ]);
         }
     }
@@ -225,7 +254,7 @@ class SecurityEventService
             $request->header('Accept'),
             $request->header('Accept-Language'),
             $request->header('Accept-Encoding'),
-            $request->ip()
+            $request->ip(),
         ];
 
         return hash('sha256', implode('|', array_filter($components)));
@@ -241,7 +270,7 @@ class SecurityEventService
         return [
             'country' => 'Unknown',
             'region' => 'Unknown',
-            'timezone' => date_default_timezone_get()
+            'timezone' => date_default_timezone_get(),
         ];
     }
 
@@ -258,7 +287,7 @@ class SecurityEventService
             'last_login' => $user->last_login_at?->toISOString(),
             'login_count' => $this->getUserLoginCount($user),
             'is_new_device' => $this->isNewDevice($user, $request),
-            'session_age_minutes' => $this->getSessionAge()
+            'session_age_minutes' => $this->getSessionAge(),
         ];
     }
 
@@ -275,7 +304,7 @@ class SecurityEventService
             'password_changed' => 2,
             'account_locked' => 4,
             'suspicious_activity' => 3,
-            'admin_action' => 2
+            'admin_action' => 2,
         ];
 
         $baseScore = $riskScores[$event] ?? 1;
@@ -293,7 +322,7 @@ class SecurityEventService
             $baseScore >= 5 => 'critical',
             $baseScore >= 3 => 'high',
             $baseScore >= 2 => 'medium',
-            default => 'low'
+            default => 'low',
         };
     }
 
@@ -309,7 +338,7 @@ class SecurityEventService
             'event' => $event,
             'timestamp' => time(),
             'ip' => $request->ip(),
-            'device' => $this->generateDeviceFingerprint($request)
+            'device' => $this->generateDeviceFingerprint($request),
         ];
 
         // Keep only last 100 activities
@@ -342,8 +371,12 @@ class SecurityEventService
     /**
      * Handle specific authentication events.
      */
-    private function handleSpecificAuthEvent(string $event, ?User $user, Request $request, array $eventData): void
-    {
+    private function handleSpecificAuthEvent(
+        string $event,
+        ?User $user,
+        Request $request,
+        array $eventData,
+    ): void {
         switch ($event) {
             case 'login_success':
                 if ($user) {
@@ -408,7 +441,7 @@ class SecurityEventService
             'xss_attempt',
             'privilege_escalation',
             'brute_force_attack',
-            'coordinated_attack'
+            'coordinated_attack',
         ];
 
         if (in_array($type, $criticalViolations)) {
@@ -428,7 +461,7 @@ class SecurityEventService
     private function sanitizeHeaders(array $headers): array
     {
         $sensitiveHeaders = ['authorization', 'cookie', 'x-api-key', 'x-auth-token'];
-        
+
         foreach ($sensitiveHeaders as $header) {
             if (isset($headers[$header])) {
                 $headers[$header] = ['***REDACTED***'];
@@ -448,12 +481,12 @@ class SecurityEventService
 
         $violations[] = [
             'type' => $violationType,
-            'timestamp' => time()
+            'timestamp' => time(),
         ];
 
         // Keep only last 24 hours of violations
         $oneDayAgo = time() - 86400;
-        $violations = array_filter($violations, fn($v) => $v['timestamp'] > $oneDayAgo);
+        $violations = array_filter($violations, fn ($v) => $v['timestamp'] > $oneDayAgo);
 
         Cache::put($violationKey, $violations, 86400);
 
@@ -472,11 +505,15 @@ class SecurityEventService
         Log::channel('security')->critical("CRITICAL SECURITY VIOLATION: {$type}", $data);
 
         // Cache critical event for immediate admin notification
-        Cache::put("critical_violation_" . time(), [
-            'type' => $type,
-            'data' => $data,
-            'timestamp' => now()->toISOString()
-        ], 3600); // 1 hour
+        Cache::put(
+            'critical_violation_'.time(),
+            [
+                'type' => $type,
+                'data' => $data,
+                'timestamp' => now()->toISOString(),
+            ],
+            3600,
+        ); // 1 hour
 
         // You could integrate with notification services here
         // For example: Slack, email, SMS alerts to administrators
@@ -493,7 +530,7 @@ class SecurityEventService
             'permission_grant',
             'system_backup',
             'data_export',
-            '2fa_unlock'
+            '2fa_unlock',
         ];
 
         return in_array($action, $highRiskActions) ? 'high' : 'medium';
@@ -509,7 +546,7 @@ class SecurityEventService
 
         $activities[] = [
             'action' => $action,
-            'timestamp' => time()
+            'timestamp' => time(),
         ];
 
         // Keep only last 100 admin actions
@@ -532,13 +569,14 @@ class SecurityEventService
     {
         $deviceFingerprint = $this->generateDeviceFingerprint($request);
         $knownDevices = Cache::get("user_devices_{$user->id}", []);
-        
-        return !in_array($deviceFingerprint, $knownDevices);
+
+        return ! in_array($deviceFingerprint, $knownDevices);
     }
 
     private function getSessionAge(): int
     {
         $sessionStart = session('started_at', time());
+
         return (time() - $sessionStart) / 60; // minutes
     }
 
@@ -546,20 +584,20 @@ class SecurityEventService
     {
         $failureKey = "rapid_failures_{$user->id}";
         $failures = Cache::get($failureKey, []);
-        
+
         $failures[] = time();
-        
+
         // Keep only last 5 minutes of failures
         $fiveMinutesAgo = time() - 300;
-        $failures = array_filter($failures, fn($timestamp) => $timestamp > $fiveMinutesAgo);
-        
+        $failures = array_filter($failures, fn ($timestamp) => $timestamp > $fiveMinutesAgo);
+
         Cache::put($failureKey, $failures, 300);
-        
+
         if (count($failures) >= 5) {
             $this->logSecurityViolation('rapid_failures', request(), [
                 'user_id' => $user->id,
                 'failure_count' => count($failures),
-                'event_type' => $event
+                'event_type' => $event,
             ]);
         }
     }
@@ -568,22 +606,22 @@ class SecurityEventService
     {
         $attackKey = "coordinated_attack_{$ip}";
         $attempts = Cache::get($attackKey, []);
-        
+
         $attempts[] = ['user_id' => $userId, 'timestamp' => time()];
-        
+
         // Keep only last hour
         $oneHourAgo = time() - 3600;
-        $attempts = array_filter($attempts, fn($attempt) => $attempt['timestamp'] > $oneHourAgo);
-        
+        $attempts = array_filter($attempts, fn ($attempt) => $attempt['timestamp'] > $oneHourAgo);
+
         Cache::put($attackKey, $attempts, 3600);
-        
+
         $uniqueUsers = count(array_unique(array_column($attempts, 'user_id')));
-        
+
         if ($uniqueUsers >= 3 && count($attempts) >= 10) {
             $this->logSecurityViolation('coordinated_attack', request(), [
                 'ip_address' => $ip,
                 'affected_users' => $uniqueUsers,
-                'total_attempts' => count($attempts)
+                'total_attempts' => count($attempts),
             ]);
         }
     }
@@ -593,34 +631,34 @@ class SecurityEventService
         // Check for unusual login times
         $currentHour = now()->hour;
         $userHours = Cache::get("user_hours_{$user->id}", []);
-        
-        if (!empty($userHours)) {
+
+        if (! empty($userHours)) {
             $averageHour = array_sum($userHours) / count($userHours);
             if (abs($currentHour - $averageHour) > 6) {
                 $eventData['unusual_time'] = true;
             }
         }
-        
+
         $userHours[] = $currentHour;
         if (count($userHours) > 30) {
             $userHours = array_slice($userHours, -30);
         }
-        
+
         Cache::put("user_hours_{$user->id}", $userHours, 86400 * 30);
     }
 
     private function recordSuccessfulLogin(User $user, Request $request): void
     {
         $user->update(['last_login_at' => now()]);
-        
+
         $loginCount = Cache::get("user_login_count_{$user->id}", 0) + 1;
         Cache::put("user_login_count_{$user->id}", $loginCount, 86400 * 30);
-        
+
         // Remember device
         $deviceFingerprint = $this->generateDeviceFingerprint($request);
         $knownDevices = Cache::get("user_devices_{$user->id}", []);
-        
-        if (!in_array($deviceFingerprint, $knownDevices)) {
+
+        if (! in_array($deviceFingerprint, $knownDevices)) {
             $knownDevices[] = $deviceFingerprint;
             if (count($knownDevices) > 5) {
                 $knownDevices = array_slice($knownDevices, -5);
@@ -634,13 +672,13 @@ class SecurityEventService
         $ip = $request->ip();
         $failedKey = "failed_login_attempts_{$ip}";
         $attempts = Cache::get($failedKey, 0) + 1;
-        
+
         Cache::put($failedKey, $attempts, 900); // 15 minutes
-        
+
         if ($attempts >= 5) {
             $this->logSecurityViolation('brute_force_login', $request, [
                 'attempt_count' => $attempts,
-                'event_data' => $eventData
+                'event_data' => $eventData,
             ]);
         }
     }
@@ -653,16 +691,20 @@ class SecurityEventService
 
     private function flagIPForBlocking(string $ip, int $violationCount): void
     {
-        Cache::put("flagged_ip_{$ip}", [
-            'flagged_at' => now()->toISOString(),
-            'violation_count' => $violationCount,
-            'auto_flagged' => true
-        ], 86400); // 24 hours
+        Cache::put(
+            "flagged_ip_{$ip}",
+            [
+                'flagged_at' => now()->toISOString(),
+                'violation_count' => $violationCount,
+                'auto_flagged' => true,
+            ],
+            86400,
+        ); // 24 hours
 
-        Log::channel('security')->critical("IP Flagged for Blocking", [
+        Log::channel('security')->critical('IP Flagged for Blocking', [
             'ip_address' => $ip,
             'violation_count' => $violationCount,
-            'action_required' => 'Review and consider blocking this IP'
+            'action_required' => 'Review and consider blocking this IP',
         ]);
     }
 }

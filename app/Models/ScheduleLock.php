@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class ScheduleLock extends Model
 {
@@ -20,21 +20,21 @@ class ScheduleLock extends Model
         'unlocked_at',
         'unlocked_by',
         'unlock_reason',
-        'is_active'
+        'is_active',
     ];
 
     protected $casts = [
         'locked_at' => 'datetime',
         'locked_until' => 'datetime',
         'unlocked_at' => 'datetime',
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
     ];
 
     // Constants
     const LOCK_TYPES = [
         'manual' => 'Manual',
         'automatic' => 'Otomatis',
-        'system' => 'Sistem'
+        'system' => 'Sistem',
     ];
 
     // Relationships
@@ -61,15 +61,13 @@ class ScheduleLock extends Model
 
     public function scopeExpired($query)
     {
-        return $query->where('locked_until', '<', now())
-                    ->whereNotNull('locked_until');
+        return $query->where('locked_until', '<', now())->whereNotNull('locked_until');
     }
 
     public function scopeNotExpired($query)
     {
         return $query->where(function ($q) {
-            $q->whereNull('locked_until')
-              ->orWhere('locked_until', '>=', now());
+            $q->whereNull('locked_until')->orWhere('locked_until', '>=', now());
         });
     }
 
@@ -86,7 +84,7 @@ class ScheduleLock extends Model
 
     public function getIsExpiredAttribute()
     {
-        if (!$this->locked_until) {
+        if (! $this->locked_until) {
             return false; // Permanent lock
         }
 
@@ -95,7 +93,7 @@ class ScheduleLock extends Model
 
     public function getStatusAttribute()
     {
-        if (!$this->is_active) {
+        if (! $this->is_active) {
             return 'unlocked';
         }
 
@@ -111,7 +109,7 @@ class ScheduleLock extends Model
         $colors = [
             'locked' => 'red',
             'expired' => 'orange',
-            'unlocked' => 'green'
+            'unlocked' => 'green',
         ];
 
         return $colors[$this->status] ?? 'gray';
@@ -119,7 +117,7 @@ class ScheduleLock extends Model
 
     public function getDurationAttribute()
     {
-        if (!$this->locked_until) {
+        if (! $this->locked_until) {
             return 'Permanent';
         }
 
@@ -134,7 +132,7 @@ class ScheduleLock extends Model
     // Methods
     public function isCurrentlyLocked()
     {
-        if (!$this->is_active) {
+        if (! $this->is_active) {
             return false;
         }
 
@@ -151,7 +149,7 @@ class ScheduleLock extends Model
             'unlocked_at' => now(),
             'unlocked_by' => $userId,
             'unlock_reason' => $reason,
-            'is_active' => false
+            'is_active' => false,
         ]);
 
         // Also unlock the schedule
@@ -164,7 +162,7 @@ class ScheduleLock extends Model
     {
         $this->update([
             'locked_until' => $newUntil,
-            'reason' => $this->reason . ($reason ? " | Extended: {$reason}" : '')
+            'reason' => $this->reason.($reason ? " | Extended: {$reason}" : ''),
         ]);
 
         return $this;
@@ -184,16 +182,14 @@ class ScheduleLock extends Model
             'is_expired' => $this->is_expired,
             'unlocked_by' => $this->unlockedBy->name ?? null,
             'unlocked_at' => $this->unlocked_at?->format('d/m/Y H:i'),
-            'unlock_reason' => $this->unlock_reason
+            'unlock_reason' => $this->unlock_reason,
         ];
     }
 
     // Static methods
     public static function cleanupExpiredLocks()
     {
-        $expiredLocks = self::active()
-                           ->expired()
-                           ->get();
+        $expiredLocks = self::active()->expired()->get();
 
         foreach ($expiredLocks as $lock) {
             $lock->update(['is_active' => false]);

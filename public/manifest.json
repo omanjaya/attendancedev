@@ -1,124 +1,68 @@
 {
-  "name": "School Attendance Management System",
-  "short_name": "Attendance",
-  "description": "Mobile attendance tracking with face recognition and GPS verification",
+  "name": "AttendanceHub - School Attendance System",
+  "short_name": "AttendanceHub",
+  "description": "Modern school attendance management system with face recognition",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#206bc4",
+  "theme_color": "#10b981",
   "orientation": "portrait-primary",
   "scope": "/",
-  "lang": "en",
-  "categories": ["productivity", "business"],
+  "lang": "id",
+  "categories": ["education", "productivity", "business"],
+  "dir": "ltr",
   "icons": [
     {
-      "src": "/icon-72.png",
-      "sizes": "72x72",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
     },
     {
-      "src": "/icon-96.png",
-      "sizes": "96x96",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-128.png",
-      "sizes": "128x128",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-144.png",
+      "src": "/icon-144.svg",
       "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/svg+xml",
+      "purpose": "any"
     },
     {
-      "src": "/icon-152.png",
-      "sizes": "152x152",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-192.png",
+      "src": "/icon-192.svg",
       "sizes": "192x192",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "/icon-384.png",
-      "sizes": "384x384",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-512.png",
+      "src": "/icon-512.svg",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ],
   "shortcuts": [
     {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View main dashboard",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
       "name": "Check In",
       "short_name": "Check In",
-      "description": "Quick attendance check-in",
-      "url": "/attendance/mobile",
+      "description": "Quick check in",
+      "url": "/attendance/checkin",
       "icons": [
         {
-          "src": "/icon-96.png",
-          "sizes": "96x96"
-        }
-      ]
-    },
-    {
-      "name": "Request Leave",
-      "short_name": "Leave",
-      "description": "Submit leave request",
-      "url": "/leave/mobile/request",
-      "icons": [
-        {
-          "src": "/icon-96.png",
-          "sizes": "96x96"
-        }
-      ]
-    },
-    {
-      "name": "View History",
-      "short_name": "History",
-      "description": "View attendance history",
-      "url": "/attendance/history",
-      "icons": [
-        {
-          "src": "/icon-96.png",
-          "sizes": "96x96"
+          "src": "/icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
         }
       ]
     }
-  ],
-  "screenshots": [
-    {
-      "src": "/screenshot1.png",
-      "type": "image/png",
-      "sizes": "540x720",
-      "form_factor": "narrow"
-    },
-    {
-      "src": "/screenshot2.png",
-      "type": "image/png",
-      "sizes": "720x540",
-      "form_factor": "wide"
-    }
-  ],
-  "protocol_handlers": [
-    {
-      "protocol": "web+attendance",
-      "url": "/attendance/mobile?action=%s"
-    }
-  ],
-  "prefer_related_applications": false,
-  "related_applications": [],
-  "dir": "ltr"
+  ]
 }

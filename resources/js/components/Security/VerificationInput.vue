@@ -27,12 +27,12 @@
           @paste="handlePaste"
           @focus="handleFocus"
           @blur="handleBlur"
-        />
-        
+        >
+
         <!-- Input Addon -->
         <div v-if="showAddon" class="input-addon">
           <slot name="addon">
-            <Icon v-if="addonIcon" :name="addonIcon" class="w-4 h-4" />
+            <Icon v-if="addonIcon" :name="addonIcon" class="h-4 w-4" />
           </slot>
         </div>
       </div>
@@ -41,8 +41,8 @@
       <div v-else class="digits-input-wrapper">
         <input
           v-for="(digit, index) in digits"
-          :key="index"
           :id="`${inputId}-${index}`"
+          :key="index"
           v-model="digits[index]"
           type="text"
           maxlength="1"
@@ -57,18 +57,18 @@
           @focus="handleDigitFocus(index)"
           @blur="handleDigitBlur(index)"
           @paste="handlePaste"
-        />
+        >
       </div>
     </div>
 
     <!-- Helper Text -->
     <div v-if="showHelperText" class="helper-text">
       <div v-if="error" class="error-text">
-        <Icon name="x-circle" class="w-4 h-4 mr-1" />
+        <Icon name="x-circle" class="mr-1 h-4 w-4" />
         {{ error }}
       </div>
       <div v-else-if="helpText" class="help-text">
-        <Icon name="info" class="w-4 h-4 mr-1" />
+        <Icon name="info" class="mr-1 h-4 w-4" />
         {{ helpText }}
       </div>
     </div>
@@ -88,9 +88,13 @@
               d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
             />
           </svg>
-          <div class="timer-text">{{ remainingTime }}s</div>
+          <div class="timer-text">
+            {{ remainingTime }}s
+          </div>
         </div>
-        <p class="timer-label">Code expires in</p>
+        <p class="timer-label">
+          Code expires in
+        </p>
       </div>
     </div>
 
@@ -99,26 +103,26 @@
       <div class="alternatives-divider">
         <span class="divider-text">Or use alternative method</span>
       </div>
-      
+
       <div class="alternatives-buttons">
         <button
           v-if="allowRecoveryCode"
-          @click="switchToRecovery"
           class="alternative-btn"
-          :class="{ 'active': codeType === 'recovery' }"
+          :class="{ active: codeType === 'recovery' }"
+          @click="switchToRecovery"
         >
-          <Icon name="key" class="w-4 h-4 mr-2" />
+          <Icon name="key" class="mr-2 h-4 w-4" />
           Use Recovery Code
         </button>
-        
+
         <button
           v-if="allowSMS"
-          @click="requestSMS"
           class="alternative-btn"
           :disabled="smsLoading"
+          @click="requestSMS"
         >
           <div v-if="smsLoading" class="spinner mr-2" />
-          <Icon v-else name="phone" class="w-4 h-4 mr-2" />
+          <Icon v-else name="phone" class="mr-2 h-4 w-4" />
           Send SMS Code
         </button>
       </div>
@@ -134,74 +138,74 @@ import { useToast } from '@/composables/useToast'
 const props = defineProps({
   modelValue: {
     type: String,
-    default: ''
+    default: '',
   },
   label: {
     type: String,
-    default: ''
+    default: '',
   },
   placeholder: {
     type: String,
-    default: '000000'
+    default: '000000',
   },
   maxLength: {
     type: Number,
-    default: 6
+    default: 6,
   },
   mode: {
     type: String,
     default: 'single', // 'single' or 'digits'
-    validator: value => ['single', 'digits'].includes(value)
+    validator: (value) => ['single', 'digits'].includes(value),
   },
   codeType: {
     type: String,
     default: 'totp', // 'totp', 'recovery', 'sms'
-    validator: value => ['totp', 'recovery', 'sms'].includes(value)
+    validator: (value) => ['totp', 'recovery', 'sms'].includes(value),
   },
   disabled: {
     type: Boolean,
-    default: false
+    default: false,
   },
   readonly: {
     type: Boolean,
-    default: false
+    default: false,
   },
   required: {
     type: Boolean,
-    default: false
+    default: false,
   },
   error: {
     type: String,
-    default: ''
+    default: '',
   },
   helpText: {
     type: String,
-    default: ''
+    default: '',
   },
   showTimer: {
     type: Boolean,
-    default: false
+    default: false,
   },
   showAlternatives: {
     type: Boolean,
-    default: false
+    default: false,
   },
   allowRecoveryCode: {
     type: Boolean,
-    default: true
+    default: true,
   },
   allowSMS: {
     type: Boolean,
-    default: false
+    default: false,
   },
   autoFocus: {
     type: Boolean,
-    default: true
+    default: true,
   },
   autoSubmit: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 })
 
 // Emits
@@ -212,7 +216,7 @@ const emit = defineEmits([
   'focus',
   'blur',
   'switchToRecovery',
-  'requestSMS'
+  'requestSMS',
 ])
 
 // Reactive data
@@ -258,15 +262,15 @@ const inputMode = computed(() => {
 })
 
 const containerClasses = computed(() => ({
-  'error': props.error,
-  'disabled': props.disabled,
-  'focused': focused.value
+  error: props.error,
+  disabled: props.disabled,
+  focused: focused.value,
 }))
 
 const inputClasses = computed(() => ({
   'text-center': true,
   'font-mono': true,
-  'tracking-wider': props.codeType !== 'recovery'
+  'tracking-wider': props.codeType !== 'recovery',
 }))
 
 const showAddon = computed(() => {
@@ -295,27 +299,27 @@ const timerProgress = computed(() => {
 })
 
 const timerStyle = computed(() => ({
-  '--progress': timerProgress.value
+  '--progress': timerProgress.value,
 }))
 
 // Methods
 const handleInput = (event) => {
   let value = event.target.value
-  
+
   // Apply input filtering based on code type
   if (props.codeType === 'totp' || props.codeType === 'sms') {
     value = value.replace(/[^0-9]/g, '')
   } else if (props.codeType === 'recovery') {
     value = value.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
   }
-  
+
   // Limit length
   value = value.slice(0, props.maxLength)
-  
+
   inputValue.value = value
   emit('update:modelValue', value)
   emit('change', value)
-  
+
   // Auto-submit when complete
   if (props.autoSubmit && value.length === props.maxLength) {
     emit('complete', value)
@@ -327,15 +331,18 @@ const handleKeydown = (event) => {
   if ([8, 9, 27, 13, 46].includes(event.keyCode)) {
     return
   }
-  
+
   // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
   if (event.ctrlKey && [65, 67, 86, 88].includes(event.keyCode)) {
     return
   }
-  
+
   // For numeric codes, only allow numbers
   if (props.codeType === 'totp' || props.codeType === 'sms') {
-    if (!(event.keyCode >= 48 && event.keyCode <= 57) && !(event.keyCode >= 96 && event.keyCode <= 105)) {
+    if (
+      !(event.keyCode >= 48 && event.keyCode <= 57) &&
+      !(event.keyCode >= 96 && event.keyCode <= 105)
+    ) {
       event.preventDefault()
     }
   }
@@ -344,17 +351,17 @@ const handleKeydown = (event) => {
 const handlePaste = (event) => {
   event.preventDefault()
   const paste = (event.clipboardData || window.clipboardData).getData('text')
-  
+
   let cleanPaste = paste.replace(/\s/g, '')
-  
+
   if (props.codeType === 'totp' || props.codeType === 'sms') {
     cleanPaste = cleanPaste.replace(/[^0-9]/g, '')
   } else if (props.codeType === 'recovery') {
     cleanPaste = cleanPaste.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
   }
-  
+
   cleanPaste = cleanPaste.slice(0, props.maxLength)
-  
+
   if (props.mode === 'single') {
     inputValue.value = cleanPaste
     emit('update:modelValue', cleanPaste)
@@ -365,9 +372,9 @@ const handlePaste = (event) => {
     }
     updateModelFromDigits()
   }
-  
+
   emit('change', cleanPaste)
-  
+
   if (props.autoSubmit && cleanPaste.length === props.maxLength) {
     emit('complete', cleanPaste)
   }
@@ -386,15 +393,15 @@ const handleBlur = () => {
 // Digit-specific methods
 const handleDigitInput = (index, event) => {
   let value = event.target.value
-  
+
   if (props.codeType === 'totp' || props.codeType === 'sms') {
     value = value.replace(/[^0-9]/g, '')
   } else if (props.codeType === 'recovery') {
     value = value.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
   }
-  
+
   digits.value[index] = value.slice(-1) // Take only the last character
-  
+
   // Move to next input if value was entered
   if (value && index < props.maxLength - 1) {
     const nextInput = document.getElementById(`${inputId.value}-${index + 1}`)
@@ -402,7 +409,7 @@ const handleDigitInput = (index, event) => {
       nextInput.focus()
     }
   }
-  
+
   updateModelFromDigits()
 }
 
@@ -431,7 +438,7 @@ const handleDigitBlur = (index) => {
       const input = document.getElementById(`${inputId.value}-${i}`)
       return input === document.activeElement
     }).some(Boolean)
-    
+
     if (!anyFocused) {
       focused.value = false
       emit('blur')
@@ -440,16 +447,16 @@ const handleDigitBlur = (index) => {
 }
 
 const getDigitClasses = (index) => ({
-  'focused': currentDigitIndex.value === index && focused.value,
-  'filled': !!digits.value[index],
-  'error': props.error
+  focused: currentDigitIndex.value === index && focused.value,
+  filled: !!digits.value[index],
+  error: props.error,
 })
 
 const updateModelFromDigits = () => {
   const value = digits.value.join('')
   emit('update:modelValue', value)
   emit('change', value)
-  
+
   if (props.autoSubmit && value.length === props.maxLength) {
     emit('complete', value)
   }
@@ -465,7 +472,7 @@ const requestSMS = async () => {
   try {
     emit('requestSMS')
     // Simulate SMS request delay
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await new Promise((resolve) => setTimeout(resolve, 1000))
     toast.success('SMS code sent successfully')
   } catch (error) {
     toast.error('Failed to send SMS code')
@@ -479,7 +486,7 @@ const startTimer = () => {
   if (timerInterval.value) {
     clearInterval(timerInterval.value)
   }
-  
+
   remainingTime.value = 30
   timerInterval.value = setInterval(() => {
     remainingTime.value--
@@ -499,41 +506,48 @@ const stopTimer = () => {
 }
 
 // Watch for model value changes
-watch(() => props.modelValue, (newValue) => {
-  if (props.mode === 'single') {
-    inputValue.value = newValue
-  } else {
-    // Update digits array
-    for (let i = 0; i < props.maxLength; i++) {
-      digits.value[i] = newValue[i] || ''
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    if (props.mode === 'single') {
+      inputValue.value = newValue
+    } else {
+      // Update digits array
+      for (let i = 0; i < props.maxLength; i++) {
+        digits.value[i] = newValue[i] || ''
+      }
     }
   }
-})
+)
 
 // Watch for code type changes
-watch(() => props.codeType, (newType) => {
-  if (newType === 'totp' && props.showTimer) {
-    startTimer()
-  } else {
-    stopTimer()
+watch(
+  () => props.codeType,
+  (newType) => {
+    if (newType === 'totp' && props.showTimer) {
+      startTimer()
+    } else {
+      stopTimer()
+    }
   }
-})
+)
 
 // Lifecycle
 onMounted(() => {
   // Auto-focus first input
   if (props.autoFocus && !props.disabled && !props.readonly) {
     setTimeout(() => {
-      const firstInput = props.mode === 'single' 
-        ? document.getElementById(inputId.value)
-        : document.getElementById(`${inputId.value}-0`)
-      
+      const firstInput =
+        props.mode === 'single'
+          ? document.getElementById(inputId.value)
+          : document.getElementById(`${inputId.value}-0`)
+
       if (firstInput) {
         firstInput.focus()
       }
     }, 100)
   }
-  
+
   // Start timer for TOTP
   if (props.codeType === 'totp' && props.showTimer) {
     startTimer()
@@ -551,11 +565,11 @@ onBeforeUnmount(() => {
 }
 
 .input-label {
-  @apply block text-sm font-medium text-gray-700 mb-2;
+  @apply mb-2 block text-sm font-medium text-gray-700;
 }
 
 .required-indicator {
-  @apply text-red-500 ml-1;
+  @apply ml-1 text-red-500;
 }
 
 .input-container {
@@ -563,11 +577,11 @@ onBeforeUnmount(() => {
 }
 
 .input-container.error {
-  @apply ring-2 ring-red-500 ring-opacity-50 rounded-lg;
+  @apply rounded-lg ring-2 ring-red-500 ring-opacity-50;
 }
 
 .input-container.focused {
-  @apply ring-2 ring-blue-500 ring-opacity-50 rounded-lg;
+  @apply rounded-lg ring-2 ring-blue-500 ring-opacity-50;
 }
 
 /* Single Input Mode */
@@ -576,10 +590,7 @@ onBeforeUnmount(() => {
 }
 
 .single-input {
-  @apply w-full px-4 py-3 text-xl border border-gray-300 rounded-lg 
-         focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
-         disabled:bg-gray-100 disabled:cursor-not-allowed
-         transition-all duration-200;
+  @apply w-full rounded-lg border border-gray-300 px-4 py-3 text-xl transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100;
 }
 
 .input-addon {
@@ -592,18 +603,15 @@ onBeforeUnmount(() => {
 }
 
 .digit-input {
-  @apply w-12 h-12 text-center text-xl font-mono border border-gray-300 rounded-lg
-         focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-         disabled:bg-gray-100 disabled:cursor-not-allowed
-         transition-all duration-200;
+  @apply h-12 w-12 rounded-lg border border-gray-300 text-center font-mono text-xl transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100;
 }
 
 .digit-input.focused {
-  @apply ring-2 ring-blue-500 border-blue-500;
+  @apply border-blue-500 ring-2 ring-blue-500;
 }
 
 .digit-input.filled {
-  @apply bg-blue-50 border-blue-300;
+  @apply border-blue-300 bg-blue-50;
 }
 
 .digit-input.error {
@@ -616,16 +624,16 @@ onBeforeUnmount(() => {
 }
 
 .error-text {
-  @apply text-sm text-red-600 flex items-center;
+  @apply flex items-center text-sm text-red-600;
 }
 
 .help-text {
-  @apply text-sm text-gray-500 flex items-center;
+  @apply flex items-center text-sm text-gray-500;
 }
 
 /* Timer Display */
 .timer-display {
-  @apply flex justify-center mt-4;
+  @apply mt-4 flex justify-center;
 }
 
 .timer-wrapper {
@@ -637,7 +645,7 @@ onBeforeUnmount(() => {
 }
 
 .timer-svg {
-  @apply w-16 h-16 transform -rotate-90;
+  @apply h-16 w-16 -rotate-90 transform;
 }
 
 .timer-bg {
@@ -652,11 +660,11 @@ onBeforeUnmount(() => {
 }
 
 .timer-text {
-  @apply absolute inset-0 flex items-center justify-center text-sm font-mono font-medium;
+  @apply absolute inset-0 flex items-center justify-center font-mono text-sm font-medium;
 }
 
 .timer-label {
-  @apply text-xs text-gray-500 mt-2;
+  @apply mt-2 text-xs text-gray-500;
 }
 
 /* Alternatives */
@@ -682,22 +690,19 @@ onBeforeUnmount(() => {
 }
 
 .alternatives-buttons {
-  @apply flex flex-col sm:flex-row gap-2 justify-center;
+  @apply flex flex-col justify-center gap-2 sm:flex-row;
 }
 
 .alternative-btn {
-  @apply px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 
-         rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-         disabled:opacity-50 disabled:cursor-not-allowed
-         transition-all duration-200 inline-flex items-center justify-center;
+  @apply inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-all duration-200 hover:bg-gray-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50;
 }
 
 .alternative-btn.active {
-  @apply bg-blue-50 border-blue-300 text-blue-700;
+  @apply border-blue-300 bg-blue-50 text-blue-700;
 }
 
 .spinner {
-  @apply animate-spin rounded-full h-4 w-4 border-b-2 border-current;
+  @apply h-4 w-4 animate-spin rounded-full border-b-2 border-current;
 }
 
 /* Mobile optimizations */
@@ -705,15 +710,15 @@ onBeforeUnmount(() => {
   .digits-input-wrapper {
     @apply space-x-1;
   }
-  
+
   .digit-input {
-    @apply w-10 h-10 text-lg;
+    @apply h-10 w-10 text-lg;
   }
-  
+
   .single-input {
-    @apply text-lg py-4;
+    @apply py-4 text-lg;
   }
-  
+
   .alternatives-buttons {
     @apply flex-col;
   }
@@ -732,7 +737,7 @@ onBeforeUnmount(() => {
   .timer-progress {
     @apply transition-none;
   }
-  
+
   .digit-input,
   .single-input,
   .alternative-btn {

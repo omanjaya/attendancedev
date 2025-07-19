@@ -2,15 +2,15 @@
 
 namespace App\Repositories\Interfaces;
 
-use App\Models\Leave;
 use App\Models\Employee;
+use App\Models\Leave;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Carbon\Carbon;
 
 /**
  * Leave Repository Interface
- * 
+ *
  * Defines the contract for leave management data operations.
  */
 interface LeaveRepositoryInterface
@@ -58,7 +58,7 @@ interface LeaveRepositoryInterface
     /**
      * Approve leave request.
      */
-    public function approve(Leave $leave, Employee $approver, string $notes = null): Leave;
+    public function approve(Leave $leave, Employee $approver, ?string $notes = null): Leave;
 
     /**
      * Reject leave request.
@@ -93,7 +93,12 @@ interface LeaveRepositoryInterface
     /**
      * Check if employee has overlapping leave.
      */
-    public function hasOverlappingLeave(Employee $employee, Carbon $startDate, Carbon $endDate, ?string $excludeLeaveId = null): bool;
+    public function hasOverlappingLeave(
+        Employee $employee,
+        Carbon $startDate,
+        Carbon $endDate,
+        ?string $excludeLeaveId = null,
+    ): bool;
 
     /**
      * Get leave calendar data for date range.
@@ -113,7 +118,7 @@ interface LeaveRepositoryInterface
     /**
      * Get leave usage summary for employee.
      */
-    public function getLeaveUsageSummary(Employee $employee, int $year = null): array;
+    public function getLeaveUsageSummary(Employee $employee, ?int $year = null): array;
 
     /**
      * Get popular leave periods (for planning).

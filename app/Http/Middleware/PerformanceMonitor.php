@@ -36,7 +36,7 @@ class PerformanceMonitor
 
         // Add performance headers for debugging (only in development)
         if (app()->environment('local', 'development')) {
-            $response->headers->set('X-Response-Time', $metrics['performance']['execution_time'] . 'ms');
+            $response->headers->set('X-Response-Time', $metrics['performance']['execution_time'].'ms');
             $response->headers->set('X-Memory-Usage', $metrics['performance']['memory_usage']);
             $response->headers->set('X-Query-Count', $metrics['performance']['queries_count']);
         }
@@ -63,7 +63,7 @@ class PerformanceMonitor
         foreach ($skipRoutes as $skipRoute) {
             if (str_contains($skipRoute, '*')) {
                 $pattern = str_replace('*', '.*', $skipRoute);
-                if (preg_match('/^' . $pattern . '/', $path)) {
+                if (preg_match('/^'.$pattern.'/', $path)) {
                     return true;
                 }
             } elseif ($path === $skipRoute) {
