@@ -480,6 +480,7 @@ class EmployeeRepository extends BaseRepository
             ->with(['user', 'location', 'attendances' => function ($q) {
                 $q->latest()->limit(1);
             }])
+            ->whereHas('user') // Only show employees with user accounts
             ->select('employees.*');
 
         // Apply filters if request is provided
@@ -509,6 +510,42 @@ class EmployeeRepository extends BaseRepository
         }
 
         return $query;
+    }
+
+    /**
+     * Find multiple employees by IDs
+     */
+    public function findMultiple(array $ids): Collection
+    {
+        return $this->model
+            ->whereIn('id', $ids)
+            ->with(['user', 'location'])
+            ->get();
+    }
+
+    /**
+     * Delete multiple employees by IDs
+     */
+    public function deleteMultiple(array $ids): int
+    {
+        return DB::transaction(function () use ($ids) {
+            // Get employees before deletion for logging
+            $employees = $this->findMultiple($ids);
+            
+            // Delete related user accounts if they exist (hard delete)
+            $userIds = $employees->pluck('user_id')->filter();
+            if ($userIds->isNotEmpty()) {
+                User::whereIn('id', $userIds)->forceDelete();
+            }
+            
+            // Delete employees permanently (hard delete)
+            $deletedCount = $this->model->whereIn('id', $ids)->forceDelete();
+            
+            // Clear cache after bulk operation
+            $this->clearCache();
+            
+            return $deletedCount;
+        });
     }
 
     /**

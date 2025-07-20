@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\EmployeeIdGeneratorService;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -33,6 +34,27 @@ class Employee extends Model
     ];
 
     protected $with = ['user']; // Always eager load user
+
+    // ========== MODEL EVENTS ==========
+    
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::creating(function ($employee) {
+            // Auto-generate employee ID if not provided
+            if (empty($employee->employee_id)) {
+                $user = $employee->user;
+                if ($user) {
+                    $role = $user->roles->first()->name ?? 'pegawai';
+                    $employeeType = $employee->employee_type ?? 'staff';
+                    
+                    $idGenerator = app(EmployeeIdGeneratorService::class);
+                    $employee->employee_id = $idGenerator->generateUniqueEmployeeId($role, $employeeType);
+                }
+            }
+        });
+    }
 
     // ========== RELATIONSHIPS ==========
 

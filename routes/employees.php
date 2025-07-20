@@ -32,7 +32,16 @@ Route::middleware(['auth', 'verified'])
         Route::post('/bulk/delete', [EmployeeController::class, 'bulk'])->name('bulk-delete');
 
         // Export/Import routes
-        Route::get('/export', [EmployeeController::class, 'export'])->name('export');
-        Route::post('/import', [EmployeeController::class, 'import'])->name('import');
-        Route::get('/download/template', [EmployeeController::class, 'template'])->name('template');
+        Route::get('/export', [EmployeeController::class, 'export'])
+            ->middleware('permission:export_employees_data')
+            ->name('export');
+        Route::post('/import', [EmployeeController::class, 'import'])
+            ->middleware('permission:import_employees_data')
+            ->name('import');
+        Route::post('/preview-import', [EmployeeController::class, 'previewImport'])
+            ->middleware('permission:import_employees_data')
+            ->name('preview-import');
+        Route::get('/download/template', [EmployeeController::class, 'template'])
+            ->middleware('permission:import_employees_data')
+            ->name('template');
     });

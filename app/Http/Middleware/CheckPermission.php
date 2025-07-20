@@ -45,13 +45,23 @@ class CheckPermission
                 'user_roles' => $user->roles->pluck('name')->toArray(),
                 'url' => $request->url(),
                 'ip' => $request->ip(),
+                'expects_json' => $request->expectsJson(),
+                'wants_json' => $request->wantsJson(),
+                'xhr' => $request->header('X-Requested-With') === 'XMLHttpRequest',
+                'accept_header' => $request->header('Accept'),
             ]);
 
-            if ($request->expectsJson()) {
-                return response()->json(
-                    ['message' => 'Forbidden. You do not have the required permission.'],
-                    403,
-                );
+            // Check multiple ways to detect AJAX/JSON request
+            if ($request->expectsJson() || 
+                $request->wantsJson() || 
+                $request->header('X-Requested-With') === 'XMLHttpRequest' ||
+                str_contains($request->header('Accept', ''), 'application/json')) {
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Forbidden. You do not have the required permission.',
+                    'required_permission' => $permission
+                ], 403);
             }
             abort(403, 'Unauthorized action.');
         }

@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Repositories\EmployeeRepository;
 use App\Repositories\LocationRepository;
 use App\Repositories\UserRepository;
+use App\Services\EmployeeIdGeneratorService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -27,15 +28,19 @@ class EmployeeService
     protected $userRepository;
 
     protected $locationRepository;
+    
+    protected $idGenerator;
 
     public function __construct(
         EmployeeRepository $employeeRepository,
         UserRepository $userRepository,
-        LocationRepository $locationRepository
+        LocationRepository $locationRepository,
+        EmployeeIdGeneratorService $idGenerator
     ) {
         $this->employeeRepository = $employeeRepository;
         $this->userRepository = $userRepository;
         $this->locationRepository = $locationRepository;
+        $this->idGenerator = $idGenerator;
     }
 
     /**
@@ -79,8 +84,15 @@ class EmployeeService
 
             // Step 3: Handle face descriptor if provided
             $this->handleFaceDescriptor($user, $data);
+            
+            // Step 4: Generate employee ID if not provided
+            if (empty($data['employee_id'])) {
+                $role = $data['role'] ?? $user->roles->first()->name ?? 'pegawai';
+                $employeeType = $data['employee_type'] ?? 'staff';
+                $data['employee_id'] = $this->idGenerator->generateUniqueEmployeeId($role, $employeeType);
+            }
 
-            // Step 4: Create employee record with face metadata
+            // Step 5: Create employee record with face metadata
             $employeeData = [
                 'user_id' => $user->id,
                 'employee_id' => $data['employee_id'],
@@ -121,9 +133,24 @@ class EmployeeService
             $this->updateUserAccount($employee->user, $data);
 
             // Step 2: Handle photo if changed
-            if (isset($data['photo'])) {
+            if (isset($data['photo']) && $data['photo'] !== null) {
+                \Log::info('Handling photo upload', [
+                    'employee_id' => $employee->id,
+                    'old_photo' => $employee->photo_path,
+                    'photo_size' => $data['photo']->getSize(),
+                    'photo_name' => $data['photo']->getClientOriginalName()
+                ]);
+                
                 $this->deleteOldPhoto($employee->photo_path);
                 $data['photo_path'] = $this->handlePhotoUpload($data['photo']);
+                
+                \Log::info('Photo uploaded successfully', [
+                    'employee_id' => $employee->id,
+                    'new_photo_path' => $data['photo_path']
+                ]);
+                
+                // Remove the original photo field
+                unset($data['photo']);
             }
 
             // Step 3: Handle face descriptor if provided
@@ -153,6 +180,11 @@ class EmployeeService
     {
         // Use repository to get filtered employees
         $employees = $this->employeeRepository->getFilteredEmployees($request);
+        
+        // Get employee statistics for the frontend
+        $totalEmployees = Employee::count();
+        $activeEmployees = Employee::where('is_active', true)->count();
+        $inactiveEmployees = Employee::where('is_active', false)->count();
 
         return DataTables::of($employees)
             ->addColumn('name', fn ($e) => $e->full_name)
@@ -179,6 +211,13 @@ class EmployeeService
                 });
             })
             ->rawColumns(['status', 'actions', 'face_registered'])
+            ->with([
+                'stats' => [
+                    'total' => $totalEmployees,
+                    'active' => $activeEmployees,
+                    'inactive' => $inactiveEmployees
+                ]
+            ])
             ->make(true);
     }
 
@@ -296,18 +335,153 @@ class EmployeeService
     public function importEmployees($file, $options = [])
     {
         $data = $this->parseImportFile($file);
-        $results = ['success' => 0, 'errors' => []];
+        $results = ['success' => 0, 'errors' => [], 'skipped' => 0];
+
+        // Track processed emails to provide better error messages
+        $processedEmails = [];
 
         foreach ($data as $index => $row) {
+            $rowNumber = $index + 2; // Excel row number (accounting for header)
+            
             try {
-                $this->create($this->mapImportData($row));
+                $mappedData = $this->mapImportData($row);
+                
+                // Check for duplicate email in this batch
+                $email = strtolower(trim($mappedData['email'] ?? ''));
+                if (isset($processedEmails[$email])) {
+                    $results['errors'][] = "Baris {$rowNumber}: Email '{$email}' sudah digunakan di baris {$processedEmails[$email]} - DATA DUPLIKAT DILEWATI";
+                    $results['skipped']++;
+                    continue;
+                }
+                
+                // Check if email already exists in database
+                $existingUser = \App\Models\User::where('email', $email)->first();
+                if ($existingUser) {
+                    if (isset($options['update_existing']) && $options['update_existing']) {
+                        // Update existing employee data
+                        try {
+                            $employee = Employee::where('user_id', $existingUser->id)->first();
+                            if ($employee) {
+                                $this->update($employee, $mappedData);
+                                $results['success']++;
+                                $results['errors'][] = "Baris {$rowNumber}: Data '{$email}' berhasil diupdate";
+                            } else {
+                                // User exists but no employee record - create employee record
+                                $mappedData['user_id'] = $existingUser->id;
+                                $this->createEmployeeOnly($mappedData);
+                                $results['success']++;
+                            }
+                            $processedEmails[$email] = $rowNumber;
+                            continue;
+                        } catch (\Exception $e) {
+                            $results['errors'][] = "Baris {$rowNumber}: Gagal update '{$email}' - {$e->getMessage()}";
+                            continue;
+                        }
+                    } else if (isset($options['skip_duplicates']) && $options['skip_duplicates']) {
+                        $results['skipped']++;
+                        continue;
+                    } else {
+                        $results['errors'][] = "Baris {$rowNumber}: Email '{$email}' sudah terdaftar di database";
+                        continue;
+                    }
+                }
+                
+                $employee = $this->create($mappedData);
+                $processedEmails[$email] = $rowNumber;
                 $results['success']++;
+                
+            } catch (\Illuminate\Database\QueryException $e) {
+                // Handle database constraint violations specifically
+                if (str_contains($e->getMessage(), 'users_email_unique')) {
+                    $results['errors'][] = "Baris {$rowNumber}: Email sudah terdaftar di database";
+                } else {
+                    $results['errors'][] = "Baris {$rowNumber}: Error database - {$e->getMessage()}";
+                }
             } catch (\Exception $e) {
-                $results['errors'][] = 'Baris '.($index + 1).': '.$e->getMessage();
+                $results['errors'][] = "Baris {$rowNumber}: {$e->getMessage()}";
             }
         }
 
+        // Add detailed summary
+        $results['summary'] = [
+            'total_processed' => count($data),
+            'successful_imports' => $results['success'],
+            'skipped_duplicates' => $results['skipped'],
+            'error_count' => count($results['errors']),
+            'unique_emails_processed' => count($processedEmails),
+            'message' => $this->generateImportSummaryMessage($results, count($data))
+        ];
+
         return $results;
+    }
+
+    /**
+     * Generate import summary message
+     */
+    private function generateImportSummaryMessage(array $results, int $totalRows): string
+    {
+        $message = "Import selesai: ";
+        
+        if ($results['success'] > 0) {
+            $message .= "{$results['success']} karyawan berhasil diimpor";
+        } else {
+            $message .= "Tidak ada karyawan yang berhasil diimpor";
+        }
+        
+        if ($results['skipped'] > 0) {
+            $message .= ", {$results['skipped']} data dilewati karena duplikat";
+        }
+        
+        if (count($results['errors']) > 0) {
+            $message .= ", " . count($results['errors']) . " error ditemukan";
+        }
+        
+        // Add specific guidance if many duplicates detected
+        if ($results['skipped'] > ($totalRows * 0.5)) {
+            $message .= ". PERHATIAN: Banyak data duplikat terdeteksi. Pastikan setiap baris memiliki email yang unik.";
+        }
+        
+        return $message;
+    }
+
+    /**
+     * Create employee record only (when user already exists)
+     */
+    private function createEmployeeOnly(array $data): Employee
+    {
+        // Generate employee ID
+        $employeeId = $this->generateEmployeeId($data['role'] ?? 'pegawai', $data['employee_type'] ?? 'staff');
+        
+        // Prepare employee data
+        $employeeData = [
+            'employee_id' => $employeeId,
+            'user_id' => $data['user_id'],
+            'full_name' => $data['full_name'] ?? $data['name'] ?? '',
+            'phone' => $data['phone'] ?? null,
+            'employee_type' => $data['employee_type'] ?? 'staff',
+            'hire_date' => $this->parseDate($data['hire_date'] ?? null) ?? now(),
+            'salary_type' => $data['salary_type'] ?? 'monthly',
+            'base_salary' => $data['salary_amount'] ?? $data['base_salary'] ?? 0,
+            'hourly_rate' => $data['hourly_rate'] ?? 0,
+            'department' => $data['department'] ?? null,
+            'position' => $data['position'] ?? null,
+            'status' => $this->parseStatus($data['status'] ?? 'active'),
+            'metadata' => [
+                'import_date' => now()->toDateTimeString(),
+                'import_source' => 'excel',
+                'updated_via_import' => true
+            ]
+        ];
+        
+        // Handle location
+        if (!empty($data['department'])) {
+            $location = Location::where('name', 'like', '%' . $data['department'] . '%')->first();
+            if ($location) {
+                $employeeData['location_id'] = $location->id;
+            }
+        }
+        
+        return Employee::create($employeeData);
     }
 
     /**
@@ -316,7 +490,34 @@ class EmployeeService
     public function handleBulkOperation($request): array
     {
         $action = $request->input('action', $request->input('operation'));
-        $ids = explode(',', $request->input('employee_ids'));
+        $employeeIds = $request->input('employee_ids');
+        
+        // Handle both array and comma-separated string inputs
+        if (is_array($employeeIds)) {
+            $ids = $employeeIds;
+        } else if (is_string($employeeIds)) {
+            $ids = explode(',', $employeeIds);
+        } else {
+            throw new \InvalidArgumentException('employee_ids must be an array or comma-separated string');
+        }
+        
+        // Filter out empty values
+        $ids = array_filter($ids, function($id) {
+            return !empty(trim($id));
+        });
+        
+        \Log::info('Bulk operation processing', [
+            'action' => $action,
+            'employee_ids_count' => count($ids),
+            'employee_ids' => $ids
+        ]);
+        
+        if (empty($ids)) {
+            return [
+                'success' => false,
+                'message' => 'No valid employee IDs provided'
+            ];
+        }
 
         return match ($action) {
             'delete' => $this->bulkDelete($ids),
@@ -569,7 +770,7 @@ class EmployeeService
         return $this->exportToCSV($employees);
     }
 
-    private function parseImportFile($file)
+    public function parseImportFile($file)
     {
         $extension = $file->getClientOriginalExtension();
 
@@ -585,11 +786,66 @@ class EmployeeService
         $data = [];
         $handle = fopen($file->getPathname(), 'r');
 
-        // Skip header row
-        $headers = fgetcsv($handle);
+        // Skip BOM if present
+        $bom = fread($handle, 3);
+        if ($bom !== "\xEF\xBB\xBF") {
+            rewind($handle);
+        }
 
+        // Get header row
+        $headers = fgetcsv($handle);
+        
+        // Map English headers to expected format (for compatibility)
+        $headerMap = [
+            'full_name' => 'full_name',
+            'Nama Lengkap' => 'full_name',
+            'email' => 'email', 
+            'Email' => 'email',
+            'phone' => 'phone',
+            'Telepon' => 'phone',
+            'employee_type' => 'employee_type',
+            'Tipe Karyawan' => 'employee_type',
+            'role' => 'role',
+            'Role' => 'role',
+            'salary_type' => 'salary_type',
+            'Tipe Gaji' => 'salary_type',
+            'salary_amount' => 'salary_amount',
+            'Gaji Bulanan' => 'salary_amount',
+            'hourly_rate' => 'hourly_rate',
+            'Tarif Per Jam' => 'hourly_rate',
+            'hire_date' => 'hire_date',
+            'Tanggal Bergabung' => 'hire_date',
+            'department' => 'department',
+            'Departemen' => 'department',
+            'position' => 'position',
+            'Posisi' => 'position',
+            'status' => 'status',
+            'Status' => 'status'
+        ];
+        
+        // Skip empty rows and instruction rows
         while (($row = fgetcsv($handle)) !== false) {
-            $data[] = array_combine($headers, $row);
+            // Skip if row is empty or starts with instruction text
+            if (empty($row[0]) || strpos($row[0], 'INSTRUKSI') !== false || strpos($row[0], '-') === 0) {
+                continue;
+            }
+            
+            // Only process rows with data
+            if (count($row) === count($headers)) {
+                $rowData = array_combine($headers, $row);
+                
+                // Map headers to standard keys
+                $mappedData = [];
+                foreach ($rowData as $key => $value) {
+                    if (isset($headerMap[$key])) {
+                        $mappedData[$headerMap[$key]] = $value;
+                    } else {
+                        $mappedData[$key] = $value;
+                    }
+                }
+                
+                $data[] = $mappedData;
+            }
         }
 
         fclose($handle);
@@ -599,28 +855,196 @@ class EmployeeService
 
     private function parseExcel($file)
     {
-        // Implementasi parsing Excel menggunakan PhpSpreadsheet
-        // Untuk sekarang throw exception
-        throw new \Exception('Import Excel belum diimplementasikan. Gunakan CSV untuk sementara.');
+        try {
+            \Log::info('Starting Excel file parsing', [
+                'file_path' => $file->getPathname(),
+                'file_extension' => $file->getClientOriginalExtension(),
+                'file_size' => $file->getSize()
+            ]);
+            
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file->getPathname());
+            \Log::info('Excel file loaded successfully');
+            $worksheet = $spreadsheet->getActiveSheet();
+            $data = [];
+            
+            // Header mapping for compatibility
+            $headerMap = [
+                'full_name' => 'full_name',
+                'Nama Lengkap' => 'full_name',
+                'email' => 'email', 
+                'Email' => 'email',
+                'phone' => 'phone',
+                'Telepon' => 'phone',
+                'employee_type' => 'employee_type',
+                'Tipe Karyawan' => 'employee_type',
+                'role' => 'role',
+                'Role' => 'role',
+                'salary_type' => 'salary_type',
+                'Tipe Gaji' => 'salary_type',
+                'salary_amount' => 'salary_amount',
+                'Gaji Bulanan' => 'salary_amount',
+                'hourly_rate' => 'hourly_rate',
+                'Tarif Per Jam' => 'hourly_rate',
+                'hire_date' => 'hire_date',
+                'Tanggal Bergabung' => 'hire_date',
+                'department' => 'department',
+                'Departemen' => 'department',
+                'position' => 'position',
+                'Posisi' => 'position',
+                'status' => 'status',
+                'Status' => 'status'
+            ];
+            
+            // Get header row
+            $headers = [];
+            foreach ($worksheet->getRowIterator(1, 1) as $row) {
+                foreach ($row->getCellIterator() as $cell) {
+                    $headers[] = $cell->getValue();
+                }
+                break;
+            }
+            
+            // Get data rows
+            foreach ($worksheet->getRowIterator(2) as $row) {
+                $rowData = [];
+                $cellIndex = 0;
+                foreach ($row->getCellIterator() as $cell) {
+                    if (isset($headers[$cellIndex])) {
+                        $rowData[$headers[$cellIndex]] = $cell->getValue();
+                    }
+                    $cellIndex++;
+                }
+                
+                // Skip empty rows or instruction rows
+                if (empty(array_filter($rowData)) || 
+                    (isset($rowData[$headers[0]]) && 
+                     (strpos($rowData[$headers[0]], 'INSTRUKSI') !== false || 
+                      strpos($rowData[$headers[0]], '-') === 0))) {
+                    continue;
+                }
+                
+                // Map headers to standard keys
+                $mappedData = [];
+                foreach ($rowData as $key => $value) {
+                    if (isset($headerMap[$key])) {
+                        $mappedData[$headerMap[$key]] = $value;
+                    } else {
+                        $mappedData[$key] = $value;
+                    }
+                }
+                
+                $data[] = $mappedData;
+            }
+            
+            return $data;
+        } catch (\Exception $e) {
+            \Log::error('Excel parsing failed', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw new \Exception('Error parsing Excel file: ' . $e->getMessage() . ' (Line: ' . $e->getLine() . ')');
+        }
     }
 
     private function mapImportData($row)
     {
+        // Validate required fields        
+        if (empty($row['full_name'])) {
+            throw new \Exception('Nama Lengkap wajib diisi');
+        }
+        
+        if (empty($row['email'])) {
+            throw new \Exception('Email wajib diisi');
+        }
+        
+        // Validate email format
+        $email = $row['email'];
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new \Exception('Format email tidak valid: ' . $email);
+        }
+        
+        // Validate employee type
+        $validTypes = ['permanent', 'honorary', 'staff'];
+        $employeeType = strtolower($row['employee_type'] ?? 'permanent');
+        if (!in_array($employeeType, $validTypes)) {
+            throw new \Exception('Tipe karyawan tidak valid. Gunakan: permanent, honorary, atau staff');
+        }
+        
+        // Parse and validate role
+        $rawRole = $row['role'] ?? 'pegawai';
+        
+        // Map role input to actual role names in database
+        $roleMapping = [
+            'super admin' => 'Super Admin',
+            'admin' => 'Admin', 
+            'kepala_sekolah' => 'kepala_sekolah',
+            'guru' => 'guru',
+            'pegawai' => 'pegawai'
+        ];
+        
+        $normalizedRole = strtolower(str_replace(' ', ' ', $rawRole));
+        if (isset($roleMapping[$normalizedRole])) {
+            $role = $roleMapping[$normalizedRole];
+        } else {
+            $role = 'pegawai'; // Default fallback
+        }
+        
+        // Validate salary type
+        $validSalaryTypes = ['hourly', 'monthly', 'fixed'];
+        $salaryType = strtolower($row['salary_type'] ?? 'monthly');
+        if (!in_array($salaryType, $validSalaryTypes)) {
+            $salaryType = 'monthly'; // Default fallback
+        }
+        
+        // Parse hire date
+        $hireDate = $row['hire_date'] ?? now()->format('Y-m-d');
+        try {
+            // Check if it's an Excel serial number (numeric value)
+            if (is_numeric($hireDate)) {
+                // Convert Excel serial number to date
+                $excelBaseDate = new \DateTime('1900-01-01');
+                $excelBaseDate->modify('-2 days'); // Adjust for Excel's leap year bug
+                $parsedDate = clone $excelBaseDate;
+                $parsedDate->modify('+' . intval($hireDate) . ' days');
+                $hireDate = $parsedDate->format('Y-m-d');
+            } else {
+                // Try string conversion
+                $hireDate = date('Y-m-d', strtotime($hireDate));
+            }
+        } catch (\Exception $e) {
+            $hireDate = now()->format('Y-m-d');
+        }
+        
+        // Parse salary amounts
+        $salaryAmount = null;
+        if (!empty($row['salary_amount'])) {
+            $salaryAmount = (float) preg_replace('/[^0-9.]/', '', $row['salary_amount']);
+        }
+        
+        $hourlyRate = null;
+        if (!empty($row['hourly_rate'])) {
+            $hourlyRate = (float) preg_replace('/[^0-9.]/', '', $row['hourly_rate']);
+        }
+        
         return [
-            'employee_id' => $row['ID Karyawan'] ?? $row['employee_id'] ?? null,
-            'first_name' => explode(' ', $row['Nama Lengkap'] ?? $row['full_name'] ?? '')[0] ?? '',
-            'last_name' => implode(' ', array_slice(explode(' ', $row['Nama Lengkap'] ?? $row['full_name'] ?? ''), 1)) ?: '',
-            'full_name' => $row['Nama Lengkap'] ?? $row['full_name'] ?? '',
-            'email' => $row['Email'] ?? $row['email'] ?? '',
-            'phone' => $row['Telepon'] ?? $row['phone'] ?? '',
-            'employee_type' => strtolower($row['Tipe Karyawan'] ?? $row['employee_type'] ?? 'permanent'),
-            'hire_date' => $row['Tanggal Bergabung'] ?? $row['hire_date'] ?? now()->format('Y-m-d'),
-            'location_id' => $this->findLocationByName($row['Departemen'] ?? $row['department'] ?? ''),
-            'is_active' => ($row['Status'] ?? $row['status'] ?? 'Aktif') === 'Aktif',
+            'employee_id' => null, // Will be auto-generated
+            'full_name' => $row['full_name'],
+            'email' => $email,
+            'phone' => $row['phone'] ?? '',
+            'employee_type' => $employeeType,
+            'salary_type' => $salaryType,
+            'salary_amount' => $salaryAmount,
+            'hourly_rate' => $hourlyRate,
+            'hire_date' => $hireDate,
+            'location_id' => $this->findLocationByName($row['department'] ?? ''),
+            'is_active' => ($row['status'] ?? 'Aktif') === 'Aktif',
             'password' => 'password123', // Default password
-            'role' => 'Employee', // Default role
+            'role' => $role, // Use parsed role
             'metadata' => [
-                'position' => $row['Posisi'] ?? $row['position'] ?? '',
+                'position' => $row['position'] ?? '',
+                'import_date' => now()->toISOString(),
             ],
         ];
     }

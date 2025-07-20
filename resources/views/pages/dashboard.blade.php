@@ -3,34 +3,39 @@
 @section('title', 'Dashboard')
 
 @section('page-content')
-<x-layouts.base-page 
-    title="Dashboard"
-    subtitle="Selamat datang di sistem absensi sekolah"
-    :breadcrumbs="[
-        ['label' => 'Dashboard']
-    ]">
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div class="p-6 lg:p-8">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Selamat datang di sistem absensi sekolah</p>
+                </div>
+                <div class="flex items-center space-x-3">
     
-    <x-slot name="actions">
-        @can('view_attendance_reports')
-        <x-ui.button variant="outline" href="{{ route('attendance.index') }}"
-            class="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-            </svg>
-            View Reports
-        </x-ui.button>
-        @endcan
-        
-        @can('manage_employees')
-        <x-ui.button href="{{ route('management.employees.index') }}"
-            class="bg-emerald-600 hover:bg-emerald-700 text-white">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"/>
-            </svg>
-            Manage Employees
-        </x-ui.button>
-        @endcan
-    </x-slot>
+                    @can('view_attendance_reports')
+                    <button onclick="window.location.href='{{ route('attendance.index') }}'" 
+                            class="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 px-4 py-2 rounded-lg font-medium transition-colors duration-200">
+                        <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        View Reports
+                    </button>
+                    @endcan
+                    
+                    @can('manage_employees')
+                    <button onclick="window.location.href='{{ route('management.employees.index') }}'" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200">
+                        <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"/>
+                        </svg>
+                        Manage Employees
+                    </button>
+                    @endcan
+                </div>
+            </div>
+        </div>
 
     @php
         $stats = $dashboardData['realtime_status'] ?? [
@@ -413,7 +418,7 @@
     </x-ui.card>
     @endif
 
-</x-layouts.base-page>
+    </div>
 </div>
 
 {{-- Chart Scripts --}}

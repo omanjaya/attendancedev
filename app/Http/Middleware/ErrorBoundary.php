@@ -38,19 +38,24 @@ class ErrorBoundary
 
         // Check if exception has custom render method
         if (method_exists($e, 'render')) {
-            return $e->render($request);
+            $response = $e->render($request);
+            // Ensure JSON response for AJAX requests
+            if ($this->expectsJson($request) && !$this->isJsonResponse($response)) {
+                return $this->convertToJsonResponse($response, $e);
+            }
+            return $response;
         }
 
         // Handle different exception types
         return match (true) {
-            $e instanceof \Illuminate\Validation\ValidationException => $this->handleValidationException($e),
-            $e instanceof \Illuminate\Auth\AuthenticationException => $this->handleAuthenticationException($e),
-            $e instanceof \Illuminate\Auth\Access\AuthorizationException => $this->handleAuthorizationException($e),
-            $e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException => $this->handleModelNotFoundException($e),
-            $e instanceof \Illuminate\Http\Exceptions\ThrottleRequestsException => $this->handleThrottleException($e),
-            $e instanceof \Symfony\Component\HttpKernel\Exception\NotFoundHttpException => $this->handleNotFoundHttpException($e),
-            $e instanceof \Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException => $this->handleMethodNotAllowedException($e),
-            default => $this->handleGenericException($e),
+            $e instanceof \Illuminate\Validation\ValidationException => $this->handleValidationException($request, $e),
+            $e instanceof \Illuminate\Auth\AuthenticationException => $this->handleAuthenticationException($request, $e),
+            $e instanceof \Illuminate\Auth\Access\AuthorizationException => $this->handleAuthorizationException($request, $e),
+            $e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException => $this->handleModelNotFoundException($request, $e),
+            $e instanceof \Illuminate\Http\Exceptions\ThrottleRequestsException => $this->handleThrottleException($request, $e),
+            $e instanceof \Symfony\Component\HttpKernel\Exception\NotFoundHttpException => $this->handleNotFoundHttpException($request, $e),
+            $e instanceof \Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException => $this->handleMethodNotAllowedException($request, $e),
+            default => $this->handleGenericException($request, $e),
         };
     }
 
@@ -79,9 +84,43 @@ class ErrorBoundary
     }
 
     /**
+     * Check if request expects JSON response
+     */
+    protected function expectsJson(Request $request): bool
+    {
+        return $request->expectsJson() || 
+               $request->wantsJson() || 
+               $request->header('Accept') === 'application/json' ||
+               $request->header('X-Requested-With') === 'XMLHttpRequest';
+    }
+
+    /**
+     * Check if response is already JSON
+     */
+    protected function isJsonResponse($response): bool
+    {
+        return $response instanceof JsonResponse;
+    }
+
+    /**
+     * Convert response to JSON format
+     */
+    protected function convertToJsonResponse($response, Throwable $e): JsonResponse
+    {
+        $statusCode = method_exists($response, 'getStatusCode') ? $response->getStatusCode() : 500;
+        
+        return response()->json([
+            'success' => false,
+            'error_type' => 'conversion_error',
+            'message' => config('app.debug') ? $e->getMessage() : 'Internal server error',
+            'timestamp' => now()->toISOString(),
+        ], $statusCode);
+    }
+
+    /**
      * Handle validation exceptions
      */
-    protected function handleValidationException(\Illuminate\Validation\ValidationException $e): JsonResponse
+    protected function handleValidationException(Request $request, \Illuminate\Validation\ValidationException $e): JsonResponse
     {
         return response()->json([
             'success' => false,
@@ -95,7 +134,7 @@ class ErrorBoundary
     /**
      * Handle authentication exceptions
      */
-    protected function handleAuthenticationException(\Illuminate\Auth\AuthenticationException $e): JsonResponse
+    protected function handleAuthenticationException(Request $request, \Illuminate\Auth\AuthenticationException $e): JsonResponse
     {
         return response()->json([
             'success' => false,
@@ -108,7 +147,7 @@ class ErrorBoundary
     /**
      * Handle authorization exceptions
      */
-    protected function handleAuthorizationException(\Illuminate\Auth\Access\AuthorizationException $e): JsonResponse
+    protected function handleAuthorizationException(Request $request, \Illuminate\Auth\Access\AuthorizationException $e): JsonResponse
     {
         return response()->json([
             'success' => false,
@@ -121,7 +160,7 @@ class ErrorBoundary
     /**
      * Handle model not found exceptions
      */
-    protected function handleModelNotFoundException(\Illuminate\Database\Eloquent\ModelNotFoundException $e): JsonResponse
+    protected function handleModelNotFoundException(Request $request, \Illuminate\Database\Eloquent\ModelNotFoundException $e): JsonResponse
     {
         $modelName = class_basename($e->getModel());
 
@@ -136,7 +175,7 @@ class ErrorBoundary
     /**
      * Handle throttle exceptions
      */
-    protected function handleThrottleException(\Illuminate\Http\Exceptions\ThrottleRequestsException $e): JsonResponse
+    protected function handleThrottleException(Request $request, \Illuminate\Http\Exceptions\ThrottleRequestsException $e): JsonResponse
     {
         return response()->json([
             'success' => false,
@@ -150,7 +189,7 @@ class ErrorBoundary
     /**
      * Handle not found HTTP exceptions
      */
-    protected function handleNotFoundHttpException(\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e): JsonResponse
+    protected function handleNotFoundHttpException(Request $request, \Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e): JsonResponse
     {
         return response()->json([
             'success' => false,
@@ -163,7 +202,7 @@ class ErrorBoundary
     /**
      * Handle method not allowed exceptions
      */
-    protected function handleMethodNotAllowedException(\Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException $e): JsonResponse
+    protected function handleMethodNotAllowedException(Request $request, \Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException $e): JsonResponse
     {
         return response()->json([
             'success' => false,
@@ -177,7 +216,7 @@ class ErrorBoundary
     /**
      * Handle generic exceptions
      */
-    protected function handleGenericException(Throwable $e): JsonResponse
+    protected function handleGenericException(Request $request, Throwable $e): JsonResponse
     {
         $statusCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
 

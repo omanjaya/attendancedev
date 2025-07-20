@@ -33,6 +33,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'delete_employees',              // Remove employees
             'manage_employees',              // Full employee management
             'export_employees_data',         // Export employee data
+            'import_employees_data',         // Import employee data from Excel/CSV
 
             // Leave Management
             'view_leave_own',                // View own leave records
@@ -141,6 +142,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'delete_employees',
             'manage_employees',
             'export_employees_data',
+            'import_employees_data',
 
             // Leave
             'view_leave_all',
@@ -205,6 +207,7 @@ class RolesAndPermissionsSeeder extends Seeder
 
             // Employees
             'view_employees',
+            'import_employees_data',
 
             // Leave
             'view_leave_own',
