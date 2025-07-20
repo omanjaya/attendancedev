@@ -14,34 +14,26 @@
                 </div>
                 <div class="flex items-center space-x-3">
                     @can('view_employees_analytics')
-                    <button onclick="showEmployeeAnalytics()" class="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 px-4 py-2 rounded-lg font-medium transition-colors duration-200">
-                        <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                        </svg>
+                    <button onclick="showEmployeeAnalytics()" class="btn-analytics">
+                        <x-icon.analytics />
                         Analytics
                     </button>
                     @endcan
                     @can('export_employees_data')
-                    <button onclick="exportEmployees()" class="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 px-4 py-2 rounded-lg font-medium transition-colors duration-200">
-                        <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
+                    <button onclick="exportEmployees()" class="btn-export">
+                        <x-icon.download />
                         Ekspor Data
                     </button>
                     @endcan
                     @canany(['manage_employees', 'create_employees', 'import_employees_data'])
-                    <button onclick="showImportModal()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200">
-                        <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
-                        </svg>
+                    <button onclick="showImportModal()" class="btn-import">
+                        <x-icon.upload />
                         Import Data
                     </button>
                     @endcanany
                     @can('create_employees')
-                    <a href="{{ route('employees.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200">
-                        <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                        </svg>
+                    <a href="{{ route('employees.create') }}" class="btn-create">
+                        <x-icon.plus />
                         Tambah Karyawan
                     </a>
                     @endcan
@@ -55,9 +47,7 @@
             <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                 <div class="flex items-center justify-between mb-4">
                     <div class="p-3 bg-blue-600 rounded-lg shadow-md">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"/>
-                        </svg>
+                        <x-icon.users />
                     </div>
                     <span class="text-sm text-blue-600 font-medium px-3 py-1 bg-blue-100 dark:bg-blue-900 rounded-full">Total</span>
                 </div>
@@ -72,9 +62,7 @@
             <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                 <div class="flex items-center justify-between mb-4">
                     <div class="p-3 bg-green-600 rounded-lg shadow-md">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
+                        <x-icon.check-circle />
                     </div>
                     <span class="text-sm text-green-600 font-medium px-3 py-1 bg-green-100 dark:bg-green-900 rounded-full">Aktif</span>
                 </div>
@@ -93,9 +81,7 @@
             <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                 <div class="flex items-center justify-between mb-4">
                     <div class="p-3 bg-purple-600 rounded-lg shadow-md">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2z"/>
-                        </svg>
+                        <x-icon.briefcase />
                     </div>
                     <span class="text-sm text-purple-600 font-medium px-3 py-1 bg-purple-100 dark:bg-purple-900 rounded-full">Tetap</span>
                 </div>
@@ -110,9 +96,7 @@
             <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                 <div class="flex items-center justify-between mb-4">
                     <div class="p-3 bg-orange-600 rounded-lg shadow-md">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                        </svg>
+                        <x-icon.book-open />
                     </div>
                     <span class="text-sm text-orange-600 font-medium px-3 py-1 bg-orange-100 dark:bg-orange-900 rounded-full">Kontrak</span>
                 </div>
@@ -133,15 +117,11 @@
                         <p class="text-sm text-gray-500 dark:text-gray-400">Kelola dan pantau data karyawan</p>
                     </div>
                     <div class="flex items-center space-x-3">
-                        <button onclick="refreshEmployeeData()" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg transition-colors duration-200" title="Refresh Data">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                            </svg>
+                        <button onclick="refreshEmployeeData()" class="btn-action-small" title="Refresh Data">
+                            <x-icon.refresh />
                         </button>
-                        <button onclick="toggleTableSettings()" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg transition-colors duration-200" title="Table Settings">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"/>
-                            </svg>
+                        <button onclick="toggleTableSettings()" class="btn-action-small" title="Table Settings">
+                            <x-icon.cog />
                         </button>
                     </div>
                 </div>
@@ -157,16 +137,12 @@
                             </button>
                         </div>
                         <div class="flex items-center space-x-2">
-                            <button onclick="bulkExport()" class="inline-flex items-center px-3 py-1.5 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 rounded-lg transition-colors">
-                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                </svg>
+                            <button onclick="bulkExport()" class="btn-bulk-export">
+                                <x-icon.download class="w-4 h-4 mr-1.5" />
                                 Ekspor
                             </button>
-                            <button onclick="bulkDelete()" class="inline-flex items-center px-3 py-1.5 text-sm bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors">
-                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                </svg>
+                            <button onclick="bulkDelete()" class="btn-bulk-delete-light">
+                                <x-icon.trash class="w-4 h-4 mr-1.5" />
                                 Hapus
                             </button>
                         </div>
@@ -181,18 +157,16 @@
                             <div class="relative">
                                 <input type="text" id="employee-search" 
                                        placeholder="Cari nama, email, atau ID karyawan..." 
-                                       class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-3 pl-10 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20">
+                                       class="form-search">
                                 <div class="absolute left-3 top-1/2 -translate-y-1/2">
-                                    <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                                    </svg>
+                                    <x-icon.search />
                                 </div>
                             </div>
                         </div>
                         
                         <!-- Department Filter -->
                         <div>
-                            <select id="department-filter" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-3 text-sm text-gray-900 dark:text-gray-100 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20">
+                            <select id="department-filter" class="form-filter">
                                 <option value="">Semua Departemen</option>
                                 @foreach($departments ?? [] as $dept)
                                     <option value="{{ $dept['id'] }}">{{ $dept['name'] }}</option>
@@ -202,7 +176,7 @@
                         
                         <!-- Status Filter -->
                         <div>
-                            <select id="status-filter" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-3 text-sm text-gray-900 dark:text-gray-100 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20">
+                            <select id="status-filter" class="form-filter">
                                 <option value="">Semua Status</option>
                                 <option value="active">Aktif</option>
                                 <option value="inactive">Tidak Aktif</option>
@@ -276,7 +250,7 @@
                             </span>
                             <div class="flex items-center space-x-2">
                                 <label class="text-sm text-gray-500 dark:text-gray-400">Tampilkan:</label>
-                                <select id="page-length" class="form-select text-sm border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                                <select id="page-length" class="form-select-small">
                                     <option value="10">10</option>
                                     <option value="25" selected>25</option>
                                     <option value="50">50</option>
@@ -288,10 +262,8 @@
                         
                         <!-- Right side - Pagination Controls -->
                         <div class="flex items-center space-x-2">
-                            <button id="prev-btn" disabled class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                                </svg>
+                            <button id="prev-btn" disabled class="btn-pagination">
+                                <x-icon.chevron-left class="w-4 h-4 mr-1" />
                                 Sebelumnya
                             </button>
                             
@@ -299,11 +271,9 @@
                                 <!-- Page numbers will be inserted here -->
                             </div>
                             
-                            <button id="next-btn" class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                            <button id="next-btn" class="btn-pagination">
                                 Selanjutnya
-                                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                </svg>
+                                <x-icon.chevron-right class="w-4 h-4 ml-1" />
                             </button>
                         </div>
                     </div>
@@ -322,10 +292,8 @@
                         </div>
                         <div class="flex items-center space-x-2">
                             @can('manage_employees')
-                            <button onclick="confirmBulkDelete()" class="inline-flex items-center px-3 py-2 text-sm font-medium text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/50 border border-red-300 dark:border-red-700 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/70 transition-colors">
-                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                </svg>
+                            <button onclick="confirmBulkDelete()" class="btn-bulk-delete">
+                                <x-icon.trash class="w-4 h-4 mr-1" />
                                 Hapus Terpilih
                             </button>
                             @endcan
@@ -362,10 +330,8 @@
                         <p class="text-xs text-green-700 dark:text-green-300">Download template Excel untuk panduan format yang benar</p>
                     </div>
                     <a href="{{ route('employees.template') }}" 
-                       class="inline-flex items-center px-3 py-2 text-xs font-medium text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-800 border border-green-300 dark:border-green-600 rounded-lg hover:bg-green-200 dark:hover:bg-green-700 transition-colors">
-                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
+                       class="btn-success-small">
+                        <x-icon.download class="w-4 h-4 mr-1" />
                         Download Template
                     </a>
                 </div>
@@ -392,7 +358,7 @@
             <!-- File Upload with Drag & Drop -->
             <div class="mb-6">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Upload File</label>
-                <div id="dropZone" class="relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-blue-400 dark:hover:border-blue-500 transition-colors cursor-pointer">
+                <div id="dropZone" class="dropzone">
                     <input type="file" name="file" id="importFile" accept=".xlsx,.xls,.csv" required 
                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
                     <div id="dropZoneContent">
@@ -445,11 +411,8 @@
             <!-- Actions -->
             <div class="flex justify-between items-center">
                 <button type="button" onclick="previewImport()" id="previewBtn"
-                        class="px-4 py-2 text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-800 border border-blue-300 dark:border-blue-600 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors">
-                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                    </svg>
+                        class="btn-preview">
+                    <x-icon.eye class="w-4 h-4 inline mr-1" />
                     Preview
                 </button>
                 <div class="flex space-x-3">
