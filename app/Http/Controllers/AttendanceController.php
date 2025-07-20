@@ -67,7 +67,6 @@ class AttendanceController extends Controller
     public function processCheckIn(Request $request)
     {
         $validated = $request->validate([
-            'employee_id' => 'required|exists:employees,id',
             'face_confidence' => 'required|numeric|min:0|max:1',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
@@ -78,7 +77,28 @@ class AttendanceController extends Controller
         try {
             DB::beginTransaction();
 
-            $employee = Employee::findOrFail($validated['employee_id']);
+            // Get employee from authenticated user
+            $user = auth()->user();
+            $employee = $user->employee;
+            
+            if (!$employee) {
+                // Auto-create employee record for admin users
+                if ($user->hasRole('super_admin') || $user->hasRole('admin')) {
+                    $employee = \App\Models\Employee::create([
+                        'user_id' => $user->id,
+                        'employee_id' => 'ADMIN-' . str_pad($user->id, 4, '0', STR_PAD_LEFT),
+                        'employee_type' => 'permanent',
+                        'full_name' => $user->name,
+                        'hire_date' => now()->format('Y-m-d'),
+                        'salary_type' => 'monthly',
+                        'salary_amount' => 0,
+                        'is_active' => true,
+                        'metadata' => ['auto_created' => true, 'role' => 'admin']
+                    ]);
+                } else {
+                    return $this->errorResponse('Employee record not found. Please contact administrator to set up your employee profile.');
+                }
+            }
 
             // Check if already checked in today
             $todayAttendance = $this->attendanceRepository->getTodayAttendance($employee->id);
@@ -131,7 +151,6 @@ class AttendanceController extends Controller
     public function processCheckOut(Request $request)
     {
         $validated = $request->validate([
-            'employee_id' => 'required|exists:employees,id',
             'face_confidence' => 'required|numeric|min:0|max:1',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
@@ -142,7 +161,28 @@ class AttendanceController extends Controller
         try {
             DB::beginTransaction();
 
-            $employee = Employee::findOrFail($validated['employee_id']);
+            // Get employee from authenticated user
+            $user = auth()->user();
+            $employee = $user->employee;
+            
+            if (!$employee) {
+                // Auto-create employee record for admin users
+                if ($user->hasRole('super_admin') || $user->hasRole('admin')) {
+                    $employee = \App\Models\Employee::create([
+                        'user_id' => $user->id,
+                        'employee_id' => 'ADMIN-' . str_pad($user->id, 4, '0', STR_PAD_LEFT),
+                        'employee_type' => 'permanent',
+                        'full_name' => $user->name,
+                        'hire_date' => now()->format('Y-m-d'),
+                        'salary_type' => 'monthly',
+                        'salary_amount' => 0,
+                        'is_active' => true,
+                        'metadata' => ['auto_created' => true, 'role' => 'admin']
+                    ]);
+                } else {
+                    return $this->errorResponse('Employee record not found. Please contact administrator to set up your employee profile.');
+                }
+            }
 
             // Get today's attendance
             $attendance = $this->attendanceRepository->getTodayAttendance($employee->id);
@@ -765,6 +805,103 @@ class AttendanceController extends Controller
             }
             
             return redirect()->back()->with('error', $errorMessage);
+        }
+    }
+
+    /**
+     * Get today's work schedule and attendance status
+     */
+    public function getTodayScheduleAndStatus(Request $request)
+    {
+        try {
+            $user = $request->user();
+            $employee = $user->employee;
+
+            if (!$employee) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Employee profile not found',
+                ], 404);
+            }
+
+            $today = Carbon::today();
+            $dayOfWeek = $today->dayOfWeek; // 0 = Sunday, 1 = Monday, etc.
+
+            // Get employee's schedules for today (all periods)
+            $schedules = \DB::table('employee_schedules')
+                ->join('periods', 'employee_schedules.period_id', '=', 'periods.id')
+                ->where('employee_schedules.employee_id', $employee->id)
+                ->where('periods.day_of_week', $dayOfWeek)
+                ->where('employee_schedules.is_active', true)
+                ->where('periods.is_active', true)
+                ->where('employee_schedules.effective_date', '<=', $today)
+                ->where(function($query) use ($today) {
+                    $query->whereNull('employee_schedules.end_date')
+                          ->orWhere('employee_schedules.end_date', '>=', $today);
+                })
+                ->select([
+                    'periods.name as period_name',
+                    'periods.start_time',
+                    'periods.end_time',
+                    'employee_schedules.metadata'
+                ])
+                ->orderBy('periods.start_time')
+                ->get();
+            
+            // Calculate overall work schedule from periods
+            $schedule = null;
+            if ($schedules->isNotEmpty()) {
+                $firstPeriod = $schedules->first();
+                $lastPeriod = $schedules->last();
+                
+                $schedule = [
+                    'period_name' => 'Jadwal Mengajar',
+                    'start_time' => $firstPeriod->start_time,
+                    'end_time' => $lastPeriod->end_time,
+                    'start_time_formatted' => Carbon::createFromFormat('H:i:s', $firstPeriod->start_time)->format('H:i'),
+                    'end_time_formatted' => Carbon::createFromFormat('H:i:s', $lastPeriod->end_time)->format('H:i'),
+                    'periods_count' => $schedules->count(),
+                    'periods' => $schedules->map(function($s) {
+                        $metadata = json_decode($s->metadata, true) ?? [];
+                        return [
+                            'name' => $s->period_name,
+                            'start_time' => Carbon::createFromFormat('H:i:s', $s->start_time)->format('H:i'),
+                            'end_time' => Carbon::createFromFormat('H:i:s', $s->end_time)->format('H:i'),
+                            'subject' => $metadata['subject'] ?? 'Unknown',
+                            'room' => $metadata['room'] ?? 'TBD'
+                        ];
+                    })->toArray()
+                ];
+            }
+
+            // Get today's attendance record
+            $attendance = \App\Models\Attendance::where('employee_id', $employee->id)
+                ->whereDate('date', $today)
+                ->first();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'schedule' => $schedule,
+                    'attendance' => $attendance ? [
+                        'check_in_time' => $attendance->check_in_time?->format('H:i'),
+                        'check_out_time' => $attendance->check_out_time?->format('H:i'),
+                        'status' => $attendance->status,
+                        'total_hours' => $attendance->total_hours,
+                        'can_check_out' => $attendance->check_in_time && !$attendance->check_out_time,
+                    ] : null,
+                    'today_date' => $today->format('Y-m-d'),
+                    'today_formatted' => $today->format('l, d F Y'),
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Get today schedule error: '.$e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get today schedule',
+            ], 500);
         }
     }
 

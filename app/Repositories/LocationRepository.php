@@ -4,7 +4,8 @@ namespace App\Repositories;
 
 use App\Models\Employee;
 use App\Models\Location;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**

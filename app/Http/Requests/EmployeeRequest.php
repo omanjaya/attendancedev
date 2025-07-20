@@ -65,6 +65,7 @@ class EmployeeRequest extends FormRequest
             // Optional Fields
             'phone' => 'nullable|string|max:20',
             'photo' => 'nullable|image|max:2048',
+            'face_descriptor' => 'nullable|string',
             'is_active' => 'boolean',
         ];
     }

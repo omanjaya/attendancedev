@@ -48,10 +48,12 @@ class FaceDetectionController extends Controller
         ]);
 
         try {
+            $employee = Employee::findOrFail($validated['employee_id']);
             $result = $this->faceRecognitionService->registerFace(
-                $validated['employee_id'],
-                $validated['face_data'],
-                $request->file('face_image')
+                $employee,
+                $validated['face_data']['descriptor'],
+                $request->file('face_image'),
+                $validated['face_data']
             );
 
             return $this->successResponse(
@@ -93,7 +95,7 @@ class FaceDetectionController extends Controller
                 'enforce_schedule' => $validated['enforce_schedule'] ?? false,
             ];
 
-            $result = $this->faceRecognitionService->verifyFace(
+            $result = $this->faceRecognitionService->verifyFaceInternal(
                 $validated['face_data'],
                 $options
             );
@@ -174,7 +176,7 @@ class FaceDetectionController extends Controller
         ]);
 
         try {
-            $result = $this->faceRecognitionService->updateFace(
+            $result = $this->faceRecognitionService->updateFaceInternal(
                 $employee->id,
                 $validated['face_data'],
                 $request->file('face_image')
@@ -198,7 +200,7 @@ class FaceDetectionController extends Controller
     public function deleteFace(Employee $employee): JsonResponse
     {
         try {
-            $result = $this->faceRecognitionService->deleteFace($employee->id);
+            $result = $this->faceRecognitionService->deleteFaceInternal($employee->id);
 
             return $this->successResponse(
                 ['deleted' => $result],

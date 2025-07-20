@@ -119,6 +119,15 @@ class NavigationService
                             'priority' => 3,
                         ],
                         [
+                            'id' => 'locations',
+                            'name' => 'Location Management',
+                            'icon' => 'map-pin',
+                            'route' => 'locations.index',
+                            'badge' => null,
+                            'type' => 'single',
+                            'priority' => 3.5,
+                        ],
+                        [
                             'id' => 'leave',
                             'name' => 'Leave Management',
                             'icon' => 'calendar-days',
@@ -258,6 +267,17 @@ class NavigationService
                 'priority' => 5,
                 'section' => 'management',
             ],
+            // Location Management
+            [
+                'id' => 'locations',
+                'name' => 'Location Management',
+                'icon' => 'map-pin',
+                'route' => 'locations.index',
+                'badge' => null,
+                'type' => 'single',
+                'priority' => 5.5,
+                'section' => 'management',
+            ],
             // Leave Management
             [
                 'id' => 'leave',
@@ -280,17 +300,6 @@ class NavigationService
                 'priority' => 7,
                 'section' => 'management',
             ],
-            // Locations
-            [
-                'id' => 'locations',
-                'name' => 'Locations',
-                'icon' => 'map-pin',
-                'route' => 'locations.index',
-                'badge' => null,
-                'type' => 'single',
-                'priority' => 8,
-                'section' => 'management',
-            ],
             // Reports
             [
                 'id' => 'reports',
@@ -299,7 +308,7 @@ class NavigationService
                 'route' => 'reports.index',
                 'badge' => null,
                 'type' => 'single',
-                'priority' => 9,
+                'priority' => 8,
                 'section' => 'analytics',
             ],
             // Settings (Limited)
@@ -310,7 +319,7 @@ class NavigationService
                 'route' => 'system.settings',
                 'badge' => null,
                 'type' => 'single',
-                'priority' => 10,
+                'priority' => 9,
                 'section' => 'system',
             ],
             // Profile
@@ -321,7 +330,7 @@ class NavigationService
                 'route' => 'profile.edit',
                 'badge' => null,
                 'type' => 'single',
-                'priority' => 11,
+                'priority' => 10,
                 'section' => 'profile',
             ],
         ];

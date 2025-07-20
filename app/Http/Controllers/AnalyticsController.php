@@ -46,6 +46,14 @@ class AnalyticsController extends Controller
     }
 
     /**
+     * Display the main analytics dashboard (alias for index method)
+     */
+    public function dashboard(Request $request)
+    {
+        return $this->index($request);
+    }
+
+    /**
      * Get analytics data via API for AJAX requests
      */
     public function getAnalyticsData(Request $request): JsonResponse

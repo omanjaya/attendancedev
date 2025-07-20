@@ -415,6 +415,16 @@ class ScheduleController extends Controller
     }
 
     /**
+     * Display the specified schedule.
+     */
+    public function show(EmployeeSchedule $schedule)
+    {
+        $schedule->load(['employee.user', 'period']);
+        
+        return view('pages.schedules.show', compact('schedule'));
+    }
+
+    /**
      * Show the form for editing a schedule.
      */
     public function edit(EmployeeSchedule $schedule)

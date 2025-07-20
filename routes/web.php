@@ -127,6 +127,27 @@ Route::prefix('api/face-verification')
                 'authenticated' => auth()->check(),
             ]);
         });
+        
+        Route::get('/debug-face-data', function () {
+            $user = auth()->user();
+            $employee = $user->employee;
+            
+            return response()->json([
+                'success' => true,
+                'debug_data' => [
+                    'user_id' => $user->id,
+                    'user_name' => $user->name,
+                    'employee_id' => $employee?->id,
+                    'employee_name' => $employee?->full_name,
+                    'user_face_descriptor' => $user->face_descriptor,
+                    'user_face_registered_at' => $user->face_registered_at,
+                    'employee_metadata' => $employee?->metadata,
+                    'employee_face_registered_accessor' => $employee?->face_registered,
+                    'photo_path' => $employee?->photo_path,
+                    'photo_url' => $employee?->photo_url,
+                ]
+            ]);
+        });
         Route::get('/profile-data', [
             App\Http\Controllers\FaceVerificationController::class,
             'getProfileData',

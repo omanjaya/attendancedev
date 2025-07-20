@@ -25,6 +25,12 @@ Route::middleware(['auth', 'verified'])
         Route::get('/api/data', [EmployeeController::class, 'data'])->name('data');
         Route::post('/api/bulk', [EmployeeController::class, 'bulk'])->name('bulk');
 
+        // Bulk action routes
+        Route::post('/bulk/export', [EmployeeController::class, 'bulk'])->name('bulk-export');
+        Route::post('/bulk/activate', [EmployeeController::class, 'bulk'])->name('bulk-activate');
+        Route::post('/bulk/deactivate', [EmployeeController::class, 'bulk'])->name('bulk-deactivate');
+        Route::post('/bulk/delete', [EmployeeController::class, 'bulk'])->name('bulk-delete');
+
         // Export/Import routes
         Route::get('/export', [EmployeeController::class, 'export'])->name('export');
         Route::post('/import', [EmployeeController::class, 'import'])->name('import');

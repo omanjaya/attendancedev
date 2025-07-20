@@ -1,6 +1,20 @@
 import { ref, nextTick } from 'vue'
 import FaceDetectionService from '@/services/FaceDetectionService'
-import MediaPipeFaceService from '@/services/MediaPipeFaceService'
+
+// Lazy import MediaPipe service to handle potential loading issues
+let MediaPipeFaceService = null
+const loadMediaPipeService = async () => {
+  if (!MediaPipeFaceService) {
+    try {
+      const module = await import('@/services/MediaPipeFaceService')
+      MediaPipeFaceService = module.default
+    } catch (error) {
+      console.warn('MediaPipe service not available, falling back to Face-API.js:', error)
+      MediaPipeFaceService = FaceDetectionService
+    }
+  }
+  return MediaPipeFaceService
+}
 
 export function useFaceDetection(options = {}) {
   const useMediaPipe = options.useMediaPipe || false
@@ -13,7 +27,7 @@ export function useFaceDetection(options = {}) {
 
   const videoElement = ref(null)
   const canvasElement = ref(null)
-  const currentService = useMediaPipe ? MediaPipeFaceService : FaceDetectionService
+  const currentService = ref(FaceDetectionService) // Default to Face-API.js
   const detectionLoop = ref(null)
   const knownFaces = ref([])
 
@@ -22,11 +36,18 @@ export function useFaceDetection(options = {}) {
       error.value = null
       processing.value = true
 
+      // Load the appropriate service
+      if (useMediaPipe) {
+        currentService.value = await loadMediaPipeService()
+      } else {
+        currentService.value = FaceDetectionService
+      }
+
       // Initialize the face detection service
-      await currentService.initialize()
+      await currentService.value.initialize()
 
       if (videoElement.value) {
-        await currentService.startCamera(videoElement.value)
+        await currentService.value.startCamera(videoElement.value)
         cameraActive.value = true
 
         // Wait for video to be ready
@@ -56,8 +77,8 @@ export function useFaceDetection(options = {}) {
 
       // For MediaPipe, set up result callback
       if (useMediaPipe) {
-        currentService.setOnResults((results) => {
-          currentService.drawResults(canvas, results, video)
+        currentService.value.setOnResults((results) => {
+          currentService.value.drawResults(canvas, results, video)
           faceDetected.value = results.detections && results.detections.length > 0
         })
       }
@@ -72,7 +93,7 @@ export function useFaceDetection(options = {}) {
     }
 
     // Stop camera service
-    currentService.stopCamera()
+    currentService.value.stopCamera()
 
     if (videoElement.value) {
       videoElement.value.srcObject = null
@@ -91,14 +112,14 @@ export function useFaceDetection(options = {}) {
       try {
         if (!useMediaPipe) {
           // Face-API.js detection
-          const detections = await currentService.detectFaces(videoElement.value)
+          const detections = await currentService.value.detectFaces(videoElement.value)
 
           faceDetected.value = detections.length > 0
 
           // Draw detections on canvas
           if (canvasElement.value) {
-            const displaySize = currentService.getDisplaySize(videoElement.value)
-            currentService.drawDetections(canvasElement.value, detections, displaySize)
+            const displaySize = currentService.value.getDisplaySize(videoElement.value)
+            currentService.value.drawDetections(canvasElement.value, detections, displaySize)
           }
 
           if (detections.length > 0 && !gesturePrompt.value) {
@@ -149,11 +170,11 @@ export function useFaceDetection(options = {}) {
 
       // Capture face data using the current service
       const faceData = useMediaPipe
-        ? await currentService.captureFaceData(videoElement.value)
-        : await currentService.captureFaceDescriptor(videoElement.value, 'current')
+        ? await currentService.value.captureFaceData(videoElement.value)
+        : await currentService.value.captureFaceDescriptor(videoElement.value, 'current')
 
       // Try to recognize against known faces
-      const recognitionResult = await currentService.recognizeFace(
+      const recognitionResult = await currentService.value.recognizeFace(
         videoElement.value,
         knownFaces.value
       )
@@ -192,12 +213,12 @@ export function useFaceDetection(options = {}) {
       }
 
       const faceData = useMediaPipe
-        ? await currentService.captureFaceData(videoElement.value)
-        : await currentService.captureFaceDescriptor(videoElement.value, employeeId)
+        ? await currentService.value.captureFaceData(videoElement.value)
+        : await currentService.value.captureFaceDescriptor(videoElement.value, employeeId)
 
       // Add to known faces
       const descriptor = useMediaPipe
-        ? currentService.calculateFaceDescriptor(faceData)
+        ? currentService.value.calculateFaceDescriptor(faceData)
         : faceData.descriptor
 
       knownFaces.value.push({
@@ -264,6 +285,6 @@ export function useFaceDetection(options = {}) {
     loadKnownFaces,
     verifyLocation,
     knownFaces,
-    currentService,
+    currentService: currentService.value,
   }
 }

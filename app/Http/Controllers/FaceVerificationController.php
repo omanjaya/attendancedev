@@ -31,32 +31,60 @@ class FaceVerificationController extends Controller
                 ], 404);
             }
 
-            // Check if profile photo exists
-            if (! $employee->photo_path) {
-                return response()->json([
-                    'success' => true,
-                    'data' => [
-                        'profile_photo_url' => null,
-                        'face_descriptor' => null,
-                        'face_registered' => false,
-                        'employee_name' => $employee->full_name,
-                        'needs_photo_upload' => true,
-                    ],
-                    'message' => 'No profile photo uploaded. Please upload a profile photo first.',
-                ], 200);
+            // Get face descriptor from user table or employee metadata
+            $faceDescriptor = null;
+            $faceRegistered = false;
+
+            // Check user table first (JSON array or object)
+            if (!empty($user->face_descriptor)) {
+                $faceDescriptor = $user->face_descriptor;
+                $faceRegistered = true;
+            }
+            // Then check employee metadata
+            elseif (isset($employee->metadata['face_recognition']['descriptor'])) {
+                $faceDescriptor = $employee->metadata['face_recognition']['descriptor'];
+                $faceRegistered = true;
+            }
+            // Also use employee accessor as fallback
+            elseif ($employee->face_registered) {
+                $faceDescriptor = $employee->metadata['face_recognition']['descriptor'] ?? null;
+                $faceRegistered = true;
+            }
+            
+            // Convert face descriptor to array if it's a string
+            if (is_string($faceDescriptor)) {
+                $decoded = json_decode($faceDescriptor, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $faceDescriptor = $decoded;
+                }
             }
 
-            // Get face descriptor if exists
-            $faceDescriptor = $user->face_descriptor ?? null;
+            // Debug logging
+            \Log::info('Face verification profile data debug', [
+                'user_id' => $user->id,
+                'employee_id' => $employee->id,
+                'user_face_descriptor_exists' => !empty($user->face_descriptor),
+                'employee_metadata_exists' => isset($employee->metadata['face_recognition']['descriptor']),
+                'employee_face_registered_accessor' => $employee->face_registered,
+                'final_face_registered' => $faceRegistered,
+                'face_descriptor_type' => gettype($faceDescriptor),
+                'face_descriptor_size' => is_array($faceDescriptor) ? count($faceDescriptor) : 'not_array',
+                'employee_metadata' => $employee->metadata,
+            ]);
 
+            // Check if photo exists
+            $hasPhoto = !empty($employee->photo_path);
+            
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'profile_photo_url' => $employee->photo_url,
+                    'profile_photo_url' => $hasPhoto ? $employee->photo_url : null,
                     'face_descriptor' => $faceDescriptor,
-                    'face_registered' => ! empty($faceDescriptor),
+                    'face_registered' => $faceRegistered,
                     'employee_name' => $employee->full_name,
+                    'needs_photo_upload' => !$hasPhoto && !$faceRegistered,
                 ],
+                'message' => !$hasPhoto && !$faceRegistered ? 'No profile photo uploaded. Please upload a profile photo first.' : null,
             ]);
 
         } catch (\Exception $e) {
@@ -125,6 +153,15 @@ class FaceVerificationController extends Controller
                 $employee->metadata = $metadata;
                 $employee->save();
             }
+
+            // Log successful save
+            Log::info('Face descriptor saved successfully', [
+                'user_id' => $user->id,
+                'employee_id' => $employee?->id,
+                'descriptor_size' => count($request->face_descriptor),
+                'confidence' => $request->confidence ?? 85,
+                'metadata_saved' => !!$employee,
+            ]);
 
             return response()->json([
                 'success' => true,

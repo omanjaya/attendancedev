@@ -104,6 +104,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
             );
         });
 
+    // Location API Routes
+    Route::prefix('api/locations')
+        ->middleware('permission:manage_locations')
+        ->group(function () {
+            Route::get('/', [LocationController::class, 'getLocationsApi'])->name('api.locations.index');
+            Route::get('/statistics', [LocationController::class, 'getStatistics'])->name('api.locations.statistics');
+            Route::post('/', [LocationController::class, 'storeApi'])->name('api.locations.store');
+            Route::put('/{location}', [LocationController::class, 'updateApi'])->name('api.locations.update');
+            Route::delete('/{location}', [LocationController::class, 'destroyApi'])->name('api.locations.destroy');
+            Route::patch('/{location}/toggle-status', [LocationController::class, 'toggleStatus'])->name('api.locations.toggle-status');
+        });
+
     // Security Settings (User level)
     Route::prefix('settings')->group(function () {
         Route::get('/security', function () {

@@ -260,6 +260,14 @@ Route::prefix('vue')
             App\Http\Controllers\DashboardController::class,
             'getAttendanceStats',
         ])->name('api.vue.attendance.stats');
+        Route::get('/face-detection/statistics', [
+            App\Http\Controllers\FaceDetectionController::class,
+            'getStatistics',
+        ])->middleware('permission:view_employees');
+        Route::get('/attendance/export', [
+            App\Http\Controllers\AttendanceController::class,
+            'exportAttendance',
+        ])->middleware('permission:view_attendance_reports');
     });
 
 // Navigation API routes for enhanced sidebar

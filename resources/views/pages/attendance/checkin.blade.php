@@ -1,263 +1,351 @@
 @extends('layouts.authenticated-unified')
 
-@section('title', 'Sistem Absensi Cerdas')
+@section('title', 'Check-in')
 
 @section('page-content')
-<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-blue-900 dark:to-indigo-900">
-    <div class="p-6 lg:p-8" x-data="enhancedAttendanceSystem()" x-init="initializeSystem()">
-        <x-layouts.base-page
-            title="Sistem Absensi Cerdas"
-            subtitle="Sistem absensi cerdas dengan teknologi biometrik canggih"
-            :breadcrumbs="[
-                ['label' => 'Dashboard', 'url' => route('dashboard')],
-                ['label' => 'Absensi'],
-                ['label' => 'Check-in']
-            ]">
-            <x-slot name="actions">
-                <div class="flex items-center space-x-3">
-                    <div class="relative inline-block text-left" x-data="{ open: false }">
-                        <x-ui.button type="button" variant="secondary" @click="open = !open">
-                            <svg class="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" x-data="enhancedAttendanceSystem()" x-init="initializeSystem()">
+    
+    <!-- Today's Schedule and Status Card -->
+    <div class="mb-6">
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Jadwal & Status Hari Ini</h2>
+                    <span class="text-sm text-slate-500 dark:text-slate-400" x-text="todayFormatted"></span>
+                </div>
+                
+                <!-- Schedule Information -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Work Schedule -->
+                    <div class="space-y-3">
+                        <h3 class="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center">
+                            <svg class="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
-                            <span x-text="detectionMethod.name"></span>
-                            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            Jadwal Kerja
+                        </h3>
+                        <div x-show="schedule" class="space-y-2">
+                            <div class="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                <span class="text-sm text-slate-600 dark:text-slate-400">Jam Masuk:</span>
+                                <span class="text-sm font-medium text-blue-600 dark:text-blue-400" x-text="schedule?.start_time_formatted || '-'"></span>
+                            </div>
+                            <div class="flex justify-between items-center p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                                <span class="text-sm text-slate-600 dark:text-slate-400">Jam Keluar:</span>
+                                <span class="text-sm font-medium text-orange-600 dark:text-orange-400" x-text="schedule?.end_time_formatted || '-'"></span>
+                            </div>
+                            <div class="flex justify-between items-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                                <span class="text-sm text-slate-600 dark:text-slate-400">Total Periode:</span>
+                                <span class="text-sm font-medium text-purple-600 dark:text-purple-400" x-text="schedule?.periods_count ? schedule.periods_count + ' periode' : '0 periode'"></span>
+                            </div>
+                        </div>
+                        <div x-show="!schedule" class="p-3 bg-slate-100 dark:bg-slate-700 rounded-lg text-center">
+                            <span class="text-sm text-slate-500 dark:text-slate-400">Tidak ada jadwal untuk hari ini</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Attendance Status -->
+                    <div class="space-y-3">
+                        <h3 class="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center">
+                            <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
-                        </x-ui.button>
-                        <div x-show="open" @click.away="open = false" 
-                             x-transition:enter="transition ease-out duration-200"
-                             x-transition:enter-start="opacity-0 scale-95"
-                             x-transition:enter-end="opacity-100 scale-100"
-                             x-transition:leave="transition ease-in duration-150"
-                             x-transition:leave-start="opacity-100 scale-100"
-                             x-transition:leave-end="opacity-0 scale-95"
-                             class="absolute right-0 mt-2 w-64 bg-white/80 backdrop-blur-sm rounded-xl shadow-lg ring-1 ring-white/30 focus:outline-none z-50">
-                            <div class="p-2">
-                                <button @click="switchDetectionMethod('face-api'); open = false" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-white/20 transition-colors">
-                                    <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                    </div>
-                                    <div class="text-left">
-                                        <div class="font-medium text-slate-800 dark:text-white">Face-API.js</div>
-                                        <div class="text-xs text-slate-600 dark:text-slate-400">Deteksi berbasis browser</div>
-                                    </div>
-                                </button>
-                                <button @click="switchDetectionMethod('mediapipe'); open = false" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-white/20 transition-colors">
-                                    <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
-                                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                                    </div>
-                                    <div class="text-left">
-                                        <div class="font-medium text-slate-800 dark:text-white">MediaPipe</div>
-                                        <div class="text-xs text-slate-600 dark:text-slate-400">Framework ML Google</div>
-                                    </div>
-                                </button>
+                            Status Kehadiran
+                        </h3>
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                                <span class="text-sm text-slate-600 dark:text-slate-400">Check-in:</span>
+                                <span class="text-sm font-medium" 
+                                      :class="attendance?.check_in_time ? 'text-green-600 dark:text-green-400' : 'text-slate-400'"
+                                      x-text="attendance?.check_in_time || 'Belum check-in'"></span>
+                            </div>
+                            <div class="flex justify-between items-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                                <span class="text-sm text-slate-600 dark:text-slate-400">Check-out:</span>
+                                <span class="text-sm font-medium" 
+                                      :class="attendance?.check_out_time ? 'text-red-600 dark:text-red-400' : 'text-slate-400'"
+                                      x-text="attendance?.check_out_time || 'Belum check-out'"></span>
                             </div>
                         </div>
                     </div>
                 </div>
-            </x-slot>
-        </x-layouts.base-page>
-
-        <!-- Enhanced Status Overview -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out hover:bg-white/30 hover:scale-105">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="biometric-indicator w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform duration-300">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-xs text-emerald-600 font-medium" x-text="status.badge"></div>
-                    </div>
-                </div>
-                <h3 class="text-lg font-bold text-slate-800 dark:text-white" x-text="status.title"></h3>
-                <p class="text-sm text-slate-600 dark:text-slate-400" x-text="status.subtitle"></p>
-                <div class="mt-3 w-full bg-white/20 rounded-full h-2">
-                    <div class="progress-enhanced bg-gradient-to-r from-emerald-500 to-green-500 h-2 rounded-full transition-all duration-1000" 
-                         :style="`width: ${status.progress}%`"></div>
-                </div>
-            </div>
-
-            <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out hover:bg-white/30 hover:scale-105">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="gps-signal w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform duration-300">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-xs font-medium" :class="location.valid ? 'text-green-600' : 'text-red-600'" x-text="location.status"></div>
-                    </div>
-                </div>
-                <h3 class="text-lg font-bold text-slate-800 dark:text-white">Lokasi GPS</h3>
-                <p class="text-sm text-slate-600 dark:text-slate-400" x-text="location.address"></p>
-                <div class="mt-3 flex items-center space-x-2">
-                    <div class="text-xs text-slate-500 dark:text-slate-400">Akurasi: <span x-text="location.accuracy"></span>m</div>
-                </div>
-            </div>
-
-            <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out hover:bg-white/30 hover:scale-105">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform duration-300">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-xs font-medium" :class="faceRecognition.enrolled ? 'text-green-600' : 'text-amber-600'" x-text="faceRecognition.status"></div>
-                    </div>
-                </div>
-                <h3 class="text-lg font-bold text-slate-800 dark:text-white">Pengenalan Wajah</h3>
-                <p class="text-sm text-slate-600 dark:text-slate-400" x-text="faceRecognition.confidence"></p>
-                <div class="mt-3 flex items-center space-x-1">
-                    <div class="sound-wave w-1 h-5 bg-gradient-to-t from-blue-400 to-blue-600 rounded-full animate-pulse" style="animation-delay: 0s;"></div>
-                    <div class="sound-wave w-1 h-5 bg-gradient-to-t from-blue-400 to-blue-600 rounded-full animate-pulse" style="animation-delay: 0.1s;"></div>
-                    <div class="sound-wave w-1 h-5 bg-gradient-to-t from-blue-400 to-blue-600 rounded-full animate-pulse" style="animation-delay: 0.2s;"></div>
-                    <div class="sound-wave w-1 h-5 bg-gradient-to-t from-blue-400 to-blue-600 rounded-full animate-pulse" style="animation-delay: 0.3s;"></div>
-                    <span class="text-xs text-slate-500 dark:text-slate-400 ml-2">Memproses</span>
-                </div>
-            </div>
-
-            <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out hover:bg-white/30 hover:scale-105">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform duration-300">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-xs text-blue-600 font-medium">Real-time</div>
-                    </div>
-                </div>
-                <h3 class="text-lg font-bold text-slate-800 dark:text-white">Kinerja</h3>
-                <p class="text-sm text-slate-600 dark:text-slate-400" x-text="performance.speed"></p>
-                <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
-                    <div class="text-center">
-                        <div class="font-bold text-blue-600" x-text="performance.accuracy"></div>
-                        <div class="text-slate-500 dark:text-slate-400">Akurasi</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="font-bold text-purple-600" x-text="performance.uptime"></div>
-                        <div class="text-slate-500 dark:text-slate-400">Uptime</div>
-                    </div>
+                
+                <!-- Quick Action Buttons -->
+                <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-600 flex space-x-3">
+                    <button @click="refreshScheduleStatus()" 
+                            class="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Refresh Status
+                    </button>
+                    <button x-show="schedule && schedule.periods_count > 0" 
+                            @click="showScheduleDetailModal = true"
+                            class="inline-flex items-center px-3 py-2 text-sm font-medium text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                        Lihat Detail Jadwal
+                    </button>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Enhanced Camera Interface -->
-        <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out mb-8">
-            <div class="flex items-center justify-between mb-8">
+    <!-- Status Overview Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+            <x-ui.card variant="metric" 
+                       title="Status Absensi"
+                       class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-sm">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium" 
+                          x-bind:class="status.badge === 'Working' ? 'bg-success/10 text-success' : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'" 
+                          x-text="status.badge"></span>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1" x-text="status.title"></h3>
+                <p class="text-sm text-muted-foreground" x-text="status.subtitle"></p>
+                <div class="mt-4">
+                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div class="h-2 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full transition-all duration-500"
+                             x-bind:style="`width: ${status.progress}%`"></div>
+                    </div>
+                </div>
+            </x-ui.card>
+
+            <x-ui.card variant="metric" 
+                       title="Lokasi GPS"
+                       class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    </div>
+                    <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium" 
+                          x-bind:class="location.valid ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'" 
+                          x-text="location.status"></span>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Lokasi GPS</h3>
+                <p class="text-sm text-muted-foreground" x-text="location.address"></p>
+                <div class="mt-2 flex items-center space-x-2">
+                    <span class="text-xs text-muted-foreground">Akurasi: <span x-text="location.accuracy"></span>m</span>
+                </div>
+            </x-ui.card>
+
+            <x-ui.card variant="metric" 
+                       title="Pengenalan Wajah"
+                       class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-sm">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                    </div>
+                    <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium" 
+                          x-bind:class="faceRecognition.enrolled ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'" 
+                          x-text="faceRecognition.status"></span>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Pengenalan Wajah</h3>
+                <p class="text-sm text-muted-foreground" x-text="faceRecognition.confidence"></p>
+                <div class="mt-2 flex items-center space-x-1">
+                    <div class="w-1 h-3 bg-gradient-to-t from-purple-400 to-purple-600 rounded-full animate-pulse" style="animation-delay: 0s;"></div>
+                    <div class="w-1 h-4 bg-gradient-to-t from-purple-400 to-purple-600 rounded-full animate-pulse" style="animation-delay: 0.1s;"></div>
+                    <div class="w-1 h-3 bg-gradient-to-t from-purple-400 to-purple-600 rounded-full animate-pulse" style="animation-delay: 0.2s;"></div>
+                    <div class="w-1 h-4 bg-gradient-to-t from-purple-400 to-purple-600 rounded-full animate-pulse" style="animation-delay: 0.3s;"></div>
+                    <span class="text-xs text-muted-foreground ml-2">Siap</span>
+                </div>
+            </x-ui.card>
+
+            <x-ui.card variant="metric" 
+                       title="Kinerja Sistem"
+                       class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-sm">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    </div>
+                    <x-ui.badge color="info">Real-time</x-ui.badge>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Kinerja Sistem</h3>
+                <p class="text-sm text-muted-foreground" x-text="performance.speed"></p>
+                <div class="mt-3 grid grid-cols-2 gap-4">
+                    <div class="text-center">
+                        <div class="text-xl font-bold text-info" x-text="performance.accuracy"></div>
+                        <div class="text-xs text-muted-foreground">Akurasi</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-xl font-bold text-success" x-text="performance.uptime"></div>
+                        <div class="text-xs text-muted-foreground">Uptime</div>
+                    </div>
+                </div>
+            </x-ui.card>
+        </div>
+
+        <!-- Camera Interface -->
+        <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-8">
+            <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h2 class="text-2xl font-bold text-slate-800 dark:text-white flex items-center">
-                        <svg class="w-8 h-8 mr-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/></svg>
-                        Pemindai Biometrik Cerdas
+                    <h2 class="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
+                        <svg class="w-6 h-6 mr-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/></svg>
+                        Verifikasi Wajah & GPS
                     </h2>
-                    <p class="text-slate-600 dark:text-slate-400">Teknologi AI untuk verifikasi identitas yang akurat dan aman</p>
+                    <p class="text-muted-foreground">Aktifkan kamera untuk memulai proses check-in</p>
+                </div>
+                
+                <div class="relative inline-block text-left" x-data="{ open: false }">
+                    <x-ui.button type="button" variant="outline" @click="open = !open" class="text-sm">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        </svg>
+                        <span x-text="detectionMethod.name"></span>
+                        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </x-ui.button>
+                    <div x-show="open" @click.away="open = false" 
+                         x-transition:enter="transition ease-out duration-200"
+                         x-transition:enter-start="opacity-0 scale-95"
+                         x-transition:enter-end="opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-150"
+                         x-transition:leave-start="opacity-100 scale-100"
+                         x-transition:leave-end="opacity-0 scale-95"
+                         class="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+                        <div class="py-1">
+                            <button @click="switchDetectionMethod('face-api'); open = false" class="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <svg class="w-4 h-4 mr-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Face-API.js
+                            </button>
+                            <button @click="switchDetectionMethod('mediapipe'); open = false" class="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <svg class="w-4 h-4 mr-3 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                MediaPipe
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Camera Container -->
             <div class="relative">
-                <div class="relative h-96 bg-black rounded-2xl overflow-hidden border-4 border-white/30 face-frame">
+                <div class="relative h-80 bg-gray-900 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
                     <video id="video-stream" class="w-full h-full object-cover" x-show="camera.active" autoplay muted playsinline></video>
-                    <div class="camera-overlay absolute top-0 left-0 right-0 bottom-0 pointer-events-none bg-radial-gradient-transparent-black">
-                        <div class="crosshair absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 border-2 border-emerald-500 rounded-full opacity-70" x-show="camera.active"></div>
+                    
+                    <!-- Camera placeholder when inactive -->
+                    <div x-show="!camera.active" class="absolute inset-0 flex items-center justify-center camera-placeholder">
+                        <div class="text-center">
+                            <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                            </svg>
+                            <p class="text-muted-foreground font-medium">Klik "Aktifkan Kamera" untuk memulai</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Camera overlay -->
+                    <div class="absolute top-0 left-0 right-0 bottom-0 pointer-events-none" x-show="camera.active">
+                        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-emerald-500 rounded-full opacity-80 pulse-border"></div>
                     </div>
                     <canvas id="face-overlay" class="absolute top-0 left-0 w-full h-full pointer-events-none" x-show="camera.active"></canvas>
-                    <div x-show="!camera.active" class="flex items-center justify-center h-full bg-gradient-to-br from-slate-800 to-slate-900">
-                        <div class="text-center">
-                            <div class="mx-auto w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mb-6">
-                                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/></svg>
-                            </div>
-                            <h3 class="text-xl font-bold text-white mb-2">Kamera Siap</h3>
-                            <p class="text-slate-300">Klik mulai untuk mengaktifkan pemindai biometrik</p>
-                        </div>
-                    </div>
                     <div x-show="camera.active" class="absolute top-4 left-4 right-4">
-                        <div class="bg-white/80 backdrop-blur-sm rounded-xl p-4 text-slate-800 dark:text-white">
+                        <x-ui.card class="bg-white/95 backdrop-blur-sm border-white/20">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center space-x-3">
-                                    <div class="w-4 h-4 rounded-full" :class="detection.status === 'detected' ? 'bg-green-500' : 'bg-amber-500 animate-pulse'"></div>
-                                    <span class="font-medium" x-text="detection.message"></span>
+                                    <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium" 
+                                          x-bind:class="detection.status === 'detected' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'">
+                                        <span x-text="detection.status === 'detected' ? 'Terdeteksi' : 'Mendeteksi'"></span>
+                                    </span>
+                                    <span class="font-medium text-gray-900" x-text="detection.message"></span>
                                 </div>
-                                <div class="flex items-center space-x-4">
-                                    <div class="text-sm">
-                                        <span class="text-slate-600 dark:text-slate-400">Kepercayaan:</span>
-                                        <span class="font-bold" x-text="detection.confidence"></span>
+                                <div class="flex items-center space-x-4 text-sm">
+                                    <div>
+                                        <span class="text-muted-foreground">Kepercayaan:</span>
+                                        <span class="font-semibold text-gray-900" x-text="detection.confidence"></span>
                                     </div>
-                                    <div class="text-sm">
-                                        <span class="text-slate-600 dark:text-slate-400">Kehidupan:</span>
-                                        <span class="font-bold" x-text="detection.liveness"></span>
+                                    <div>
+                                        <span class="text-muted-foreground">Kehidupan:</span>
+                                        <span class="font-semibold text-gray-900" x-text="detection.liveness"></span>
                                     </div>
                                 </div>
                             </div>
-                            <div class="mt-3 w-full bg-white/20 rounded-full h-2">
-                                <div class="progress-enhanced bg-gradient-to-r from-green-400 to-emerald-500 h-2 rounded-full transition-all duration-300" 
-                                     :style="`width: ${detection.progress}%`"></div>
+                            <div class="mt-3">
+                                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                    <div class="h-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full transition-all duration-300"
+                                         x-bind:style="`width: ${detection.progress}%`"></div>
+                                </div>
                             </div>
-                        </div>
+                        </x-ui.card>
                     </div>
                 </div>
 
-                <!-- Attendance Controls -->
-                <div class="mt-6 flex flex-wrap gap-4 justify-center">
-                    <button @click="startCheckInWorkflow()" 
-                            :disabled="workflow.currentStep > 1"
-                            class="group relative px-8 py-4 rounded-xl font-medium transition-all transform hover:scale-105 text-lg"
-                            :class="workflow.currentStep > 1 ? 'bg-slate-300 cursor-not-allowed text-slate-500' : 'bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white shadow-lg glow-success'">
-                        <svg class="w-6 h-6 mr-2 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <!-- Action Buttons -->
+                <div class="mt-6 flex flex-wrap gap-3 justify-center">
+                    <x-ui.button 
+                        @click="startCheckInWorkflow()" 
+                        x-bind:disabled="workflow.currentStep > 1"
+                        variant="success"
+                        size="lg"
+                        class="flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         <span x-text="status.badge === 'Working' ? 'Mulai Check-Out' : 'Mulai Check-In'"></span>
-                    </button>
+                    </x-ui.button>
                     
-                    <button @click="toggleCamera()" 
-                            class="group relative px-6 py-3 rounded-xl font-medium transition-all transform hover:scale-105"
-                            :class="camera.active ? 'bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white shadow-lg' : 'bg-white/20 backdrop-blur-sm border border-white/30 text-slate-700 dark:text-slate-300 hover:bg-white/30 shadow-lg'">
-                        <svg class="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="camera.active ? 'M21 12a9 9 0 11-18 0 9 9 0 0118 0z M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z' : 'M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z'"/>
+                    <button 
+                        @click="toggleCamera()" 
+                        class="inline-flex items-center justify-center px-6 py-3 text-sm font-medium rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none"
+                        x-bind:class="camera.active ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : 'bg-primary text-primary-foreground hover:bg-primary/90'">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                         </svg>
-                        <span x-text="camera.active ? 'Hentikan Kamera' : 'Uji Kamera'"></span>
+                        <span x-text="camera.active ? 'Matikan Kamera' : 'Aktifkan Kamera'"></span>
                     </button>
                     
-                    <button @click="captureAttendance()" 
-                            x-show="camera.active && detection.status === 'detected'"
-                            class="group relative px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-xl font-medium transition-all transform hover:scale-105 shadow-lg face-scanning">
-                        <svg class="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/></svg>
-                        <span>Ambil & Proses</span>
-                    </button>
+                    <x-ui.button 
+                        @click="captureAttendance()" 
+                        x-show="camera.active && detection.status === 'detected'"
+                        variant="outline"
+                        size="lg"
+                        class="flex items-center border-purple-500 text-purple-600 hover:bg-purple-50">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/></svg>
+                        <span>Proses Absensi</span>
+                    </x-ui.button>
                     
-                    <button @click="simulateAttendance()" 
-                            class="group relative px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl font-medium transition-all transform hover:scale-105 shadow-lg">
-                        <svg class="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    <x-ui.button 
+                        @click="simulateAttendance()" 
+                        variant="warning"
+                        size="lg"
+                        class="flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                         <span>Mode Demo</span>
-                    </button>
+                    </x-ui.button>
                 </div>
-            </div>
-        </div>
+        </x-ui.card>
 
         <!-- Workflow Progress Indicator -->
-        <div x-show="workflow.currentStep > 1" class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out mb-8">
+        <x-ui.card x-show="workflow.currentStep > 1" class="mb-6">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-xl font-semibold text-slate-800 dark:text-white">Progres Absensi</h3>
-                <span class="text-sm text-slate-600 dark:text-slate-400">Langkah <span x-text="workflow.currentStep"></span> dari <span x-text="workflow.steps.length"></span></span>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Progres Absensi</h3>
+                <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">
+                    Langkah <span x-text="workflow.currentStep"></span> dari <span x-text="workflow.steps.length"></span>
+                </span>
             </div>
             
-            <div class="w-full bg-white/20 rounded-full h-2 mb-4">
-                <div class="progress-enhanced bg-gradient-to-r from-emerald-500 to-green-500 h-2 rounded-full transition-all duration-300" 
-                     :style="'width: ' + (workflow.currentStep - 1) / workflow.steps.length * 100 + '%'"></div>
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-6">
+                <div class="h-3 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full transition-all duration-500"
+                     x-bind:style="`width: ${(workflow.currentStep - 1) / workflow.steps.length * 100}%`"></div>
             </div>
             
             <div class="flex justify-between items-center">
                 <template x-for="step in workflow.steps" :key="step.id">
                     <div class="flex flex-col items-center">
-                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all"
-                             :class="step.completed ? 'bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-lg' : 
-                                    step.id === workflow.currentStep ? 'bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg' : 
-                                    'bg-white/20 backdrop-blur-sm border border-white/30 text-slate-600 dark:text-slate-300'">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-all"
+                             x-bind:class="step.completed ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-sm' : 
+                                    step.id === workflow.currentStep ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-sm' : 
+                                    'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'">
                             <span x-show="step.completed">✓</span>
                             <span x-show="!step.completed" x-text="step.id"></span>
                         </div>
-                        <div class="mt-2 text-xs text-center max-w-20 text-slate-600 dark:text-slate-400">
-                            <div class="font-medium" x-text="step.title"></div>
-                            <div class="text-gray-500" x-text="step.description"></div>
+                        <div class="mt-3 text-center max-w-20">
+                            <div class="text-sm font-medium text-gray-900 dark:text-white" x-text="step.title"></div>
+                            <div class="text-xs text-muted-foreground" x-text="step.description"></div>
                         </div>
                     </div>
                 </template>
             </div>
-        </div>
+        </x-ui.card>
 
         <!-- Enhanced Statistics Dashboard -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -296,7 +384,7 @@
 
         <!-- Admin Override Section -->
         @can('manage_attendance_all')
-        <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out">
+        <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             <h2 class="text-2xl font-bold text-slate-800 dark:text-white flex items-center mb-6">
                 <svg class="w-8 h-8 mr-3 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
                 Admin Override
@@ -304,24 +392,26 @@
             
             <form @submit.prevent="submitManualEntry()" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <x-ui.label for="manualEmployee" class="text-slate-700 dark:text-slate-300">Karyawan</x-ui.label>
-                    <x-ui.select id="manualEmployee" x-model="manualEntry.employeeId" class="bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300">
+                    <x-ui.label for="manualEmployee">Karyawan</x-ui.label>
+                    <x-ui.select id="manualEmployee" x-model="manualEntry.employeeId">
                         <option value="">Pilih Karyawan</option>
                         <!-- Options will be populated via API -->
                     </x-ui.select>
                 </div>
                 
                 <div>
-                    <x-ui.label for="manualAction" class="text-slate-700 dark:text-slate-300">Aksi</x-ui.label>
-                    <x-ui.select id="manualAction" x-model="manualEntry.action" class="bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300">
+                    <x-ui.label for="manualAction">Aksi</x-ui.label>
+                    <x-ui.select id="manualAction" x-model="manualEntry.action">
                         <option value="check-in">Check In</option>
                         <option value="check-out">Check Out</option>
                     </x-ui.select>
                 </div>
                 
                 <div class="md:col-span-2">
-                    <x-ui.label for="manualNotes" class="text-slate-700 dark:text-slate-300">Catatan</x-ui.label>
-                    <textarea id="manualNotes" x-model="manualEntry.notes" rows="3" class="w-full px-4 py-3 bg-white/30 backdrop-blur-sm border border-white/40 rounded-xl text-slate-800 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300" placeholder="Catatan opsional untuk entri manual"></textarea>
+                    <x-ui.label for="manualNotes">Catatan</x-ui.label>
+                    <textarea id="manualNotes" x-model="manualEntry.notes" rows="3" 
+                             class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm" 
+                             placeholder="Catatan opsional untuk entri manual"></textarea>
                 </div>
                 
                 <div class="md:col-span-2">
@@ -331,12 +421,10 @@
                     </x-ui.button>
                 </div>
             </form>
-        </div>
+        </x-ui.card>
         @endcan
-    </div>
-</div>
 
-<!-- Enhanced Success Modal -->
+        <!-- Enhanced Success Modal -->
 <x-ui.modal id="successModal" title="Berhasil!" size="md">
     <div class="text-center">
         <div class="mx-auto w-20 h-20 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 flex items-center justify-center mb-6 glow-success">
@@ -384,7 +472,7 @@
         <div class="mt-4 p-4 bg-white/10 rounded-lg">
             <div class="flex items-center space-x-3">
                 <div class="flex-shrink-0">
-                    <div class="w-3 h-3 rounded-full" :class="location.valid ? 'bg-green-500' : 'bg-red-500'"></div>
+                    <div class="w-3 h-3 rounded-full" x-bind:class="location.valid ? 'bg-green-500' : 'bg-red-500'"></div>
                 </div>
                 <div class="flex-1 text-left">
                     <p class="text-sm font-medium text-slate-800 dark:text-white" x-text="location.status"></p>
@@ -398,8 +486,8 @@
     </div>
     <x-slot name="footer">
         <x-ui.button @click="nextStep()" 
-                     :disabled="!location.valid"
-                     :class="location.valid ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white' : 'bg-slate-300 cursor-not-allowed text-slate-500'">
+                     x-bind:disabled="!location.valid"
+                     x-bind:class="location.valid ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white' : 'bg-slate-300 cursor-not-allowed text-slate-500'">
             Lanjutkan
         </x-ui.button>
         <x-ui.button variant="secondary" @click="closeModal('locationValidationModal')">Batal</x-ui.button>
@@ -436,8 +524,8 @@
     </div>
     <x-slot name="footer">
         <x-ui.button @click="nextStep()" 
-                     :disabled="!livenessCheck.completed"
-                     :class="livenessCheck.completed ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white' : 'bg-slate-300 cursor-not-allowed text-slate-500'">
+                     x-bind:disabled="!livenessCheck.completed"
+                     x-bind:class="livenessCheck.completed ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white' : 'bg-slate-300 cursor-not-allowed text-slate-500'">
             Verifikasi Identitas
         </x-ui.button>
         <x-ui.button variant="secondary" @click="stopCamera(); closeModal('faceRecognitionModal')">Batal</x-ui.button>
@@ -445,45 +533,123 @@
 </x-ui.modal>
 
 <!-- Attendance Confirmation Modal -->
-<x-ui.modal id="attendanceConfirmationModal" title="Konfirmasi Absensi">
-    <div class="text-center">
-        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-green-100 sm:mx-0 sm:h-10 sm:w-10">
-            <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-            </svg>
-        </div>
-        <h3 class="text-lg leading-6 font-medium text-slate-800 dark:text-white mt-3">Konfirmasi Absensi</h3>
-        <p class="text-sm text-slate-600 dark:text-slate-400 mt-2">Mohon konfirmasi detail absensi Anda sebelum mengirimkan.</p>
-        
-        <div class="mt-4 p-4 bg-white/10 rounded-lg">
-            <div class="space-y-3 text-slate-800 dark:text-white">
-                <div class="flex justify-between items-center">
-                    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Waktu:</span>
-                    <span class="text-sm" x-text="currentTime"></span>
+<div x-show="showConfirmationModal" x-transition class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="fixed inset-0 bg-slate-500 bg-opacity-75 transition-opacity"></div>
+        <div class="relative bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-md w-full">
+            <div class="p-6">
+                <div class="text-center">
+                    <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-green-100 sm:mx-0 sm:h-10 sm:w-10">
+                        <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg leading-6 font-medium text-slate-800 dark:text-white mt-3">Konfirmasi Absensi</h3>
+                    <p class="text-sm text-slate-600 dark:text-slate-400 mt-2">Mohon konfirmasi detail absensi Anda sebelum mengirimkan.</p>
+                    
+                    <div class="mt-4 p-4 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                        <div class="space-y-3 text-slate-800 dark:text-white">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Waktu:</span>
+                                <span class="text-sm" x-text="currentTime"></span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Lokasi:</span>
+                                <span class="text-sm" x-text="location.status"></span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Wajah Terverifikasi:</span>
+                                <span class="text-sm text-green-600">✓ Terverifikasi</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Kehidupan:</span>
+                                <span class="text-sm text-green-600">✓ Terkonfirmasi</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Lokasi:</span>
-                    <span class="text-sm" x-text="location.status"></span>
-                </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Wajah Terverifikasi:</span>
-                    <span class="text-sm text-green-600">✓ Terverifikasi</span>
-                </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Kehidupan:</span>
-                    <span class="text-sm text-green-600">✓ Terkonfirmasi</span>
+                
+                <div class="mt-6 flex space-x-3">
+                    <button @click="submitAttendance()" 
+                           class="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-3 px-4 rounded-lg font-medium transition-all duration-200">
+                        Kirim Absensi
+                    </button>
+                    <button @click="showConfirmationModal = false" 
+                           class="flex-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 text-slate-800 dark:text-white py-3 px-4 rounded-lg font-medium transition-all duration-200">
+                        Batal
+                    </button>
                 </div>
             </div>
         </div>
     </div>
-    <x-slot name="footer">
-        <x-ui.button @click="submitAttendance()" 
-                     class="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white">
-            Kirim Absensi
-        </x-ui.button>
-        <x-ui.button variant="secondary" @click="closeModal('attendanceConfirmationModal')">Batal</x-ui.button>
-    </x-slot>
-</x-ui.modal>
+</div>
+
+<!-- Schedule Detail Modal -->
+<div x-show="showScheduleDetailModal" x-transition class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="fixed inset-0 bg-slate-500 bg-opacity-75 transition-opacity"></div>
+        <div class="relative bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-lg w-full">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Detail Jadwal Hari Ini</h3>
+                    <button @click="showScheduleDetailModal = false" class="text-slate-400 hover:text-slate-500">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="space-y-4" x-show="schedule && schedule.periods">
+                    <div class="text-sm text-slate-600 dark:text-slate-400 mb-3">
+                        <span x-text="todayFormatted"></span> • 
+                        <span x-text="schedule?.periods_count || 0"></span> periode mengajar
+                    </div>
+                    
+                    <div class="space-y-3 max-h-80 overflow-y-auto">
+                        <template x-for="(period, index) in schedule?.periods || []" :key="index">
+                            <div class="border border-slate-200 dark:border-slate-600 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h4 class="font-medium text-slate-900 dark:text-white" x-text="period.name"></h4>
+                                    <span class="text-sm text-slate-500 dark:text-slate-400" 
+                                          x-text="period.start_time + ' - ' + period.end_time"></span>
+                                </div>
+                                <div class="text-sm text-slate-600 dark:text-slate-400">
+                                    <div class="flex items-center mb-1">
+                                        <svg class="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                                        </svg>
+                                        <span x-text="period.subject"></span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        </svg>
+                                        <span x-text="period.room"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                
+                <div x-show="!schedule || !schedule.periods || schedule.periods.length === 0" 
+                     class="text-center py-8 text-slate-500 dark:text-slate-400">
+                    Tidak ada jadwal untuk hari ini
+                </div>
+                
+                <div class="mt-6 flex justify-end">
+                    <button @click="showScheduleDetailModal = false" 
+                           class="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 text-slate-800 dark:text-white rounded-lg font-medium transition-all duration-200">
+                        Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
 
 @endsection
 
@@ -593,7 +759,19 @@ function enhancedAttendanceSystem() {
         // Core State
         currentTime: new Date().toLocaleTimeString(),
         showSuccessModal: false,
+        showConfirmationModal: false,
+        showScheduleDetailModal: false,
         successMessage: '',
+        
+        // Schedule and Attendance Data
+        schedule: null,
+        attendance: null,
+        todayFormatted: new Date().toLocaleDateString('id-ID', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        }),
         autoCloseTimer: 5,
         
         // Workflow State
@@ -703,7 +881,12 @@ function enhancedAttendanceSystem() {
             currentGestureIndex: 0,
             gestureDetected: false,
             attempts: 0,
-            maxAttempts: 3
+            maxAttempts: 3,
+            confidence: 0,
+            required: false,
+            requestedGesture: '',
+            progress: 0,
+            completed: false
         },
         
         // Face position tracking
@@ -723,6 +906,7 @@ function enhancedAttendanceSystem() {
             // this.initializeParticles(); // Particles are heavy, disable for now
             this.loadCurrentStatus();
             this.loadProfileData();
+            this.loadTodayScheduleAndStatus();
             this.showNotification('Sistem berhasil diinisialisasi', 'success');
             
             // Initialize audio context and location on first user interaction
@@ -768,6 +952,12 @@ function enhancedAttendanceSystem() {
                 });
                 
                 const data = await response.json();
+                
+                // Debug logging
+                console.log('Face verification profile data received:', data);
+                console.log('Face registered status:', data.data?.face_registered);
+                console.log('Face descriptor exists:', !!data.data?.face_descriptor);
+                console.log('Face descriptor type:', typeof data.data?.face_descriptor);
                 
                 if (data.success) {
                     this.profileData = data.data;
@@ -1043,9 +1233,14 @@ function enhancedAttendanceSystem() {
                         // Liveness check will be handled in face detection
                         break;
                     case 4:
+                        console.log('NextStep case 4: Closing face modal and opening confirmation modal');
                         closeModal('faceRecognitionModal');
                         this.stopCamera();
-                        openModal('attendanceConfirmationModal');
+                        setTimeout(() => {
+                            console.log('Opening attendanceConfirmationModal from nextStep case 4');
+                            this.showConfirmationModal = true;
+                            console.log('Confirmation modal set to true');
+                        }, 300);
                         break;
                 }
             }
@@ -1455,9 +1650,14 @@ function enhancedAttendanceSystem() {
                 this.detection.liveness = '100%';
                 this.showNotification('Verifikasi wajah berhasil diselesaikan!', 'success');
                 
-                // Complete step 3 and move to confirmation
+                // Complete step 3 and trigger step 4 which shows confirmation modal
                 this.completeStep(3);
-                setTimeout(() => this.nextStep(), 1000);
+                console.log('Step 3 completed, triggering next step...');
+                
+                // Trigger step 4 through nextStep() which will show confirmation modal
+                setTimeout(() => {
+                    this.nextStep();
+                }, 500);
             }
         },
         
@@ -1466,7 +1666,7 @@ function enhancedAttendanceSystem() {
             try {
                 this.showNotification('Mengirim absensi...', 'info');
                 
-                // Prepare attendance data
+                // Prepare attendance data (employee_id will be determined by backend from auth user)
                 const attendanceData = {
                     face_verification_passed: true,
                     face_confidence: parseFloat(this.detection.confidence) / 100,
@@ -1501,12 +1701,15 @@ function enhancedAttendanceSystem() {
                 if (result.success) {
                     // Complete workflow
                     this.completeStep(4);
-                    closeModal('attendanceConfirmationModal');
+                    this.showConfirmationModal = false;
                     this.stopCamera();
                     
                     // Show success modal
                     this.showSuccessModal = true;
                     this.successMessage = `${isCheckedIn ? 'Check-out' : 'Check-in'} berhasil! Waktu tercatat pada ${new Date().toLocaleTimeString()}`;
+                    
+                    // Refresh schedule and attendance status
+                    this.loadTodayScheduleAndStatus();
                     
                     // Reset workflow
                     this.resetWorkflow();
@@ -1534,7 +1737,8 @@ function enhancedAttendanceSystem() {
             // Reset all modals
             closeModal('locationValidationModal');
             closeModal('faceRecognitionModal');
-            closeModal('attendanceConfirmationModal');
+            this.showConfirmationModal = false;
+            this.showScheduleDetailModal = false;
             
             // Reset detection states
             this.detection.status = 'idle';
@@ -1620,49 +1824,75 @@ function enhancedAttendanceSystem() {
                     this.completeStep(3);
                     this.detection.liveness = '100%';
                     
+                    // Show confirmation modal after step 3 completion
+                    console.log('Simulation step 3 completed, triggering next step...');
                     setTimeout(() => {
-                        this.completeStep(4);
-                        this.showSuccessModal = true;
-                        this.successMessage = `Simulasi Check-in berhasil! Waktu tercatat pada ${new Date().toLocaleTimeString()}`;
-                        this.loadCurrentStatus();
-                        this.resetWorkflow();
-                        this.showNotification('Simulasi absensi berhasil dicatat!', 'success');
-                    }, 1000);
+                        this.nextStep();
+                    }, 500);
                 }, 1000);
             }, 1000);
         },
         
-        // Notification System
+        // Improved Notification System - less intrusive
         showNotification(message, type = 'info', autoHide = true) {
+            // Skip certain non-essential notifications
+            const skipMessages = [
+                'Sistem berhasil diinisialisasi',
+                'Menganalisis foto profil...',
+                'AudioContext initialized'
+            ];
+            
+            if (skipMessages.some(msg => message.includes(msg))) {
+                console.log(`[${type.toUpperCase()}] ${message}`);
+                return;
+            }
+
             const container = document.getElementById('notification-container');
             if (!container) return;
 
+            // Remove existing notifications of same type to avoid spam
+            container.querySelectorAll('.notification').forEach(notif => {
+                if (notif.dataset.type === type) {
+                    notif.remove();
+                }
+            });
+
             const notification = document.createElement('div');
-            notification.className = `notification glass-premium p-4 rounded-lg shadow-lg mb-3 flex items-center space-x-3 ${type === 'success' ? 'text-emerald-800' : type === 'error' ? 'text-red-800' : type === 'warning' ? 'text-amber-800' : 'text-blue-800'}`;
+            notification.dataset.type = type;
+            notification.className = `notification pointer-events-auto transform translate-x-full transition-all duration-300 ease-out
+                ${type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-900/20 dark:border-emerald-700 dark:text-emerald-300' : 
+                  type === 'error' ? 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-700 dark:text-red-300' : 
+                  type === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-300' : 
+                  'bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-900/20 dark:border-blue-700 dark:text-blue-300'}
+                px-3 py-2 rounded-lg border shadow-sm mb-2 flex items-center space-x-2 text-sm max-w-xs`;
+            
             notification.innerHTML = `
                 <div class="flex-shrink-0">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        ${type === 'success' ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>' : 
-                          type === 'error' ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>' : 
-                          type === 'warning' ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>' : 
-                          '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>'}
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        ${type === 'success' ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>' : 
+                          type === 'error' ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>' : 
+                          type === 'warning' ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01"/>' : 
+                          '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01"/>'}
                     </svg>
                 </div>
-                <div class="flex-1">
-                    <p class="font-medium">${message}</p>
+                <div class="flex-1 min-w-0">
+                    <p class="truncate">${message}</p>
                 </div>
-                <button class="flex-shrink-0 text-slate-600 hover:text-slate-800" onclick="this.closest('.notification').remove();">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
             `;
             
             container.appendChild(notification);
+            
+            // Animate in
+            setTimeout(() => {
+                notification.classList.remove('translate-x-full');
+            }, 10);
 
             if (autoHide) {
+                const duration = type === 'error' ? 8000 : 3000;
                 setTimeout(() => {
-                    notification.classList.add('hiding');
-                    notification.addEventListener('animationend', () => notification.remove());
-                }, 5000);
+                    notification.classList.add('translate-x-full', 'opacity-0');
+                    setTimeout(() => notification.remove(), 300);
+                }, duration);
             }
         },
         
@@ -1728,8 +1958,68 @@ function enhancedAttendanceSystem() {
             
             oscillator.start(this.audioContext.currentTime);
             oscillator.stop(this.audioContext.currentTime + duration / 1000);
-        }
+        },
+        
+        // Load Today's Schedule and Attendance Status
+        async loadTodayScheduleAndStatus() {
+            try {
+                const response = await fetch('/attendance/api/today-schedule', {
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    this.schedule = result.data.schedule;
+                    this.attendance = result.data.attendance;
+                    this.todayFormatted = result.data.today_formatted;
+                } else {
+                    console.error('Failed to load schedule:', result.message);
+                    this.showNotification('Gagal memuat jadwal kerja', 'warning');
+                }
+            } catch (error) {
+                console.error('Load schedule error:', error);
+                this.showNotification('Terjadi kesalahan saat memuat jadwal', 'error');
+            }
+        },
+        
+        // Refresh Schedule and Status
+        async refreshScheduleStatus() {
+            this.showNotification('Memperbarui status...', 'info');
+            await this.loadTodayScheduleAndStatus();
+            this.showNotification('Status berhasil diperbarui!', 'success');
+        },
+        
     };
 }
 </script>
+@endpush
+
+@push('styles')
+<style>
+/* Camera overlay pulse animation */
+.pulse-border {
+    animation: pulse-border 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-border {
+    0%, 100% { border-color: rgba(34, 197, 94, 0.5); }
+    50% { border-color: rgba(34, 197, 94, 1); }
+}
+
+/* Enhanced camera placeholder */
+.camera-placeholder {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+/* Dark mode camera placeholder */
+@media (prefers-color-scheme: dark) {
+    .camera-placeholder {
+        background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+    }
+}
+</style>
 @endpush

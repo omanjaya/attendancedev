@@ -311,4 +311,196 @@ class LocationController extends Controller
 
         return $earthRadius * $c;
     }
+
+    /**
+     * Get locations for API (JSON response).
+     */
+    public function getLocationsApi()
+    {
+        try {
+            $locations = Location::withCount('employees')
+                ->orderBy('name')
+                ->get()
+                ->map(function ($location) {
+                    return [
+                        'id' => $location->id,
+                        'name' => $location->name,
+                        'address' => $location->address,
+                        'latitude' => $location->latitude,
+                        'longitude' => $location->longitude,
+                        'radius_meters' => $location->radius_meters,
+                        'wifi_ssid' => $location->wifi_ssid,
+                        'is_active' => $location->is_active,
+                        'employees_count' => $location->employees_count,
+                        'created_at' => $location->created_at,
+                        'updated_at' => $location->updated_at,
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'locations' => $locations,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch locations: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get location statistics for API.
+     */
+    public function getStatistics()
+    {
+        try {
+            $total = Location::count();
+            $active = Location::where('is_active', true)->count();
+            $employeesCount = Location::withCount('employees')->get()->sum('employees_count');
+            $averageRadius = Location::whereNotNull('radius_meters')->avg('radius_meters');
+
+            return response()->json([
+                'success' => true,
+                'total' => $total,
+                'active' => $active,
+                'employees' => $employeesCount,
+                'averageRadius' => round($averageRadius ?? 0),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch statistics: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Store a new location via API.
+     */
+    public function storeApi(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255|unique:locations,name',
+            'address' => 'nullable|string|max:500',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+            'radius_meters' => 'required|integer|min:10|max:1000',
+            'wifi_ssid' => 'nullable|string|max:255',
+            'is_active' => 'boolean',
+        ]);
+
+        try {
+            $location = Location::create([
+                'name' => $validated['name'],
+                'address' => $validated['address'],
+                'latitude' => $validated['latitude'],
+                'longitude' => $validated['longitude'],
+                'radius_meters' => $validated['radius_meters'],
+                'wifi_ssid' => $validated['wifi_ssid'],
+                'is_active' => $validated['is_active'] ?? true,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Location created successfully.',
+                'location' => $location,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create location: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Update a location via API.
+     */
+    public function updateApi(Request $request, Location $location)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255|unique:locations,name,' . $location->id,
+            'address' => 'nullable|string|max:500',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+            'radius_meters' => 'required|integer|min:10|max:1000',
+            'wifi_ssid' => 'nullable|string|max:255',
+            'is_active' => 'boolean',
+        ]);
+
+        try {
+            $location->update([
+                'name' => $validated['name'],
+                'address' => $validated['address'],
+                'latitude' => $validated['latitude'],
+                'longitude' => $validated['longitude'],
+                'radius_meters' => $validated['radius_meters'],
+                'wifi_ssid' => $validated['wifi_ssid'],
+                'is_active' => $validated['is_active'] ?? true,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Location updated successfully.',
+                'location' => $location,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update location: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete a location via API.
+     */
+    public function destroyApi(Location $location)
+    {
+        try {
+            // Check if location has employees
+            if ($location->employees()->count() > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete location with assigned employees. Please reassign employees first.',
+                ], 400);
+            }
+
+            $location->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Location deleted successfully.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete location: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Toggle location status via API.
+     */
+    public function toggleStatus(Location $location)
+    {
+        try {
+            $location->update([
+                'is_active' => !$location->is_active,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Location status updated successfully.',
+                'location' => $location,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update location status: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

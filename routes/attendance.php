@@ -22,7 +22,7 @@ Route::middleware(['auth', 'verified'])
 
         Route::get('/check-in', [AttendanceController::class, 'checkIn'])
             ->name('attendance.check-in')
-            ->middleware('permission:manage_attendance_all');
+            ->middleware('permission:manage_attendance_own');
 
         Route::get('/history', [AttendanceController::class, 'history'])
             ->name('attendance.history')
@@ -56,15 +56,19 @@ Route::middleware(['auth', 'verified'])
 
             Route::post('/check-in', [AttendanceController::class, 'processCheckIn'])
                 ->name('attendance.api.check-in')
-                ->middleware('permission:manage_attendance_all');
+                ->middleware('permission:manage_attendance_own');
 
             Route::post('/check-out', [AttendanceController::class, 'processCheckOut'])
                 ->name('attendance.api.check-out')
-                ->middleware('permission:manage_attendance_all');
+                ->middleware('permission:manage_attendance_own');
 
             // Add missing status route for enhanced-checkin
             Route::get('/v1/attendance/status', [AttendanceController::class, 'getCurrentStatus'])
                 ->name('attendance.api.status')
+                ->middleware('permission:view_attendance_own');
+
+            Route::get('/today-schedule', [AttendanceController::class, 'getTodayScheduleAndStatus'])
+                ->name('attendance.api.today-schedule')
                 ->middleware('permission:view_attendance_own');
         });
     });

@@ -258,7 +258,7 @@ $(document).ready(function() {
 function loadTodayStatistics() {
     const today = new Date().toISOString().split('T')[0];
     
-    $.get('/api/v1/attendance/statistics', {
+    $.get('/api/vue/dashboard/stats', {
         start_date: today,
         end_date: today
     })
@@ -271,15 +271,20 @@ function loadTodayStatistics() {
             $('#total-employees').text(stats.total_records || '-');
         }
     })
-    .fail(function() {
-        console.error('Gagal memuat statistik hari ini');
+    .fail(function(xhr, status, error) {
+        console.error('Gagal memuat statistik hari ini:', error);
+        // Set default values on error
+        $('#today-present').text('0');
+        $('#today-late').text('0');
+        $('#today-incomplete').text('0');
+        $('#total-employees').text('0');
     });
 }
 
 function loadTodayAttendance() {
     const today = new Date().toISOString().split('T')[0];
     
-    $.get('/api/v1/attendance/data', {
+    $.get('/api/vue/dashboard/attendance', {
         start_date: today,
         end_date: today,
         length: 50,
@@ -288,7 +293,8 @@ function loadTodayAttendance() {
     .done(function(response) {
         displayTodayAttendance(response.data);
     })
-    .fail(function() {
+    .fail(function(xhr, status, error) {
+        console.error('Gagal memuat data absensi:', error);
         $('#today-attendance-table tbody').html('<tr><td colspan="6" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">Gagal memuat data absensi</td></tr>');
     });
 }
@@ -373,7 +379,7 @@ function refreshTodayAttendance() {
 
 function exportTodayAttendance() {
     const today = new Date().toISOString().split('T')[0];
-    window.open(`/api/v1/attendance/export?start_date=${today}&end_date=${today}&format=excel`, '_blank');
+    window.open(`/api/vue/attendance/export?start_date=${today}&end_date=${today}&format=excel`, '_blank');
     toastr.info('Ekspor laporan absensi sedang diproses...', 'Ekspor');
 }
 
@@ -382,13 +388,14 @@ function openManualEntryModal() {
 }
 
 function loadFaceDetectionStatus() {
-    $.get('/api/v1/face-detection/statistics')
+    $.get('/api/vue/face-detection/statistics')
         .done(function(response) {
             if (response.success) {
                 displayFaceDetectionStatus(response.statistics);
             }
         })
-        .fail(function() {
+        .fail(function(xhr, status, error) {
+            console.error('Gagal memuat status deteksi wajah:', error);
             $('#face-detection-status').html(`
                 <div class="flex items-center p-3 rounded-lg border border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20">
                     <svg class="w-5 h-5 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -479,13 +486,15 @@ function getStatusText(status) {
 // Handle view details click (global event handler)
 $(document).on('click', '.view-details', function() {
     const attendanceId = $(this).data('id');
-    console.log('View details for attendance:', attendanceId);
+    // Placeholder for view details functionality
+    toastr.info('Detail absensi akan segera hadir', 'Detail');
 });
 
 // Handle manual checkout click (global event handler)
 $(document).on('click', '.manual-checkout', function() {
     const attendanceId = $(this).data('id');
-    console.log('Manual checkout for attendance:', attendanceId);
+    // Placeholder for manual checkout functionality
+    toastr.info('Fitur checkout manual akan segera hadir', 'Manual Checkout');
 });
 </script>
 @endpush

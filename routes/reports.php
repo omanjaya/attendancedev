@@ -70,6 +70,13 @@ Route::middleware(['auth', 'verified', 'permission:view_reports'])
             );
         });
 
+        Route::prefix('summary')->group(function () {
+            Route::get('/', [ReportsController::class, 'summary'])->name('reports.summary');
+            Route::get('/export', [ReportsController::class, 'exportSummary'])->name(
+                'reports.summary.export',
+            );
+        });
+
         // API routes for chart data
         Route::prefix('api')->group(function () {
             Route::get('/attendance-trends', [AnalyticsController::class, 'getAttendanceTrends'])->name(
@@ -88,4 +95,12 @@ Route::middleware(['auth', 'verified', 'permission:view_reports'])
                 'reports.api.dashboard-stats',
             );
         });
+    });
+
+// Analytics Routes (separate group for cleaner organization)
+Route::middleware(['auth', 'verified', 'permission:view_analytics'])
+    ->prefix('analytics')
+    ->group(function () {
+        // Main analytics dashboard
+        Route::get('/', [AnalyticsController::class, 'dashboard'])->name('analytics.dashboard');
     });

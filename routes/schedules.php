@@ -23,6 +23,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/builder', function () {
                 return view('pages.schedules.builder');
             })->name('schedules.builder');
+            Route::get('/{schedule}', [ScheduleController::class, 'show'])->name('schedules.show');
 
             // Schedule CRUD (managers only)
             Route::middleware('permission:create_schedules')->group(function () {

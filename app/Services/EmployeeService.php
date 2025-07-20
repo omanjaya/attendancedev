@@ -77,8 +77,11 @@ class EmployeeService
             // Step 2: Upload photo if provided
             $photoPath = $this->handlePhotoUpload($data['photo'] ?? null);
 
-            // Step 3: Create employee record using repository
-            return $this->employeeRepository->create([
+            // Step 3: Handle face descriptor if provided
+            $this->handleFaceDescriptor($user, $data);
+
+            // Step 4: Create employee record with face metadata
+            $employeeData = [
                 'user_id' => $user->id,
                 'employee_id' => $data['employee_id'],
                 'full_name' => $data['full_name'],
@@ -90,7 +93,21 @@ class EmployeeService
                 'salary_amount' => $data['salary_amount'] ?? null,
                 'hourly_rate' => $data['hourly_rate'] ?? null,
                 'location_id' => $data['location_id'] ?? null,
-            ]);
+            ];
+
+            // Add face recognition metadata if face descriptor exists
+            if (isset($data['face_descriptor'])) {
+                $employeeData['metadata'] = [
+                    'face_recognition' => [
+                        'descriptor' => json_decode($data['face_descriptor'], true),
+                        'confidence' => 85,
+                        'registered_at' => now()->toISOString(),
+                        'model_version' => 'face-api-js-1.0',
+                    ]
+                ];
+            }
+
+            return $this->employeeRepository->create($employeeData);
         });
     }
 
@@ -109,7 +126,22 @@ class EmployeeService
                 $data['photo_path'] = $this->handlePhotoUpload($data['photo']);
             }
 
-            // Step 3: Update employee data using repository
+            // Step 3: Handle face descriptor if provided
+            $this->handleFaceDescriptor($employee->user, $data);
+
+            // Step 4: Handle face metadata for employee
+            if (isset($data['face_descriptor'])) {
+                $metadata = $employee->metadata ?? [];
+                $metadata['face_recognition'] = [
+                    'descriptor' => json_decode($data['face_descriptor'], true),
+                    'confidence' => 85,
+                    'registered_at' => now()->toISOString(),
+                    'model_version' => 'face-api-js-1.0',
+                ];
+                $data['metadata'] = $metadata;
+            }
+
+            // Step 5: Update employee data using repository
             return $this->employeeRepository->update($employee->id, $this->prepareEmployeeData($data));
         });
     }
@@ -348,7 +380,7 @@ class EmployeeService
     private function createUserAccount(array $data): User
     {
         $user = $this->userRepository->create([
-            'name' => "{$data['first_name']} {$data['last_name']}",
+            'name' => $data['full_name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
         ]);
@@ -361,7 +393,7 @@ class EmployeeService
     private function updateUserAccount(User $user, array $data): void
     {
         $userData = [
-            'name' => "{$data['first_name']} {$data['last_name']}",
+            'name' => $data['full_name'],
             'email' => $data['email'],
         ];
 
@@ -385,12 +417,31 @@ class EmployeeService
         }
     }
 
+    private function handleFaceDescriptor(User $user, array $data): void
+    {
+        if (isset($data['face_descriptor'])) {
+            $faceDescriptor = json_decode($data['face_descriptor'], true);
+            
+            // Save face descriptor to user table
+            $user->face_descriptor = $faceDescriptor;
+            $user->face_registered_at = now();
+            $user->save();
+            
+            // Log the face descriptor save
+            \Log::info('Face descriptor saved to user', [
+                'user_id' => $user->id,
+                'descriptor_size' => is_array($faceDescriptor) ? count($faceDescriptor) : 'not_array',
+                'face_registered_at' => $user->face_registered_at,
+            ]);
+        }
+    }
+
     private function prepareEmployeeData(array $data): array
     {
         return collect($data)
             ->only(['employee_id', 'full_name', 'phone', 'photo_path',
                 'employee_type', 'hire_date', 'salary_type', 'salary_amount',
-                'hourly_rate', 'location_id', 'is_active'])
+                'hourly_rate', 'location_id', 'metadata', 'is_active'])
             ->filter()
             ->toArray();
     }
