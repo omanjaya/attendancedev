@@ -17,9 +17,7 @@
                         <span class="text-xs text-green-600 dark:text-green-400">GPS Services Online</span>
                     </div>
                     <div class="flex items-center space-x-2">
-                        <svg class="w-3 h-3 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                        </svg>
+                        <x-icons.lightning class="w-3 h-3 text-blue-600 dark:text-blue-400" />
                         <span class="text-xs text-blue-600 dark:text-blue-400" x-text="`${locationsCount} lokasi aktif`"></span>
                     </div>
                 </div>
@@ -29,53 +27,39 @@
                 <div class="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
                     <button @click="toggleViewMode('table')" 
                             :class="viewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''"
-                            class="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-md transition-all duration-200">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                        </svg>
+                            class="btn-view-toggle">
+                        <x-icons.menu class="w-4 h-4" />
                     </button>
                     <button @click="toggleViewMode('grid')" 
                             :class="viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''"
-                            class="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-md transition-all duration-200">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
-                        </svg>
+                            class="btn-view-toggle">
+                        <x-icons.grid class="w-4 h-4" />
                     </button>
                     <button @click="toggleViewMode('map')" 
                             :class="viewMode === 'map' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''"
-                            class="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-md transition-all duration-200">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
-                        </svg>
+                            class="btn-view-toggle">
+                        <x-icons.map class="w-4 h-4" />
                     </button>
                 </div>
                 
                 <!-- Secondary Actions -->
-                <button @click="bulkActions()" class="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
-                    </svg>
+                <button @click="bulkActions()" class="btn-analytics flex items-center space-x-2">
+                    <x-icons.download-alt class="w-4 h-4" />
                     <span>Bulk Actions</span>
                 </button>
-                <button onclick="toggleFilter()" class="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
-                    </svg>
+                <button onclick="toggleFilter()" class="btn-analytics flex items-center space-x-2">
+                    <x-icons.filter class="w-4 h-4" />
                     <span>Smart Filter</span>
                 </button>
                 
                 <!-- Primary Actions -->
-                <button onclick="showLocationAnalytics()" class="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                    </svg>
+                <button onclick="showLocationAnalytics()" class="btn-analytics-gradient">
+                    <x-icons.chart-bar class="w-4 h-4" />
                     <span>Analytics</span>
                 </button>
                 @can('manage_locations')
-                <button onclick="showCreateModal()" class="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                    </svg>
+                <button onclick="showCreateModal()" class="btn-create-gradient">
+                    <x-icons.plus class="w-4 h-4" />
                     <span>Tambah Lokasi</span>
                 </button>
                 @endcan
@@ -86,15 +70,12 @@
 <!-- Location Statistics Cards -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
     <!-- Total Locations -->
-    <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+    <x-ui.card>
         <div class="flex items-center justify-between mb-4">
             <div class="p-3 bg-blue-600 rounded-lg shadow-md">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                </svg>
+                <x-icons.location class="w-6 h-6 text-white" />
             </div>
-            <span class="text-sm text-blue-600 font-medium px-3 py-1 bg-blue-100 dark:bg-blue-900 rounded-full">Total</span>
+            <span class="badge-blue">Total</span>
         </div>
         <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1" id="stat-total">-</h3>
         <p class="text-gray-600 dark:text-gray-400 text-sm">Total Lokasi</p>
@@ -104,14 +85,12 @@
     </x-ui.card>
 
     <!-- Active Locations -->
-    <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+    <x-ui.card>
         <div class="flex items-center justify-between mb-4">
             <div class="p-3 bg-green-600 rounded-lg shadow-md">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
+                <x-icons.check-circle class="w-6 h-6 text-white" />
             </div>
-            <span class="text-sm text-green-600 font-medium px-3 py-1 bg-green-100 dark:bg-green-900 rounded-full">Online</span>
+            <span class="badge-green">Online</span>
         </div>
         <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1" id="stat-active">-</h3>
         <p class="text-gray-600 dark:text-gray-400 text-sm">Lokasi Aktif</p>
@@ -121,14 +100,14 @@
     </x-ui.card>
 
     <!-- Employee Coverage -->
-    <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+    <x-ui.card>
         <div class="flex items-center justify-between mb-4">
             <div class="p-3 bg-purple-600 rounded-lg shadow-md">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
                 </svg>
             </div>
-            <span class="text-sm text-purple-600 font-medium px-3 py-1 bg-purple-100 dark:bg-purple-900 rounded-full">Terlayani</span>
+            <span class="badge-purple-lg">Terlayani</span>
         </div>
         <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1" id="stat-employees">-</h3>
         <p class="text-gray-600 dark:text-gray-400 text-sm">Karyawan Terlayani</p>
@@ -138,7 +117,7 @@
     </x-ui.card>
 
     <!-- Average Radius -->
-    <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+    <x-ui.card>
         <div class="flex items-center justify-between mb-4">
             <div class="p-3 bg-orange-600 rounded-lg shadow-md">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -157,7 +136,7 @@
 
 <!-- Filter Panel (Hidden by default) -->
 <div id="filterPanel" class="hidden mb-8">
-    <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+    <x-ui.card>
         <div class="p-6 border-b border-gray-200 dark:border-gray-700">
             <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Filter Lokasi</h3>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Gunakan filter untuk menemukan lokasi dengan cepat</p>
@@ -306,7 +285,7 @@
         </x-ui.card>
         
         <!-- Interactive Map View -->
-        <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <x-ui.card>
             <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                 <div class="flex items-center justify-between">
                     <div>
@@ -402,7 +381,7 @@
         </x-ui.card>
         
         <!-- Location Activity Feed -->
-        <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <x-ui.card>
             <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Aktivitas Terbaru</h3>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Log aktivitas lokasi</p>

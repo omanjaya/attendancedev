@@ -13,20 +13,20 @@
             </div>
             <div class="flex items-center space-x-3">
                 <!-- Back Button -->
-                <button onclick="location.href='{{ route('schedules.index') }}'" class="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105">
-                    <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                <button onclick="location.href='{{ route('schedules.index') }}'" class="btn-analytics">
+                    <x-icons.arrow-left class="w-5 h-5 mr-2 inline" />
                     Kembali
                 </button>
                 
                 <!-- Analytics Button -->
-                <button @click="showAnalytics()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 shadow-md">
-                    <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                <button @click="showAnalytics()" class="btn-test">
+                    <x-icons.chart-bar class="w-5 h-5 mr-2 inline" />
                     Analitik
                 </button>
                 
                 <!-- Schedule Builder Button -->
-                <button onclick="location.href='{{ route('schedules.builder') }}'" class="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 shadow-md">
-                    <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                <button onclick="location.href='{{ route('schedules.builder') }}'" class="btn-analytics-gradient">
+                    <x-icons.edit class="w-5 h-5 mr-2 inline" />
                     Schedule Builder
                 </button>
             </div>
@@ -36,65 +36,57 @@
     <!-- Enhanced Statistics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
         <!-- Total Schedules Card -->
-        <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <x-ui.card>
             <div class="p-6">
                 <div class="flex items-center justify-between mb-4">
                     <div class="p-3 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-md">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
+                        <x-icons.calendar class="w-6 h-6 text-white" />
                     </div>
                     <span class="text-sm font-medium px-3 py-1 bg-blue-100 text-blue-800 rounded-full">Minggu Ini</span>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100" x-text="weekSchedules.length">0</h3>
+                <h3 class="metric-heading" x-text="weekSchedules.length">0</h3>
                 <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">Total Jadwal</p>
             </div>
         </x-ui.card>
 
         <!-- Active Teachers Card -->
-        <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <x-ui.card>
             <div class="p-6">
                 <div class="flex items-center justify-between mb-4">
                     <div class="p-3 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg shadow-md">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-                        </svg>
+                        <x-icons.users class="w-6 h-6 text-white" />
                     </div>
                     <span class="text-sm font-medium px-3 py-1 bg-green-100 text-green-800 rounded-full">Aktif</span>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100" x-text="activeTeachers">0</h3>
+                <h3 class="metric-heading" x-text="activeTeachers">0</h3>
                 <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">Guru Aktif</p>
             </div>
         </x-ui.card>
 
         <!-- Subjects Count Card -->
-        <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <x-ui.card>
             <div class="p-6">
                 <div class="flex items-center justify-between mb-4">
                     <div class="p-3 bg-gradient-to-r from-purple-600 to-purple-700 rounded-lg shadow-md">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                        </svg>
+                        <x-icons.book class="w-6 h-6 text-white" />
                     </div>
                     <span class="text-sm font-medium px-3 py-1 bg-purple-100 text-purple-800 rounded-full">Total</span>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100" x-text="uniqueSubjects">0</h3>
+                <h3 class="metric-heading" x-text="uniqueSubjects">0</h3>
                 <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">Mata Pelajaran</p>
             </div>
         </x-ui.card>
 
         <!-- Classes Count Card -->
-        <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <x-ui.card>
             <div class="p-6">
                 <div class="flex items-center justify-between mb-4">
                     <div class="p-3 bg-gradient-to-r from-orange-600 to-orange-700 rounded-lg shadow-md">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                        </svg>
+                        <x-icons.building class="w-6 h-6 text-white" />
                     </div>
                     <span class="text-sm font-medium px-3 py-1 bg-orange-100 text-orange-800 rounded-full">Total</span>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100" x-text="uniqueClasses">0</h3>
+                <h3 class="metric-heading" x-text="uniqueClasses">0</h3>
                 <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">Kelas</p>
             </div>
         </x-ui.card>
@@ -106,17 +98,15 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
                 <!-- Navigation Controls -->
                 <div class="flex items-center space-x-3">
-                    <button @click="previousWeek()" class="flex items-center justify-center w-10 h-10 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-all duration-200 transform hover:scale-110" title="Minggu Sebelumnya">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                    <button @click="previousWeek()" class="btn-nav" title="Minggu Sebelumnya">
+                        <x-icons.chevron-left class="w-5 h-5" />
                     </button>
-                    <button @click="currentWeek()" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-medium transition-all duration-200 transform hover:scale-105 shadow-md">
-                        <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
+                    <button @click="currentWeek()" class="btn-today">
+                        <x-icons.calendar class="w-4 h-4 mr-2 inline" />
                         Hari Ini
                     </button>
-                    <button @click="nextWeek()" class="flex items-center justify-center w-10 h-10 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-all duration-200 transform hover:scale-110" title="Minggu Selanjutnya">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    <button @click="nextWeek()" class="btn-nav" title="Minggu Selanjutnya">
+                        <x-icons.chevron-right class="w-5 h-5" />
                     </button>
                 </div>
 
@@ -130,49 +120,45 @@
                 <div class="flex items-center justify-end space-x-3">
                     <!-- View Mode Toggle -->
                     <div class="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-                        <button @click="viewMode = 'week'" :class="viewMode === 'week' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''" class="px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200">
+                        <button @click="viewMode = 'week'" :class="viewMode === 'week' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''" class="btn-view-mode">
                             Minggu
                         </button>
-                        <button @click="viewMode = 'day'" :class="viewMode === 'day' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''" class="px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200">
+                        <button @click="viewMode = 'day'" :class="viewMode === 'day' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''" class="btn-view-mode">
                             Hari
                         </button>
                     </div>
                     
                     <!-- Teacher Filter -->
                     <div class="relative" x-data="{ open: false }">
-                        <button @click="open = !open" class="flex items-center px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
-                            </svg>
+                        <button @click="open = !open" class="btn-filter">
+                            <x-icons.filter class="w-4 h-4 mr-2" />
                             <span class="text-sm font-medium">Filter</span>
-                            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                            </svg>
+                            <x-icons.chevron-down class="w-4 h-4 ml-2" />
                         </button>
                         
                         <!-- Dropdown Menu -->
-                        <div x-show="open" @click.away="open = false" x-transition class="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
+                        <div x-show="open" @click.away="open = false" x-transition class="filter-dropdown">
                             <div class="p-4">
                                 <h4 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Filter Guru</h4>
                                 <div class="space-y-2">
                                     <label class="flex items-center">
-                                        <input type="checkbox" x-model="filterAllTeachers" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                        <input type="checkbox" x-model="filterAllTeachers" class="form-checkbox">
                                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Semua Guru</span>
                                     </label>
                                     <label class="flex items-center">
-                                        <input type="checkbox" value="1A" x-model="selectedTeachers" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                        <input type="checkbox" value="1A" x-model="selectedTeachers" class="form-checkbox">
                                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Guru 1A</span>
                                     </label>
                                     <label class="flex items-center">
-                                        <input type="checkbox" value="2B" x-model="selectedTeachers" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                        <input type="checkbox" value="2B" x-model="selectedTeachers" class="form-checkbox">
                                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Guru 2B</span>
                                     </label>
                                     <label class="flex items-center">
-                                        <input type="checkbox" value="3C" x-model="selectedTeachers" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                        <input type="checkbox" value="3C" x-model="selectedTeachers" class="form-checkbox">
                                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Guru 3C</span>
                                     </label>
                                 </div>
-                                <button @click="applyFilters(); open = false" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                                <button @click="applyFilters(); open = false" class="mt-4 w-full btn-primary">
                                     Terapkan Filter
                                 </button>
                             </div>
@@ -180,8 +166,8 @@
                     </div>
                     
                     <!-- Export Button -->
-                    <button @click="exportCalendar()" class="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 shadow-md">
-                        <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <button @click="exportCalendar()" class="btn-export">
+                        <x-icons.download class="w-4 h-4 mr-2 inline" />
                         Export
                     </button>
                 </div>
@@ -193,7 +179,7 @@
     <div class="grid grid-cols-1 xl:grid-cols-4 gap-8">
         <!-- Calendar Grid (Main Panel) -->
         <div class="xl:col-span-3">
-            <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <x-ui.card>
                 <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                     <div class="flex items-center justify-between">
                         <div>
@@ -204,19 +190,19 @@
                             <!-- Legend -->
                             <div class="flex items-center space-x-2">
                                 <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center">
-                                    <span class="inline-block w-3 h-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded mr-1"></span>
+                                    <span class="legend-color legend-blue"></span>
                                     Matematika
                                 </div>
                                 <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center">
-                                    <span class="inline-block w-3 h-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded mr-1"></span>
+                                    <span class="legend-color legend-green"></span>
                                     Sains
                                 </div>
                                 <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center">
-                                    <span class="inline-block w-3 h-3 bg-gradient-to-r from-purple-500 to-purple-600 rounded mr-1"></span>
+                                    <span class="legend-color legend-purple"></span>
                                     Bahasa
                                 </div>
                                 <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center">
-                                    <span class="inline-block w-3 h-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded mr-1"></span>
+                                    <span class="legend-color legend-orange"></span>
                                     Lainnya
                                 </div>
                             </div>
@@ -230,19 +216,17 @@
                 <table class="w-full">
                     <!-- Calendar Header -->
                     <thead>
-                        <tr class="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 border-b-2 border-gray-200 dark:border-gray-600">
-                            <th class="p-4 border-r border-gray-300 dark:border-gray-500 text-left sticky left-0 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 z-10">
+                        <tr class="calendar-header-row">
+                            <th class="calendar-time-header">
                                 <div class="flex items-center justify-center">
-                                    <svg class="w-4 h-4 mr-2 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
-                                    <span class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase">Waktu</span>
+                                    <x-icons.clock class="w-4 h-4 mr-2 text-gray-600 dark:text-gray-400" />
+                                    <span class="calendar-header-text">Waktu</span>
                                 </div>
                             </th>
                             <template x-for="day in weekDays" :key="day.name">
-                                <th class="p-4 border-r border-gray-300 dark:border-gray-500 text-center bg-white dark:bg-gray-700 min-w-[180px]">
-                                    <div class="text-sm font-bold text-gray-900 dark:text-white mb-1" x-text="day.name"></div>
-                                    <div class="text-xs text-blue-600 dark:text-blue-400 font-medium" x-text="day.date"></div>
+                                <th class="calendar-day-header">
+                                    <div class="calendar-day-name" x-text="day.name"></div>
+                                    <div class="calendar-day-date" x-text="day.date"></div>
                                 </th>
                             </template>
                         </tr>
@@ -251,38 +235,34 @@
                     <!-- Calendar Body -->
                     <tbody class="bg-white dark:bg-gray-800">
                         <template x-for="hour in timeSlots" :key="hour.id">
-                            <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors duration-150">
+                            <tr class="calendar-row">
                                 <!-- Time Slot -->
-                                <td class="p-4 border-r border-gray-200 dark:border-gray-600 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 sticky left-0 z-10">
+                                <td class="calendar-time-cell">
                                     <div class="text-center">
-                                        <div class="text-sm font-semibold text-gray-900 dark:text-white" x-text="hour.name"></div>
-                                        <div class="text-xs text-gray-600 dark:text-gray-400 mt-1 font-medium" x-text="hour.time"></div>
+                                        <div class="time-slot-name" x-text="hour.name"></div>
+                                        <div class="time-slot-time" x-text="hour.time"></div>
                                     </div>
                                 </td>
                                 
                                 <!-- Schedule Cells for Each Day -->
                                 <template x-for="day in weekDays" :key="day.name + '-' + hour.id">
-                                    <td class="p-3 border-r border-gray-200 dark:border-gray-600 min-h-[100px] relative bg-white dark:bg-gray-800 align-top">
+                                    <td class="calendar-schedule-cell">
                                         <div class="space-y-2">
                                             <template x-for="schedule in getSchedulesForSlot(day.name, hour.id)" :key="schedule.id">
-                                                <div class="p-3 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-105 transform relative overflow-hidden"
+                                                <div class="schedule-block"
                                                      :class="getScheduleClass(schedule)"
                                                      @click="showScheduleDetails(schedule)">
                                                     <!-- Gradient overlay -->
-                                                    <div class="absolute inset-0 bg-gradient-to-r opacity-10" :class="getGradientClass(schedule.subject)"></div>
+                                                    <div class="schedule-block-bg" :class="getGradientClass(schedule.subject)"></div>
                                                     
                                                     <div class="relative z-10">
-                                                        <div class="font-semibold text-sm mb-1" x-text="schedule.subject"></div>
+                                                        <div class="schedule-subject" x-text="schedule.subject"></div>
                                                         <div class="text-xs opacity-90 mb-1 flex items-center">
-                                                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                                            </svg>
+                                                            <x-icons.user class="w-3 h-3 mr-1" />
                                                             <span x-text="schedule.teacher"></span>
                                                         </div>
                                                         <div class="text-xs opacity-75 flex items-center">
-                                                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                                            </svg>
+                                                            <x-icons.building class="w-3 h-3 mr-1" />
                                                             <span x-text="schedule.class"></span>
                                                         </div>
                                                     </div>
@@ -292,11 +272,9 @@
                                         
                                         <!-- Empty slot indicator -->
                                         <div x-show="getSchedulesForSlot(day.name, hour.id).length === 0" 
-                                             class="h-full min-h-[80px] flex items-center justify-center text-gray-300 dark:text-gray-600 transition-colors duration-200 hover:text-gray-400 dark:hover:text-gray-500">
+                                             class="empty-slot">
                                             <div class="text-center">
-                                                <svg class="w-6 h-6 mx-auto mb-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                                                </svg>
+                                                <x-icons.plus class="w-6 h-6 mx-auto mb-1 opacity-50" />
                                                 <span class="text-xs opacity-75">Kosong</span>
                                             </div>
                                         </div>
@@ -315,21 +293,19 @@
                         <div class="flex items-center space-x-6">
                             <div class="text-gray-600 dark:text-gray-400">
                                 <span class="font-medium">Total Jadwal:</span> 
-                                <span x-text="filteredSchedules.length" class="font-semibold text-blue-600 dark:text-blue-400"></span>
+                                <span x-text="filteredSchedules.length" class="stat-number text-blue-600 dark:text-blue-400"></span>
                             </div>
                             <div class="text-gray-600 dark:text-gray-400">
                                 <span class="font-medium">Jam Terisi:</span> 
-                                <span x-text="filledSlots" class="font-semibold text-green-600 dark:text-green-400"></span>
+                                <span x-text="filledSlots" class="stat-number text-green-600 dark:text-green-400"></span>
                             </div>
                             <div class="text-gray-600 dark:text-gray-400">
                                 <span class="font-medium">Slot Kosong:</span> 
-                                <span x-text="emptySlots" class="font-semibold text-orange-600 dark:text-orange-400"></span>
+                                <span x-text="emptySlots" class="stat-number text-orange-600 dark:text-orange-400"></span>
                             </div>
                         </div>
                         <div class="text-xs text-gray-500 dark:text-gray-400">
-                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
+                            <x-icons.info-circle class="w-4 h-4 inline mr-1" />
                             Klik pada jadwal untuk melihat detail
                         </div>
                     </div>
@@ -340,21 +316,17 @@
         <!-- Quick Actions Sidebar -->
         <div class="xl:col-span-1">
             <!-- Quick Actions Card -->
-            <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+            <x-ui.card class="mb-6">
                 <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                        <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                        </svg>
+                        <x-icons.lightning-bolt class="w-5 h-5 mr-2 text-blue-600" />
                         Quick Actions
                     </h3>
                 </div>
                 <div class="p-6 space-y-3">
-                    <button @click="showAddScheduleModal()" class="w-full text-left px-4 py-3 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors duration-200">
+                    <button @click="showAddScheduleModal()" class="action-btn action-btn-blue">
                         <div class="flex items-center">
-                            <svg class="w-5 h-5 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                            </svg>
+                            <x-icons.plus class="w-5 h-5 mr-3 text-blue-600" />
                             <div>
                                 <div class="font-medium text-gray-900 dark:text-white">Tambah Jadwal</div>
                                 <div class="text-xs text-gray-500 dark:text-gray-400">Buat jadwal baru</div>
@@ -362,11 +334,9 @@
                         </div>
                     </button>
                     
-                    <button @click="duplicateWeek()" class="w-full text-left px-4 py-3 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg transition-colors duration-200">
+                    <button @click="duplicateWeek()" class="action-btn action-btn-green">
                         <div class="flex items-center">
-                            <svg class="w-5 h-5 mr-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                            </svg>
+                            <x-icons.duplicate class="w-5 h-5 mr-3 text-green-600" />
                             <div>
                                 <div class="font-medium text-gray-900 dark:text-white">Duplikasi Minggu</div>
                                 <div class="text-xs text-gray-500 dark:text-gray-400">Salin jadwal minggu ini</div>
@@ -374,11 +344,9 @@
                         </div>
                     </button>
                     
-                    <button @click="clearWeek()" class="w-full text-left px-4 py-3 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors duration-200">
+                    <button @click="clearWeek()" class="action-btn action-btn-red">
                         <div class="flex items-center">
-                            <svg class="w-5 h-5 mr-3 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                            </svg>
+                            <x-icons.trash class="w-5 h-5 mr-3 text-red-600" />
                             <div>
                                 <div class="font-medium text-gray-900 dark:text-white">Hapus Semua</div>
                                 <div class="text-xs text-gray-500 dark:text-gray-400">Kosongkan jadwal minggu ini</div>
@@ -387,11 +355,9 @@
                     </button>
                     
                     <div class="pt-3 border-t border-gray-200 dark:border-gray-700">
-                        <button @click="printCalendar()" class="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors duration-200">
+                        <button @click="printCalendar()" class="action-btn action-btn-gray">
                             <div class="flex items-center">
-                                <svg class="w-5 h-5 mr-3 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
-                                </svg>
+                                <x-icons.printer class="w-5 h-5 mr-3 text-gray-600 dark:text-gray-400" />
                                 <div>
                                     <div class="font-medium text-gray-900 dark:text-white">Cetak Kalender</div>
                                     <div class="text-xs text-gray-500 dark:text-gray-400">Print jadwal minggu ini</div>
@@ -403,12 +369,10 @@
             </x-ui.card>
 
             <!-- Teacher Workload Summary -->
-            <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <x-ui.card>
                 <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                        <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                        </svg>
+                        <x-icons.chart-bar class="w-5 h-5 mr-2 text-purple-600" />
                         Beban Mengajar
                     </h3>
                 </div>
@@ -417,22 +381,22 @@
                         <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                             <div class="flex items-center justify-between mb-2">
                                 <div class="flex items-center">
-                                    <div class="w-8 h-8 rounded-full bg-gradient-to-r" :class="getTeacherColorClass(teacher.name)" class="flex items-center justify-center text-white font-medium text-sm">
+                                    <div class="teacher-avatar" :class="getTeacherColorClass(teacher.name)">
                                         <span x-text="teacher.name.substring(5, 7)"></span>
                                     </div>
                                     <div class="ml-3">
-                                        <div class="font-medium text-gray-900 dark:text-white" x-text="teacher.name"></div>
-                                        <div class="text-xs text-gray-500 dark:text-gray-400" x-text="teacher.subject"></div>
+                                        <div class="teacher-name" x-text="teacher.name"></div>
+                                        <div class="teacher-subject" x-text="teacher.subject"></div>
                                     </div>
                                 </div>
                                 <div class="text-right">
-                                    <div class="text-sm font-semibold text-gray-900 dark:text-white" x-text="teacher.hours + ' jam'"></div>
-                                    <div class="text-xs text-gray-500 dark:text-gray-400" x-text="teacher.percentage + '%'"></div>
+                                    <div class="teacher-hours" x-text="teacher.hours + ' jam'"></div>
+                                    <div class="teacher-percentage" x-text="teacher.percentage + '%'"></div>
                                 </div>
                             </div>
                             <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
                                 <div class="h-2 rounded-full transition-all duration-300" 
-                                     :class="teacher.percentage > 80 ? 'bg-gradient-to-r from-red-500 to-red-600' : teacher.percentage > 60 ? 'bg-gradient-to-r from-yellow-500 to-orange-600' : 'bg-gradient-to-r from-green-500 to-emerald-600'"
+                                     :class="getWorkloadColorClass(teacher.percentage)"
                                      :style="`width: ${teacher.percentage}%`"></div>
                             </div>
                         </div>
@@ -451,10 +415,8 @@
                 <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                     <div class="flex items-center justify-between">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Detail Jadwal</h3>
-                        <button @click="closeModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
+                        <button @click="closeModal()" class="modal-close-btn">
+                            <x-icons.x class="w-5 h-5" />
                         </button>
                     </div>
                 </div>
@@ -462,7 +424,7 @@
                 <div class="p-6" x-show="selectedSchedule">
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Mata Pelajaran</label>
+                            <label class="form-label">Mata Pelajaran</label>
                             <p class="text-gray-900 dark:text-white font-medium" x-text="selectedSchedule?.subject"></p>
                         </div>
                         <div>
@@ -479,16 +441,16 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Ruang</label>
-                            <p class="text-gray-900 dark:text-white" x-text="selectedSchedule?.room || 'Tidak diatur'"></p>
+                            <p class="form-value" x-text="selectedSchedule?.room || 'Tidak diatur'"></p>
                         </div>
                     </div>
                 </div>
                 
                 <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
-                    <button @click="closeModal()" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-500 rounded-lg">
+                    <button @click="closeModal()" class="btn-modal-cancel">
                         Tutup
                     </button>
-                    <button @click="editSchedule(selectedSchedule)" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">
+                    <button @click="editSchedule(selectedSchedule)" class="btn-modal-primary">
                         Edit Jadwal
                     </button>
                 </div>
@@ -748,6 +710,16 @@ function scheduleCalendar() {
             }, 0);
             
             return colors[Math.abs(hash) % colors.length];
+        },
+        
+        getWorkloadColorClass(percentage) {
+            if (percentage > 80) {
+                return 'bg-gradient-to-r from-red-500 to-red-600';
+            } else if (percentage > 60) {
+                return 'bg-gradient-to-r from-yellow-500 to-orange-600';
+            } else {
+                return 'bg-gradient-to-r from-green-500 to-emerald-600';
+            }
         },
 
         showScheduleDetails(schedule) {

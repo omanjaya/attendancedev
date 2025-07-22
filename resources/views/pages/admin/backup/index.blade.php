@@ -3,7 +3,7 @@
 @section('title', 'Backup & Restore Sistem')
 
 @section('page-content')
-<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-blue-900 dark:to-indigo-900">
+<div class="backup-page-bg">
     <div class="p-6 lg:p-8">
         <x-layouts.base-page
             title="Backup & Restore Sistem"
@@ -16,23 +16,17 @@
             <x-slot name="actions">
                 <div class="flex flex-col sm:flex-row gap-2">
                     <x-ui.button variant="primary" onclick="openModal('createBackupModal')">
-                        <svg class="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
-                        </svg>
+                        <x-icons.cloud-download class="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform duration-300" />
                         Buat Backup
                     </x-ui.button>
                     
                     <x-ui.button variant="secondary" onclick="openModal('scheduleModal')">
-                        <svg class="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
+                        <x-icons.clock class="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
                         Jadwal
                     </x-ui.button>
                     
                     <x-ui.button variant="destructive" onclick="openModal('cleanupModal')">
-                        <svg class="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
+                        <x-icons.trash class="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
                         Bersihkan
                     </x-ui.button>
                 </div>
@@ -41,49 +35,40 @@
 
         <!-- Storage Overview -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out hover:bg-white/30 hover:scale-105">
+            <div class="glassmorphism-card">
                 <div class="flex items-center justify-between">
                     <div class="flex-1">
                         <p class="text-sm font-medium text-slate-600 dark:text-slate-400">Total Backup</p>
-                        <p class="text-3xl font-bold text-slate-800 dark:text-white mt-1" id="totalBackups">{{ $storageInfo['total_backups'] }}</p>
+                        <p class="metric-value" id="totalBackups">{{ $storageInfo['total_backups'] }}</p>
                     </div>
-                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform duration-300">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                        </svg>
+                    <div class="metric-icon metric-icon-blue">
+                        <x-icons.refresh class="w-6 h-6 text-white" />
                     </div>
                 </div>
             </div>
-            <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out hover:bg-white/30 hover:scale-105">
+            <div class="glassmorphism-card">
                 <div class="flex items-center justify-between">
                     <div class="flex-1">
                         <p class="text-sm font-medium text-slate-600 dark:text-slate-400">Penyimpanan Terpakai</p>
-                        <p class="text-3xl font-bold text-slate-800 dark:text-white mt-1" id="storageUsed">{{ $storageInfo['total_size_human'] }}</p>
+                        <p class="metric-value" id="storageUsed">{{ $storageInfo['total_size_human'] }}</p>
                     </div>
-                    <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform duration-300">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3v4a1 1 0 001 1h4"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 21h-10a2 2 0 01-2-2v-14a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/>
-                        </svg>
+                    <div class="metric-icon metric-icon-green">
+                        <x-icons.document class="w-6 h-6 text-white" />
                     </div>
                 </div>
             </div>
-            <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out hover:bg-white/30 hover:scale-105">
+            <div class="glassmorphism-card">
                 <div class="flex items-center justify-between">
                     <div class="flex-1">
                         <p class="text-sm font-medium text-slate-600 dark:text-slate-400">Ruang Tersedia</p>
-                        <p class="text-3xl font-bold text-slate-800 dark:text-white mt-1" id="availableSpace">{{ $storageInfo['available_space_human'] }}</p>
+                        <p class="metric-value" id="availableSpace">{{ $storageInfo['available_space_human'] }}</p>
                     </div>
-                    <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform duration-300">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3c7.2 0 9 1.8 9 9s-1.8 9 -9 9s-9 -1.8 -9 -9s1.8 -9 9 -9z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15l0 .01"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 12c0 -1.5 .8 -3 2 -3s2 1.5 2 3c0 .75 -.4 1.5 -1 2l-1 1h-2"/>
-                        </svg>
+                    <div class="metric-icon metric-icon-amber">
+                        <x-icons.question-mark-circle class="w-6 h-6 text-white" />
                     </div>
                 </div>
             </div>
-            <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out hover:bg-white/30 hover:scale-105">
+            <div class="glassmorphism-card">
                 <div class="flex items-center justify-between">
                     <div class="flex-1">
                         <p class="text-sm font-medium text-slate-600 dark:text-slate-400">Backup Terakhir</p>
@@ -95,31 +80,25 @@
                             @endif
                         </p>
                     </div>
-                    <div class="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform duration-300">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 12a9 9 0 100-18 9 9 0 000 18zm0-10v10m0 0l3-3m-3 3l-3-3"/>
-                        </svg>
+                    <div class="metric-icon metric-icon-cyan">
+                        <x-icons.arrow-down-circle class="w-6 h-6 text-white" />
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Backup Schedule Status -->
-        <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out mb-6">
+        <div class="glassmorphism-card mb-6">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-xl font-semibold text-slate-800 dark:text-white">Jadwal Backup</h3>
                 <x-ui.button variant="secondary" onclick="openModal('scheduleModal')">
-                    <svg class="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h-3a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-3"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 15h3l8.5 -8.5a1.5 1.5 0 0 0 -3 -3l-8.5 8.5v3"/>
-                        <line x1="16" y1="5" x2="19" y2="8"/>
-                    </svg>
+                    <x-icons.edit class="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
                     Edit Jadwal
                 </x-ui.button>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="flex items-center p-4 bg-white/10 rounded-lg">
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mr-3 text-white bg-gradient-to-r {{ $backupSchedule['database']['enabled'] ? 'from-green-500 to-emerald-600' : 'from-gray-500 to-slate-600' }} shadow-lg">
+                    <span class="schedule-badge {{ $backupSchedule['database']['enabled'] ? 'schedule-enabled' : 'schedule-disabled' }}">
                         {{ $backupSchedule['database']['enabled'] ? 'Aktif' : 'Nonaktif' }}
                     </span>
                     <div>
@@ -130,7 +109,7 @@
                     </div>
                 </div>
                 <div class="flex items-center p-4 bg-white/10 rounded-lg">
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mr-3 text-white bg-gradient-to-r {{ $backupSchedule['files']['enabled'] ? 'from-green-500 to-emerald-600' : 'from-gray-500 to-slate-600' }} shadow-lg">
+                    <span class="schedule-badge {{ $backupSchedule['files']['enabled'] ? 'schedule-enabled' : 'schedule-disabled' }}">
                         {{ $backupSchedule['files']['enabled'] ? 'Aktif' : 'Nonaktif' }}
                     </span>
                     <div>
@@ -141,7 +120,7 @@
                     </div>
                 </div>
                 <div class="flex items-center p-4 bg-white/10 rounded-lg">
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mr-3 text-white bg-gradient-to-r {{ $backupSchedule['full']['enabled'] ? 'from-green-500 to-emerald-600' : 'from-gray-500 to-slate-600' }} shadow-lg">
+                    <span class="schedule-badge {{ $backupSchedule['full']['enabled'] ? 'schedule-enabled' : 'schedule-disabled' }}">
                         {{ $backupSchedule['full']['enabled'] ? 'Aktif' : 'Nonaktif' }}
                     </span>
                     <div>

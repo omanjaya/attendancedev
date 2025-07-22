@@ -262,7 +262,11 @@ class FaceDetectionController extends Controller
         try {
             $statistics = $this->faceRecognitionService->getStatistics();
 
-            return $this->successResponse($statistics);
+            return response()->json([
+                'success' => true,
+                'statistics' => $statistics, // JavaScript expects 'statistics' not 'data'
+                'data' => $statistics, // Keep both for compatibility
+            ]);
         } catch (\Exception $e) {
             return $this->errorResponse(
                 'Failed to retrieve statistics: '.$e->getMessage(),

@@ -66,12 +66,18 @@ echo "🔨 Building frontend assets..."
 npm run build
 print_status "Assets built"
 
-# 5. Run database migrations
+# 5. Setup production environment
+echo "⚙️ Setting up production environment..."
+cp .env.production .env
+php artisan key:generate --force
+print_status "Environment configured"
+
+# 6. Run database migrations
 echo "🗄️ Running database migrations..."
 php artisan migrate --force
 print_status "Database migrated"
 
-# 6. Clear and optimize caches
+# 7. Clear and optimize caches
 echo "🧹 Optimizing application..."
 php artisan config:clear
 php artisan cache:clear

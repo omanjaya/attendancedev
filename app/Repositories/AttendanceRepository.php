@@ -25,12 +25,14 @@ class AttendanceRepository extends BaseRepository
      */
     public function getTodayAttendance(string $employeeId): ?Attendance
     {
-        $cacheKey = $this->getCacheKey('today_attendance', [$employeeId, today()->format('Y-m-d')]);
+        $today = now('Asia/Makassar')->startOfDay();
+        $todayDate = $today->format('Y-m-d');
+        $cacheKey = $this->getCacheKey('today_attendance', [$employeeId, $todayDate]);
 
-        return cache()->remember($cacheKey, 300, function () use ($employeeId) {
+        return cache()->remember($cacheKey, 300, function () use ($employeeId, $todayDate) {
             return $this->model
                 ->where('employee_id', $employeeId)
-                ->whereDate('date', today())
+                ->whereDate('date', $todayDate)
                 ->with(['employee.user', 'employee.location'])
                 ->first();
         });
@@ -41,10 +43,13 @@ class AttendanceRepository extends BaseRepository
      */
     public function getOrCreateToday(string $employeeId): Attendance
     {
+        $today = now('Asia/Makassar')->startOfDay();
+        $todayDate = $today->format('Y-m-d');
+        
         return $this->firstOrCreate(
             [
                 'employee_id' => $employeeId,
-                'date' => today(),
+                'date' => $todayDate,
             ],
             [
                 'status' => 'incomplete',
@@ -206,12 +211,14 @@ class AttendanceRepository extends BaseRepository
      */
     public function isEmployeeCheckedIn(string $employeeId): bool
     {
-        $cacheKey = $this->getCacheKey('is_checked_in', [$employeeId, today()->format('Y-m-d')]);
+        $today = now('Asia/Makassar')->startOfDay();
+        $todayDate = $today->format('Y-m-d');
+        $cacheKey = $this->getCacheKey('is_checked_in', [$employeeId, $todayDate]);
 
-        return cache()->remember($cacheKey, 300, function () use ($employeeId) {
+        return cache()->remember($cacheKey, 300, function () use ($employeeId, $todayDate) {
             return $this->model
                 ->where('employee_id', $employeeId)
-                ->whereDate('date', today())
+                ->whereDate('date', $todayDate)
                 ->whereNotNull('check_in_time')
                 ->whereNull('check_out_time')
                 ->exists();
@@ -223,7 +230,10 @@ class AttendanceRepository extends BaseRepository
      */
     public function getDailyAttendanceSummary(?string $date = null): array
     {
-        $date = $date ?? today()->format('Y-m-d');
+        if (!$date) {
+            $today = now('Asia/Makassar')->startOfDay();
+            $date = $today->format('Y-m-d');
+        }
         $cacheKey = $this->getCacheKey('daily_summary', [$date]);
 
         return cache()->remember($cacheKey, 1800, function () use ($date) {

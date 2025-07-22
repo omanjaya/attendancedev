@@ -71,7 +71,7 @@
 <a href="{{ $href }}" {{ $attributes->merge(['class' => "block"]) }}>
 @endif
 
-<div class="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-all duration-200 {{ $href ? $config['border'] : '' }}">
+<div class="stats-card-container {{ $href ? $config['border'] : '' }}">
     <div class="p-6">
         <div class="flex items-center justify-between">
             <!-- Main Content -->
@@ -84,9 +84,17 @@
                     
                     @if($trend && $trendValue)
                         <div class="flex items-center space-x-1 px-2 py-1 rounded-full {{ $trendData['bg'] }}">
-                            <svg class="h-3 w-3 {{ $trendData['color'] }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $trendData['icon'] }}"/>
-                            </svg>
+                            @switch($trend)
+                                @case('up')
+                                    <x-icons.trend-up class="stats-card-trend-icon {{ $trendData['color'] }}" />
+                                    @break
+                                @case('down')
+                                    <x-icons.trend-down class="stats-card-trend-icon {{ $trendData['color'] }}" />
+                                    @break
+                                @case('neutral')
+                                    <x-icons.trend-neutral class="stats-card-trend-icon {{ $trendData['color'] }}" />
+                                    @break
+                            @endswitch
                             <span class="text-xs font-medium {{ $trendData['color'] }}">
                                 {{ $trendData['symbol'] }}{{ $trendValue }}
                             </span>
@@ -116,7 +124,7 @@
             <!-- Icon -->
             @if($icon)
                 <div class="ml-4">
-                    <div class="w-12 h-12 rounded-xl {{ $config['icon'] }} flex items-center justify-center">
+                    <div class="stats-card-icon-container {{ $config['icon'] }}">
                         <i class="{{ $icon }} text-xl"></i>
                     </div>
                 </div>

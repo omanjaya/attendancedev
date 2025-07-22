@@ -99,6 +99,22 @@ class Attendance extends Model
         return Holiday::getHolidaysForDate($this->date);
     }
 
+    // Schedule Management System Relationships
+    public function employeeMonthlySchedule()
+    {
+        return $this->belongsTo(EmployeeMonthlySchedule::class);
+    }
+
+    public function teachingSchedule()
+    {
+        return $this->belongsTo(TeachingSchedule::class);
+    }
+
+    public function holiday()
+    {
+        return $this->belongsTo(NationalHoliday::class);
+    }
+
     /**
      * Check if attendance date is a holiday
      */
@@ -120,7 +136,9 @@ class Attendance extends Model
      */
     public function scopeToday($query)
     {
-        return $query->whereDate('date', today());
+        $today = now('Asia/Makassar')->startOfDay();
+        $todayDate = $today->format('Y-m-d');
+        return $query->whereDate('date', $todayDate);
     }
 
     /**
@@ -323,10 +341,13 @@ class Attendance extends Model
      */
     public static function getOrCreateToday($employeeId)
     {
+        $today = now('Asia/Makassar')->startOfDay();
+        $todayDate = $today->format('Y-m-d');
+        
         return static::firstOrCreate(
             [
                 'employee_id' => $employeeId,
-                'date' => today(),
+                'date' => $todayDate,
             ],
             [
                 'status' => 'incomplete',

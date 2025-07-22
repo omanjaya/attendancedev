@@ -8,6 +8,7 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Color;
+use PhpOffice\PhpSpreadsheet\Style\Font;
 use App\Models\Location;
 
 /**
@@ -501,5 +502,184 @@ class ExcelTemplateService
             'valid_rows' => count($validatedData),
             'error_rows' => count($errors)
         ];
+    }
+
+    /**
+     * Generate user credentials export file
+     */
+    public function generateCredentialExport(array $headers, array $data, string $title, string $filename): string
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        
+        // Set sheet name
+        $sheet->setTitle('User Credentials');
+        
+        // Title row
+        $sheet->setCellValue('A1', $title);
+        $sheet->mergeCells('A1:' . $this->getColumnLetter(count($headers)) . '1');
+        
+        // Style title
+        $sheet->getStyle('A1')->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'size' => 16,
+                'color' => ['rgb' => '1f2937'],
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER,
+            ],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'f3f4f6'],
+            ],
+        ]);
+        
+        // Subtitle with timestamp
+        $sheet->setCellValue('A2', 'Digenerate pada: ' . now()->format('d/m/Y H:i:s') . ' oleh: ' . auth()->user()->name);
+        $sheet->mergeCells('A2:' . $this->getColumnLetter(count($headers)) . '2');
+        $sheet->getStyle('A2')->applyFromArray([
+            'font' => ['size' => 10, 'italic' => true],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+        ]);
+        
+        // Headers row (row 4)
+        $headerRow = 4;
+        foreach ($headers as $index => $header) {
+            $column = $this->getColumnLetter($index + 1);
+            $sheet->setCellValue($column . $headerRow, $header);
+        }
+        
+        // Style headers
+        $headerRange = 'A' . $headerRow . ':' . $this->getColumnLetter(count($headers)) . $headerRow;
+        $sheet->getStyle($headerRange)->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'ffffff'],
+            ],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '3b82f6'],
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER,
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => '000000'],
+                ],
+            ],
+        ]);
+        
+        // Data rows
+        $dataStartRow = $headerRow + 1;
+        foreach ($data as $rowIndex => $row) {
+            $currentRow = $dataStartRow + $rowIndex;
+            
+            foreach ($row as $colIndex => $value) {
+                $column = $this->getColumnLetter($colIndex + 1);
+                $sheet->setCellValue($column . $currentRow, $value);
+            }
+            
+            // Style data rows with alternating colors
+            $rowRange = 'A' . $currentRow . ':' . $this->getColumnLetter(count($headers)) . $currentRow;
+            $fillColor = $rowIndex % 2 === 0 ? 'f9fafb' : 'ffffff';
+            
+            $sheet->getStyle($rowRange)->applyFromArray([
+                'fill' => [
+                    'fillType' => Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => $fillColor],
+                ],
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['rgb' => 'd1d5db'],
+                    ],
+                ],
+                'alignment' => [
+                    'vertical' => Alignment::VERTICAL_CENTER,
+                ],
+            ]);
+            
+            // Special styling for password column (usually column C or D)
+            if (isset($row[3]) && !empty($row[3])) { // Password column
+                $passwordColumn = $this->getColumnLetter(4);
+                $sheet->getStyle($passwordColumn . $currentRow)->applyFromArray([
+                    'font' => [
+                        'bold' => true,
+                        'color' => ['rgb' => 'dc2626'],
+                    ],
+                    'fill' => [
+                        'fillType' => Fill::FILL_SOLID,
+                        'startColor' => ['rgb' => 'fef2f2'],
+                    ],
+                ]);
+            }
+        }
+        
+        // Auto-size columns
+        foreach (range('A', $this->getColumnLetter(count($headers))) as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+        
+        // Set row heights
+        $sheet->getRowDimension(1)->setRowHeight(30);
+        $sheet->getRowDimension(2)->setRowHeight(20);
+        $sheet->getRowDimension($headerRow)->setRowHeight(25);
+        
+        // Add warning note
+        $warningRow = $dataStartRow + count($data) + 2;
+        $sheet->setCellValue('A' . $warningRow, '⚠️ PENTING: Password ini hanya ditampilkan sekali. Pastikan untuk menyimpan dengan aman!');
+        $sheet->mergeCells('A' . $warningRow . ':' . $this->getColumnLetter(count($headers)) . $warningRow);
+        $sheet->getStyle('A' . $warningRow)->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'dc2626'],
+                'size' => 12,
+            ],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'fef2f2'],
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THICK,
+                    'color' => ['rgb' => 'dc2626'],
+                ],
+            ],
+        ]);
+        
+        // Save file
+        $tempDir = storage_path('app/temp');
+        if (!file_exists($tempDir)) {
+            mkdir($tempDir, 0755, true);
+        }
+        
+        $filePath = $tempDir . '/' . $filename;
+        
+        $writer = new Xlsx($spreadsheet);
+        $writer->save($filePath);
+        
+        return $filePath;
+    }
+    
+    /**
+     * Get column letter from number (A, B, C, ...)
+     */
+    private function getColumnLetter(int $number): string
+    {
+        $letter = '';
+        while ($number > 0) {
+            $number--;
+            $letter = chr(65 + ($number % 26)) . $letter;
+            $number = intval($number / 26);
+        }
+        return $letter;
     }
 }

@@ -64,7 +64,7 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => 'Asia/Makassar', // WITA (UTC+8) - Waktu Indonesia Tengah
 
     /*
     |--------------------------------------------------------------------------

@@ -245,6 +245,18 @@
 @push('scripts')
 <script>
 $(document).ready(function() {
+    // Debug: Check if CSRF token is available
+    const csrfToken = $('meta[name="csrf-token"]').attr('content');
+    console.log('CSRF Token:', csrfToken ? 'Found' : 'Missing');
+    
+    // Set up CSRF token for all Ajax requests
+    $.ajaxSetup({
+        headers: {
+            'X-CSRF-TOKEN': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    });
+    
     loadTodayStatistics();
     loadTodayAttendance();
     loadFaceDetectionStatus();
@@ -258,7 +270,7 @@ $(document).ready(function() {
 function loadTodayStatistics() {
     const today = new Date().toISOString().split('T')[0];
     
-    $.get('/api/vue/dashboard/stats', {
+    $.get('/api/dashboard/stats', {
         start_date: today,
         end_date: today
     })
@@ -284,7 +296,7 @@ function loadTodayStatistics() {
 function loadTodayAttendance() {
     const today = new Date().toISOString().split('T')[0];
     
-    $.get('/api/vue/dashboard/attendance', {
+    $.get('/api/dashboard/attendance', {
         start_date: today,
         end_date: today,
         length: 50,
@@ -388,7 +400,7 @@ function openManualEntryModal() {
 }
 
 function loadFaceDetectionStatus() {
-    $.get('/api/vue/face-detection/statistics')
+    $.get('/api/dashboard/face-detection/statistics')
         .done(function(response) {
             if (response.success) {
                 displayFaceDetectionStatus(response.statistics);

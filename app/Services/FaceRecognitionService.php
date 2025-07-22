@@ -6,10 +6,12 @@ use App\Contracts\Services\FaceRecognitionServiceInterface;
 use App\Models\Employee;
 use App\Repositories\AttendanceRepository;
 use App\Repositories\EmployeeRepository;
+use App\Repositories\FaceRecognitionRepository;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -22,6 +24,8 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
     protected $employeeRepository;
 
     protected $attendanceRepository;
+
+    protected $faceRecognitionRepository;
 
     // Configuration constants
     const FACE_SIMILARITY_THRESHOLD = 0.6;
@@ -36,10 +40,12 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
 
     public function __construct(
         EmployeeRepository $employeeRepository,
-        AttendanceRepository $attendanceRepository
+        AttendanceRepository $attendanceRepository,
+        FaceRecognitionRepository $faceRecognitionRepository
     ) {
         $this->employeeRepository = $employeeRepository;
         $this->attendanceRepository = $attendanceRepository;
+        $this->faceRecognitionRepository = $faceRecognitionRepository;
     }
 
     /**
@@ -138,7 +144,7 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
 
             // Check liveness if required
             if ($options['require_liveness'] ?? true) {
-                $livenessResult = $this->checkLiveness($faceData);
+                $livenessResult = $this->checkLivenessInternal($faceData);
                 if (! $livenessResult['is_live']) {
                     return [
                         'success' => false,
@@ -343,43 +349,6 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
         });
     }
 
-    /**
-     * Perform batch face verification
-     */
-    public function batchVerify(array $faceDataList): array
-    {
-        $results = [];
-        $registeredFaces = $this->getRegisteredFaces();
-
-        foreach ($faceDataList as $index => $faceData) {
-            try {
-                $match = $this->findBestMatch($faceData['descriptor'], $registeredFaces);
-
-                if ($match && $match['similarity'] >= self::FACE_SIMILARITY_THRESHOLD) {
-                    $results[] = [
-                        'index' => $index,
-                        'success' => true,
-                        'employee_id' => $match['employee_id'],
-                        'confidence' => $match['similarity'],
-                    ];
-                } else {
-                    $results[] = [
-                        'index' => $index,
-                        'success' => false,
-                        'confidence' => $match['similarity'] ?? 0,
-                    ];
-                }
-            } catch (\Exception $e) {
-                $results[] = [
-                    'index' => $index,
-                    'success' => false,
-                    'error' => $e->getMessage(),
-                ];
-            }
-        }
-
-        return $results;
-    }
 
     /**
      * Get face recognition statistics
@@ -390,15 +359,35 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
 
         return Cache::remember($cacheKey, 300, function () {
             $totalEmployees = $this->employeeRepository->count();
-            $registeredFaces = $this->employeeRepository->getEmployeesWithFaceData()->count();
+            $registeredFaces = $this->faceRecognitionRepository->getEmployeesWithFaceData()->count();
 
-            // Get recognition accuracy from recent logs
-            $recentLogs = DB::table('face_recognition_logs')
-                ->where('created_at', '>=', now()->subDays(30))
-                ->get();
+            // Get recognition accuracy from recent logs (with error handling)
+            $successCount = 0;
+            $totalAttempts = 0;
+            
+            try {
+                if (Schema::hasTable('face_recognition_logs')) {
+                    $recentLogs = DB::table('face_recognition_logs')
+                        ->where('created_at', '>=', now()->subDays(30))
+                        ->get();
 
-            $successCount = $recentLogs->where('action', 'verify_success')->count();
-            $totalAttempts = $recentLogs->whereIn('action', ['verify_success', 'verify_failed'])->count();
+                    $successCount = $recentLogs->where('action', 'verify_success')->count();
+                    $totalAttempts = $recentLogs->whereIn('action', ['verify_success', 'verify_failed'])->count();
+                }
+            } catch (\Exception $e) {
+                \Log::warning('Face recognition logs table not accessible: ' . $e->getMessage());
+            }
+
+            try {
+                $algorithmsUsed = $this->getAlgorithmStatistics();
+                $averageConfidence = $this->getAverageConfidence();
+                $qualityDistribution = $this->getQualityDistribution();
+            } catch (\Exception $e) {
+                \Log::warning('Error getting face recognition statistics: ' . $e->getMessage());
+                $algorithmsUsed = [];
+                $averageConfidence = 0.0;
+                $qualityDistribution = ['excellent' => 0, 'good' => 0, 'fair' => 0, 'poor' => 0];
+            }
 
             return [
                 'total_employees' => $totalEmployees,
@@ -407,53 +396,13 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
                 'recognition_accuracy' => $totalAttempts > 0 ? round(($successCount / $totalAttempts) * 100, 2) : 0,
                 'total_verifications' => $totalAttempts,
                 'successful_verifications' => $successCount,
-                'algorithms_used' => $this->getAlgorithmStatistics(),
-                'average_confidence' => $this->getAverageConfidence(),
-                'quality_distribution' => $this->getQualityDistribution(),
+                'algorithms_used' => $algorithmsUsed,
+                'average_confidence' => $averageConfidence,
+                'quality_distribution' => $qualityDistribution,
             ];
         });
     }
 
-    /**
-     * Check liveness of face
-     */
-    protected function checkLiveness(array $faceData): array
-    {
-        // Basic liveness checks
-        $livenessScore = 1.0;
-
-        // Check for blink detection
-        if (isset($faceData['blink_detected'])) {
-            $livenessScore *= $faceData['blink_detected'] ? 1.0 : 0.7;
-        }
-
-        // Check for head movement
-        if (isset($faceData['head_movement'])) {
-            $livenessScore *= $faceData['head_movement'] > 0.1 ? 1.0 : 0.8;
-        }
-
-        // Check for facial expressions
-        if (isset($faceData['expressions'])) {
-            $hasExpressions = count(array_filter($faceData['expressions'], fn ($val) => $val > 0.5)) > 0;
-            $livenessScore *= $hasExpressions ? 1.0 : 0.9;
-        }
-
-        // Check for texture analysis
-        if (isset($faceData['texture_score'])) {
-            $livenessScore *= min($faceData['texture_score'], 1.0);
-        }
-
-        return [
-            'is_live' => $livenessScore >= self::ANTI_SPOOFING_THRESHOLD,
-            'score' => $livenessScore,
-            'checks_performed' => [
-                'blink' => isset($faceData['blink_detected']),
-                'movement' => isset($faceData['head_movement']),
-                'expressions' => isset($faceData['expressions']),
-                'texture' => isset($faceData['texture_score']),
-            ],
-        ];
-    }
 
     /**
      * Calculate quality score for face data
@@ -542,7 +491,7 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
     /**
      * Calculate similarity between two face descriptors
      */
-    protected function calculateSimilarity(array $descriptor1, array $descriptor2): float
+    public function calculateSimilarity(array $descriptor1, array $descriptor2): float
     {
         if (count($descriptor1) !== count($descriptor2)) {
             return 0;
@@ -570,7 +519,7 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
     protected function getRegisteredFaces(): array
     {
         return Cache::remember('registered_faces', self::FACE_CACHE_TTL, function () {
-            $employees = $this->employeeRepository->getEmployeesWithFaceData();
+            $employees = $this->faceRecognitionRepository->getEmployeesWithFaceData();
 
             return $employees->map(function ($employee) {
                 $faceData = $employee->metadata['face_recognition'] ?? null;
@@ -792,7 +741,7 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
      */
     protected function getAlgorithmStatistics(): array
     {
-        $employees = $this->employeeRepository->getEmployeesWithFaceData();
+        $employees = $this->faceRecognitionRepository->getEmployeesWithFaceData();
         $algorithms = [];
 
         foreach ($employees as $employee) {
@@ -808,7 +757,7 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
      */
     protected function getAverageConfidence(): float
     {
-        $employees = $this->employeeRepository->getEmployeesWithFaceData();
+        $employees = $this->faceRecognitionRepository->getEmployeesWithFaceData();
         $totalConfidence = 0;
         $count = 0;
 
@@ -826,7 +775,7 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
      */
     protected function getQualityDistribution(): array
     {
-        $employees = $this->employeeRepository->getEmployeesWithFaceData();
+        $employees = $this->faceRecognitionRepository->getEmployeesWithFaceData();
         $distribution = [
             'excellent' => 0, // > 0.9
             'good' => 0,      // 0.7 - 0.9

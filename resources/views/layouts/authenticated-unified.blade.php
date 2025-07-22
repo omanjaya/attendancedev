@@ -3,15 +3,13 @@
 @section('content')
     <div class="min-h-screen flex" x-data="{ mobileNavOpen: false }">
         <!-- Desktop Sidebar - Fixed Position -->
-        <aside class="w-64 bg-white dark:bg-gray-800 shadow-sm border-r border-gray-200 dark:border-gray-700 hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:left-0 lg:z-50">
+        <aside class="sidebar-desktop">
             <div class="flex flex-col h-full">
 
                 <!-- Logo & Brand with Role Context -->
-                <div class="flex items-center px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <div class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
+                <div class="sidebar-header">
+                    <div class="brand-icon">
+                        <x-icons.check-circle class="w-6 h-6 text-white" />
                     </div>
                     <div class="ml-3 flex-1">
                         <p class="text-lg font-bold text-gray-900 dark:text-gray-100">Attendance</p>
@@ -32,7 +30,7 @@
                             <div class="space-y-2">
                                 <!-- Section Header -->
                                 <div class="px-3 py-2">
-                                    <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    <h3 class="nav-section-header">
                                         {{ $section['name'] }}
                                     </h3>
                                 </div>
@@ -40,40 +38,133 @@
                                 <!-- Section Items -->
                                 <div class="space-y-1">
                                     @foreach($section['children'] as $item)
-                                        <a href="{{ route($item['route']) }}" 
-                                           class="group flex items-center px-3 py-2.5 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 ease-in-out {{ request()->routeIs($item['route']) ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-r-2 border-emerald-500' : '' }}">
-                                            
-                                            <!-- Icon with dynamic background -->
-                                            <div class="w-9 h-9 rounded-lg flex items-center justify-center shadow-sm transition-colors duration-200 {{ request()->routeIs($item['route']) ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 group-hover:bg-emerald-500 group-hover:text-white' }}">
-                                                {!! \App\Services\IconService::getIcon($item['icon'], 'outline', '5') !!}
+                                        @if(isset($item['type']) && $item['type'] === 'dropdown')
+                                            <!-- Dropdown Menu Item -->
+                                            <div x-data="{ open: {{ collect($item['children'])->pluck('route')->contains(function($route) { return request()->routeIs($route); }) ? 'true' : 'false' }} }">
+                                                <button @click="open = !open" 
+                                                        class="nav-link w-full {{ collect($item['children'])->pluck('route')->contains(function($route) { return request()->routeIs($route); }) ? 'nav-link-active' : '' }}">
+                                                    
+                                                    <!-- Icon -->
+                                                    <div class="nav-icon {{ collect($item['children'])->pluck('route')->contains(function($route) { return request()->routeIs($route); }) ? 'nav-icon-active' : 'nav-icon-inactive' }}">
+                                                        {!! \App\Services\IconService::getIcon($item['icon'], 'outline', '5') !!}
+                                                    </div>
+                                                    
+                                                    <!-- Menu Text -->
+                                                    <span class="ml-3 font-medium flex-1 text-left">{{ $item['name'] }}</span>
+                                                    
+                                                    <!-- Badge if exists -->
+                                                    @if(isset($item['badge']) && $item['badge'])
+                                                        <span class="nav-badge {{ collect($item['children'])->pluck('route')->contains(function($route) { return request()->routeIs($route); }) ? 'nav-badge-active' : 'nav-badge-inactive' }}">
+                                                            {{ $item['badge']['count'] ?? $item['badge'] }}
+                                                        </span>
+                                                    @endif
+                                                    
+                                                    <!-- Dropdown Arrow -->
+                                                    <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                                    </svg>
+                                                </button>
+                                                
+                                                <!-- Dropdown Items -->
+                                                <div x-show="open" x-transition class="ml-6 mt-2 space-y-1">
+                                                    @foreach($item['children'] as $subItem)
+                                                        <a href="{{ route($subItem['route']) }}" 
+                                                           class="block px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors {{ request()->routeIs($subItem['route']) ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' : '' }}">
+                                                            
+                                                            <div class="flex items-center">
+                                                                <!-- Sub Item Icon -->
+                                                                <div class="w-4 h-4 mr-2">
+                                                                    {!! \App\Services\IconService::getIcon($subItem['icon'], 'outline', '4') !!}
+                                                                </div>
+                                                                {{ $subItem['name'] }}
+                                                            </div>
+                                                        </a>
+                                                    @endforeach
+                                                </div>
                                             </div>
-                                            
-                                            <!-- Menu Text -->
-                                            <span class="ml-3 font-medium flex-1">{{ $item['name'] }}</span>
-                                            
-                                            <!-- Badge if exists -->
-                                            @if(isset($item['badge']) && $item['badge'])
-                                                <span class="px-2 py-1 text-xs font-semibold rounded-full {{ request()->routeIs($item['route']) ? 'bg-emerald-200 text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' }}">
-                                                    {{ $item['badge']['count'] ?? $item['badge'] }}
-                                                </span>
-                                            @endif
-                                            
-                                            <!-- Highlight indicator for important items -->
-                                            @if(isset($item['highlight']) && $item['highlight'])
-                                                <div class="w-2 h-2 bg-emerald-400 rounded-full"></div>
-                                            @endif
-                                        </a>
+                                        @elseif(isset($item['route']))
+                                            <!-- Regular Menu Item -->
+                                            <a href="{{ route($item['route']) }}" 
+                                               class="nav-link {{ request()->routeIs($item['route']) ? 'nav-link-active' : '' }}">
+                                                
+                                                <!-- Icon with dynamic background -->
+                                                <div class="nav-icon {{ request()->routeIs($item['route']) ? 'nav-icon-active' : 'nav-icon-inactive' }}">
+                                                    {!! \App\Services\IconService::getIcon($item['icon'], 'outline', '5') !!}
+                                                </div>
+                                                
+                                                <!-- Menu Text -->
+                                                <span class="ml-3 font-medium flex-1">{{ $item['name'] }}</span>
+                                                
+                                                <!-- Badge if exists -->
+                                                @if(isset($item['badge']) && $item['badge'])
+                                                    <span class="nav-badge {{ request()->routeIs($item['route']) ? 'nav-badge-active' : 'nav-badge-inactive' }}">
+                                                        {{ $item['badge']['count'] ?? $item['badge'] }}
+                                                    </span>
+                                                @endif
+                                                
+                                                <!-- Highlight indicator for important items -->
+                                                @if(isset($item['highlight']) && $item['highlight'])
+                                                    <div class="w-2 h-2 bg-emerald-400 rounded-full"></div>
+                                                @endif
+                                            </a>
+                                        @endif
                                     @endforeach
                                 </div>
                             </div>
-                        @else
+                        @elseif(isset($section['type']) && $section['type'] === 'dropdown')
+                            <!-- Dropdown Menu Section -->
+                            <div class="space-y-1">
+                                <div x-data="{ open: {{ collect($section['children'])->pluck('route')->contains(function($route) { return request()->routeIs($route); }) ? 'true' : 'false' }} }">
+                                    <button @click="open = !open" 
+                                            class="nav-link w-full {{ collect($section['children'])->pluck('route')->contains(function($route) { return request()->routeIs($route); }) ? 'nav-link-active' : '' }}">
+                                        
+                                        <!-- Icon -->
+                                        <div class="nav-icon {{ collect($section['children'])->pluck('route')->contains(function($route) { return request()->routeIs($route); }) ? 'nav-icon-active' : 'nav-icon-inactive' }}">
+                                            {!! \App\Services\IconService::getIcon($section['icon'], 'outline', '5') !!}
+                                        </div>
+                                        
+                                        <!-- Menu Text -->
+                                        <span class="ml-3 font-medium flex-1 text-left">{{ $section['name'] }}</span>
+                                        
+                                        <!-- Badge -->
+                                        @if(isset($section['badge']) && $section['badge'])
+                                            <span class="nav-badge {{ collect($section['children'])->pluck('route')->contains(function($route) { return request()->routeIs($route); }) ? 'nav-badge-active' : 'nav-badge-inactive' }}">
+                                                {{ $section['badge']['count'] ?? $section['badge'] }}
+                                            </span>
+                                        @endif
+                                        
+                                        <!-- Dropdown Arrow -->
+                                        <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                        </svg>
+                                    </button>
+                                    
+                                    <!-- Dropdown Items -->
+                                    <div x-show="open" x-transition class="ml-6 mt-2 space-y-1">
+                                        @foreach($section['children'] as $subItem)
+                                            <a href="{{ route($subItem['route']) }}" 
+                                               class="block px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors {{ request()->routeIs($subItem['route']) ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' : '' }}">
+                                                
+                                                <div class="flex items-center">
+                                                    <!-- Sub Item Icon -->
+                                                    <div class="w-4 h-4 mr-2">
+                                                        {!! \App\Services\IconService::getIcon($subItem['icon'], 'outline', '4') !!}
+                                                    </div>
+                                                    {{ $subItem['name'] }}
+                                                </div>
+                                            </a>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </div>
+                        @elseif(isset($section['route']))
                             <!-- Single Menu Item -->
                             <div class="space-y-1">
                                 <a href="{{ route($section['route']) }}" 
-                                   class="group flex items-center px-3 py-2.5 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 ease-in-out {{ request()->routeIs($section['route']) ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-r-2 border-emerald-500' : '' }}">
+                                   class="nav-link {{ request()->routeIs($section['route']) ? 'nav-link-active' : '' }}">
                                     
                                     <!-- Icon -->
-                                    <div class="w-9 h-9 rounded-lg flex items-center justify-center shadow-sm transition-colors duration-200 {{ request()->routeIs($section['route']) ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 group-hover:bg-emerald-500 group-hover:text-white' }}">
+                                    <div class="nav-icon {{ request()->routeIs($section['route']) ? 'nav-icon-active' : 'nav-icon-inactive' }}">
                                         {!! \App\Services\IconService::getIcon($section['icon'], 'outline', '5') !!}
                                     </div>
                                     
@@ -82,7 +173,7 @@
                                     
                                     <!-- Badge -->
                                     @if(isset($section['badge']) && $section['badge'])
-                                        <span class="px-2 py-1 text-xs font-semibold rounded-full {{ request()->routeIs($section['route']) ? 'bg-emerald-200 text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' }}">
+                                        <span class="nav-badge {{ request()->routeIs($section['route']) ? 'nav-badge-active' : 'nav-badge-inactive' }}">
                                             {{ $section['badge']['count'] ?? $section['badge'] }}
                                         </span>
                                     @endif
@@ -140,26 +231,22 @@
             <div class="fixed inset-0 bg-gray-600 bg-opacity-75"></div>
             
             <!-- Mobile sidebar -->
-            <aside class="relative flex-1 flex flex-col max-w-xs w-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+            <aside class="sidebar-mobile">
                 <div class="flex flex-col h-full">
                     
                     <!-- Mobile Header -->
-                    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="sidebar-header">
                         <div class="flex items-center">
                             <div class="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center shadow-sm">
-                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
+                                <x-icons.check-circle class="w-5 h-5 text-white" />
                             </div>
                             <div class="ml-3">
                                 <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">Attendance</p>
                                 <p class="text-sm text-gray-500 dark:text-gray-400">System</p>
                             </div>
                         </div>
-                        <button @click="mobileNavOpen = false" class="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
+                        <button @click="mobileNavOpen = false" class="mobile-close-btn">
+                            <x-icons.x class="w-6 h-6" />
                         </button>
                     </div>
 
@@ -171,7 +258,7 @@
                                 <div class="space-y-2">
                                     <!-- Section Header -->
                                     <div class="px-3 py-2">
-                                        <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        <h3 class="nav-section-header">
                                             {{ $section['name'] }}
                                         </h3>
                                     </div>
@@ -179,29 +266,66 @@
                                     <!-- Section Items -->
                                     <div class="space-y-1">
                                         @foreach($section['children'] as $item)
-                                            <a href="{{ route($item['route']) }}" 
-                                               @click="mobileNavOpen = false"
-                                               class="group flex items-center px-3 py-2.5 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 ease-in-out {{ request()->routeIs($item['route']) ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300' : '' }}">
-                                                
-                                                <!-- Icon -->
-                                                <div class="w-9 h-9 rounded-lg flex items-center justify-center shadow-sm transition-colors duration-200 {{ request()->routeIs($item['route']) ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 group-hover:bg-emerald-500 group-hover:text-white' }}">
-                                                    {!! \App\Services\IconService::getIcon($item['icon'], 'outline', '5') !!}
-                                                </div>
-                                                
-                                                <!-- Text -->
-                                                <span class="ml-3 font-medium flex-1">{{ $item['name'] }}</span>
-                                                
-                                                <!-- Badge -->
-                                                @if(isset($item['badge']) && $item['badge'])
-                                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                                                        {{ $item['badge']['count'] ?? $item['badge'] }}
-                                                    </span>
-                                                @endif
-                                            </a>
+                                            @if(isset($item['type']) && $item['type'] === 'dropdown')
+                                                <!-- Mobile Dropdown (show children directly) -->
+                                                @foreach($item['children'] as $subItem)
+                                                    <a href="{{ route($subItem['route']) }}" 
+                                                       @click="mobileNavOpen = false"
+                                                       class="group flex items-center px-3 py-2.5 text-sm text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 ease-in-out {{ request()->routeIs($subItem['route']) ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300' : '' }}">
+                                                        
+                                                        <!-- Icon -->
+                                                        <div class="nav-icon {{ request()->routeIs($subItem['route']) ? 'nav-icon-active' : 'nav-icon-inactive' }}">
+                                                            {!! \App\Services\IconService::getIcon($subItem['icon'], 'outline', '5') !!}
+                                                        </div>
+                                                        
+                                                        <!-- Text -->
+                                                        <span class="ml-3 font-medium flex-1">{{ $subItem['name'] }}</span>
+                                                    </a>
+                                                @endforeach
+                                            @elseif(isset($item['route']))
+                                                <!-- Regular Mobile Item -->
+                                                <a href="{{ route($item['route']) }}" 
+                                                   @click="mobileNavOpen = false"
+                                                   class="group flex items-center px-3 py-2.5 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 ease-in-out {{ request()->routeIs($item['route']) ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300' : '' }}">
+                                                    
+                                                    <!-- Icon -->
+                                                    <div class="nav-icon {{ request()->routeIs($item['route']) ? 'nav-icon-active' : 'nav-icon-inactive' }}">
+                                                        {!! \App\Services\IconService::getIcon($item['icon'], 'outline', '5') !!}
+                                                    </div>
+                                                    
+                                                    <!-- Text -->
+                                                    <span class="ml-3 font-medium flex-1">{{ $item['name'] }}</span>
+                                                    
+                                                    <!-- Badge -->
+                                                    @if(isset($item['badge']) && $item['badge'])
+                                                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                                                            {{ $item['badge']['count'] ?? $item['badge'] }}
+                                                        </span>
+                                                    @endif
+                                                </a>
+                                            @endif
                                         @endforeach
                                     </div>
                                 </div>
-                            @else
+                            @elseif(isset($section['type']) && $section['type'] === 'dropdown')
+                                <!-- Mobile Dropdown Section -->
+                                <div class="space-y-1">
+                                    @foreach($section['children'] as $subItem)
+                                        <a href="{{ route($subItem['route']) }}" 
+                                           @click="mobileNavOpen = false"
+                                           class="group flex items-center px-3 py-2.5 text-sm text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 ease-in-out {{ request()->routeIs($subItem['route']) ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300' : '' }}">
+                                            
+                                            <!-- Icon -->
+                                            <div class="nav-icon {{ request()->routeIs($subItem['route']) ? 'nav-icon-active' : 'nav-icon-inactive' }}">
+                                                {!! \App\Services\IconService::getIcon($subItem['icon'], 'outline', '5') !!}
+                                            </div>
+                                            
+                                            <!-- Text -->
+                                            <span class="ml-3 font-medium flex-1">{{ $subItem['name'] }}</span>
+                                        </a>
+                                    @endforeach
+                                </div>
+                            @elseif(isset($section['route']))
                                 <!-- Mobile Single Item -->
                                 <div class="space-y-1">
                                     <a href="{{ route($section['route']) }}" 
@@ -209,7 +333,7 @@
                                        class="group flex items-center px-3 py-2.5 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 ease-in-out {{ request()->routeIs($section['route']) ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300' : '' }}">
                                         
                                         <!-- Icon -->
-                                        <div class="w-9 h-9 rounded-lg flex items-center justify-center shadow-sm transition-colors duration-200 {{ request()->routeIs($section['route']) ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 group-hover:bg-emerald-500 group-hover:text-white' }}">
+                                        <div class="nav-icon {{ request()->routeIs($section['route']) ? 'nav-icon-active' : 'nav-icon-inactive' }}">
                                             {!! \App\Services\IconService::getIcon($section['icon'], 'outline', '5') !!}
                                         </div>
                                         
@@ -244,12 +368,10 @@
             </aside>
         </div>
 
-        <!-- Main Content Area -->
-        <div class="flex flex-col flex-1 lg:ml-64">
-            <!-- Enhanced Desktop Header -->
-            <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
-                <div class="px-4 sm:px-6 lg:px-8">
-                    <div class="flex items-center justify-between h-16">
+        <!-- Enhanced Desktop Header -->
+        <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 fixed top-0 left-0 right-0 lg:left-64 z-50">
+            <div class="px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
 
                         <!-- Left Section: Mobile Menu + Search -->
                         <div class="flex items-center space-x-3">
@@ -442,11 +564,13 @@
                         </div>
                     </div>
                 </div>
-            </header>
+        </header>
 
+        <!-- Main Content Area -->
+        <div class="flex flex-col flex-1 lg:ml-64 pt-16">
             <!-- Page Content -->
-            <main class="flex-1 p-6">
-                <div class="px-4 sm:px-6 lg:px-8">
+            <main class="flex-1">
+                <div class="px-4 sm:px-6 lg:px-8 py-6">
                     <!-- Role Switch Status (if active) -->
                     @if(Session::has('original_role'))
                         <div class="mb-6 p-3 bg-amber-100 dark:bg-amber-900 rounded-lg shadow-sm border border-amber-200 dark:border-amber-800 flex items-center justify-between text-amber-800 dark:text-amber-200">
@@ -465,10 +589,12 @@
 
                     @yield('page-content')
                 </div>
+                </div>
             </main>
-            
-            <!-- Notification Component -->
-            <x-notification />
+        </div>
+        
+        <!-- Notification Component -->
+        <x-notification />
         </div>
 
         <!-- Mobile Bottom Navigation -->

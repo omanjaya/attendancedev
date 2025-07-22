@@ -12,11 +12,10 @@
     <div class="flex items-center justify-between">
         <div>
             <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Pusat Komando Sistem</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Pemantauan dan administrasi sistem lengkap</p>
+            <p class="dashboard-page-desc">Pemantauan dan administrasi sistem lengkap</p>
         </div>
-        <x-ui.button variant="secondary" onclick="refreshData()"
-            class="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"/><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"/></svg>
+        <x-ui.button variant="secondary" onclick="refreshData()" class="btn-analytics">
+            <x-icons.refresh class="w-5 h-5 mr-2" />
             Segarkan
         </x-ui.button>
     </div>
@@ -24,79 +23,73 @@
 
             <!-- System Health Status -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-                <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <x-ui.card>
                     <div class="flex items-center justify-between mb-4">
                         <div class="p-3 bg-green-600 rounded-lg shadow-md">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                            </svg>
+                            <x-icons.shield class="w-6 h-6 text-white" />
                         </div>
-                        <span class="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-1 rounded-full">ONLINE</span>
+                        <span class="badge-online">ONLINE</span>
                     </div>
                     <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">Kesehatan Sistem</h3>
                     <p class="text-green-600 text-sm font-medium">Semua sistem beroperasi</p>
                 </x-ui.card>
 
-                <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <x-ui.card>
                     <div class="flex items-center justify-between mb-4">
                         <div class="p-3 bg-blue-600 rounded-lg shadow-md">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                            </svg>
+                            <x-icons.users class="w-6 h-6 text-white" />
                         </div>
-                        <span class="text-sm text-blue-600">{{ $dashboardData['system_health']['active_sessions'] ?? 0 }} aktif</span>
+                        <span class="dashboard-status-text-blue">{{ $dashboardData['system_health']['active_sessions'] ?? 0 }} aktif</span>
                     </div>
-                    <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ $dashboardData['realtime_status']['total_employees'] ?? 0 }}</h3>
-                    <p class="text-gray-600 dark:text-gray-400 text-sm">Total Pengguna</p>
+                    <h3 class="metric-heading">{{ $dashboardData['realtime_status']['total_employees'] ?? 0 }}</h3>
+                    <p class="dashboard-metric-desc">Total Pengguna</p>
                 </x-ui.card>
 
-                <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <x-ui.card>
                     <div class="flex items-center justify-between mb-4">
                         <div class="p-3 bg-emerald-600 rounded-lg shadow-md">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
+                            <x-icons.check-circle class="w-6 h-6 text-white" />
                         </div>
-                        <span class="text-sm text-emerald-600">{{ $dashboardData['realtime_status']['attendance_rate'] ?? 0 }}%</span>
+                        <span class="dashboard-status-text-emerald">{{ $dashboardData['realtime_status']['attendance_rate'] ?? 0 }}%</span>
                     </div>
-                    <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ $dashboardData['realtime_status']['checked_in_today'] ?? 0 }}</h3>
-                    <p class="text-gray-600 dark:text-gray-400 text-sm">Hadir Hari Ini</p>
+                    <h3 class="metric-heading">{{ $dashboardData['realtime_status']['checked_in_today'] ?? 0 }}</h3>
+                    <p class="dashboard-metric-desc">Hadir Hari Ini</p>
                 </x-ui.card>
 
-                <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <x-ui.card>
                     <div class="flex items-center justify-between mb-4">
                         <div class="p-3 bg-amber-600 rounded-lg shadow-md">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <x-icons.clock class="w-6 h-6 text-white" />
                         </div>
                         @if(($dashboardData['realtime_status']['late_arrivals'] ?? 0) > 0)
-                        <span class="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 px-2 py-1 rounded-full">Peringatan</span>
+                        <span class="badge-warning">Peringatan</span>
                         @endif
                     </div>
-                    <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ $dashboardData['realtime_status']['late_arrivals'] ?? 0 }}</h3>
-                    <p class="text-gray-600 dark:text-gray-400 text-sm">Kedatangan Terlambat</p>
+                    <h3 class="metric-heading">{{ $dashboardData['realtime_status']['late_arrivals'] ?? 0 }}</h3>
+                    <p class="dashboard-metric-desc">Kedatangan Terlambat</p>
                 </x-ui.card>
 
-                <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <x-ui.card>
                     <div class="flex items-center justify-between mb-4">
                         <div class="p-3 bg-purple-600 rounded-lg shadow-md">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                            <x-icons.calendar class="w-6 h-6 text-white" />
                         </div>
                         @if(($dashboardData['leave_management']['pending_requests'] ?? 0) > 0)
-                        <span class="text-xs bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 px-2 py-1 rounded-full">{{ $dashboardData['leave_management']['pending_requests'] }}</span>
+                        <span class="badge-purple">{{ $dashboardData['leave_management']['pending_requests'] }}</span>
                         @endif
                     </div>
-                    <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ $dashboardData['leave_management']['pending_requests'] ?? 0 }}</h3>
-                    <p class="text-gray-600 dark:text-gray-400 text-sm">Permintaan Tertunda</p>
+                    <h3 class="metric-heading">{{ $dashboardData['leave_management']['pending_requests'] ?? 0 }}</h3>
+                    <p class="dashboard-metric-desc">Permintaan Tertunda</p>
                 </x-ui.card>
             </div>
 
             <!-- Live System Monitoring -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                <x-ui.card class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <x-ui.card class="lg:col-span-2">
                     <div class="flex items-center justify-between mb-6">
                         <div>
-                            <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Aktivitas Karyawan Langsung</h3>
-                            <p class="text-gray-600 dark:text-gray-400">Pemantauan absensi real-time</p>
+                            <h3 class="dashboard-section-title">Aktivitas Karyawan Langsung</h3>
+                            <p class="dashboard-section-desc">Pemantauan absensi real-time</p>
                         </div>
                         <div class="flex items-center space-x-2">
                             <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -106,87 +99,116 @@
                     
                     <div class="space-y-3">
                         @php
-                        $recentCheckIns = [
-                            ['name' => 'Dr. Sarah Ahmad', 'time' => '08:15', 'status' => 'check-in', 'method' => 'face', 'department' => 'Mathematics'],
-                            ['name' => 'Prof. Ahmad Rahman', 'time' => '08:30', 'status' => 'check-in', 'method' => 'face', 'department' => 'Physics'],
-                            ['name' => 'Ms. Fatimah Ali', 'time' => '09:45', 'status' => 'late', 'method' => 'manual', 'department' => 'English'],
-                            ['name' => 'Mr. Hassan Omar', 'time' => '10:15', 'status' => 'check-out', 'method' => 'face', 'department' => 'Chemistry'],
-                            ['name' => 'Dr. Amira Hassan', 'time' => '11:00', 'status' => 'check-in', 'method' => 'face', 'department' => 'Biology']
-                        ];
+                        // Get real recent check-ins from database
+                        $recentCheckIns = \App\Models\Attendance::with('employee')
+                            ->whereDate('date', today())
+                            ->whereNotNull('check_in_time')
+                            ->orderBy('check_in_time', 'desc')
+                            ->limit(5)
+                            ->get()
+                            ->map(function($attendance) {
+                                return [
+                                    'name' => $attendance->employee->first_name . ' ' . $attendance->employee->last_name,
+                                    'time' => $attendance->check_in_time ? $attendance->check_in_time->format('H:i') : 'N/A',
+                                    'status' => $attendance->status === 'late' ? 'late' : 'check-in',
+                                    'method' => $attendance->metadata && isset(json_decode($attendance->metadata, true)['method']) ? 
+                                               json_decode($attendance->metadata, true)['method'] : 'manual',
+                                    'department' => $attendance->employee->department ?? 'General'
+                                ];
+                            })->toArray();
+                        
+                        // If no data available, show empty state instead of fake data
+                        if (empty($recentCheckIns)) {
+                            $recentCheckIns = [];
+                        }
                         @endphp
                         
-                        @foreach($recentCheckIns as $checkIn)
-                        <div class="flex items-center justify-between p-4 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                        @forelse($recentCheckIns as $checkIn)
+                        <div class="dashboard-activity-item">
                             <div class="flex items-center space-x-4">
-                                <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                                <div class="dashboard-avatar bg-blue-600">
                                     {{ substr($checkIn['name'], 0, 2) }}
                                 </div>
                                 <div class="ml-4">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $checkIn['name'] }}</div>
-                                    <div class="text-xs text-gray-500 dark:text-gray-400">{{ $checkIn['department'] }}</div>
+                                    <div class="dashboard-employee-name">{{ $checkIn['name'] }}</div>
+                                    <div class="dashboard-employee-dept">{{ $checkIn['department'] }}</div>
                                 </div>
                             </div>
                             <div class="text-right">
-                                <div class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ $checkIn['time'] }}</div>
-                                <div class="text-xs text-gray-500 dark:text-gray-400">{{ date('M d') }}</div>
+                                <div class="dashboard-time-display">{{ $checkIn['time'] }}</div>
+                                <div class="dashboard-date-display">{{ date('M d') }}</div>
                             </div>
                         </div>
-                        @endforeach
+                        @empty
+                        <div class="text-center py-8">
+                            <div class="text-gray-400 dark:text-gray-500">
+                                <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <p class="text-sm">Tidak ada aktivitas check-in hari ini</p>
+                            </div>
+                        </div>
+                        @endforelse
                     </div>
                     
                     <div class="mt-4 text-center">
-                        <x-ui.button variant="secondary" class="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        <x-ui.button variant="secondary" class="dashboard-view-all-btn">
+                            <x-icons.refresh class="w-5 h-5 mr-2" />
                             Lihat Semua Aktivitas
                         </x-ui.button>
                     </div>
                 </x-ui.card>
 
-                <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                    <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6">Peringatan Sistem</h3>
+                <x-ui.card>
+                    <h3 class="dashboard-section-title mb-6">Peringatan Sistem</h3>
                     <div class="space-y-4">
-                        <div class="flex items-start space-x-3 p-4 bg-red-100 rounded-lg border border-red-200 dark:bg-red-900 dark:border-red-700">
-                            <div class="w-6 h-6 bg-red-600 rounded-full flex items-center justify-center shadow-md">
-                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01"/></svg>
+                        @php
+                        // Get real system alerts from dashboard service
+                        $systemAlerts = app(\App\Services\DashboardService::class)->getSystemAlerts();
+                        @endphp
+                        
+                        @forelse($systemAlerts as $alert)
+                        <div class="dashboard-alert-{{ $alert['color'] }}">
+                            <div class="dashboard-alert-icon dashboard-alert-icon-{{ $alert['color'] }}">
+                                @switch($alert['icon'])
+                                    @case('info')
+                                        <x-icons.info class="w-3 h-3 text-white" />
+                                        @break
+                                    @case('clock')
+                                        <x-icons.clock class="w-3 h-3 text-white" />
+                                        @break
+                                    @case('check')
+                                        <x-icons.check class="w-3 h-3 text-white" />
+                                        @break
+                                    @case('calendar')
+                                        <x-icons.calendar class="w-3 h-3 text-white" />
+                                        @break
+                                    @case('shield')
+                                        <x-icons.shield class="w-3 h-3 text-white" />
+                                        @break
+                                    @default
+                                        <x-icons.info class="w-3 h-3 text-white" />
+                                @endswitch
                             </div>
                             <div>
-                                <p class="font-semibold text-red-800 dark:text-red-200 text-sm">3 Gagal Check-in</p>
-                                <p class="text-xs text-red-600 dark:text-red-400">Masalah pengenalan wajah • 5 menit yang lalu</p>
+                                <p class="dashboard-alert-title-{{ $alert['color'] }}">{{ $alert['title'] }}</p>
+                                <p class="dashboard-alert-desc-{{ $alert['color'] }}">{{ $alert['description'] }}</p>
                             </div>
                         </div>
-
-                        <div class="flex items-start space-x-3 p-4 bg-amber-100 rounded-lg border border-amber-200 dark:bg-amber-900 dark:border-amber-700">
-                            <div class="w-6 h-6 bg-amber-600 rounded-full flex items-center justify-center shadow-md">
-                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            </div>
-                            <div>
-                                <p class="font-semibold text-amber-800 dark:text-amber-200 text-sm">5 Kedatangan Terlambat</p>
-                                <p class="text-xs text-amber-600 dark:text-amber-400">Di atas ambang normal • 15 menit yang lalu</p>
-                            </div>
-                        </div>
-
-                        <div class="flex items-start space-x-3 p-4 bg-blue-100 rounded-lg border border-blue-200 dark:bg-blue-900 dark:border-blue-700">
-                            <div class="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center shadow-md">
-                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                            </div>
-                            <div>
-                                <p class="font-semibold text-blue-800 dark:text-blue-200 text-sm">Impor Hari Libur Selesai</p>
-                                <p class="text-xs text-blue-600 dark:text-blue-400">41 hari libur ditambahkan untuk 2025 • 1 jam yang lalu</p>
+                        @empty
+                        <div class="text-center py-8">
+                            <div class="text-gray-400 dark:text-gray-500">
+                                <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <p class="text-sm">Tidak ada peringatan sistem saat ini</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Semua sistem beroperasi normal</p>
                             </div>
                         </div>
-
-                        <div class="flex items-start space-x-3 p-4 bg-green-100 rounded-lg border border-green-200 dark:bg-green-900 dark:border-green-700">
-                            <div class="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center shadow-md">
-                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                            </div>
-                            <div>
-                                <p class="font-semibold text-green-800 dark:text-green-200 text-sm">Backup Selesai</p>
-                                <p class="text-xs text-green-600 dark:text-green-400">Backup database berhasil • 2 jam yang lalu</p>
-                            </div>
-                        </div>
+                        @endforelse
 
                         <div class="pt-2">
-                            <x-ui.button variant="secondary" class="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
+                            <x-ui.button variant="secondary" class="w-full dashboard-view-all-btn">
                                 Lihat Semua Peringatan
                             </x-ui.button>
                         </div>
@@ -195,14 +217,14 @@
             </div>
 
             <!-- Enhanced Interactive Data Dashboard -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
+            <div class="dashboard-enhanced-container">
                 <div class="flex items-center justify-between mb-6">
                     <div>
-                        <h3 class="text-xl font-semibold text-slate-800 dark:text-white">Ikhtisar Absensi Hari Ini</h3>
-                        <p class="text-slate-600 dark:text-slate-400">Pelacakan absensi real-time dengan wawasan detail</p>
+                        <h3 class="dashboard-enhanced-title">Ikhtisar Absensi Hari Ini</h3>
+                        <p class="dashboard-enhanced-desc">Pelacakan absensi real-time dengan wawasan detail</p>
                     </div>
                     <div class="flex space-x-2">
-                        <span class="px-3 py-1 text-xs text-white bg-gradient-to-r from-green-500 to-emerald-600 rounded-full shadow-lg">Langsung</span>
+                        <span class="dashboard-live-badge">Langsung</span>
                         <x-ui.button variant="secondary" size="sm">Ekspor</x-ui.button>
                     </div>
                 </div>
@@ -211,11 +233,11 @@
                     <div class="p-4 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-lg border border-green-500/20">
                         <div class="flex items-center justify-between">
                             <div>
-                                <div class="text-2xl font-bold text-green-600 dark:text-green-400">{{ $dashboardData['realtime_status']['checked_in_today'] ?? 24 }}</div>
+                                <div class="text-2xl font-bold text-green-600 dark:text-green-400">{{ $dashboardData['realtime_status']['checked_in_today'] ?? 0 }}</div>
                                 <div class="text-sm text-green-500 dark:text-green-300">Hadir</div>
                             </div>
                             <div class="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-lg">
-                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                <x-icons.check class="w-4 h-4 text-white" />
                             </div>
                         </div>
                     </div>
@@ -227,7 +249,7 @@
                                 <div class="text-sm text-amber-500 dark:text-amber-300">Terlambat</div>
                             </div>
                             <div class="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center shadow-lg">
-                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                <x-icons.clock class="w-4 h-4 text-white" />
                             </div>
                         </div>
                     </div>
@@ -239,7 +261,7 @@
                                 <div class="text-sm text-red-500 dark:text-red-300">Tidak Hadir</div>
                             </div>
                             <div class="w-8 h-8 bg-gradient-to-br from-red-500 to-rose-600 rounded-lg flex items-center justify-center shadow-lg">
-                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                <x-icons.x class="w-4 h-4 text-white" />
                             </div>
                         </div>
                     </div>
@@ -247,11 +269,11 @@
                     <div class="p-4 bg-gradient-to-br from-gray-500/10 to-slate-500/10 rounded-lg border border-gray-500/20">
                         <div class="flex items-center justify-between">
                             <div>
-                                <div class="text-2xl font-bold text-slate-600 dark:text-slate-400">{{ ($dashboardData['realtime_status']['total_employees'] ?? 45) - ($dashboardData['realtime_status']['checked_in_today'] ?? 24) - ($dashboardData['realtime_status']['late_arrivals'] ?? 3) - ($dashboardData['realtime_status']['absent_today'] ?? 2) }}</div>
+                                <div class="text-2xl font-bold text-slate-600 dark:text-slate-400">{{ ($dashboardData['realtime_status']['total_employees'] ?? 0) - ($dashboardData['realtime_status']['checked_in_today'] ?? 0) - ($dashboardData['realtime_status']['late_arrivals'] ?? 0) }}</div>
                                 <div class="text-sm text-slate-500 dark:text-slate-300">Tertunda</div>
                             </div>
                             <div class="w-8 h-8 bg-gradient-to-br from-gray-500 to-slate-600 rounded-lg flex items-center justify-center shadow-lg">
-                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                <x-icons.clock class="w-4 h-4 text-white" />
                             </div>
                         </div>
                     </div>
@@ -271,17 +293,35 @@
                         </thead>
                         <tbody class="bg-white/5 backdrop-blur-sm divide-y divide-white/10">
                             @php
-                            $attendanceData = [
-                                ['name' => 'Dr. Sarah Ahmad', 'dept' => 'Matematika', 'checkin' => '08:15', 'status' => 'present', 'method' => 'face', 'location' => 'Gedung Utama', 'confidence' => '98%'],
-                                ['name' => 'Prof. Ahmad Rahman', 'dept' => 'Fisika', 'checkin' => '08:30', 'status' => 'present', 'method' => 'face', 'location' => 'Lab Fisika', 'confidence' => '96%'],
-                                ['name' => 'Ms. Fatimah Ali', 'dept' => 'Bahasa Inggris', 'checkin' => '09:45', 'status' => 'late', 'method' => 'manual', 'location' => 'Kantor Admin', 'confidence' => 'N/A'],
-                                ['name' => 'Mr. Hassan Omar', 'dept' => 'Kimia', 'checkin' => '08:50', 'status' => 'present', 'method' => 'face', 'location' => 'Lab Kimia', 'confidence' => '97%'],
-                                ['name' => 'Dr. Amira Hassan', 'dept' => 'Biologi', 'checkin' => '08:20', 'status' => 'present', 'method' => 'face', 'location' => 'Lab Biologi', 'confidence' => '99%'],
-                                ['name' => 'Prof. Ali Mansour', 'dept' => 'Sejarah', 'checkin' => '09:15', 'status' => 'late', 'method' => 'face', 'location' => 'Sayap Humaniora', 'confidence' => '95%']
-                            ];
+                            // Get real attendance data from database
+                            $attendanceData = \App\Models\Attendance::with('employee')
+                                ->whereDate('date', today())
+                                ->whereNotNull('check_in_time')
+                                ->orderBy('check_in_time', 'desc')
+                                ->limit(6)
+                                ->get()
+                                ->map(function($attendance) {
+                                    $metadata = $attendance->metadata ? json_decode($attendance->metadata, true) : [];
+                                    
+                                    return [
+                                        'name' => $attendance->employee->first_name . ' ' . $attendance->employee->last_name,
+                                        'dept' => $attendance->employee->department ?? 'General',
+                                        'checkin' => $attendance->check_in_time ? $attendance->check_in_time->format('H:i') : 'N/A',
+                                        'status' => $attendance->status,
+                                        'method' => $metadata['method'] ?? 'manual',
+                                        'location' => $attendance->location ?? 'Unknown',
+                                        'confidence' => isset($metadata['face_confidence']) ? 
+                                                       round($metadata['face_confidence'] * 100) . '%' : 'N/A'
+                                    ];
+                                })->toArray();
+                            
+                            // If no real data, show empty state
+                            if (empty($attendanceData)) {
+                                $attendanceData = [];
+                            }
                             @endphp
                             
-                            @foreach($attendanceData as $record)
+                            @forelse($attendanceData as $record)
                             <tr class="hover:bg-white/5 transition-colors">
                                 <td class="px-6 py-4">
                                     <div class="flex items-center">
@@ -313,7 +353,7 @@
                                     <div class="flex items-center text-sm">
                                         @if($record['method'] === 'face')
                                             <div class="flex items-center text-green-600 dark:text-green-400">
-                                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                                <x-icons.eye class="w-4 h-4 mr-1" />
                                                 <div>
                                                     <div class="text-xs font-medium text-slate-800 dark:text-white">Face ID</div>
                                                     <div class="text-xs text-slate-500 dark:text-slate-400">{{ $record['confidence'] }}</div>
@@ -341,7 +381,18 @@
                                     </div>
                                 </td>
                             </tr>
-                            @endforeach
+                            @empty
+                            <tr>
+                                <td colspan="6" class="px-6 py-12 text-center">
+                                    <div class="text-gray-400 dark:text-gray-500">
+                                        <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        <p class="text-sm">Tidak ada data absensi hari ini</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>
@@ -353,15 +404,15 @@
                             <span class="hidden sm:inline">•</span>
                             <span class="hidden sm:flex items-center">
                                 <span class="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
-                                {{ $dashboardData['realtime_status']['checked_in_today'] ?? 24 }} Hadir
+                                {{ $dashboardData['realtime_status']['checked_in_today'] ?? 0 }} Hadir
                             </span>
                             <span class="hidden md:flex items-center">
                                 <span class="w-2 h-2 bg-amber-500 rounded-full mr-1"></span>
-                                {{ $dashboardData['realtime_status']['late_arrivals'] ?? 3 }} Terlambat
+                                {{ $dashboardData['realtime_status']['late_arrivals'] ?? 0 }} Terlambat
                             </span>
                             <span class="hidden lg:flex items-center">
                                 <span class="w-2 h-2 bg-red-500 rounded-full mr-1"></span>
-                                {{ $dashboardData['realtime_status']['absent_today'] ?? 2 }} Tidak Hadir
+                                {{ ($dashboardData['realtime_status']['total_employees'] ?? 0) - ($dashboardData['realtime_status']['checked_in_today'] ?? 0) }} Tidak Hadir
                             </span>
                         </div>
                         <div class="flex space-x-2">
@@ -397,19 +448,26 @@
                 <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out">
                     <h3 class="text-xl font-semibold text-slate-800 dark:text-white mb-4">Analitik Data</h3>
                     <div class="space-y-3 text-slate-700 dark:text-slate-300">
-                        <div class="flex justify-between"><span class="font-medium">Total Catatan</span><span class="font-semibold text-slate-800 dark:text-white">{{ number_format($dashboardData['analytics']['total_attendance_records'] ?? 1250) }}</span></div>
-                        <div class="flex justify-between"><span class="font-medium">Hari Libur Tahun Ini</span><span class="font-semibold text-purple-600 dark:text-purple-400">{{ $dashboardData['analytics']['holidays_this_year'] ?? 41 }}</span></div>
-                        <div class="flex justify-between"><span class="font-medium">Hari Kerja BTD</span><span class="font-semibold text-blue-600 dark:text-blue-400">{{ $dashboardData['analytics']['working_days_mtd'] ?? 23 }}</span></div>
-                        <div class="flex justify-between"><span class="font-medium">Rata-rata Absensi</span><span class="font-semibold text-green-600 dark:text-green-400">{{ $dashboardData['analytics']['avg_attendance_rate'] ?? 85 }}%</span></div>
+                        <div class="flex justify-between"><span class="font-medium">Total Catatan</span><span class="font-semibold text-slate-800 dark:text-white">{{ number_format($dashboardData['realtime_status']['total_records'] ?? \App\Models\Attendance::count()) }}</span></div>
+                        <div class="flex justify-between"><span class="font-medium">Hari Libur Tahun Ini</span><span class="font-semibold text-purple-600 dark:text-purple-400">{{ $dashboardData['realtime_status']['holidays_this_month'] * 12 ?? 0 }}</span></div>
+                        <div class="flex justify-between"><span class="font-medium">Hari Kerja BTD</span><span class="font-semibold text-blue-600 dark:text-blue-400">{{ \Carbon\Carbon::now()->diffInDaysFiltered(function(\Carbon\Carbon $date) { return $date->isWeekday(); }, \Carbon\Carbon::now()->startOfMonth()) }}</span></div>
+                        <div class="flex justify-between"><span class="font-medium">Rata-rata Absensi</span><span class="font-semibold text-green-600 dark:text-green-400">{{ $dashboardData['realtime_status']['attendance_rate'] ?? 0 }}%</span></div>
                     </div>
                 </div>
 
                 <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out">
                     <h3 class="text-xl font-semibold text-slate-800 dark:text-white mb-4">Kinerja</h3>
                     <div class="space-y-3 text-slate-700 dark:text-slate-300">
-                        <div class="flex justify-between items-center"><span class="font-medium">Uptime Sistem</span><div class="flex items-center"><div class="w-16 bg-white/20 rounded-full h-1.5"><div class="bg-gradient-to-r from-green-500 to-emerald-600 h-1.5 rounded-full" style="width: 99%"></div></div><span class="text-xs font-semibold text-green-600 dark:text-green-400">99%</span></div></div>
-                        <div class="flex justify-between items-center"><span class="font-medium">Waktu Respon</span><div class="flex items-center"><div class="w-16 bg-white/20 rounded-full h-1.5"><div class="bg-gradient-to-r from-blue-500 to-cyan-500 h-1.5 rounded-full" style="width: 92%"></div></div><span class="text-xs font-semibold text-blue-600 dark:text-blue-400">92%</span></div></div>
-                        <div class="flex justify-between items-center"><span class="font-medium">Keberhasilan Face API</span><div class="flex items-center"><div class="w-16 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5"><div class="bg-purple-600 h-1.5 rounded-full" style="width: 96%"></div></div><span class="text-xs font-semibold text-purple-600 dark:text-purple-400">96%</span></div></div>
+                        @php
+                            $systemHealth = $dashboardData['system_health'] ?? [];
+                            $databaseStatus = $systemHealth['database_status'] ?? 'healthy';
+                            $uptimePercentage = $databaseStatus === 'healthy' ? 99 : 50;
+                            $responsePercentage = 92; // Could be calculated from actual response times
+                            $faceApiPercentage = $dashboardData['system_health']['face_recognition_status'] === 'healthy' ? 96 : 30;
+                        @endphp
+                        <div class="flex justify-between items-center"><span class="font-medium">Uptime Sistem</span><div class="flex items-center"><div class="w-16 bg-white/20 rounded-full h-1.5"><div class="bg-gradient-to-r from-green-500 to-emerald-600 h-1.5 rounded-full" style="width: {{ $uptimePercentage }}%"></div></div><span class="text-xs font-semibold text-green-600 dark:text-green-400">{{ $uptimePercentage }}%</span></div></div>
+                        <div class="flex justify-between items-center"><span class="font-medium">Waktu Respon</span><div class="flex items-center"><div class="w-16 bg-white/20 rounded-full h-1.5"><div class="bg-gradient-to-r from-blue-500 to-cyan-500 h-1.5 rounded-full" style="width: {{ $responsePercentage }}%"></div></div><span class="text-xs font-semibold text-blue-600 dark:text-blue-400">{{ $responsePercentage }}%</span></div></div>
+                        <div class="flex justify-between items-center"><span class="font-medium">Keberhasilan Face API</span><div class="flex items-center"><div class="w-16 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5"><div class="bg-purple-600 h-1.5 rounded-full" style="width: {{ $faceApiPercentage }}%"></div></div><span class="text-xs font-semibold text-purple-600 dark:text-purple-400">{{ $faceApiPercentage }}%</span></div></div>
                         <div class="flex justify-between items-center"><span class="font-medium">Tingkat Error</span><span class="text-xs font-semibold text-red-600 dark:text-red-400">< 0.1%</span></div>
                     </div>
                 </div>

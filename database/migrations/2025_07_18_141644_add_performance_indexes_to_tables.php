@@ -13,10 +13,18 @@ return new class extends Migration
     {
         // Add performance indexes to employees table
         Schema::table('employees', function (Blueprint $table) {
-            $table->index('employee_id', 'idx_employees_employee_id');
-            $table->index('status', 'idx_employees_status');
-            $table->index(['location_id', 'status'], 'idx_employees_location_status');
-            $table->index('user_id', 'idx_employees_user_id');
+            // Note: employee_id column already has unique index, skip
+            
+            // Use is_active instead of status (which doesn't exist)
+            if (Schema::hasColumn('employees', 'is_active')) {
+                $table->index('is_active', 'idx_employees_is_active');
+            }
+            if (Schema::hasColumn('employees', 'location_id') && Schema::hasColumn('employees', 'is_active')) {
+                $table->index(['location_id', 'is_active'], 'idx_employees_location_active');
+            }
+            if (Schema::hasColumn('employees', 'user_id')) {
+                $table->index('user_id', 'idx_employees_user_id');
+            }
         });
 
         // Add performance indexes to attendances table
@@ -66,12 +74,15 @@ return new class extends Migration
     public function down(): void
     {
         // Remove indexes from employees table
-        Schema::table('employees', function (Blueprint $table) {
-            $table->dropIndex('idx_employees_employee_id');
-            $table->dropIndex('idx_employees_status');
-            $table->dropIndex('idx_employees_location_status');
-            $table->dropIndex('idx_employees_user_id');
-        });
+        try {
+            Schema::table('employees', function (Blueprint $table) {
+                $table->dropIndex('idx_employees_is_active');
+                $table->dropIndex('idx_employees_location_active');
+                $table->dropIndex('idx_employees_user_id');
+            });
+        } catch (\Exception $e) {
+            // Indexes might not exist, continue
+        }
 
         // Remove indexes from attendances table
         Schema::table('attendances', function (Blueprint $table) {

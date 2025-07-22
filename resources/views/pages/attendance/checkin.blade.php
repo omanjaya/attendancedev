@@ -2,8 +2,85 @@
 
 @section('title', 'Check-in')
 
+@push('styles')
+<style>
+/* Mobile redirect styles */
+@media (max-width: 768px) {
+    .desktop-attendance {
+        display: none !important;
+    }
+}
+
+.mobile-redirect {
+    display: none;
+    background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+    min-height: 100vh;
+    padding: 2rem 1rem;
+    color: white;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .mobile-redirect {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+}
+
+.mobile-redirect-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 1.5rem;
+    padding: 2rem;
+    max-width: 400px;
+    width: 100%;
+}
+
+.mobile-redirect-button {
+    background: #22c55e;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 1rem;
+    text-decoration: none;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    transition: all 0.3s ease;
+}
+
+.mobile-redirect-button:hover {
+    background: #16a34a;
+    transform: translateY(-2px);
+}
+</style>
+@endpush
+
 @section('page-content')
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" x-data="enhancedAttendanceSystem()" x-init="initializeSystem()">
+<!-- Mobile Redirect Section -->
+<div class="mobile-redirect">
+    <div class="mobile-redirect-card">
+        <div class="mb-4">
+            <svg class="w-16 h-16 mx-auto text-green-400" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+        </div>
+        <h2 class="text-2xl font-bold mb-2">Absensi Mobile</h2>
+        <p class="text-gray-300 mb-6">Untuk pengalaman terbaik di perangkat mobile, silakan gunakan halaman absensi yang telah dioptimalkan khusus untuk mobile.</p>
+        <a href="{{ route('attendance.mobile-checkin') }}" class="mobile-redirect-button">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+            Buka Halaman Mobile
+        </a>
+    </div>
+</div>
+
+<!-- Desktop Version -->
+<div class="page-container desktop-attendance" x-data="enhancedAttendanceSystem()" x-init="initializeSystem()">
     
     <!-- Today's Schedule and Status Card -->
     <div class="mb-6">
@@ -19,49 +96,45 @@
                     <!-- Work Schedule -->
                     <div class="space-y-3">
                         <h3 class="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center">
-                            <svg class="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
+                            <x-icons.clock class="w-4 h-4 mr-2 text-blue-500" />
                             Jadwal Kerja
                         </h3>
                         <div x-show="schedule" class="space-y-2">
-                            <div class="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                            <div class="status-info-card status-info-blue">
                                 <span class="text-sm text-slate-600 dark:text-slate-400">Jam Masuk:</span>
-                                <span class="text-sm font-medium text-blue-600 dark:text-blue-400" x-text="schedule?.start_time_formatted || '-'"></span>
+                                <span class="text-blue-status" x-text="schedule?.start_time_formatted || '-'"></span>
                             </div>
-                            <div class="flex justify-between items-center p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                            <div class="status-info-card status-info-orange">
                                 <span class="text-sm text-slate-600 dark:text-slate-400">Jam Keluar:</span>
-                                <span class="text-sm font-medium text-orange-600 dark:text-orange-400" x-text="schedule?.end_time_formatted || '-'"></span>
+                                <span class="text-orange-status" x-text="schedule?.end_time_formatted || '-'"></span>
                             </div>
-                            <div class="flex justify-between items-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                            <div class="status-info-card status-info-purple">
                                 <span class="text-sm text-slate-600 dark:text-slate-400">Total Periode:</span>
-                                <span class="text-sm font-medium text-purple-600 dark:text-purple-400" x-text="schedule?.periods_count ? schedule.periods_count + ' periode' : '0 periode'"></span>
+                                <span class="text-purple-status" x-text="schedule?.periods_count ? schedule.periods_count + ' periode' : '0 periode'"></span>
                             </div>
                         </div>
                         <div x-show="!schedule" class="p-3 bg-slate-100 dark:bg-slate-700 rounded-lg text-center">
-                            <span class="text-sm text-slate-500 dark:text-slate-400">Tidak ada jadwal untuk hari ini</span>
+                            <span class="text-muted">Tidak ada jadwal untuk hari ini</span>
                         </div>
                     </div>
                     
                     <!-- Attendance Status -->
                     <div class="space-y-3">
                         <h3 class="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center">
-                            <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
+                            <x-icons.check-circle class="w-4 h-4 mr-2 text-green-500" />
                             Status Kehadiran
                         </h3>
                         <div class="space-y-2">
-                            <div class="flex justify-between items-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                            <div class="status-info-card status-info-green">
                                 <span class="text-sm text-slate-600 dark:text-slate-400">Check-in:</span>
                                 <span class="text-sm font-medium" 
-                                      :class="attendance?.check_in_time ? 'text-green-600 dark:text-green-400' : 'text-slate-400'"
+                                      :class="attendance?.check_in_time ? 'checkin-success' : 'checkin-pending'"
                                       x-text="attendance?.check_in_time || 'Belum check-in'"></span>
                             </div>
-                            <div class="flex justify-between items-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                            <div class="status-info-card status-info-red">
                                 <span class="text-sm text-slate-600 dark:text-slate-400">Check-out:</span>
                                 <span class="text-sm font-medium" 
-                                      :class="attendance?.check_out_time ? 'text-red-600 dark:text-red-400' : 'text-slate-400'"
+                                      :class="attendance?.check_out_time ? 'checkout-success' : 'checkin-pending'"
                                       x-text="attendance?.check_out_time || 'Belum check-out'"></span>
                             </div>
                         </div>
@@ -71,18 +144,14 @@
                 <!-- Quick Action Buttons -->
                 <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-600 flex space-x-3">
                     <button @click="refreshScheduleStatus()" 
-                            class="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
-                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                        </svg>
+                            class="link-action">
+                        <x-icons.refresh class="w-4 h-4 mr-1" />
                         Refresh Status
                     </button>
                     <button x-show="schedule && schedule.periods_count > 0" 
                             @click="showScheduleDetailModal = true"
-                            class="inline-flex items-center px-3 py-2 text-sm font-medium text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors">
-                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                        </svg>
+                            class="link-action-green">
+                        <x-icons.clipboard class="w-4 h-4 mr-1" />
                         Lihat Detail Jadwal
                     </button>
                 </div>
@@ -94,20 +163,20 @@
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
             <x-ui.card variant="metric" 
                        title="Status Absensi"
-                       class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                       class="feature-card">
                 <div class="flex items-center justify-between mb-4">
-                    <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-sm">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <div class="status-icon-container">
+                        <x-icons.check-circle class="w-6 h-6 text-white" />
                     </div>
                     <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium" 
-                          x-bind:class="status.badge === 'Working' ? 'bg-success/10 text-success' : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'" 
+                          x-bind:class="status.badge === 'Working' ? 'status-working' : 'status-default'" 
                           x-text="status.badge"></span>
                 </div>
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1" x-text="status.title"></h3>
                 <p class="text-sm text-muted-foreground" x-text="status.subtitle"></p>
                 <div class="mt-4">
                     <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                        <div class="h-2 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full transition-all duration-500"
+                        <div class="progress-bar-emerald"
                              x-bind:style="`width: ${status.progress}%`"></div>
                     </div>
                 </div>
@@ -115,31 +184,31 @@
 
             <x-ui.card variant="metric" 
                        title="Lokasi GPS"
-                       class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                       class="feature-card">
                 <div class="flex items-center justify-between mb-4">
-                    <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <div class="feature-icon-container feature-icon-blue">
+                        <x-icons.location-pin class="w-6 h-6 text-white" />
                     </div>
                     <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium" 
-                          x-bind:class="location.valid ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'" 
+                          x-bind:class="location.valid ? 'status-success' : 'status-destructive'" 
                           x-text="location.status"></span>
                 </div>
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Lokasi GPS</h3>
                 <p class="text-sm text-muted-foreground" x-text="location.address"></p>
                 <div class="mt-2 flex items-center space-x-2">
-                    <span class="text-xs text-muted-foreground">Akurasi: <span x-text="location.accuracy"></span>m</span>
+                    <span class="location-accuracy">Akurasi: <span x-text="location.accuracy"></span>m</span>
                 </div>
             </x-ui.card>
 
             <x-ui.card variant="metric" 
                        title="Pengenalan Wajah"
-                       class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                       class="feature-card">
                 <div class="flex items-center justify-between mb-4">
-                    <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-sm">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                    <div class="feature-icon-container feature-icon-purple">
+                        <x-icons.eye class="w-6 h-6 text-white" />
                     </div>
                     <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium" 
-                          x-bind:class="faceRecognition.enrolled ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'" 
+                          x-bind:class="faceRecognition.enrolled ? 'status-success' : 'status-warning'" 
                           x-text="faceRecognition.status"></span>
                 </div>
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Pengenalan Wajah</h3>
@@ -155,7 +224,7 @@
 
             <x-ui.card variant="metric" 
                        title="Kinerja Sistem"
-                       class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                       class="feature-card">
                 <div class="flex items-center justify-between mb-4">
                     <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-sm">
                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
@@ -205,13 +274,13 @@
                          x-transition:leave="transition ease-in duration-150"
                          x-transition:leave-start="opacity-100 scale-100"
                          x-transition:leave-end="opacity-0 scale-95"
-                         class="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+                         class="detection-dropdown">
                         <div class="py-1">
-                            <button @click="switchDetectionMethod('face-api'); open = false" class="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <button @click="switchDetectionMethod('face-api'); open = false" class="detection-method-btn">
                                 <svg class="w-4 h-4 mr-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 Face-API.js
                             </button>
-                            <button @click="switchDetectionMethod('mediapipe'); open = false" class="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <button @click="switchDetectionMethod('mediapipe'); open = false" class="detection-method-btn">
                                 <svg class="w-4 h-4 mr-3 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                                 MediaPipe
                             </button>
@@ -222,11 +291,11 @@
 
             <!-- Camera Container -->
             <div class="relative">
-                <div class="relative h-80 bg-gray-900 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
-                    <video id="video-stream" class="w-full h-full object-cover" x-show="camera.active" autoplay muted playsinline></video>
+                <div class="camera-container">
+                    <video id="video-stream" class="camera-video-stream" x-show="camera.active" autoplay muted playsinline></video>
                     
                     <!-- Camera placeholder when inactive -->
-                    <div x-show="!camera.active" class="absolute inset-0 flex items-center justify-center camera-placeholder">
+                    <div x-show="!camera.active" class="camera-placeholder">
                         <div class="text-center">
                             <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
@@ -237,20 +306,20 @@
                     
                     <!-- Camera overlay -->
                     <div class="absolute top-0 left-0 right-0 bottom-0 pointer-events-none" x-show="camera.active">
-                        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-emerald-500 rounded-full opacity-80 pulse-border"></div>
+                        <div class="camera-overlay-ring"></div>
                     </div>
-                    <canvas id="face-overlay" class="absolute top-0 left-0 w-full h-full pointer-events-none" x-show="camera.active"></canvas>
+                    <canvas id="face-overlay" class="face-overlay-canvas" x-show="camera.active"></canvas>
                     <div x-show="camera.active" class="absolute top-4 left-4 right-4">
-                        <x-ui.card class="bg-white/95 backdrop-blur-sm border-white/20">
+                        <x-ui.card class="camera-status-card">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center space-x-3">
-                                    <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium" 
-                                          x-bind:class="detection.status === 'detected' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'">
+                                    <span class="detection-status-badge" 
+                                          x-bind:class="detection.status === 'detected' ? 'status-success' : 'status-warning'">
                                         <span x-text="detection.status === 'detected' ? 'Terdeteksi' : 'Mendeteksi'"></span>
                                     </span>
                                     <span class="font-medium text-gray-900" x-text="detection.message"></span>
                                 </div>
-                                <div class="flex items-center space-x-4 text-sm">
+                                <div class="camera-info-grid">
                                     <div>
                                         <span class="text-muted-foreground">Kepercayaan:</span>
                                         <span class="font-semibold text-gray-900" x-text="detection.confidence"></span>
@@ -262,8 +331,8 @@
                                 </div>
                             </div>
                             <div class="mt-3">
-                                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                    <div class="h-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full transition-all duration-300"
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill"
                                          x-bind:style="`width: ${detection.progress}%`"></div>
                                 </div>
                             </div>
@@ -272,7 +341,7 @@
                 </div>
 
                 <!-- Action Buttons -->
-                <div class="mt-6 flex flex-wrap gap-3 justify-center">
+                <div class="action-button-group">
                     <x-ui.button 
                         @click="startCheckInWorkflow()" 
                         x-bind:disabled="workflow.currentStep > 1"
@@ -285,7 +354,7 @@
                     
                     <button 
                         @click="toggleCamera()" 
-                        class="inline-flex items-center justify-center px-6 py-3 text-sm font-medium rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none"
+                        class="camera-control-btn"
                         x-bind:class="camera.active ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : 'bg-primary text-primary-foreground hover:bg-primary/90'">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
@@ -318,29 +387,29 @@
         <x-ui.card x-show="workflow.currentStep > 1" class="mb-6">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Progres Absensi</h3>
-                <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">
+                <span class="workflow-progress-badge">
                     Langkah <span x-text="workflow.currentStep"></span> dari <span x-text="workflow.steps.length"></span>
                 </span>
             </div>
             
-            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-6">
-                <div class="h-3 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full transition-all duration-500"
+            <div class="workflow-progress-bar">
+                <div class="workflow-progress-fill"
                      x-bind:style="`width: ${(workflow.currentStep - 1) / workflow.steps.length * 100}%`"></div>
             </div>
             
             <div class="flex justify-between items-center">
                 <template x-for="step in workflow.steps" :key="step.id">
-                    <div class="flex flex-col items-center">
-                        <div class="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-all"
-                             x-bind:class="step.completed ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-sm' : 
-                                    step.id === workflow.currentStep ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-sm' : 
-                                    'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'">
+                    <div class="workflow-step-container">
+                        <div class="workflow-step-number"
+                             x-bind:class="step.completed ? 'workflow-step-completed' : 
+                                    step.id === workflow.currentStep ? 'workflow-step-current' : 
+                                    'workflow-step-inactive'">
                             <span x-show="step.completed">✓</span>
                             <span x-show="!step.completed" x-text="step.id"></span>
                         </div>
                         <div class="mt-3 text-center max-w-20">
-                            <div class="text-sm font-medium text-gray-900 dark:text-white" x-text="step.title"></div>
-                            <div class="text-xs text-muted-foreground" x-text="step.description"></div>
+                            <div class="workflow-step-title" x-text="step.title"></div>
+                            <div class="workflow-step-desc" x-text="step.description"></div>
                         </div>
                     </div>
                 </template>
@@ -348,43 +417,43 @@
         </x-ui.card>
 
         <!-- Enhanced Statistics Dashboard -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out hover:bg-white/30 hover:scale-105 text-center">
-                <div class="text-3xl font-bold text-emerald-600" x-text="stats.facesDetected"></div>
-                <div class="text-sm text-slate-600 dark:text-slate-400">Wajah Terdeteksi</div>
-                <div class="mt-2 w-full bg-white/20 rounded-full h-1">
-                    <div class="bg-gradient-to-r from-emerald-500 to-green-500 h-1 rounded-full" style="width: 75%"></div>
+        <div class="stats-grid">
+            <div class="stats-glassmorph-card">
+                <div class="stats-metric-value text-emerald-600" x-text="stats.facesDetected"></div>
+                <div class="stats-metric-label">Wajah Terdeteksi</div>
+                <div class="stats-progress-bar">
+                    <div class="stats-progress-emerald" style="width: 75%"></div>
                 </div>
             </div>
             
-            <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out hover:bg-white/30 hover:scale-105 text-center">
-                <div class="text-3xl font-bold text-blue-600" x-text="stats.averageConfidence"></div>
-                <div class="text-sm text-slate-600 dark:text-slate-400">Kepercayaan Rata-rata</div>
-                <div class="mt-2 w-full bg-white/20 rounded-full h-1">
-                    <div class="bg-gradient-to-r from-blue-500 to-cyan-500 h-1 rounded-full" :style="`width: ${stats.averageConfidence}%`"></div>
+            <div class="stats-glassmorph-card">
+                <div class="stats-metric-value text-blue-600" x-text="stats.averageConfidence"></div>
+                <div class="stats-metric-label">Kepercayaan Rata-rata</div>
+                <div class="stats-progress-bar">
+                    <div class="stats-progress-blue" :style="`width: ${stats.averageConfidence}%`"></div>
                 </div>
             </div>
             
-            <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out hover:bg-white/30 hover:scale-105 text-center">
-                <div class="text-3xl font-bold text-purple-600" x-text="stats.processingTime"></div>
-                <div class="text-sm text-slate-600 dark:text-slate-400">Waktu Pemrosesan (ms)</div>
-                <div class="mt-2 w-full bg-white/20 rounded-full h-1">
-                    <div class="bg-gradient-to-r from-purple-500 to-pink-500 h-1 rounded-full" style="width: 90%"></div>
+            <div class="stats-glassmorph-card">
+                <div class="stats-metric-value text-purple-600" x-text="stats.processingTime"></div>
+                <div class="stats-metric-label">Waktu Pemrosesan (ms)</div>
+                <div class="stats-progress-bar">
+                    <div class="stats-progress-purple" style="width: 90%"></div>
                 </div>
             </div>
             
-            <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out hover:bg-white/30 hover:scale-105 text-center">
-                <div class="text-3xl font-bold text-amber-600" x-text="stats.successRate"></div>
-                <div class="text-sm text-slate-600 dark:text-slate-400">Tingkat Keberhasilan</div>
-                <div class="mt-2 w-full bg-white/20 rounded-full h-1">
-                    <div class="bg-gradient-to-r from-amber-500 to-orange-600 h-1 rounded-full" :style="`width: ${stats.successRate}%`"></div>
+            <div class="stats-glassmorph-card">
+                <div class="stats-metric-value text-amber-600" x-text="stats.successRate"></div>
+                <div class="stats-metric-label">Tingkat Keberhasilan</div>
+                <div class="stats-progress-bar">
+                    <div class="stats-progress-amber" :style="`width: ${stats.successRate}%`"></div>
                 </div>
             </div>
         </div>
 
         <!-- Admin Override Section -->
         @can('manage_attendance_all')
-        <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <x-ui.card class="feature-card">
             <h2 class="text-2xl font-bold text-slate-800 dark:text-white flex items-center mb-6">
                 <svg class="w-8 h-8 mr-3 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
                 Admin Override
@@ -410,13 +479,13 @@
                 <div class="md:col-span-2">
                     <x-ui.label for="manualNotes">Catatan</x-ui.label>
                     <textarea id="manualNotes" x-model="manualEntry.notes" rows="3" 
-                             class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm" 
+                             class="admin-form-textarea" 
                              placeholder="Catatan opsional untuk entri manual"></textarea>
                 </div>
                 
                 <div class="md:col-span-2">
                     <x-ui.button type="submit" variant="warning" class="w-full">
-                        <svg class="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        <svg class="admin-submit-btn" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                         <span>Kirim Entri Manual</span>
                     </x-ui.button>
                 </div>
@@ -427,30 +496,30 @@
         <!-- Enhanced Success Modal -->
 <x-ui.modal id="successModal" title="Berhasil!" size="md">
     <div class="text-center">
-        <div class="mx-auto w-20 h-20 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 flex items-center justify-center mb-6 glow-success">
+        <div class="success-modal-icon">
             <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         </div>
         
         <p class="text-slate-600 dark:text-slate-400 mb-6" x-text="successMessage"></p>
         
         <div class="mb-6">
-            <div class="w-full bg-white/20 rounded-full h-3">
-                <div class="progress-enhanced bg-gradient-to-r from-emerald-500 to-green-500 h-3 rounded-full" style="width: 100%"></div>
+            <div class="success-modal-progress">
+                <div class="success-modal-progress-fill" style="width: 100%"></div>
             </div>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Menutup otomatis dalam <span x-text="autoCloseTimer"></span> detik...</p>
+            <p class="success-modal-timer">Menutup otomatis dalam <span x-text="autoCloseTimer"></span> detik...</p>
         </div>
         
-        <div class="flex items-center justify-center space-x-4 text-sm text-slate-600 dark:text-slate-400">
-            <div class="flex items-center space-x-2">
-                <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+        <div class="success-modal-status-grid">
+            <div class="success-modal-status-item">
+                <div class="success-modal-indicator success-modal-indicator-green"></div>
                 <span>Terverifikasi</span>
             </div>
-            <div class="flex items-center space-x-2">
-                <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+            <div class="success-modal-status-item">
+                <div class="success-modal-indicator success-modal-indicator-blue"></div>
                 <span>Tercatat</span>
             </div>
-            <div class="flex items-center space-x-2">
-                <div class="w-3 h-3 bg-purple-500 rounded-full"></div>
+            <div class="success-modal-status-item">
+                <div class="success-modal-indicator success-modal-indicator-purple"></div>
                 <span>Diberitahukan</span>
             </div>
         </div>
@@ -460,7 +529,7 @@
 <!-- Location Validation Modal -->
 <x-ui.modal id="locationValidationModal" title="Validasi Lokasi">
     <div class="text-center">
-        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+        <div class="location-icon-container">
             <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -469,7 +538,7 @@
         <h3 class="text-lg leading-6 font-medium text-slate-800 dark:text-white mt-3">Validasi Lokasi</h3>
         <p class="text-sm text-slate-600 dark:text-slate-400 mt-2">Kami sedang memeriksa lokasi Anda untuk memastikan Anda berada di dalam area sekolah.</p>
         
-        <div class="mt-4 p-4 bg-white/10 rounded-lg">
+        <div class="location-info-card">
             <div class="flex items-center space-x-3">
                 <div class="flex-shrink-0">
                     <div class="w-3 h-3 rounded-full" x-bind:class="location.valid ? 'bg-green-500' : 'bg-red-500'"></div>
@@ -500,10 +569,10 @@
         <h3 class="text-lg leading-6 font-medium text-slate-800 dark:text-white mb-4">Verifikasi Pengenalan Wajah</h3>
         
         <div class="relative mx-auto w-full max-w-md">
-            <video id="video-stream" class="w-full h-auto rounded-lg shadow-lg" autoplay muted playsinline></video>
-            <canvas id="face-overlay" class="absolute inset-0 w-full h-full"></canvas>
+            <video id="video-stream" class="face-modal-video" autoplay muted playsinline></video>
+            <canvas id="face-overlay" class="face-modal-overlay"></canvas>
             
-            <div class="mt-4 p-3 bg-white/10 rounded-lg">
+            <div class="face-modal-info">
                 <p class="text-sm font-medium text-slate-800 dark:text-white" x-text="detection.message"></p>
                 <div class="mt-2 flex items-center space-x-4 text-xs text-slate-600 dark:text-slate-400">
                     <span>Kepercayaan: <span x-text="detection.confidence"></span>%</span>
@@ -511,12 +580,12 @@
                 </div>
             </div>
             
-            <div x-show="livenessCheck.required" class="mt-4 p-3 bg-blue-500/20 rounded-lg">
+            <div x-show="livenessCheck.required" class="liveness-check-card">
                 <p class="text-sm font-medium text-blue-800 dark:text-blue-200">
                     Mohon <span x-text="livenessCheck.requestedGesture"></span> untuk memverifikasi Anda adalah orang sungguhan
                 </p>
-                <div class="mt-2 w-full bg-blue-200 rounded-full h-2">
-                    <div class="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full transition-all duration-300" 
+                <div class="liveness-check-progress">
+                    <div class="liveness-check-progress-fill" 
                          :style="'width: ' + livenessCheck.progress + '%'"></div>
                 </div>
             </div>
@@ -525,7 +594,7 @@
     <x-slot name="footer">
         <x-ui.button @click="nextStep()" 
                      x-bind:disabled="!livenessCheck.completed"
-                     x-bind:class="livenessCheck.completed ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white' : 'bg-slate-300 cursor-not-allowed text-slate-500'">
+                     x-bind:class="livenessCheck.completed ? 'liveness-continue-btn' : 'liveness-disabled-btn'">
             Verifikasi Identitas
         </x-ui.button>
         <x-ui.button variant="secondary" @click="stopCamera(); closeModal('faceRecognitionModal')">Batal</x-ui.button>
@@ -533,7 +602,7 @@
 </x-ui.modal>
 
 <!-- Attendance Confirmation Modal -->
-<div x-show="showConfirmationModal" x-transition class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+<div x-show="showConfirmationModal" x-transition class="confirmation-modal-overlay" style="display: none;">
     <div class="flex items-center justify-center min-h-screen p-4">
         <div class="fixed inset-0 bg-slate-500 bg-opacity-75 transition-opacity"></div>
         <div class="relative bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-md w-full">
@@ -547,22 +616,26 @@
                     <h3 class="text-lg leading-6 font-medium text-slate-800 dark:text-white mt-3">Konfirmasi Absensi</h3>
                     <p class="text-sm text-slate-600 dark:text-slate-400 mt-2">Mohon konfirmasi detail absensi Anda sebelum mengirimkan.</p>
                     
-                    <div class="mt-4 p-4 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                    <div class="confirmation-details-card">
                         <div class="space-y-3 text-slate-800 dark:text-white">
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Waktu:</span>
+                            <div class="confirmation-detail-item">
+                                <span class="confirmation-detail-label">Tanggal:</span>
+                                <span class="text-sm text-blue-600 font-semibold" x-text="currentDate"></span>
+                            </div>
+                            <div class="confirmation-detail-item">
+                                <span class="confirmation-detail-label">Waktu:</span>
                                 <span class="text-sm" x-text="currentTime"></span>
                             </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Lokasi:</span>
+                            <div class="confirmation-detail-item">
+                                <span class="confirmation-detail-label">Lokasi:</span>
                                 <span class="text-sm" x-text="location.status"></span>
                             </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Wajah Terverifikasi:</span>
+                            <div class="confirmation-detail-item">
+                                <span class="confirmation-detail-label">Wajah Terverifikasi:</span>
                                 <span class="text-sm text-green-600">✓ Terverifikasi</span>
                             </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Kehidupan:</span>
+                            <div class="confirmation-detail-item">
+                                <span class="confirmation-detail-label">Kehidupan:</span>
                                 <span class="text-sm text-green-600">✓ Terkonfirmasi</span>
                             </div>
                         </div>
@@ -571,11 +644,11 @@
                 
                 <div class="mt-6 flex space-x-3">
                     <button @click="submitAttendance()" 
-                           class="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-3 px-4 rounded-lg font-medium transition-all duration-200">
+                           class="confirmation-submit-btn">
                         Kirim Absensi
                     </button>
                     <button @click="showConfirmationModal = false" 
-                           class="flex-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 text-slate-800 dark:text-white py-3 px-4 rounded-lg font-medium transition-all duration-200">
+                           class="confirmation-cancel-btn">
                         Batal
                     </button>
                 </div>
@@ -585,10 +658,10 @@
 </div>
 
 <!-- Schedule Detail Modal -->
-<div x-show="showScheduleDetailModal" x-transition class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+<div x-show="showScheduleDetailModal" x-transition class="schedule-modal-overlay" style="display: none;">
     <div class="flex items-center justify-center min-h-screen p-4">
         <div class="fixed inset-0 bg-slate-500 bg-opacity-75 transition-opacity"></div>
-        <div class="relative bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-lg w-full">
+        <div class="schedule-modal-container">
             <div class="p-6">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Detail Jadwal Hari Ini</h3>
@@ -607,21 +680,21 @@
                     
                     <div class="space-y-3 max-h-80 overflow-y-auto">
                         <template x-for="(period, index) in schedule?.periods || []" :key="index">
-                            <div class="border border-slate-200 dark:border-slate-600 rounded-lg p-4">
-                                <div class="flex items-center justify-between mb-2">
+                            <div class="schedule-period-card">
+                                <div class="schedule-period-header">
                                     <h4 class="font-medium text-slate-900 dark:text-white" x-text="period.name"></h4>
-                                    <span class="text-sm text-slate-500 dark:text-slate-400" 
+                                    <span class="schedule-period-time" 
                                           x-text="period.start_time + ' - ' + period.end_time"></span>
                                 </div>
                                 <div class="text-sm text-slate-600 dark:text-slate-400">
                                     <div class="flex items-center mb-1">
-                                        <svg class="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg class="schedule-subject-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                                         </svg>
                                         <span x-text="period.subject"></span>
                                     </div>
                                     <div class="flex items-center">
-                                        <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg class="schedule-room-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                         </svg>
@@ -640,7 +713,7 @@
                 
                 <div class="mt-6 flex justify-end">
                     <button @click="showScheduleDetailModal = false" 
-                           class="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 text-slate-800 dark:text-white rounded-lg font-medium transition-all duration-200">
+                           class="schedule-close-btn">
                         Tutup
                     </button>
                 </div>
@@ -756,8 +829,21 @@
 
 function enhancedAttendanceSystem() {
     return {
-        // Core State
-        currentTime: new Date().toLocaleTimeString(),
+        // Core State - WITA Time Display
+        currentTime: new Date().toLocaleTimeString('id-ID', { 
+            timeZone: 'Asia/Makassar',
+            hour12: false,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        }),
+        currentDate: new Date().toLocaleDateString('id-ID', { 
+            timeZone: 'Asia/Makassar',
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        }),
         showSuccessModal: false,
         showConfirmationModal: false,
         showScheduleDetailModal: false,
@@ -1034,11 +1120,36 @@ function enhancedAttendanceSystem() {
             }
         },
         
-        // Clock Updates
+        // Clock Updates - Simple WITA time display
         startClock() {
+            // Initialize immediately
+            this.updateTime();
+            
+            // Update every second
             setInterval(() => {
-                this.currentTime = new Date().toLocaleTimeString();
+                this.updateTime();
             }, 1000);
+        },
+        
+        updateTime() {
+            const now = new Date();
+            
+            // Use Indonesian locale with WITA timezone
+            this.currentTime = now.toLocaleTimeString('id-ID', { 
+                timeZone: 'Asia/Makassar',
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            
+            this.currentDate = now.toLocaleDateString('id-ID', { 
+                timeZone: 'Asia/Makassar',
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
         },
         
         // Initialize Particle Background

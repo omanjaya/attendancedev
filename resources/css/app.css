@@ -299,6 +299,1253 @@
            transition-colors cursor-pointer;
   }
   
+  .btn-save-gradient {
+    @apply bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 
+           text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 
+           transform hover:scale-105 shadow-md;
+  }
+  
+  .form-control {
+    @apply w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 
+           rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 
+           focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200;
+  }
+  
+  .btn-test {
+    @apply bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg 
+           font-medium transition-all duration-200 transform hover:scale-105 shadow-md;
+  }
+  
+  .btn-reset {
+    @apply bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 
+           text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg font-medium 
+           transition-colors duration-200;
+  }
+  
+  .btn-cancel {
+    @apply px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 
+           text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 
+           rounded-lg font-medium transition-colors duration-200;
+  }
+  
+  /* Status Badge Components */
+  .badge-online {
+    @apply text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 
+           px-2 py-1 rounded-full;
+  }
+  
+  .badge-offline {
+    @apply text-xs bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 
+           px-2 py-1 rounded-full;
+  }
+  
+  .badge-warning {
+    @apply text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 
+           px-2 py-1 rounded-full;
+  }
+  
+  .badge-purple {
+    @apply text-xs bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 
+           px-2 py-1 rounded-full;
+  }
+  
+  /* Status Badge Colors */
+  .badge-blue {
+    @apply text-sm text-blue-600 font-medium px-3 py-1 bg-blue-100 dark:bg-blue-900 rounded-full;
+  }
+  
+  .badge-green {
+    @apply text-sm text-green-600 font-medium px-3 py-1 bg-green-100 dark:bg-green-900 rounded-full;
+  }
+  
+  .badge-purple-lg {
+    @apply text-sm text-purple-600 font-medium px-3 py-1 bg-purple-100 dark:bg-purple-900 rounded-full;
+  }
+  
+  /* Attendance Status Info Cards */
+  .status-info-card {
+    @apply flex justify-between items-center p-3 rounded-lg;
+  }
+  
+  .status-info-blue {
+    @apply bg-blue-50 dark:bg-blue-900/20;
+  }
+  
+  .status-info-orange {
+    @apply bg-orange-50 dark:bg-orange-900/20;
+  }
+  
+  .status-info-purple {
+    @apply bg-purple-50 dark:bg-purple-900/20;
+  }
+  
+  .status-info-green {
+    @apply bg-green-50 dark:bg-green-900/20;
+  }
+  
+  .status-info-red {
+    @apply bg-red-50 dark:bg-red-900/20;
+  }
+  
+  /* Text Color Utilities */
+  .text-blue-status {
+    @apply text-sm font-medium text-blue-600 dark:text-blue-400;
+  }
+  
+  .text-orange-status {
+    @apply text-sm font-medium text-orange-600 dark:text-orange-400;
+  }
+  
+  .text-purple-status {
+    @apply text-sm font-medium text-purple-600 dark:text-purple-400;
+  }
+  
+  .text-muted {
+    @apply text-sm text-slate-500 dark:text-slate-400;
+  }
+  
+  /* Action Link */
+  .link-action {
+    @apply inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 
+           hover:text-blue-700 dark:hover:text-blue-300 transition-colors;
+  }
+  
+  .link-action-green {
+    @apply inline-flex items-center px-3 py-2 text-sm font-medium text-green-600 dark:text-green-400 
+           hover:text-green-700 dark:hover:text-green-300 transition-colors;
+  }
+  
+  /* Card for attendance widgets */
+  .card-widget {
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700;
+  }
+  
+  /* Status icon container */
+  .status-icon-container {
+    @apply w-12 h-12 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 
+           flex items-center justify-center shadow-sm;
+  }
+  
+  /* Calendar Navigation Buttons */
+  .btn-nav {
+    @apply flex items-center justify-center w-10 h-10 bg-gray-100 dark:bg-gray-700 
+           text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 
+           rounded-lg transition-all duration-200 transform hover:scale-110;
+  }
+  
+  .btn-today {
+    @apply px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 
+           text-white rounded-lg font-medium transition-all duration-200 transform hover:scale-105 shadow-md;
+  }
+  
+  .btn-view-mode {
+    @apply px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200;
+  }
+  
+  .btn-filter {
+    @apply flex items-center px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 
+           dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 
+           transition-colors duration-200;
+  }
+  
+  .filter-dropdown {
+    @apply absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg 
+           border border-gray-200 dark:border-gray-700 z-50;
+  }
+  
+  .btn-export {
+    @apply bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 
+           hover:to-emerald-700 text-white px-4 py-2 rounded-lg font-medium 
+           transition-all duration-200 transform hover:scale-105 shadow-md;
+  }
+  
+  /* Legend color indicators */
+  .legend-color {
+    @apply inline-block w-3 h-3 rounded mr-1;
+  }
+  
+  .legend-blue {
+    @apply bg-gradient-to-r from-blue-500 to-blue-600;
+  }
+  
+  .legend-green {
+    @apply bg-gradient-to-r from-green-500 to-emerald-600;
+  }
+  
+  .legend-purple {
+    @apply bg-gradient-to-r from-purple-500 to-purple-600;
+  }
+  
+  .legend-orange {
+    @apply bg-gradient-to-r from-orange-500 to-orange-600;
+  }
+  
+  /* Calendar table styles */
+  .calendar-header-row {
+    @apply bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 
+           border-b-2 border-gray-200 dark:border-gray-600;
+  }
+  
+  .calendar-time-header {
+    @apply p-4 border-r border-gray-300 dark:border-gray-500 text-left sticky left-0 
+           bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 z-10;
+  }
+  
+  .calendar-header-text {
+    @apply text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase;
+  }
+  
+  .calendar-day-header {
+    @apply p-4 border-r border-gray-300 dark:border-gray-500 text-center 
+           bg-white dark:bg-gray-700 min-w-[180px];
+  }
+  
+  .calendar-day-name {
+    @apply text-sm font-bold text-gray-900 dark:text-white mb-1;
+  }
+  
+  .calendar-day-date {
+    @apply text-xs text-blue-600 dark:text-blue-400 font-medium;
+  }
+  
+  .calendar-row {
+    @apply border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50/50 
+           dark:hover:bg-gray-700/50 transition-colors duration-150;
+  }
+  
+  .calendar-time-cell {
+    @apply p-4 border-r border-gray-200 dark:border-gray-600 bg-gradient-to-r 
+           from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 sticky left-0 z-10;
+  }
+  
+  .time-slot-name {
+    @apply text-sm font-semibold text-gray-900 dark:text-white;
+  }
+  
+  .time-slot-time {
+    @apply text-xs text-gray-600 dark:text-gray-400 mt-1 font-medium;
+  }
+  
+  .calendar-schedule-cell {
+    @apply p-3 border-r border-gray-200 dark:border-gray-600 min-h-[100px] relative 
+           bg-white dark:bg-gray-800 align-top;
+  }
+  
+  .schedule-block {
+    @apply p-3 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-lg 
+           hover:scale-105 transform relative overflow-hidden;
+  }
+  
+  .schedule-block-bg {
+    @apply absolute inset-0 bg-gradient-to-r opacity-10;
+  }
+  
+  .schedule-subject {
+    @apply font-semibold text-sm mb-1;
+  }
+  
+  .empty-slot {
+    @apply h-full min-h-[80px] flex items-center justify-center text-gray-300 
+           dark:text-gray-600 transition-colors duration-200 hover:text-gray-400 
+           dark:hover:text-gray-500;
+  }
+  
+  .stat-number {
+    @apply font-semibold;
+  }
+  
+  /* Action buttons */
+  .action-btn {
+    @apply w-full text-left px-4 py-3 rounded-lg transition-colors duration-200;
+  }
+  
+  .action-btn-blue {
+    @apply bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30;
+  }
+  
+  .action-btn-green {
+    @apply bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30;
+  }
+  
+  .action-btn-red {
+    @apply bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30;
+  }
+  
+  .action-btn-gray {
+    @apply bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600;
+  }
+  
+  /* Teacher workload styles */
+  .teacher-avatar {
+    @apply w-8 h-8 rounded-full bg-gradient-to-r flex items-center justify-center 
+           text-white font-medium text-sm;
+  }
+  
+  .teacher-name {
+    @apply font-medium text-gray-900 dark:text-white;
+  }
+  
+  .teacher-subject {
+    @apply text-xs text-gray-500 dark:text-gray-400;
+  }
+  
+  .teacher-hours {
+    @apply text-sm font-semibold text-gray-900 dark:text-white;
+  }
+  
+  .teacher-percentage {
+    @apply text-xs text-gray-500 dark:text-gray-400;
+  }
+  
+  /* Modal styles */
+  .modal-close-btn {
+    @apply text-gray-400 hover:text-gray-600 dark:hover:text-gray-200;
+  }
+  
+  .form-value {
+    @apply text-gray-900 dark:text-white;
+  }
+  
+  .btn-modal-cancel {
+    @apply px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white 
+           dark:bg-gray-600 border border-gray-300 dark:border-gray-500 hover:bg-gray-50 
+           dark:hover:bg-gray-500 rounded-lg;
+  }
+  
+  .btn-modal-primary {
+    @apply px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg;
+  }
+  
+  /* Container Wrapper */
+  .page-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6;
+  }
+  
+  /* Page elements */
+  .page-subtitle {
+    @apply mt-1 text-sm text-gray-500 dark:text-gray-400;
+  }
+  
+  /* Status badges */
+  .status-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .status-success {
+    @apply bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400;
+  }
+  
+  /* Form elements */
+  .form-section-title {
+    @apply text-sm font-medium text-gray-700 dark:text-gray-300;
+  }
+  
+  .progress-percentage {
+    @apply text-sm font-medium text-blue-600;
+  }
+  
+  .progress-bar {
+    @apply h-2 bg-blue-600 rounded-full transition-all duration-300;
+  }
+  
+  .section-title {
+    @apply text-xl font-semibold text-gray-900 dark:text-white;
+  }
+  
+  .validation-label {
+    @apply text-xs text-gray-500 dark:text-gray-400;
+  }
+  
+  .form-input-readonly {
+    @apply w-full rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 
+           dark:bg-gray-700 px-4 py-3 text-gray-500 dark:text-gray-400 cursor-not-allowed;
+  }
+  
+  .info-box {
+    @apply bg-gray-50 dark:bg-gray-700 rounded-lg p-3 text-xs text-gray-600 dark:text-gray-400;
+  }
+  
+  .toggle-switch {
+    @apply relative w-11 h-6 bg-gray-200 rounded-full dark:bg-gray-700 border border-gray-300 dark:border-gray-600
+           after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white 
+           after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 
+           after:transition-all cursor-pointer focus:outline-none focus:ring-4 focus:ring-blue-300 
+           dark:focus:ring-blue-800;
+  }
+  
+  .toggle-switch.checked {
+    @apply bg-blue-600 after:translate-x-full after:border-white;
+  }
+  
+  .toggle-option {
+    @apply cursor-pointer transition-all duration-200;
+  }
+  
+  .toggle-option.selected {
+    @apply bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700;
+  }
+  
+  /* Dashboard Metric Heading */
+  .metric-heading {
+    @apply text-2xl font-bold text-gray-900 dark:text-gray-100;
+  }
+  
+  /* Backup page styles */
+  .backup-page-bg {
+    @apply min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 
+           dark:from-slate-900 dark:via-blue-900 dark:to-indigo-900;
+  }
+  
+  /* ========================================
+     SCHEDULE SETUP PROGRESS SYSTEM
+     ======================================== */
+  
+  /* Step indicator container */
+  .step-indicator {
+    @apply flex flex-col items-center space-y-2 transition-all duration-300 ease-out;
+  }
+  
+  /* Step number circle */
+  .step-number {
+    @apply w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 
+           flex items-center justify-center font-bold text-sm transition-all duration-300 
+           border-2 border-transparent shadow-sm;
+  }
+  
+  /* Step label text */
+  .step-label {
+    @apply text-sm font-medium text-gray-600 dark:text-gray-400 transition-all duration-300 
+           text-center max-w-20;
+  }
+  
+  /* Step connector line */
+  .step-connector {
+    @apply h-0.5 bg-gray-200 dark:bg-gray-700 flex-1 mx-4 transition-all duration-300;
+  }
+  
+  /* Active step states */
+  .step-indicator.active .step-number {
+    @apply bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-300 
+           shadow-lg transform scale-110;
+  }
+  
+  .step-indicator.active .step-label {
+    @apply text-blue-600 dark:text-blue-400 font-semibold;
+  }
+  
+  /* Completed step states */
+  .step-indicator.completed .step-number {
+    @apply bg-gradient-to-r from-green-500 to-emerald-600 text-white border-green-300 
+           shadow-lg;
+  }
+  
+  .step-indicator.completed .step-label {
+    @apply text-green-600 dark:text-green-400 font-semibold;
+  }
+  
+  /* Progress line completed */
+  .step-connector.completed {
+    @apply bg-gradient-to-r from-green-500 to-emerald-600;
+  }
+  
+  /* Hover effects */
+  .step-indicator:hover .step-number {
+    @apply transform scale-105 shadow-md cursor-pointer;
+  }
+  
+  /* Responsive design for mobile */
+  @media (max-width: 768px) {
+    .step-indicator .step-label {
+      @apply text-xs max-w-16;
+    }
+    
+    .step-number {
+      @apply w-10 h-10 text-xs;
+    }
+    
+    .step-connector {
+      @apply mx-2;
+    }
+  }
+  
+  /* Extra small screens - hide labels */
+  @media (max-width: 640px) {
+    .step-indicator .step-label {
+      @apply hidden;
+    }
+  }
+
+  .glassmorphism-card {
+    @apply relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl 
+           p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out 
+           hover:bg-white/30 hover:scale-105;
+  }
+  
+  .metric-value {
+    @apply text-3xl font-bold text-slate-800 dark:text-white mt-1;
+  }
+  
+  .metric-icon {
+    @apply w-12 h-12 rounded-xl flex items-center justify-center shadow-lg 
+           transition-transform duration-300;
+  }
+  
+  .metric-icon-blue {
+    @apply bg-gradient-to-br from-blue-500 to-purple-600;
+  }
+  
+  .metric-icon-green {
+    @apply bg-gradient-to-br from-green-500 to-emerald-600;
+  }
+  
+  .metric-icon-amber {
+    @apply bg-gradient-to-br from-amber-500 to-orange-600;
+  }
+  
+  .metric-icon-red {
+    @apply bg-gradient-to-br from-red-500 to-rose-600;
+  }
+  
+  .metric-icon-cyan {
+    @apply bg-gradient-to-br from-cyan-500 to-blue-600;
+  }
+  
+  .metric-icon-purple {
+    @apply bg-gradient-to-br from-purple-500 to-purple-600;
+  }
+  
+  /* Reports page category buttons */
+  .category-btn {
+    @apply px-4 py-2 rounded-md text-sm font-medium transition-all duration-200;
+  }
+  
+  .category-btn-active {
+    @apply bg-white dark:bg-gray-600 shadow-sm;
+  }
+  
+  /* Report type cards */
+  .report-card {
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-200 transform hover:scale-105;
+  }
+  
+  /* Status badges */
+  .status-badge {
+    @apply text-sm font-medium px-3 py-1 rounded-full;
+  }
+  
+  .status-badge-pending {
+    @apply bg-orange-100 text-orange-800;
+  }
+  
+  .status-badge-active {
+    @apply bg-purple-100 text-purple-800;
+  }
+  
+  /* Metric value display */
+  .metric-value-orange {
+    @apply text-orange-600 font-medium;
+  }
+  
+  .metric-value-blue {
+    @apply text-blue-600 font-medium;
+  }
+  
+  .metric-value-purple {
+    @apply text-purple-600 font-medium;
+  }
+  
+  /* Report type header */
+  .report-type-header {
+    @apply text-lg font-semibold text-gray-900 dark:text-white mb-1;
+  }
+  
+  /* Photo upload component styles */
+  .photo-preview-container {
+    @apply w-32 h-32 bg-gray-100 dark:bg-gray-700 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center overflow-hidden transition-all duration-300 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20;
+  }
+  
+  .photo-remove-btn {
+    @apply absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs transition-colors duration-200;
+  }
+  
+  .photo-upload-btn {
+    @apply bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white hover:bg-white/40 focus:ring-2 focus:ring-blue-500/50 transition-all duration-300;
+  }
+  
+  .face-detection-info {
+    @apply text-blue-600 dark:text-blue-400 font-medium;
+  }
+  
+  .face-enrollment-btn {
+    @apply w-full bg-blue-600 hover:bg-blue-700 text-white;
+  }
+  
+  .face-enrolled-status {
+    @apply flex items-center justify-center space-x-2 text-sm p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700;
+  }
+  
+  .face-enrolled-text {
+    @apply text-green-700 dark:text-green-400 font-medium;
+  }
+  
+  .face-enrollment-hint {
+    @apply text-xs text-gray-500 mt-1 text-center;
+  }
+  
+  /* Face detection status text */
+  .face-status-text-red {
+    @apply text-red-600 dark:text-red-400;
+  }
+  
+  .face-status-text-yellow {
+    @apply text-yellow-600 dark:text-yellow-400;
+  }
+  
+  /* Face enrollment button in JavaScript */
+  .js-face-enrollment-btn {
+    @apply w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200;
+  }
+  
+  /* Activity item component */
+  .activity-item-container {
+    @apply flex items-center p-4 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors;
+  }
+  
+  .activity-icon-container {
+    @apply h-6 w-6 rounded-full flex items-center justify-center;
+  }
+  
+  .activity-icon {
+    @apply h-3 w-3;
+  }
+  
+  .activity-location-icon {
+    @apply h-3 w-3 mr-1;
+  }
+  
+  /* Stats card component */
+  .stats-card-container {
+    @apply rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-all duration-200;
+  }
+  
+  .stats-card-trend-icon {
+    @apply h-3 w-3;
+  }
+  
+  .stats-card-icon-container {
+    @apply w-12 h-12 rounded-xl flex items-center justify-center;
+  }
+  
+  /* Settings page styles */
+  .settings-tab-container {
+    @apply flex items-center space-x-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1;
+  }
+  
+  .settings-tab-btn {
+    @apply px-4 py-2 rounded-md text-sm font-medium transition-all duration-200;
+  }
+  
+  .settings-tab-active {
+    @apply bg-white dark:bg-gray-600 shadow-sm;
+  }
+  
+  .settings-card {
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700;
+  }
+  
+  .settings-section-header {
+    @apply p-6 border-b border-gray-200 dark:border-gray-700;
+  }
+  
+  .settings-section-title {
+    @apply text-xl font-semibold text-gray-900 dark:text-white mb-2 flex items-center;
+  }
+  
+  .settings-section-desc {
+    @apply text-gray-600 dark:text-gray-400;
+  }
+  
+  .settings-form-label {
+    @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2;
+  }
+  
+  .settings-help-text {
+    @apply mt-1 text-sm text-gray-500 dark:text-gray-400;
+  }
+  
+  .settings-page-desc {
+    @apply mt-1 text-sm text-gray-500 dark:text-gray-400;
+  }
+  
+  /* Settings subsection headers */
+  .settings-subsection-title {
+    @apply text-lg font-medium text-gray-900 dark:text-white mb-4;
+  }
+  
+  /* Settings time input with form-control class */
+  .settings-time-input {
+    @apply form-control;
+  }
+  
+  /* Settings number input with constraints */
+  .settings-number-input {
+    @apply form-control;
+  }
+  
+  /* Settings warning box */
+  .settings-warning-container {
+    @apply bg-amber-100 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-600 rounded-lg p-6;
+  }
+  
+  .settings-warning-icon {
+    @apply h-6 w-6 text-amber-600 dark:text-amber-400 mr-3;
+  }
+  
+  .settings-warning-text {
+    @apply mt-2 text-sm text-amber-700 dark:text-amber-300;
+  }
+  
+  .settings-info-text {
+    @apply text-xs text-gray-500 dark:text-gray-400;
+  }
+  
+  /* Employee management page styles */
+  .employee-card {
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700;
+  }
+  
+  .employee-stat-badge {
+    @apply text-sm font-medium px-3 py-1 rounded-full;
+  }
+  
+  .employee-stat-badge-blue {
+    @apply text-blue-600 bg-blue-100 dark:bg-blue-900;
+  }
+  
+  .employee-stat-badge-green {
+    @apply text-green-600 bg-green-100 dark:bg-green-900;
+  }
+  
+  .employee-stat-badge-purple {
+    @apply text-purple-600 bg-purple-100 dark:bg-purple-900;
+  }
+  
+  .employee-stat-badge-orange {
+    @apply text-orange-600 bg-orange-100 dark:bg-orange-900;
+  }
+  
+  .employee-stat-value {
+    @apply text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1;
+  }
+  
+  .employee-stat-label {
+    @apply text-gray-600 dark:text-gray-400 text-sm;
+  }
+  
+  .employee-stat-detail {
+    @apply mt-3 text-xs text-gray-500 dark:text-gray-400;
+  }
+  
+  .employee-attendance-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400;
+  }
+  
+  .employee-page-desc {
+    @apply mt-1 text-sm text-gray-500 dark:text-gray-400;
+  }
+  
+  /* Employee bulk actions */
+  .employee-bulk-toolbar {
+    @apply bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-700 mb-4;
+  }
+  
+  .employee-bulk-count {
+    @apply text-sm font-medium text-blue-800 dark:text-blue-200;
+  }
+  
+  .employee-bulk-clear {
+    @apply text-sm text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-100 font-medium;
+  }
+  
+  /* Employee table section header */
+  .employee-table-header {
+    @apply p-6 border-b border-gray-200 dark:border-gray-700;
+  }
+  
+  .employee-table-title {
+    @apply text-xl font-semibold text-gray-900 dark:text-white mb-2;
+  }
+  
+  .employee-table-desc {
+    @apply text-sm text-gray-500 dark:text-gray-400;
+  }
+  
+  /* Employee table count section */
+  .employee-count-header {
+    @apply mb-4 flex items-center justify-between bg-white dark:bg-gray-800 px-6 py-4 border border-gray-200 dark:border-gray-700 rounded-t-lg;
+  }
+  
+  .employee-count-title {
+    @apply text-lg font-semibold text-gray-900 dark:text-gray-100;
+  }
+  
+  .employee-count-badge {
+    @apply px-3 py-1 rounded-full;
+  }
+  
+  .employee-count-badge-blue {
+    @apply bg-blue-100 dark:bg-blue-900;
+  }
+  
+  .employee-count-badge-green {
+    @apply bg-green-100 dark:bg-green-900;
+  }
+  
+  .employee-count-badge-gray {
+    @apply bg-gray-100 dark:bg-gray-700;
+  }
+  
+  .employee-count-text {
+    @apply text-sm font-medium;
+  }
+  
+  .employee-count-text-blue {
+    @apply text-blue-800 dark:text-blue-200;
+  }
+  
+  .employee-count-text-green {
+    @apply text-green-800 dark:text-green-200;
+  }
+  
+  .employee-count-text-gray {
+    @apply text-gray-800 dark:text-gray-200;
+  }
+  
+  .employee-view-info {
+    @apply text-sm text-gray-500 dark:text-gray-400;
+  }
+  
+  /* Employee table styling */
+  .employee-table-container {
+    @apply overflow-x-auto border-x border-gray-200 dark:border-gray-700;
+  }
+  
+  .employee-table {
+    @apply min-w-full divide-y divide-gray-200 dark:divide-gray-700;
+  }
+  
+  .employee-table-header-row {
+    @apply bg-gray-50 dark:bg-gray-700;
+  }
+  
+  .employee-table-th {
+    @apply px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider;
+  }
+  
+  /* Super admin dashboard styles */
+  .dashboard-page-desc {
+    @apply mt-1 text-sm text-gray-500 dark:text-gray-400;
+  }
+  
+  .dashboard-section-title {
+    @apply text-xl font-semibold text-gray-900 dark:text-gray-100;
+  }
+  
+  .dashboard-section-desc {
+    @apply text-gray-600 dark:text-gray-400;
+  }
+  
+  .dashboard-activity-item {
+    @apply flex items-center justify-between p-4 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600;
+  }
+  
+  .dashboard-avatar {
+    @apply w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-sm;
+  }
+  
+  .dashboard-status-text-blue {
+    @apply text-sm text-blue-600;
+  }
+  
+  .dashboard-status-text-emerald {
+    @apply text-sm text-emerald-600;
+  }
+  
+  .dashboard-metric-desc {
+    @apply text-gray-600 dark:text-gray-400 text-sm;
+  }
+  
+  /* Dashboard activity item details */
+  .dashboard-employee-name {
+    @apply text-sm font-medium text-gray-900 dark:text-gray-100;
+  }
+  
+  .dashboard-employee-dept {
+    @apply text-xs text-gray-500 dark:text-gray-400;
+  }
+  
+  .dashboard-time-display {
+    @apply text-lg font-bold text-gray-900 dark:text-gray-100;
+  }
+  
+  .dashboard-date-display {
+    @apply text-xs text-gray-500 dark:text-gray-400;
+  }
+  
+  /* Dashboard alert boxes */
+  .dashboard-alert-red {
+    @apply flex items-start space-x-3 p-4 bg-red-100 rounded-lg border border-red-200 dark:bg-red-900 dark:border-red-700;
+  }
+  
+  .dashboard-alert-icon {
+    @apply w-6 h-6 rounded-full flex items-center justify-center shadow-md;
+  }
+  
+  .dashboard-alert-icon-red {
+    @apply bg-red-600;
+  }
+  
+  .dashboard-alert-title-red {
+    @apply font-semibold text-red-800 dark:text-red-200 text-sm;
+  }
+  
+  .dashboard-alert-desc-red {
+    @apply text-xs text-red-600 dark:text-red-400;
+  }
+  
+  /* Dashboard view all button */
+  .dashboard-view-all-btn {
+    @apply bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600;
+  }
+  
+  /* Dashboard alert boxes - multiple colors */
+  .dashboard-alert-amber {
+    @apply flex items-start space-x-3 p-4 bg-amber-100 rounded-lg border border-amber-200 dark:bg-amber-900 dark:border-amber-700;
+  }
+  
+  .dashboard-alert-blue {
+    @apply flex items-start space-x-3 p-4 bg-blue-100 rounded-lg border border-blue-200 dark:bg-blue-900 dark:border-blue-700;
+  }
+  
+  .dashboard-alert-green {
+    @apply flex items-start space-x-3 p-4 bg-green-100 rounded-lg border border-green-200 dark:bg-green-900 dark:border-green-700;
+  }
+  
+  .dashboard-alert-icon-amber {
+    @apply bg-amber-600;
+  }
+  
+  .dashboard-alert-icon-blue {
+    @apply bg-blue-600;
+  }
+  
+  .dashboard-alert-icon-green {
+    @apply bg-green-600;
+  }
+  
+  .dashboard-alert-title-amber {
+    @apply font-semibold text-amber-800 dark:text-amber-200 text-sm;
+  }
+  
+  .dashboard-alert-title-blue {
+    @apply font-semibold text-blue-800 dark:text-blue-200 text-sm;
+  }
+  
+  .dashboard-alert-title-green {
+    @apply font-semibold text-green-800 dark:text-green-200 text-sm;
+  }
+  
+  .dashboard-alert-desc-amber {
+    @apply text-xs text-amber-600 dark:text-amber-400;
+  }
+  
+  .dashboard-alert-desc-blue {
+    @apply text-xs text-blue-600 dark:text-blue-400;
+  }
+  
+  .dashboard-alert-desc-green {
+    @apply text-xs text-green-600 dark:text-green-400;
+  }
+  
+  /* Enhanced dashboard container */
+  .dashboard-enhanced-container {
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8;
+  }
+  
+  .dashboard-enhanced-title {
+    @apply text-xl font-semibold text-slate-800 dark:text-white;
+  }
+  
+  .dashboard-enhanced-desc {
+    @apply text-slate-600 dark:text-slate-400;
+  }
+  
+  .dashboard-live-badge {
+    @apply px-3 py-1 text-xs text-white bg-gradient-to-r from-green-500 to-emerald-600 rounded-full shadow-lg;
+  }
+  
+  /* ========================================
+     MEGA CHECK-IN PAGE OPTIMIZATION SYSTEM
+     ======================================== */
+  
+  /* Status info cards */
+  .status-info-card {
+    @apply flex items-center justify-between p-2 rounded-lg;
+  }
+  
+  .status-info-blue {
+    @apply bg-blue-50 dark:bg-blue-900/20;
+  }
+  
+  .status-info-orange {
+    @apply bg-orange-50 dark:bg-orange-900/20;
+  }
+  
+  .status-info-purple {
+    @apply bg-purple-50 dark:bg-purple-900/20;
+  }
+  
+  /* Status text colors */
+  .text-blue-status {
+    @apply text-blue-600 dark:text-blue-400 font-medium;
+  }
+  
+  .text-orange-status {
+    @apply text-orange-600 dark:text-orange-400 font-medium;
+  }
+  
+  .text-purple-status {
+    @apply text-purple-600 dark:text-purple-400 font-medium;
+  }
+  
+  .text-muted {
+    @apply text-slate-500 dark:text-slate-400;
+  }
+  
+  /* Feature cards system */
+  .feature-card {
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700;
+  }
+  
+  .feature-icon-container {
+    @apply w-12 h-12 rounded-lg flex items-center justify-center shadow-sm;
+  }
+  
+  .feature-icon-blue {
+    @apply bg-gradient-to-br from-blue-500 to-blue-600;
+  }
+  
+  .feature-icon-purple {
+    @apply bg-gradient-to-br from-purple-500 to-purple-600;
+  }
+  
+  .feature-icon-emerald {
+    @apply bg-gradient-to-br from-emerald-500 to-emerald-600;
+  }
+  
+  .feature-icon-amber {
+    @apply bg-gradient-to-br from-amber-500 to-amber-600;
+  }
+  
+  /* Progress bars */
+  .progress-bar-emerald {
+    @apply h-2 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full transition-all duration-500;
+  }
+  
+  /* Dynamic status classes for Alpine.js */
+  .status-success {
+    @apply bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400;
+  }
+  
+  .status-warning {
+    @apply bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400;
+  }
+  
+  .status-destructive {
+    @apply bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400;
+  }
+  
+  .status-working {
+    @apply bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400;
+  }
+  
+  .status-default {
+    @apply bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300;
+  }
+  
+  /* Check-in/out status colors */
+  .checkin-success {
+    @apply text-green-600 dark:text-green-400;
+  }
+  
+  .checkin-pending {
+    @apply text-slate-400;
+  }
+  
+  .checkout-success {
+    @apply text-red-600 dark:text-red-400;
+  }
+  
+  /* Location and accuracy display */
+  .location-accuracy {
+    @apply text-xs text-muted-foreground;
+  }
+  
+  /* Detection method dropdown */
+  .detection-dropdown {
+    @apply absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50;
+  }
+  
+  .detection-method-btn {
+    @apply w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700;
+  }
+  
+  /* Camera interface */
+  .camera-container {
+    @apply relative h-80 bg-gray-900 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700;
+  }
+  
+  .camera-placeholder {
+    @apply absolute inset-0 flex items-center justify-center;
+  }
+  
+  .camera-overlay-container {
+    @apply absolute top-0 left-0 right-0 bottom-0 pointer-events-none;
+  }
+  
+  .camera-face-target {
+    @apply absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-emerald-500 rounded-full opacity-80 pulse-border;
+  }
+  
+  .camera-overlay-canvas {
+    @apply absolute top-0 left-0 w-full h-full pointer-events-none;
+  }
+  
+  .camera-status-card {
+    @apply bg-white/95 backdrop-blur-sm border-white/20;
+  }
+  
+  /* Detection status displays */
+  .detection-status-detected {
+    @apply bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400;
+  }
+  
+  .detection-status-detecting {
+    @apply bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400;
+  }
+  
+  .detection-confidence-label {
+    @apply text-muted-foreground;
+  }
+  
+  .detection-confidence-value {
+    @apply font-semibold text-gray-900;
+  }
+  
+  /* Schedule badges */
+  .schedule-badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mr-3 text-white shadow-lg;
+  }
+  
+  .schedule-enabled {
+    @apply bg-gradient-to-r from-green-500 to-emerald-600;
+  }
+  
+  .schedule-disabled {
+    @apply bg-gradient-to-r from-gray-500 to-slate-600;
+  }
+  
+  /* Layout navigation styles */
+  .sidebar-desktop {
+    @apply w-64 bg-white dark:bg-gray-800 shadow-sm border-r border-gray-200 
+           dark:border-gray-700 hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 
+           lg:left-0 lg:z-10;
+  }
+  
+  .sidebar-header {
+    @apply flex items-center px-6 py-4 border-b border-gray-200 dark:border-gray-700;
+  }
+  
+  .brand-icon {
+    @apply w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl 
+           flex items-center justify-center shadow-lg;
+  }
+  
+  .role-badge {
+    @apply text-xs px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 
+           dark:text-emerald-300 rounded-full font-medium;
+  }
+  
+  .nav-section-header {
+    @apply text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider;
+  }
+  
+  .nav-link {
+    @apply flex items-center px-3 py-2.5 text-sm text-gray-700 dark:text-gray-300 
+           rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 ease-in-out;
+  }
+  
+  .nav-link-active {
+    @apply bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 
+           border-r-2 border-emerald-500;
+  }
+  
+  .nav-icon {
+    @apply w-9 h-9 rounded-lg flex items-center justify-center shadow-sm transition-colors duration-200;
+  }
+  
+  .nav-icon-active {
+    @apply bg-emerald-500 text-white;
+  }
+  
+  .nav-icon-inactive {
+    @apply bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300;
+  }
+  
+  .nav-badge {
+    @apply px-2 py-1 text-xs font-semibold rounded-full;
+  }
+  
+  .nav-badge-active {
+    @apply bg-emerald-200 text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200;
+  }
+  
+  .nav-badge-inactive {
+    @apply bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300;
+  }
+  
+  .sidebar-mobile {
+    @apply relative flex-1 flex flex-col max-w-xs w-full bg-white dark:bg-gray-800 
+           border-r border-gray-200 dark:border-gray-700;
+  }
+  
+  .mobile-close-btn {
+    @apply p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700;
+  }
+  
+  /* View Toggle Buttons */
+  .btn-view-toggle {
+    @apply px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 
+           rounded-md transition-all duration-200;
+  }
+  
+  .btn-view-active {
+    @apply bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm;
+  }
+  
+  /* Gradient Action Buttons */
+  .btn-analytics-gradient {
+    @apply bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 
+           text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 
+           flex items-center space-x-2 shadow-lg hover:shadow-xl;
+  }
+  
+  .btn-create-gradient {
+    @apply bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 
+           text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 
+           flex items-center space-x-2 shadow-lg hover:shadow-xl;
+  }
+  
   /* Enhanced Card System */
   .card {
     @apply rounded-lg border bg-card text-card-foreground shadow-sm;
@@ -334,15 +1581,21 @@
   }
   
   .form-input {
-    @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 
+           px-4 py-3 pr-10 text-gray-900 dark:text-white focus:border-blue-500 
+           dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20;
   }
   
   .form-textarea {
-    @apply min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 
+           px-4 py-3 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 
+           focus:ring-2 focus:ring-blue-500/20 min-h-[80px];
   }
   
   .form-select {
-    @apply flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 
+           px-4 py-3 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 
+           focus:ring-2 focus:ring-blue-500/20;
   }
   
   .form-checkbox {
@@ -350,7 +1603,7 @@
   }
   
   .form-error {
-    @apply text-sm font-medium text-destructive;
+    @apply text-sm font-medium text-red-600 dark:text-red-400;
   }
   
   /* Enhanced Badge System */
@@ -602,4 +1855,427 @@
 
 .dark ::selection {
   @apply bg-primary/30 text-primary-foreground;
+}
+
+/* Camera interface optimization */
+.camera-container {
+    @apply relative h-80 bg-gray-900 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700;
+}
+
+.camera-placeholder {
+    @apply absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800;
+}
+
+.camera-overlay-ring {
+    @apply absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-emerald-500 rounded-full opacity-80 animate-pulse;
+}
+
+.camera-status-card {
+    @apply bg-white/95 backdrop-blur-sm border-white/20;
+}
+
+.detection-status-badge {
+    @apply inline-flex items-center rounded-md px-2 py-1 text-xs font-medium;
+}
+
+.action-button-group {
+    @apply mt-6 flex flex-wrap gap-3 justify-center;
+}
+
+.camera-control-btn {
+    @apply inline-flex items-center justify-center px-6 py-3 text-sm font-medium rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
+}
+
+.progress-bar-container {
+    @apply w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2;
+}
+
+.progress-bar-fill {
+    @apply h-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full transition-all duration-300;
+}
+
+.camera-info-grid {
+    @apply flex items-center space-x-4 text-sm;
+}
+
+.camera-video-stream {
+    @apply w-full h-full object-cover;
+}
+
+.face-overlay-canvas {
+    @apply absolute top-0 left-0 w-full h-full pointer-events-none;
+}
+
+.detection-dropdown {
+    @apply absolute left-0 z-10 mt-2 w-56 origin-top-left divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none dark:bg-gray-700 dark:divide-gray-600;
+}
+
+.detection-method-btn {
+    @apply flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600;
+}
+
+/* Workflow progress optimization */
+.workflow-progress-badge {
+    @apply inline-flex items-center rounded-md px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300;
+}
+
+.workflow-progress-bar {
+    @apply w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-6;
+}
+
+.workflow-progress-fill {
+    @apply h-3 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full transition-all duration-500;
+}
+
+.workflow-step-container {
+    @apply flex flex-col items-center;
+}
+
+.workflow-step-number {
+    @apply w-10 h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-all;
+}
+
+.workflow-step-completed {
+    @apply bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-sm;
+}
+
+.workflow-step-current {
+    @apply bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-sm;
+}
+
+.workflow-step-inactive {
+    @apply bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400;
+}
+
+.workflow-step-title {
+    @apply text-sm font-medium text-gray-900 dark:text-white;
+}
+
+.workflow-step-desc {
+    @apply text-xs text-muted-foreground;
+}
+
+/* Enhanced statistics glassmorphism cards */
+.stats-glassmorph-card {
+    @apply relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out hover:bg-white/30 hover:scale-105 text-center;
+}
+
+.stats-metric-value {
+    @apply text-3xl font-bold;
+}
+
+.stats-metric-label {
+    @apply text-sm text-slate-600 dark:text-slate-400;
+}
+
+.stats-progress-bar {
+    @apply mt-2 w-full bg-white/20 rounded-full h-1;
+}
+
+.stats-progress-emerald {
+    @apply bg-gradient-to-r from-emerald-500 to-green-500 h-1 rounded-full;
+}
+
+.stats-progress-blue {
+    @apply bg-gradient-to-r from-blue-500 to-cyan-500 h-1 rounded-full;
+}
+
+.stats-progress-purple {
+    @apply bg-gradient-to-r from-purple-500 to-pink-500 h-1 rounded-full;
+}
+
+.stats-progress-amber {
+    @apply bg-gradient-to-r from-amber-500 to-orange-600 h-1 rounded-full;
+}
+
+.stats-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8;
+}
+
+/* Form optimization */
+.admin-form-textarea {
+    @apply w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm;
+}
+
+.admin-submit-btn {
+    @apply w-5 h-5 mr-2 transition-transform duration-300;
+}
+
+/* Modal optimization */
+.success-modal-icon {
+    @apply mx-auto w-20 h-20 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 flex items-center justify-center mb-6;
+}
+
+.success-modal-progress {
+    @apply w-full bg-white/20 rounded-full h-3;
+}
+
+.success-modal-progress-fill {
+    @apply bg-gradient-to-r from-emerald-500 to-green-500 h-3 rounded-full transition-all duration-300;
+}
+
+.success-modal-timer {
+    @apply text-xs text-slate-500 dark:text-slate-400 mt-2;
+}
+
+.success-modal-status-grid {
+    @apply flex items-center justify-center space-x-4 text-sm text-slate-600 dark:text-slate-400;
+}
+
+.success-modal-status-item {
+    @apply flex items-center space-x-2;
+}
+
+.success-modal-indicator {
+    @apply w-3 h-3 rounded-full;
+}
+
+.success-modal-indicator-green {
+    @apply bg-green-500;
+}
+
+.success-modal-indicator-blue {
+    @apply bg-blue-500;
+}
+
+.success-modal-indicator-purple {
+    @apply bg-purple-500;
+}
+
+/* Location validation modal */
+.location-icon-container {
+    @apply mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10;
+}
+
+.location-info-card {
+    @apply mt-4 p-4 bg-white/10 rounded-lg;
+}
+
+.location-status-grid {
+    @apply flex items-center space-x-3;
+}
+
+.location-status-indicator {
+    @apply w-3 h-3 rounded-full;
+}
+
+.location-continue-btn {
+    @apply bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white;
+}
+
+.location-disabled-btn {
+    @apply bg-slate-300 cursor-not-allowed text-slate-500;
+}
+
+/* Face recognition modal */
+.face-modal-video {
+    @apply w-full h-auto rounded-lg shadow-lg;
+}
+
+.face-modal-overlay {
+    @apply absolute inset-0 w-full h-full;
+}
+
+.face-modal-info {
+    @apply mt-4 p-3 bg-white/10 rounded-lg;
+}
+
+/* Liveness check optimization */
+.liveness-check-card {
+    @apply mt-4 p-3 bg-blue-500/20 rounded-lg;
+}
+
+.liveness-check-progress {
+    @apply mt-2 w-full bg-blue-200 rounded-full h-2;
+}
+
+.liveness-check-progress-fill {
+    @apply bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full transition-all duration-300;
+}
+
+.liveness-continue-btn {
+    @apply bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white;
+}
+
+.liveness-disabled-btn {
+    @apply bg-slate-300 cursor-not-allowed text-slate-500;
+}
+
+/* Confirmation modal optimization */
+.confirmation-modal-overlay {
+    @apply fixed inset-0 z-50 overflow-y-auto;
+}
+
+.confirmation-modal-backdrop {
+    @apply fixed inset-0 bg-slate-500 bg-opacity-75 transition-opacity;
+}
+
+.confirmation-modal-container {
+    @apply relative bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-md w-full;
+}
+
+.confirmation-icon-container {
+    @apply mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-green-100 sm:mx-0 sm:h-10 sm:w-10;
+}
+
+.confirmation-details-card {
+    @apply mt-4 p-4 bg-slate-50 dark:bg-slate-700 rounded-lg;
+}
+
+.confirmation-detail-item {
+    @apply flex justify-between items-center;
+}
+
+.confirmation-detail-label {
+    @apply text-sm font-medium text-slate-700 dark:text-slate-300;
+}
+
+.confirmation-submit-btn {
+    @apply flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-3 px-4 rounded-lg font-medium transition-all duration-200;
+}
+
+.confirmation-cancel-btn {
+    @apply flex-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 text-slate-800 dark:text-white py-3 px-4 rounded-lg font-medium transition-all duration-200;
+}
+
+/* Schedule detail modal optimization */
+.schedule-modal-overlay {
+    @apply fixed inset-0 z-50 overflow-y-auto;
+}
+
+.schedule-modal-backdrop {
+    @apply fixed inset-0 bg-slate-500 bg-opacity-75 transition-opacity;
+}
+
+.schedule-modal-container {
+    @apply relative bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-lg w-full;
+}
+
+.schedule-period-card {
+    @apply border border-slate-200 dark:border-slate-600 rounded-lg p-4;
+}
+
+.schedule-period-header {
+    @apply flex items-center justify-between mb-2;
+}
+
+.schedule-period-time {
+    @apply text-sm text-slate-500 dark:text-slate-400;
+}
+
+.schedule-subject-icon {
+    @apply w-4 h-4 mr-2 text-blue-500;
+}
+
+.schedule-room-icon {
+    @apply w-4 h-4 mr-2 text-green-500;
+}
+
+.schedule-close-btn {
+    @apply px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 text-slate-800 dark:text-white rounded-lg font-medium transition-all duration-200;
+}
+
+/* ========================================
+   EMPLOYEE ASSIGNMENT OPTIMIZATION SYSTEM
+   ======================================== */
+
+/* Employee card design with glassmorphism */
+.employee-card-modern {
+    @apply flex items-center p-4 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm 
+           border border-gray-200/50 dark:border-gray-700/50 rounded-xl cursor-pointer 
+           hover:shadow-lg hover:border-blue-300/50 dark:hover:border-blue-600/50 
+           transition-all duration-300 ease-out relative overflow-hidden;
+}
+
+.employee-card-modern:hover {
+    @apply bg-blue-50/80 dark:bg-blue-900/20 transform translate-y-[-2px];
+}
+
+.employee-card-modern:has(input:checked) {
+    @apply bg-blue-100/90 dark:bg-blue-900/40 border-blue-400 dark:border-blue-500 
+           shadow-lg ring-2 ring-blue-200 dark:ring-blue-800;
+}
+
+.employee-card-content {
+    @apply flex-1 min-w-0 ml-3;
+}
+
+.employee-name {
+    @apply text-sm font-semibold text-gray-900 dark:text-white truncate mb-1;
+}
+
+.employee-capabilities {
+    @apply flex flex-wrap gap-1;
+}
+
+.capability-badge {
+    @apply inline-flex items-center px-2 py-0.5 text-xs font-medium 
+           bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 
+           rounded-full border border-blue-200 dark:border-blue-700;
+}
+
+.employee-card-check {
+    @apply ml-3 transition-all duration-200;
+}
+
+.employee-card-modern:has(input:checked) .employee-card-check svg {
+    @apply text-blue-600 dark:text-blue-400;
+}
+
+/* Form checkbox styling */
+.form-checkbox-modern {
+    @apply w-4 h-4 text-blue-600 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 
+           rounded focus:ring-blue-500 dark:focus:ring-blue-600 focus:ring-2 transition-all duration-200;
+}
+
+/* Employee type header */
+.employee-type-header {
+    @apply flex items-center justify-between mb-4 p-4 bg-gray-50/80 dark:bg-gray-800/80 
+           backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-700/50;
+}
+
+.employee-type-title {
+    @apply flex items-center space-x-3;
+}
+
+.employee-type-icon {
+    @apply w-10 h-10 bg-blue-100 dark:bg-blue-900/50 rounded-lg flex items-center justify-center 
+           text-blue-600 dark:text-blue-400;
+}
+
+.employee-count-badge {
+    @apply inline-flex items-center px-2.5 py-1 text-xs font-medium 
+           bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 
+           rounded-full border border-blue-200 dark:border-blue-700;
+}
+
+.toggle-selection-btn {
+    @apply inline-flex items-center px-4 py-2 text-sm font-medium 
+           bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 
+           text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 
+           rounded-lg transition-all duration-200 focus:ring-2 focus:ring-blue-500;
+}
+
+/* Employee selection grid */
+.employee-selection-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .employee-selection-grid {
+        @apply grid-cols-1 gap-3;
+    }
+    
+    .employee-card-modern {
+        @apply p-3;
+    }
+    
+    .employee-type-header {
+        @apply flex-col space-y-2 items-start;
+    }
+    
+    .toggle-selection-btn {
+        @apply w-full justify-center;
+    }
 }

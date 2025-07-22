@@ -9,30 +9,24 @@
         <div class="flex items-center justify-between">
             <div>
                 <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Laporan & Analytics</h1>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Kelola laporan, analisis data, dan export informasi sistem</p>
+                <p class="page-subtitle">Kelola laporan, analisis data, dan export informasi sistem</p>
             </div>
             <div class="flex items-center space-x-3">
                 <!-- Schedule Report Button -->
-                <button @click="openScheduleModal()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 shadow-md">
-                    <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
+                <button @click="openScheduleModal()" class="btn-schedule">
+                    <x-icons.clock class="w-5 h-5 mr-2 inline" />
                     Jadwalkan
                 </button>
                 
                 <!-- Analytics Dashboard Button -->
-                <a href="{{ route('analytics.dashboard') }}" class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 shadow-md">
-                    <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                    </svg>
+                <a href="{{ route('analytics.dashboard') }}" class="btn-analytics">
+                    <x-icons.chart-bar class="w-5 h-5 mr-2 inline" />
                     Analytics
                 </a>
                 
                 <!-- Custom Report Builder Button -->
-                <a href="{{ route('reports.builder') }}" class="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 shadow-md">
-                    <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                    </svg>
+                <a href="{{ route('reports.builder') }}" class="btn-builder">
+                    <x-icons.edit class="w-5 h-5 mr-2 inline" />
                     Report Builder
                 </a>
             </div>
@@ -42,17 +36,15 @@
     <!-- Enhanced Statistics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
         <!-- Today's Attendance Card -->
-        <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <x-ui.card>
             <div class="p-6">
                 <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg shadow-md">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
+                    <div class="metric-icon metric-icon-green">
+                        <x-icons.check-circle class="w-6 h-6 text-white" />
                     </div>
                     <span class="text-sm font-medium px-3 py-1 bg-green-100 text-green-800 rounded-full">Live</span>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ $quickStats['todays_attendance'] ?? 0 }}</h3>
+                <h3 class="metric-heading">{{ $quickStats['todays_attendance'] ?? 0 }}</h3>
                 <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">Kehadiran Hari Ini</p>
                 <div class="mt-3 text-sm">
                     <span class="text-green-600 font-medium">+12%</span>
@@ -62,55 +54,49 @@
         </x-ui.card>
 
         <!-- Pending Leaves Card -->
-        <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <x-ui.card>
             <div class="p-6">
                 <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 bg-gradient-to-r from-orange-600 to-orange-700 rounded-lg shadow-md">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
+                    <div class="metric-icon metric-icon-amber">
+                        <x-icons.clock class="w-6 h-6 text-white" />
                     </div>
-                    <span class="text-sm font-medium px-3 py-1 bg-orange-100 text-orange-800 rounded-full">Pending</span>
+                    <span class="status-badge status-badge-pending">Pending</span>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ $quickStats['pending_leaves'] ?? 0 }}</h3>
+                <h3 class="metric-heading">{{ $quickStats['pending_leaves'] ?? 0 }}</h3>
                 <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">Cuti Tertunda</p>
                 <div class="mt-3 text-sm">
-                    <span class="text-orange-600 font-medium">{{ $quickStats['pending_leaves'] ?? 0 > 0 ? 'Butuh Review' : 'Up to Date' }}</span>
+                    <span class="metric-value-orange">{{ $quickStats['pending_leaves'] ?? 0 > 0 ? 'Butuh Review' : 'Up to Date' }}</span>
                 </div>
             </div>
         </x-ui.card>
 
         <!-- Monthly Payrolls Card -->
-        <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <x-ui.card>
             <div class="p-6">
                 <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-md">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                        </svg>
+                    <div class="metric-icon metric-icon-blue">
+                        <x-icons.currency-dollar class="w-6 h-6 text-white" />
                     </div>
                     <span class="text-sm font-medium px-3 py-1 bg-blue-100 text-blue-800 rounded-full">Monthly</span>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ $quickStats['monthly_payrolls'] ?? 0 }}</h3>
+                <h3 class="metric-heading">{{ $quickStats['monthly_payrolls'] ?? 0 }}</h3>
                 <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">Penggajian Bulanan</p>
                 <div class="mt-3 text-sm">
-                    <span class="text-blue-600 font-medium">Rp {{ number_format(($quickStats['payroll_total'] ?? 0), 0, ',', '.') }}</span>
+                    <span class="metric-value-blue">Rp {{ number_format(($quickStats['payroll_total'] ?? 0), 0, ',', '.') }}</span>
                 </div>
             </div>
         </x-ui.card>
 
         <!-- Total Employees Card -->
-        <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <x-ui.card>
             <div class="p-6">
                 <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 bg-gradient-to-r from-purple-600 to-purple-700 rounded-lg shadow-md">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                        </svg>
+                    <div class="metric-icon metric-icon-purple">
+                        <x-icons.users class="w-6 h-6 text-white" />
                     </div>
-                    <span class="text-sm font-medium px-3 py-1 bg-purple-100 text-purple-800 rounded-full">Active</span>
+                    <span class="status-badge status-badge-active">Active</span>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ $quickStats['total_employees'] ?? 0 }}</h3>
+                <h3 class="metric-heading">{{ $quickStats['total_employees'] ?? 0 }}</h3>
                 <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">Total Karyawan</p>
                 <div class="mt-3 text-sm">
                     <span class="text-purple-600 font-medium">{{ ($quickStats['active_employees'] ?? 0) }} Aktif</span>
@@ -126,19 +112,19 @@
             <!-- Report Categories -->
             <div class="mb-6">
                 <div class="flex items-center space-x-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-                    <button @click="selectedCategory = 'all'" :class="selectedCategory === 'all' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''" class="px-4 py-2 rounded-md text-sm font-medium transition-all duration-200">
+                    <button @click="selectedCategory = 'all'" :class="selectedCategory === 'all' ? 'category-btn-active' : ''" class="category-btn">
                         Semua
                     </button>
-                    <button @click="selectedCategory = 'attendance'" :class="selectedCategory === 'attendance' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''" class="px-4 py-2 rounded-md text-sm font-medium transition-all duration-200">
+                    <button @click="selectedCategory = 'attendance'" :class="selectedCategory === 'attendance' ? 'category-btn-active' : ''" class="category-btn">
                         Kehadiran
                     </button>
-                    <button @click="selectedCategory = 'payroll'" :class="selectedCategory === 'payroll' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''" class="px-4 py-2 rounded-md text-sm font-medium transition-all duration-200">
+                    <button @click="selectedCategory = 'payroll'" :class="selectedCategory === 'payroll' ? 'category-btn-active' : ''" class="category-btn">
                         Penggajian
                     </button>
-                    <button @click="selectedCategory = 'employee'" :class="selectedCategory === 'employee' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''" class="px-4 py-2 rounded-md text-sm font-medium transition-all duration-200">
+                    <button @click="selectedCategory = 'employee'" :class="selectedCategory === 'employee' ? 'category-btn-active' : ''" class="category-btn">
                         Karyawan
                     </button>
-                    <button @click="selectedCategory = 'analytics'" :class="selectedCategory === 'analytics' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''" class="px-4 py-2 rounded-md text-sm font-medium transition-all duration-200">
+                    <button @click="selectedCategory = 'analytics'" :class="selectedCategory === 'analytics' ? 'category-btn-active' : ''" class="category-btn">
                         Analytics
                     </button>
                 </div>
@@ -147,7 +133,7 @@
             <!-- Enhanced Report Types Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 @foreach($reportTypes as $key => $reportType)
-                <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-200 transform hover:scale-105">
+                <x-ui.card class="report-card">
                     <div class="p-6">
                         <div class="flex items-start justify-between mb-4">
                             <div class="flex items-center">
@@ -162,19 +148,17 @@
                                         ];
                                         echo $iconColors[$reportType['icon']] ?? 'from-gray-600 to-gray-700';
                                     @endphp flex items-center justify-center shadow-md">
-                                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            @switch($reportType['icon'])
-                                                @case('calendar-check') <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/> @break
-                                                @case('calendar-x') <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/> @break
-                                                @case('currency-dollar') <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/> @break
-                                                @case('users') <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/> @break
-                                                @case('chart-bar') <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/> @break
-                                            @endswitch
-                                        </svg>
+                                        @switch($reportType['icon'])
+                                            @case('calendar-check') <x-icons.calendar-check class="w-6 h-6 text-white" /> @break
+                                            @case('calendar-x') <x-icons.calendar-x class="w-6 h-6 text-white" /> @break
+                                            @case('currency-dollar') <x-icons.currency-dollar class="w-6 h-6 text-white" /> @break
+                                            @case('users') <x-icons.users class="w-6 h-6 text-white" /> @break
+                                            @case('chart-bar') <x-icons.chart-bar class="w-6 h-6 text-white" /> @break
+                                        @endswitch
                                     </div>
                                 </div>
                                 <div>
-                                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">{{ $reportType['name'] }}</h3>
+                                    <h3 class="report-type-header">{{ $reportType['name'] }}</h3>
                                     <div class="flex items-center space-x-2">
                                         <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 rounded-full">
                                             {{ ucfirst($reportType['category'] ?? 'general') }}
@@ -376,7 +360,7 @@
             </x-ui.card>
 
             <!-- Export Statistics -->
-            <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <x-ui.card>
                 <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                         <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

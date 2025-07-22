@@ -1,7 +1,7 @@
-const CACHE_NAME = 'attendance-app-v1.1.1';
-const STATIC_CACHE_NAME = 'attendance-static-v1.1.1';
-const DYNAMIC_CACHE_NAME = 'attendance-dynamic-v1.1.1';
-const IMAGE_CACHE_NAME = 'attendance-images-v1.1.1';
+const CACHE_NAME = 'attendance-app-v1.1.3';
+const STATIC_CACHE_NAME = 'attendance-static-v1.1.3';
+const DYNAMIC_CACHE_NAME = 'attendance-dynamic-v1.1.3';
+const IMAGE_CACHE_NAME = 'attendance-images-v1.1.3';
 
 // Critical static assets for immediate caching
 const STATIC_ASSETS = [
@@ -37,12 +37,12 @@ const API_CACHE_PATTERNS = [
   '/api/dashboard/stats',
   '/api/attendance/recent',
   '/api/employees/summary',
-  '/api/schedules/today'
+  '/api/schedule-management/today'
 ];
 
 // Install event - cache critical resources
 self.addEventListener('install', event => {
-  console.log('Service Worker: Installing v1.1.1');
+  console.log('Service Worker: Installing v1.1.3 with enhanced error handling');
   
   event.waitUntil(
     Promise.all([
@@ -137,13 +137,27 @@ async function handleStaticAssets(request) {
       return cachedResponse;
     }
     
-    const networkResponse = await fetch(request);
-    if (networkResponse.status === 200) {
+    // Check if we're online before attempting network request
+    if (!navigator.onLine) {
+      return getOfflineResponse(request);
+    }
+    
+    // Create fetch with AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    const networkResponse = await fetch(request, {
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (networkResponse.ok && networkResponse.status === 200) {
       cache.put(request, networkResponse.clone());
     }
     return networkResponse;
   } catch (error) {
-    console.error('Static asset handling failed:', error);
+    console.warn('Static asset fetch failed, serving offline response:', error.message);
     return getOfflineResponse(request);
   }
 }
@@ -259,9 +273,24 @@ async function handleNavigation(request) {
 
 async function handleDefault(request) {
   try {
-    return await fetch(request);
+    // Check if we're online before attempting network request
+    if (!navigator.onLine) {
+      return getOfflineResponse(request);
+    }
+    
+    // Create fetch with AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    
+    const response = await fetch(request, {
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
+    return response;
   } catch (error) {
-    console.error('Default handling failed:', error);
+    console.warn('Default fetch failed, serving offline response:', error.message);
     return getOfflineResponse(request);
   }
 }

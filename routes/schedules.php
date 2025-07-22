@@ -18,7 +18,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('schedules')
         ->middleware('permission:view_schedules')
         ->group(function () {
-            Route::get('/', [ScheduleController::class, 'index'])->name('schedules.index');
+            Route::get('/', [ScheduleController::class, 'index'])->name('old-schedules.index');
             Route::get('/calendar', [ScheduleController::class, 'calendar'])->name('schedules.calendar');
             Route::get('/builder', function () {
                 return view('pages.schedules.builder');

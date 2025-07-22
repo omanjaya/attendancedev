@@ -8,6 +8,14 @@ use Illuminate\Support\Facades\Route;
 Route::get('/health', [HealthController::class, 'check'])->name('api.health');
 Route::get('/ping', [HealthController::class, 'ping'])->name('api.ping');
 
+// Time service endpoints (authenticated)
+use App\Http\Controllers\Api\TimeController;
+Route::middleware('auth')->group(function () {
+    Route::get('/time/current', [TimeController::class, 'current'])->name('api.time.current');
+    Route::get('/time/verify', [TimeController::class, 'verify'])->name('api.time.verify');
+    Route::get('/time/system-info', [TimeController::class, 'systemInfo'])->name('api.time.system-info');
+});
+
 // API v1 routes
 Route::prefix('v1')
     ->middleware('auth:sanctum')
@@ -263,7 +271,7 @@ Route::prefix('vue')
         Route::get('/face-detection/statistics', [
             App\Http\Controllers\FaceDetectionController::class,
             'getStatistics',
-        ])->middleware('permission:view_employees');
+        ]);
         Route::get('/attendance/export', [
             App\Http\Controllers\AttendanceController::class,
             'exportAttendance',

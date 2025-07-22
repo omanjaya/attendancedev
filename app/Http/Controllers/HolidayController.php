@@ -39,7 +39,8 @@ class HolidayController extends Controller
 
         if ($request->filled('year')) {
             $year = $request->year;
-            $query->whereYear('date', $year);
+            // SQLite compatible year filtering
+            $query->whereRaw("strftime('%Y', date) = ?", [$year]);
         }
 
         if ($request->filled('search')) {
@@ -73,9 +74,22 @@ class HolidayController extends Controller
         $holidays = $query->paginate(15);
         $types = Holiday::getTypes();
         $statuses = Holiday::getStatuses();
-        $years = Holiday::selectRaw('DISTINCT YEAR(date) as year')
-            ->orderBy('year', 'desc')
-            ->pluck('year');
+        // SQLite compatible year extraction with fallback for empty table
+        try {
+            $years = Holiday::selectRaw("DISTINCT strftime('%Y', date) as year")
+                ->orderBy('year', 'desc')
+                ->pluck('year');
+            
+            // If no years found, provide current and next year as fallback
+            if ($years->isEmpty()) {
+                $currentYear = date('Y');
+                $years = collect([$currentYear, $currentYear + 1]);
+            }
+        } catch (\Exception $e) {
+            // Fallback in case of any SQL issues
+            $currentYear = date('Y');
+            $years = collect([$currentYear, $currentYear + 1]);
+        }
 
         return view('pages.holidays.index', compact(
             'holidays',
@@ -343,7 +357,8 @@ class HolidayController extends Controller
             $query = Holiday::active();
 
             if ($request->filled('year')) {
-                $query->whereYear('date', $request->year);
+                // SQLite compatible year filtering
+                $query->whereRaw("strftime('%Y', date) = ?", [$request->year]);
             }
 
             if ($request->filled('type')) {

@@ -10,30 +10,30 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Manajemen Karyawan</h1>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Kelola data karyawan, status, dan informasi kepegawaian</p>
+                    <p class="employee-page-desc">Kelola data karyawan, status, dan informasi kepegawaian</p>
                 </div>
                 <div class="flex items-center space-x-3">
                     @can('view_employees_analytics')
                     <button onclick="showEmployeeAnalytics()" class="btn-analytics">
-                        <x-icon.analytics />
+                        <x-icons.analytics />
                         Analytics
                     </button>
                     @endcan
                     @can('export_employees_data')
                     <button onclick="exportEmployees()" class="btn-export">
-                        <x-icon.download />
+                        <x-icons.download />
                         Ekspor Data
                     </button>
                     @endcan
                     @canany(['manage_employees', 'create_employees', 'import_employees_data'])
                     <button onclick="showImportModal()" class="btn-import">
-                        <x-icon.upload />
+                        <x-icons.upload />
                         Import Data
                     </button>
                     @endcanany
                     @can('create_employees')
                     <a href="{{ route('employees.create') }}" class="btn-create">
-                        <x-icon.plus />
+                        <x-icons.plus />
                         Tambah Karyawan
                     </a>
                     @endcan
@@ -44,33 +44,33 @@
         <!-- Employee Statistics Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <!-- Total Employees -->
-            <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <x-ui.card class="employee-card">
                 <div class="flex items-center justify-between mb-4">
                     <div class="p-3 bg-blue-600 rounded-lg shadow-md">
-                        <x-icon.users />
+                        <x-icons.users />
                     </div>
-                    <span class="text-sm text-blue-600 font-medium px-3 py-1 bg-blue-100 dark:bg-blue-900 rounded-full">Total</span>
+                    <span class="employee-stat-badge employee-stat-badge-blue">Total</span>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">{{ $statistics['total'] ?? 0 }}</h3>
-                <p class="text-gray-600 dark:text-gray-400 text-sm">Total Karyawan</p>
-                <div class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                <h3 class="employee-stat-value">{{ $statistics['total'] ?? 0 }}</h3>
+                <p class="employee-stat-label">Total Karyawan</p>
+                <div class="employee-stat-detail">
                     Semua departemen
                 </div>
             </x-ui.card>
 
             <!-- Active Today -->
-            <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <x-ui.card class="employee-card">
                 <div class="flex items-center justify-between mb-4">
                     <div class="p-3 bg-green-600 rounded-lg shadow-md">
-                        <x-icon.check-circle />
+                        <x-icons.check-circle />
                     </div>
-                    <span class="text-sm text-green-600 font-medium px-3 py-1 bg-green-100 dark:bg-green-900 rounded-full">Aktif</span>
+                    <span class="employee-stat-badge employee-stat-badge-green">Aktif</span>
                 </div>
                 <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">{{ $statistics['active_today'] ?? 0 }}</h3>
-                <p class="text-gray-600 dark:text-gray-400 text-sm">Aktif Hari Ini</p>
+                <p class="employee-stat-label">Aktif Hari Ini</p>
                 @if(($statistics['active_today'] ?? 0) > 0)
                 <div class="mt-3">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                    <span class="employee-attendance-badge">
                         {{ round((($statistics['active_today'] ?? 0) / max($statistics['total'] ?? 1, 1)) * 100) }}% tingkat kehadiran
                     </span>
                 </div>
@@ -78,71 +78,71 @@
             </x-ui.card>
 
             <!-- Permanent Staff -->
-            <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <x-ui.card class="employee-card">
                 <div class="flex items-center justify-between mb-4">
                     <div class="p-3 bg-purple-600 rounded-lg shadow-md">
-                        <x-icon.briefcase />
+                        <x-icons.briefcase />
                     </div>
-                    <span class="text-sm text-purple-600 font-medium px-3 py-1 bg-purple-100 dark:bg-purple-900 rounded-full">Tetap</span>
+                    <span class="employee-stat-badge employee-stat-badge-purple">Tetap</span>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">{{ $statistics['permanent'] ?? 0 }}</h3>
-                <p class="text-gray-600 dark:text-gray-400 text-sm">Pegawai Tetap</p>
-                <div class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                <h3 class="employee-stat-value">{{ $statistics['permanent'] ?? 0 }}</h3>
+                <p class="employee-stat-label">Pegawai Tetap</p>
+                <div class="employee-stat-detail">
                     Staff full-time
                 </div>
             </x-ui.card>
 
             <!-- Honorary Teachers -->
-            <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <x-ui.card class="employee-card">
                 <div class="flex items-center justify-between mb-4">
                     <div class="p-3 bg-orange-600 rounded-lg shadow-md">
-                        <x-icon.book-open />
+                        <x-icons.book-open />
                     </div>
-                    <span class="text-sm text-orange-600 font-medium px-3 py-1 bg-orange-100 dark:bg-orange-900 rounded-full">Kontrak</span>
+                    <span class="employee-stat-badge employee-stat-badge-orange">Kontrak</span>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">{{ $statistics['honorary'] ?? 0 }}</h3>
-                <p class="text-gray-600 dark:text-gray-400 text-sm">Guru Honorer</p>
-                <div class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                <h3 class="employee-stat-value">{{ $statistics['honorary'] ?? 0 }}</h3>
+                <p class="employee-stat-label">Guru Honorer</p>
+                <div class="employee-stat-detail">
                     Tenaga kontrak
                 </div>
             </x-ui.card>
         </div>
 
         <!-- Employee Data Table -->
-        <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+        <x-ui.card class="employee-card">
+            <div class="employee-table-header">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Data Karyawan</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Kelola dan pantau data karyawan</p>
+                        <h3 class="employee-table-title">Data Karyawan</h3>
+                        <p class="employee-table-desc">Kelola dan pantau data karyawan</p>
                     </div>
                     <div class="flex items-center space-x-3">
                         <button onclick="refreshEmployeeData()" class="btn-action-small" title="Refresh Data">
-                            <x-icon.refresh />
+                            <x-icons.refresh />
                         </button>
                         <button onclick="toggleTableSettings()" class="btn-action-small" title="Table Settings">
-                            <x-icon.cog />
+                            <x-icons.cog />
                         </button>
                     </div>
                 </div>
             </div>
             <div class="p-6">
                 <!-- Bulk Actions Toolbar -->
-                <div id="bulkActionsToolbar" class="hidden bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-700 mb-4">
+                <div id="bulkActionsToolbar" class="hidden employee-bulk-toolbar">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-3">
-                            <span id="selectedCount" class="text-sm font-medium text-blue-800 dark:text-blue-200">0 item dipilih</span>
-                            <button type="button" onclick="clearSelection()" class="text-sm text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-100 font-medium">
+                            <span id="selectedCount" class="employee-bulk-count">0 item dipilih</span>
+                            <button type="button" onclick="clearSelection()" class="employee-bulk-clear">
                                 Batalkan pilihan
                             </button>
                         </div>
                         <div class="flex items-center space-x-2">
                             <button onclick="bulkExport()" class="btn-bulk-export">
-                                <x-icon.download class="w-4 h-4 mr-1.5" />
+                                <x-icons.download class="w-4 h-4 mr-1.5" />
                                 Ekspor
                             </button>
                             <button onclick="bulkDelete()" class="btn-bulk-delete-light">
-                                <x-icon.trash class="w-4 h-4 mr-1.5" />
+                                <x-icons.trash class="w-4 h-4 mr-1.5" />
                                 Hapus
                             </button>
                         </div>
@@ -159,7 +159,7 @@
                                        placeholder="Cari nama, email, atau ID karyawan..." 
                                        class="form-search">
                                 <div class="absolute left-3 top-1/2 -translate-y-1/2">
-                                    <x-icon.search />
+                                    <x-icons.search />
                                 </div>
                             </div>
                         </div>
@@ -186,53 +186,47 @@
                 </div>
 
                 <!-- Table Header with Count -->
-                <div class="mb-4 flex items-center justify-between bg-white dark:bg-gray-800 px-6 py-4 border border-gray-200 dark:border-gray-700 rounded-t-lg">
+                <div class="employee-count-header">
                     <div class="flex items-center space-x-4">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Data Karyawan</h3>
+                        <h3 class="employee-count-title">Data Karyawan</h3>
                         <div class="flex items-center space-x-2">
-                            <div class="bg-blue-100 dark:bg-blue-900 px-3 py-1 rounded-full">
-                                <span class="text-sm font-medium text-blue-800 dark:text-blue-200" id="total-employees">
-                                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                                    </svg>
+                            <div class="employee-count-badge employee-count-badge-blue">
+                                <span class="employee-count-text employee-count-text-blue" id="total-employees">
+                                    <x-icons.users class="w-4 h-4 inline mr-1" />
                                     Total: <span id="employee-count">0</span>
                                 </span>
                             </div>
-                            <div class="bg-green-100 dark:bg-green-900 px-3 py-1 rounded-full">
-                                <span class="text-sm font-medium text-green-800 dark:text-green-200" id="active-employees">
-                                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
+                            <div class="employee-count-badge employee-count-badge-green">
+                                <span class="employee-count-text employee-count-text-green" id="active-employees">
+                                    <x-icons.check-circle class="w-4 h-4 inline mr-1" />
                                     Aktif: <span id="active-count">0</span>
                                 </span>
                             </div>
-                            <div class="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
-                                <span class="text-sm font-medium text-gray-800 dark:text-gray-200" id="inactive-employees">
-                                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
+                            <div class="employee-count-badge employee-count-badge-gray">
+                                <span class="employee-count-text employee-count-text-gray" id="inactive-employees">
+                                    <x-icons.x class="w-4 h-4 inline mr-1" />
                                     Tidak Aktif: <span id="inactive-count">0</span>
                                 </span>
                             </div>
                         </div>
                     </div>
                     <div class="flex items-center space-x-2">
-                        <span class="text-sm text-gray-500 dark:text-gray-400" id="current-view-info">Memuat data...</span>
+                        <span class="employee-view-info" id="current-view-info">Memuat data...</span>
                     </div>
                 </div>
 
                 <!-- Enhanced Table -->
-                <div class="overflow-x-auto border-x border-gray-200 dark:border-gray-700">
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700" id="employeesTable">
-                        <thead class="bg-gray-50 dark:bg-gray-700">
+                <div class="employee-table-container">
+                    <table class="employee-table" id="employeesTable">
+                        <thead class="employee-table-header-row">
                             <tr>
-                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                <th class="employee-table-th">
                                     <input type="checkbox" id="selectAll" class="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500">
                                 </th>
-                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Karyawan</th>
-                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Kontak</th>
-                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Departemen</th>
+                                <th class="employee-table-th">Karyawan</th>
+                                <th class="employee-table-th">Kontak</th>
+                                <th class="employee-table-th">Status</th>
+                                <th class="employee-table-th">Departemen</th>
                                 <th class="px-6 py-4 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Aksi</th>
                             </tr>
                         </thead>
@@ -263,7 +257,7 @@
                         <!-- Right side - Pagination Controls -->
                         <div class="flex items-center space-x-2">
                             <button id="prev-btn" disabled class="btn-pagination">
-                                <x-icon.chevron-left class="w-4 h-4 mr-1" />
+                                <x-icons.chevron-left class="w-4 h-4 mr-1" />
                                 Sebelumnya
                             </button>
                             
@@ -273,7 +267,7 @@
                             
                             <button id="next-btn" class="btn-pagination">
                                 Selanjutnya
-                                <x-icon.chevron-right class="w-4 h-4 ml-1" />
+                                <x-icons.chevron-right class="w-4 h-4 ml-1" />
                             </button>
                         </div>
                     </div>
@@ -293,7 +287,7 @@
                         <div class="flex items-center space-x-2">
                             @can('manage_employees')
                             <button onclick="confirmBulkDelete()" class="btn-bulk-delete">
-                                <x-icon.trash class="w-4 h-4 mr-1" />
+                                <x-icons.trash class="w-4 h-4 mr-1" />
                                 Hapus Terpilih
                             </button>
                             @endcan
@@ -331,7 +325,7 @@
                     </div>
                     <a href="{{ route('employees.template') }}" 
                        class="btn-success-small">
-                        <x-icon.download class="w-4 h-4 mr-1" />
+                        <x-icons.download class="w-4 h-4 mr-1" />
                         Download Template
                     </a>
                 </div>
@@ -342,7 +336,11 @@
                 <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">📋 Petunjuk Import Data Karyawan:</h4>
                 <ul class="text-sm text-blue-800 dark:text-blue-200 space-y-1">
                     <li>• Download template Excel/CSV terlebih dahulu</li>
-                    <li>• Isi data sesuai format: <code class="text-xs bg-blue-100 dark:bg-blue-800 px-1 rounded">full_name, email, phone, employee_type, role, salary_type, salary_amount, hourly_rate, hire_date, department, position, status</code></li>
+                    <li>• Isi data sesuai format: 
+                        <code class="text-xs bg-blue-100 dark:bg-blue-800 px-1 rounded">
+                            full_name, email, phone, employee_type, role, salary_type, salary_amount, hourly_rate, hire_date, department, position, status
+                        </code>
+                    </li>
                     <li>• Employee type: <strong>permanent</strong>, <strong>honorary</strong>, atau <strong>staff</strong></li>
                     <li>• Role: <strong>super_admin</strong>, <strong>admin</strong>, <strong>kepala_sekolah</strong>, <strong>guru</strong>, atau <strong>pegawai</strong></li>
                     <li>• Salary type: <strong>monthly</strong>, <strong>hourly</strong>, atau <strong>fixed</strong></li>
@@ -412,7 +410,7 @@
             <div class="flex justify-between items-center">
                 <button type="button" onclick="previewImport()" id="previewBtn"
                         class="btn-preview">
-                    <x-icon.eye class="w-4 h-4 inline mr-1" />
+                    <x-icons.eye class="w-4 h-4 inline mr-1" />
                     Preview
                 </button>
                 <div class="flex space-x-3">

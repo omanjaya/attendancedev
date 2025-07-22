@@ -1,12 +1,13 @@
 @props(['name' => 'photo', 'required' => false, 'value' => null])
 
 <div class="space-y-4">
-    <x-ui.label for="{{ $name }}" value="Foto Profil" :required="$required" class="text-slate-700 dark:text-slate-300" />
+    <x-ui.label for="{{ $name }}" value="Foto Profil" :required="$required" 
+                class="text-slate-700 dark:text-slate-300" />
     
     <div class="flex items-start space-x-6">
         <!-- Photo Preview -->
         <div class="relative group">
-            <div class="w-32 h-32 bg-gray-100 dark:bg-gray-700 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center overflow-hidden transition-all duration-300 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20">
+            <div class="photo-preview-container">
                 <img id="photoPreview" 
                      src="{{ $value ? asset('storage/' . $value) : '' }}" 
                      alt="Photo Preview" 
@@ -14,9 +15,7 @@
                      style="display: {{ $value ? 'block' : 'none' }}">
                 
                 <div id="photoPlaceholder" class="text-center {{ $value ? 'hidden' : '' }}">
-                    <svg class="w-8 h-8 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                    </svg>
+                    <x-icons.plus class="w-8 h-8 mx-auto mb-2 text-gray-400" />
                     <p class="text-xs text-gray-500">Foto</p>
                 </div>
             </div>
@@ -24,11 +23,9 @@
             <!-- Remove Photo Button -->
             <button type="button" 
                     id="removePhotoBtn" 
-                    class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs transition-colors duration-200 {{ $value ? '' : 'hidden' }}"
+                    class="photo-remove-btn {{ $value ? '' : 'hidden' }}"
                     onclick="removePhoto()">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
+                <x-icons.x class="w-3 h-3" />
             </button>
         </div>
         
@@ -45,10 +42,8 @@
                 <x-ui.button type="button" 
                            variant="outline" 
                            onclick="document.getElementById('{{ $name }}').click()"
-                           class="bg-white/30 backdrop-blur-sm border border-white/40 text-slate-800 dark:text-white hover:bg-white/40 focus:ring-2 focus:ring-blue-500/50 transition-all duration-300">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                    </svg>
+                           class="photo-upload-btn">
+                    <x-icons.image class="w-4 h-4 mr-2" />
                     Pilih Foto
                 </x-ui.button>
             </div>
@@ -57,7 +52,7 @@
                 <p>• Format: JPG, PNG, GIF</p>
                 <p>• Ukuran maksimal: 2MB</p>
                 <p>• Resolusi disarankan: 300x300px</p>
-                <p class="text-blue-600 dark:text-blue-400 font-medium">• Foto ini akan digunakan untuk deteksi wajah pada absensi</p>
+                <p class="face-detection-info">• Foto ini akan digunakan untuk deteksi wajah pada absensi</p>
             </div>
             
             <!-- Face Detection Status -->
@@ -73,22 +68,18 @@
                 <x-ui.button type="button" 
                            variant="primary" 
                            onclick="startFaceEnrollment()"
-                           class="w-full bg-blue-600 hover:bg-blue-700 text-white">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
+                           class="face-enrollment-btn">
+                    <x-icons.check-circle class="w-4 h-4 mr-2" />
                     Daftarkan Wajah untuk Absensi
                 </x-ui.button>
-                <p class="text-xs text-gray-500 mt-1 text-center">Klik untuk menyimpan data wajah dan mengaktifkan deteksi otomatis</p>
+                <p class="face-enrollment-hint">Klik untuk menyimpan data wajah dan mengaktifkan deteksi otomatis</p>
             </div>
             
             <!-- Face Enrolled Status -->
             <div id="faceEnrolledStatus" class="hidden">
-                <div class="flex items-center justify-center space-x-2 text-sm p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
-                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <span class="text-green-700 dark:text-green-400 font-medium">Wajah sudah terdaftar untuk deteksi absensi</span>
+                <div class="face-enrolled-status">
+                    <x-icons.check-circle class="w-5 h-5 text-green-600" />
+                    <span class="face-enrolled-text">Wajah sudah terdaftar untuk deteksi absensi</span>
                 </div>
             </div>
         </div>
@@ -200,7 +191,9 @@ async function analyzeFaceInPhoto(imageDataUrl) {
             faceDetectionStatus.innerHTML = `
                 <div class="flex items-center space-x-2 text-sm">
                     <div class="w-3 h-3 bg-red-500 rounded-full"></div>
-                    <span class="text-red-600 dark:text-red-400">Wajah tidak terdeteksi. Pastikan foto menampilkan wajah dengan jelas.</span>
+                    <span class="face-status-text-red">
+                        Wajah tidak terdeteksi. Pastikan foto menampilkan wajah dengan jelas.
+                    </span>
                 </div>
             `;
         }
@@ -209,7 +202,9 @@ async function analyzeFaceInPhoto(imageDataUrl) {
         faceDetectionStatus.innerHTML = `
             <div class="flex items-center space-x-2 text-sm">
                 <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                <span class="text-yellow-600 dark:text-yellow-400">Gagal menganalisis wajah. Foto akan disimpan tanpa data wajah.</span>
+                <span class="face-status-text-yellow">
+                    Gagal menganalisis wajah. Foto akan disimpan tanpa data wajah.
+                </span>
             </div>
         `;
     }
@@ -273,9 +268,10 @@ async function startFaceEnrollment() {
         
         // Reset enrollment section
         enrollmentSection.innerHTML = `
-            <button type="button" onclick="startFaceEnrollment()" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200">
+            <button type="button" onclick="startFaceEnrollment()" class="js-face-enrollment-btn">
                 <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
                 Daftarkan Wajah untuk Absensi
             </button>

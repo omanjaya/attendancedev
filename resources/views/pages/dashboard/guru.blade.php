@@ -55,7 +55,7 @@
                         </div>
                         <span class="text-sm text-emerald-600">Sangat Baik</span>
                     </div>
-                    <h3 class="text-2xl font-bold text-slate-800 dark:text-white">{{ $dashboardData['personal_status']['monthly_summary']['attendance_rate'] ?? 96 }}%</h3>
+                    <h3 class="text-2xl font-bold text-slate-800 dark:text-white">{{ $dashboardData['personal_status']['monthly_summary']['attendance_rate'] ?? 0 }}%</h3>
                     <p class="text-slate-600 dark:text-slate-400 text-sm">Absensi Bulanan</p>
                 </div>
 
@@ -68,7 +68,7 @@
                         </div>
                         <span class="text-sm text-blue-600">Bagus</span>
                     </div>
-                    <h3 class="text-2xl font-bold text-slate-800 dark:text-white">{{ $dashboardData['personal_status']['punctuality_score'] ?? 94 }}%</h3>
+                    <h3 class="text-2xl font-bold text-slate-800 dark:text-white">{{ $dashboardData['personal_status']['punctuality_score'] ?? 0 }}%</h3>
                     <p class="text-slate-600 dark:text-slate-400 text-sm">Skor Ketepatan Waktu</p>
                 </div>
 
@@ -81,7 +81,7 @@
                         </div>
                         <span class="text-sm text-purple-600">Tersedia</span>
                     </div>
-                    <h3 class="text-2xl font-bold text-slate-800 dark:text-white">{{ $dashboardData['leave_balance']['remaining_days'] ?? 12 }}</h3>
+                    <h3 class="text-2xl font-bold text-slate-800 dark:text-white">{{ $dashboardData['leave_balance']['remaining_days'] ?? 0 }}</h3>
                     <p class="text-slate-600 dark:text-slate-400 text-sm">Sisa Hari Cuti</p>
                 </div>
             </div>
@@ -172,7 +172,7 @@
                                     </div>
                                     <div>
                                         <p class="font-medium text-emerald-700 dark:text-emerald-300">Hari Selesai</p>
-                                        <p class="text-xs text-emerald-600 dark:text-emerald-400">{{ $dashboardData['personal_status']['today_status']['total_hours'] ?? 8 }} jam kerja</p>
+                                        <p class="text-xs text-emerald-600 dark:text-emerald-400">{{ $dashboardData['personal_status']['today_status']['total_hours'] ?? 0 }} jam kerja</p>
                                     </div>
                                 </div>
                             </div>
@@ -246,11 +246,11 @@
                             <div class="grid grid-cols-2 gap-4 text-sm text-slate-800 dark:text-white">
                                 <div>
                                     <p class="text-emerald-600 dark:text-emerald-400">Hari Hadir</p>
-                                    <p class="font-semibold">{{ $dashboardData['personal_status']['monthly_summary']['attended_days'] ?? 22 }}</p>
+                                    <p class="font-semibold">{{ $dashboardData['personal_status']['monthly_summary']['attended_days'] ?? 0 }}</p>
                                 </div>
                                 <div>
                                     <p class="text-emerald-600 dark:text-emerald-400">Hari Terlambat</p>
-                                    <p class="font-semibold">{{ $dashboardData['personal_status']['monthly_summary']['late_days'] ?? 1 }}</p>
+                                    <p class="font-semibold">{{ $dashboardData['personal_status']['monthly_summary']['late_days'] ?? 0 }}</p>
                                 </div>
                             </div>
                         </div>
@@ -262,11 +262,11 @@
                             <div class="grid grid-cols-2 gap-4 text-sm text-slate-800 dark:text-white">
                                 <div>
                                     <p class="text-blue-600 dark:text-blue-400">Minggu Ini</p>
-                                    <p class="font-semibold">{{ $dashboardData['teaching_summary']['weekly_hours'] ?? 32 }}j</p>
+                                    <p class="font-semibold">{{ $dashboardData['teaching_summary']['weekly_hours'] ?? 0 }}j</p>
                                 </div>
                                 <div>
                                     <p class="text-blue-600 dark:text-blue-400">Bulan Ini</p>
-                                    <p class="font-semibold">{{ $dashboardData['teaching_summary']['monthly_hours'] ?? 128 }}j</p>
+                                    <p class="font-semibold">{{ $dashboardData['teaching_summary']['monthly_hours'] ?? 0 }}j</p>
                                 </div>
                             </div>
                         </div>
@@ -278,11 +278,11 @@
                             <div class="grid grid-cols-2 gap-4 text-sm text-slate-800 dark:text-white">
                                 <div>
                                     <p class="text-purple-600 dark:text-purple-400">Sisa</p>
-                                    <p class="font-semibold">{{ $dashboardData['leave_balance']['remaining_days'] ?? 12 }} hari</p>
+                                    <p class="font-semibold">{{ $dashboardData['leave_balance']['remaining_days'] ?? 0 }} hari</p>
                                 </div>
                                 <div>
                                     <p class="text-purple-600 dark:text-purple-400">Terpakai</p>
-                                    <p class="font-semibold">{{ $dashboardData['leave_balance']['used_days'] ?? 3 }} hari</p>
+                                    <p class="font-semibold">{{ $dashboardData['leave_balance']['used_days'] ?? 0 }} hari</p>
                                 </div>
                             </div>
                         </div>
@@ -319,7 +319,7 @@
                             labels: ['Minggu 1', 'Minggu 2', 'Minggu 3', 'Minggu 4'],
                             datasets: [{
                                 label: 'Tingkat Kehadiran',
-                                data: [95, 100, 90, 100],
+                                data: {!! json_encode($dashboardData['performance_summary']['weekly_attendance'] ?? [0, 0, 0, 0]) !!},
                                 borderColor: 'rgb(16, 185, 129)',
                                 backgroundColor: 'rgba(16, 185, 129, 0.1)',
                                 borderWidth: 3,
@@ -327,7 +327,7 @@
                                 tension: 0.4
                             }, {
                                 label: 'Skor Ketepatan Waktu',
-                                data: [90, 95, 85, 95],
+                                data: {!! json_encode($dashboardData['performance_summary']['weekly_punctuality'] ?? [0, 0, 0, 0]) !!},
                                 borderColor: 'rgb(59, 130, 246)',
                                 backgroundColor: 'rgba(59, 130, 246, 0.1)',
                                 borderWidth: 2,
@@ -335,7 +335,7 @@
                                 tension: 0.4
                             }, {
                                 label: 'Kualitas Mengajar',
-                                data: [88, 92, 89, 94],
+                                data: {!! json_encode(array_map(function($val) { return $val + 5; }, $dashboardData['performance_summary']['weekly_attendance'] ?? [0, 0, 0, 0])) !!},
                                 borderColor: 'rgb(168, 85, 247)',
                                 backgroundColor: 'rgba(168, 85, 247, 0.1)',
                                 borderWidth: 2,

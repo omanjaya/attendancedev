@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\UserCredentialController;
 
 /**
  * Employee Management Routes
@@ -12,14 +13,10 @@ Route::middleware(['auth', 'verified'])
     ->name('employees.')
     ->group(function () {
 
-        // Standard CRUD routes
+        // Standard CRUD routes (non-wildcard routes first)
         Route::get('/', [EmployeeController::class, 'index'])->name('index');
         Route::get('/create', [EmployeeController::class, 'create'])->name('create');
         Route::post('/', [EmployeeController::class, 'store'])->name('store');
-        Route::get('/{employee}', [EmployeeController::class, 'show'])->name('show');
-        Route::get('/{employee}/edit', [EmployeeController::class, 'edit'])->name('edit');
-        Route::put('/{employee}', [EmployeeController::class, 'update'])->name('update');
-        Route::delete('/{employee}', [EmployeeController::class, 'destroy'])->name('destroy');
 
         // AJAX routes
         Route::get('/api/data', [EmployeeController::class, 'data'])->name('data');
@@ -44,4 +41,42 @@ Route::middleware(['auth', 'verified'])
         Route::get('/download/template', [EmployeeController::class, 'template'])
             ->middleware('permission:import_employees_data')
             ->name('template');
+
+        // User Credential Management Routes
+        Route::prefix('credentials')
+            ->name('credentials.')
+            ->group(function () {
+                
+                // Main page for user credential management
+                Route::get('/', [UserCredentialController::class, 'index'])->name('index');
+                
+                // AJAX data endpoints
+                Route::get('/api/without-users', [UserCredentialController::class, 'getEmployeesWithoutUsers'])
+                    ->name('api.without-users');
+                Route::get('/api/with-users', [UserCredentialController::class, 'getEmployeesWithUsers'])
+                    ->name('api.with-users');
+                
+                // Single user operations
+                Route::post('/create-user', [UserCredentialController::class, 'createUser'])
+                    ->name('create-user');
+                Route::post('/reset-password', [UserCredentialController::class, 'resetPassword'])
+                    ->name('reset-password');
+                
+                // Bulk operations
+                Route::post('/bulk/create-users', [UserCredentialController::class, 'bulkCreateUsers'])
+                    ->name('bulk.create-users');
+                Route::post('/bulk/reset-passwords', [UserCredentialController::class, 'bulkResetPasswords'])
+                    ->name('bulk.reset-passwords');
+                
+                // Export credentials
+                Route::post('/export', [UserCredentialController::class, 'exportCredentials'])
+                    ->middleware('permission:export_data')
+                    ->name('export');
+            });
+
+        // Wildcard routes (must be last to avoid conflicts)
+        Route::get('/{employee}', [EmployeeController::class, 'show'])->name('show');
+        Route::get('/{employee}/edit', [EmployeeController::class, 'edit'])->name('edit');
+        Route::put('/{employee}', [EmployeeController::class, 'update'])->name('update');
+        Route::delete('/{employee}', [EmployeeController::class, 'destroy'])->name('destroy');
     });

@@ -18,7 +18,8 @@ class AttendanceService implements AttendanceServiceInterface
 {
     public function __construct(
         private readonly FaceRecognitionService $faceService,
-        private readonly NotificationService $notificationService
+        private readonly NotificationService $notificationService,
+        private readonly TimeService $timeService
     ) {}
 
     /**
@@ -58,18 +59,23 @@ class AttendanceService implements AttendanceServiceInterface
                 $photoPath = $photo->store('attendance-photos/' . date('Y/m/d'), 'public');
             }
 
+            // Get accurate WITA time from TimeService
+            $attendanceTime = $this->timeService->getAttendanceTime();
+            $currentTime = $attendanceTime['timestamp'];
+            
             // Create or update attendance record
             $attendance = Attendance::updateOrCreate(
                 [
                     'employee_id' => $employee->id,
-                    'date' => Carbon::today(),
+                    'date' => $this->timeService->today(),
                 ],
                 [
-                    'check_in' => Carbon::now(),
+                    'check_in' => $currentTime,
                     'check_in_location' => $locationData,
                     'check_in_photo' => $photoPath,
                     'check_in_face_confidence' => $faceData['confidence'] ?? null,
-                    'status' => $this->determineStatus(Carbon::now(), 'check_in', $employee),
+                    'status' => $this->determineStatus($currentTime, 'check_in', $employee),
+                    'time_verification' => $attendanceTime['verification'], // Store time verification data
                 ]
             );
 
@@ -77,7 +83,10 @@ class AttendanceService implements AttendanceServiceInterface
             $this->notificationService->send(
                 $employee->user,
                 'attendance.checked_in',
-                ['time' => Carbon::now()->format('H:i')]
+                [
+                    'time' => $attendanceTime['formatted']['time'],
+                    'date' => $attendanceTime['formatted']['date'],
+                ]
             );
 
             return $attendance;
@@ -125,14 +134,19 @@ class AttendanceService implements AttendanceServiceInterface
                 $photoPath = $photo->store('attendance-photos/' . date('Y/m/d'), 'public');
             }
 
+            // Get accurate WITA time from TimeService
+            $attendanceTime = $this->timeService->getAttendanceTime();
+            $currentTime = $attendanceTime['timestamp'];
+            
             // Update attendance record
             $attendance->update([
-                'check_out' => Carbon::now(),
+                'check_out' => $currentTime,
                 'check_out_location' => $locationData,
                 'check_out_photo' => $photoPath,
                 'check_out_face_confidence' => $faceData['confidence'] ?? null,
-                'working_hours' => $this->calculateWorkingHours($attendance),
-                'overtime_hours' => $this->calculateOvertimeHours($attendance, $employee),
+                'working_hours' => $this->calculateWorkingHours($attendance, $currentTime),
+                'overtime_hours' => $this->calculateOvertimeHours($attendance, $employee, $currentTime),
+                'time_verification' => $attendanceTime['verification'], // Store time verification data
             ]);
 
             // Send notification
@@ -330,8 +344,11 @@ class AttendanceService implements AttendanceServiceInterface
      */
     private function getTodayAttendance(Employee $employee): ?Attendance
     {
+        $today = now('Asia/Makassar')->startOfDay();
+        $todayDate = $today->format('Y-m-d');
+        
         return $employee->attendances()
-            ->whereDate('date', Carbon::today())
+            ->whereDate('date', $todayDate)
             ->first();
     }
 

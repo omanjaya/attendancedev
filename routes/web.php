@@ -30,6 +30,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/data', [DashboardController::class, 'getData'])->name('dashboard.api.data');
         Route::get('/chart-data', [DashboardController::class, 'getChartData'])->name('dashboard.api.chart-data');
         Route::get('/widget/{widget}', [DashboardController::class, 'getWidgetData'])->name('dashboard.api.widget');
+        
+        // Additional endpoints for attendance dashboard
+        Route::get('/stats', [DashboardController::class, 'getAttendanceStats'])->name('dashboard.api.stats');
+        Route::get('/attendance', [DashboardController::class, 'getAttendanceDashboard'])->name('dashboard.api.attendance');
+        Route::get('/face-detection/statistics', [
+            App\Http\Controllers\FaceDetectionController::class, 'getStatistics'
+        ])->name('dashboard.api.face-detection');
     });
 
     // Profile Management (Laravel Breeze)
@@ -183,3 +190,4 @@ require __DIR__.'/system.php'; // System administration
 require __DIR__.'/reports.php'; // Reports and analytics
 require __DIR__.'/holidays.php'; // Holiday and school calendar management
 require __DIR__.'/manual_attendance.php'; // Manual attendance entry
+require __DIR__.'/schedule_management.php'; // Schedule management system

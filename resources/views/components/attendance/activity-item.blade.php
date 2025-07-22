@@ -64,7 +64,7 @@
     $actionData = $actionConfig[$action] ?? $actionConfig['checked_in'];
 @endphp
 
-<div {{ $attributes->merge(['class' => 'flex items-center p-4 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors']) }}>
+<div {{ $attributes->merge(['class' => 'activity-item-container']) }}>
     <!-- Employee Avatar -->
     <div class="flex-shrink-0">
         <x-ui.avatar 
@@ -91,10 +91,18 @@
         <div class="flex items-center mt-2 space-x-3">
             <!-- Action with Icon -->
             <div class="flex items-center">
-                <div class="h-6 w-6 rounded-full flex items-center justify-center {{ $config['iconBg'] }}">
-                    <svg class="h-3 w-3 {{ $config['iconColor'] }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $actionData['icon'] }}"/>
-                    </svg>
+                <div class="activity-icon-container {{ $config['iconBg'] }}">
+                    @switch($action)
+                        @case('checked_in')
+                            <x-icons.login class="activity-icon {{ $config['iconColor'] }}" />
+                            @break
+                        @case('checked_out')
+                            <x-icons.logout class="activity-icon {{ $config['iconColor'] }}" />
+                            @break
+                        @case('leave_request')
+                            <x-icons.calendar class="activity-icon {{ $config['iconColor'] }}" />
+                            @break
+                    @endswitch
                 </div>
                 <span class="ml-2 text-sm text-foreground">
                     {{ $actionData['text'] }} 
@@ -118,10 +126,7 @@
             <!-- Location -->
             @if($location)
                 <span class="text-xs text-muted-foreground flex items-center">
-                    <svg class="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                    </svg>
+                    <x-icons.location-pin class="activity-location-icon" />
                     {{ $location }}
                 </span>
             @endif

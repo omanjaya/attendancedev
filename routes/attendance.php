@@ -24,6 +24,12 @@ Route::middleware(['auth', 'verified'])
             ->name('attendance.check-in')
             ->middleware('permission:manage_attendance_own');
 
+        Route::get('/mobile-checkin', function () {
+            return view('pages.attendance.mobile-checkin');
+        })
+            ->name('attendance.mobile-checkin')
+            ->middleware('permission:manage_attendance_own');
+
         Route::get('/history', [AttendanceController::class, 'history'])
             ->name('attendance.history')
             ->middleware('permission:view_attendance_own');
@@ -70,5 +76,35 @@ Route::middleware(['auth', 'verified'])
             Route::get('/today-schedule', [AttendanceController::class, 'getTodayScheduleAndStatus'])
                 ->name('attendance.api.today-schedule')
                 ->middleware('permission:view_attendance_own');
+
+            Route::get('/current-status', [AttendanceController::class, 'getCurrentStatus'])
+                ->name('attendance.api.current-status')
+                ->middleware('permission:view_attendance_own');
         });
+    });
+
+// Employee photo API for face recognition
+Route::middleware(['auth', 'verified'])
+    ->prefix('api/employee')
+    ->group(function () {
+        Route::get('/photo', function () {
+            $user = auth()->user();
+            $employee = $user->employee;
+            
+            if ($employee && $employee->photo_path) {
+                return response()->json([
+                    'success' => true,
+                    'photo_url' => asset('storage/' . $employee->photo_path),
+                    'employee_name' => $employee->name
+                ]);
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'No employee photo found',
+                'photo_url' => null
+            ]);
+        })
+            ->name('api.employee.photo')
+            ->middleware('permission:view_attendance_own');
     });
