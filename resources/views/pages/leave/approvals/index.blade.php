@@ -1,4 +1,4 @@
-@extends('layouts.authenticated-unified')
+@extends('layouts.authenticated')
 
 @section('title', 'Persetujuan Cuti')
 
@@ -29,56 +29,40 @@
             </x-slot>
         </x-layouts.base-page>
 
-        <!-- Statistics Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out hover:bg-white/30 hover:scale-105">
-                <div class="flex items-center justify-between">
-                    <div class="flex-1">
-                        <p class="text-sm font-medium text-slate-600 dark:text-slate-400">Permintaan Tertunda</p>
-                        <p class="text-3xl font-bold text-slate-800 dark:text-white mt-1">{{ $stats['pending_requests'] }}</p>
-                    </div>
-                    <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform duration-300">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    </div>
+        <!-- Statistics Cards - macOS Style (Responsive) -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <x-ui.card class="p-3 sm:p-4">
+                <div class="flex items-center justify-between mb-2 sm:mb-3">
+                    <x-icons.clock class="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
+                    <span class="badge badge-warning text-[10px] sm:text-xs">Tertunda</span>
                 </div>
-                <p class="text-xs text-slate-600 dark:text-slate-400 mt-2">Menunggu persetujuan Anda</p>
-            </div>
-            <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out hover:bg-white/30 hover:scale-105">
-                <div class="flex items-center justify-between">
-                    <div class="flex-1">
-                        <p class="text-sm font-medium text-slate-600 dark:text-slate-400">Darurat</p>
-                        <p class="text-3xl font-bold text-slate-800 dark:text-white mt-1">{{ $stats['emergency_requests'] }}</p>
-                    </div>
-                    <div class="w-12 h-12 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform duration-300">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4v.01"/><path d="M5 19h14a2 2 0 0 0 1.84 -2.75l-7.1 -12.25a2 2 0 0 0 -3.5 0l-7.1 12.25a2 2 0 0 0 1.75 2.75"/></svg>
-                    </div>
+                <p class="metric-label mb-0.5 sm:mb-1">Permintaan Tertunda</p>
+                <p class="metric-value">{{ $stats['pending_requests'] }}</p>
+            </x-ui.card>
+            <x-ui.card class="p-3 sm:p-4">
+                <div class="flex items-center justify-between mb-2 sm:mb-3">
+                    <x-icons.exclamation-triangle class="w-4 h-4 sm:w-5 sm:h-5 text-destructive" />
+                    <span class="badge badge-destructive text-[10px] sm:text-xs">Darurat</span>
                 </div>
-                <p class="text-xs text-slate-600 dark:text-slate-400 mt-2">Permintaan prioritas tinggi</p>
-            </div>
-            <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out hover:bg-white/30 hover:scale-105">
-                <div class="flex items-center justify-between">
-                    <div class="flex-1">
-                        <p class="text-sm font-medium text-slate-600 dark:text-slate-400">Disetujui</p>
-                        <p class="text-3xl font-bold text-slate-800 dark:text-white mt-1">{{ $stats['approved_this_month'] }}</p>
-                    </div>
-                    <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform duration-300">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12l5 5l10 -10"/></svg>
-                    </div>
+                <p class="metric-label mb-0.5 sm:mb-1">Darurat</p>
+                <p class="metric-value">{{ $stats['emergency_requests'] }}</p>
+            </x-ui.card>
+            <x-ui.card class="p-3 sm:p-4">
+                <div class="flex items-center justify-between mb-2 sm:mb-3">
+                    <x-icons.check-circle class="w-4 h-4 sm:w-5 sm:h-5 text-success" />
+                    <span class="badge badge-success text-[10px] sm:text-xs">Disetujui</span>
                 </div>
-                <p class="text-xs text-slate-600 dark:text-slate-400 mt-2">Bulan ini</p>
-            </div>
-            <div class="group relative bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ease-out hover:bg-white/30 hover:scale-105">
-                <div class="flex items-center justify-between">
-                    <div class="flex-1">
-                        <p class="text-sm font-medium text-slate-600 dark:text-slate-400">Total Permintaan</p>
-                        <p class="text-3xl font-bold text-slate-800 dark:text-white mt-1">{{ $stats['total_this_month'] }}</p>
-                    </div>
-                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform duration-300">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"/><path d="M16 3l0 4"/><path d="M8 3l0 4"/><path d="M4 11l16 0"/></svg>
-                    </div>
+                <p class="metric-label mb-0.5 sm:mb-1">Disetujui</p>
+                <p class="metric-value">{{ $stats['approved_this_month'] }}</p>
+            </x-ui.card>
+            <x-ui.card class="p-3 sm:p-4">
+                <div class="flex items-center justify-between mb-2 sm:mb-3">
+                    <x-icons.calendar class="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                    <span class="badge badge-info text-[10px] sm:text-xs">Total</span>
                 </div>
-                <p class="text-xs text-slate-600 dark:text-slate-400 mt-2">Bulan ini</p>
-            </div>
+                <p class="metric-label mb-0.5 sm:mb-1">Total Permintaan</p>
+                <p class="metric-value">{{ $stats['total_this_month'] }}</p>
+            </x-ui.card>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">

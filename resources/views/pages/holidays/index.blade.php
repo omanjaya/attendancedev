@@ -1,4 +1,4 @@
-@extends('layouts.authenticated-unified')
+@extends('layouts.authenticated')
 
 @section('title', 'Manajemen Hari Libur')
 
@@ -89,27 +89,39 @@
             </form>
         </x-ui.card>
 
-        <!-- Statistics -->
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
-            <x-ui.card variant="metric" title="Total Hari Libur" :value="$holidays->total()" color="destructive">
-                <x-slot name="icon">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                </x-slot>
+        <!-- Statistics - macOS Style (Responsive) -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <x-ui.card class="p-3 sm:p-4">
+                <div class="flex items-center justify-between mb-2 sm:mb-3">
+                    <x-icons.calendar class="w-4 h-4 sm:w-5 sm:h-5 text-destructive" />
+                    <span class="badge badge-destructive text-[10px] sm:text-xs">Total</span>
+                </div>
+                <p class="metric-label mb-0.5 sm:mb-1">Total Hari Libur</p>
+                <p class="metric-value">{{ $holidays->total() }}</p>
             </x-ui.card>
-            <x-ui.card variant="metric" title="Tahun Ini" :value="\App\Models\Holiday::whereYear('date', now()->year)->count()" color="info">
-                 <x-slot name="icon">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                </x-slot>
+            <x-ui.card class="p-3 sm:p-4">
+                <div class="flex items-center justify-between mb-2 sm:mb-3">
+                    <x-icons.check-circle class="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                    <span class="badge badge-info text-[10px] sm:text-xs">{{ now()->year }}</span>
+                </div>
+                <p class="metric-label mb-0.5 sm:mb-1">Tahun Ini</p>
+                <p class="metric-value">{{ \App\Models\Holiday::whereYear('date', now()->year)->count() }}</p>
             </x-ui.card>
-            <x-ui.card variant="metric" title="Akan Datang" :value="\App\Models\Holiday::active()->where('date', '>=', now())->count()" color="success">
-                 <x-slot name="icon">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-                </x-slot>
+            <x-ui.card class="p-3 sm:p-4">
+                <div class="flex items-center justify-between mb-2 sm:mb-3">
+                    <x-icons.arrow-trending-up class="w-4 h-4 sm:w-5 sm:h-5 text-success" />
+                    <span class="badge badge-success text-[10px] sm:text-xs">Akan Datang</span>
+                </div>
+                <p class="metric-label mb-0.5 sm:mb-1">Akan Datang</p>
+                <p class="metric-value">{{ \App\Models\Holiday::active()->where('date', '>=', now())->count() }}</p>
             </x-ui.card>
-            <x-ui.card variant="metric" title="Berulang" :value="\App\Models\Holiday::recurring()->count()" color="warning">
-                 <x-slot name="icon">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                </x-slot>
+            <x-ui.card class="p-3 sm:p-4">
+                <div class="flex items-center justify-between mb-2 sm:mb-3">
+                    <x-icons.arrow-path class="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
+                    <span class="badge badge-warning text-[10px] sm:text-xs">Berulang</span>
+                </div>
+                <p class="metric-label mb-0.5 sm:mb-1">Berulang</p>
+                <p class="metric-value">{{ \App\Models\Holiday::recurring()->count() }}</p>
             </x-ui.card>
         </div>
 

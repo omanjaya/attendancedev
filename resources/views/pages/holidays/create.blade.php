@@ -1,38 +1,22 @@
-@extends('layouts.authenticated-unified')
+@extends('layouts.authenticated')
 
 @section('title', 'Create Holiday')
 
 @section('page-content')
-<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-    <!-- Modern Header with Glassmorphism -->
-    <div class="relative overflow-hidden">
-        <div class="absolute inset-0 bg-gradient-to-r from-amber-600/10 via-orange-600/10 to-red-600/10"></div>
-        <div class="relative px-4 sm:px-6 lg:px-8 py-8">
-            <div class="max-w-4xl mx-auto">
-                <div class="flex items-center justify-between">
-                    <div class="space-y-2">
-                        <div class="flex items-center space-x-3">
-                            <div class="p-3 bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl shadow-lg shadow-amber-500/25">
-                                <x-icons.calendar class="w-8 h-8 text-white" />
-                            </div>
-                            <div>
-                                <h1 class="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-                                    Create New Holiday
-                                </h1>
-                                <p class="text-lg text-gray-600 dark:text-gray-400">
-                                    Add a new holiday to the calendar system
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="flex items-center space-x-3">
-                        <a href="{{ route('holidays.index') }}" 
-                           class="modern-btn-secondary group">
-                            <x-icons.arrow-left class="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" />
-                            Back to Holidays
-                        </a>
-                    </div>
+<div class="page-container">
+    <!-- Page Header - macOS Style -->
+    <div class="p-4 sm:p-6 lg:p-8">
+        <div class="page-header">
+            <div class="page-header-flex">
+                <div>
+                    <h1 class="page-title">Tambah Hari Libur</h1>
+                    <p class="page-desc">Tambahkan hari libur baru ke sistem kalender</p>
+                </div>
+                <div class="page-actions">
+                    <x-ui.button variant="outline" href="{{ route('holidays.index') }}">
+                        <x-icons.arrow-left class="w-4 h-4" />
+                        <span class="hidden sm:inline">Kembali</span>
+                    </x-ui.button>
                 </div>
             </div>
         </div>

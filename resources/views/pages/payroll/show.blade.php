@@ -1,4 +1,4 @@
-@extends('layouts.authenticated-unified')
+@extends('layouts.authenticated')
 
 @section('title', 'Payroll Details')
 
@@ -28,13 +28,12 @@
         </ol>
     </nav>
     
-    <!-- Page Header -->
-    <div class="mb-8">
-        
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <!-- Page Header - macOS Style -->
+    <div class="page-header">
+        <div class="page-header-flex">
             <div>
-                <h1 class="text-3xl font-bold text-foreground">Payroll Details</h1>
-                <p class="text-muted-foreground mt-1">John Doe - January 2024</p>
+                <h1 class="page-title">Detail Penggajian</h1>
+                <p class="page-desc">John Doe - January 2024</p>
             </div>
             
             <div class="flex flex-wrap items-center gap-3">

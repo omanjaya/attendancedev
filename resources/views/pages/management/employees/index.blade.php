@@ -1,128 +1,106 @@
-@extends('layouts.authenticated-unified')
+@extends('layouts.authenticated')
 
 @section('title', 'Manajemen Karyawan')
 
 @section('page-content')
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+<div class="min-h-screen bg-background">
     <div class="p-6 lg:p-8">
-        <!-- Page Header -->
-        <div class="mb-8">
+        <!-- Page Header - macOS Style -->
+        <div class="mb-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Manajemen Karyawan</h1>
-                    <p class="employee-page-desc">Kelola data karyawan, status, dan informasi kepegawaian</p>
+                    <h1 class="page-title">Manajemen Karyawan</h1>
+                    <p class="page-desc">Kelola data karyawan dan kepegawaian</p>
                 </div>
-                <div class="flex items-center space-x-3">
+                <div class="flex items-center gap-2">
                     @can('view_employees_analytics')
-                    <button onclick="showEmployeeAnalytics()" class="btn-analytics">
-                        <x-icons.analytics />
+                    <x-ui.button variant="ghost" onclick="showEmployeeAnalytics()">
+                        <x-icons.analytics class="w-4 h-4" />
                         Analytics
-                    </button>
+                    </x-ui.button>
                     @endcan
                     @can('export_employees_data')
-                    <button onclick="exportEmployees()" class="btn-export">
-                        <x-icons.download />
-                        Ekspor Data
-                    </button>
+                    <x-ui.button variant="outline" onclick="exportEmployees()">
+                        <x-icons.download class="w-4 h-4" />
+                        Ekspor
+                    </x-ui.button>
                     @endcan
                     @canany(['manage_employees', 'create_employees', 'import_employees_data'])
-                    <button onclick="showImportModal()" class="btn-import">
-                        <x-icons.upload />
-                        Import Data
-                    </button>
+                    <x-ui.button variant="outline" onclick="showImportModal()">
+                        <x-icons.upload class="w-4 h-4" />
+                        Import
+                    </x-ui.button>
                     @endcanany
                     @can('create_employees')
-                    <a href="{{ route('employees.create') }}" class="btn-create">
-                        <x-icons.plus />
-                        Tambah Karyawan
-                    </a>
+                    <x-ui.button variant="primary" href="{{ route('employees.create') }}">
+                        <x-icons.plus class="w-4 h-4" />
+                        Tambah
+                    </x-ui.button>
                     @endcan
                 </div>
             </div>
         </div>
 
-        <!-- Employee Statistics Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <!-- Total Employees -->
-            <x-ui.card class="employee-card">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 bg-blue-600 rounded-lg shadow-md">
-                        <x-icons.users />
-                    </div>
-                    <span class="employee-stat-badge employee-stat-badge-blue">Total</span>
+        <!-- Employee Statistics - macOS Widget Style (Responsive) -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <x-ui.card class="p-3 sm:p-4">
+                <div class="flex items-center justify-between mb-2 sm:mb-3">
+                    <x-icons.users class="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                    <span class="badge badge-info text-[10px] sm:text-xs">Total</span>
                 </div>
-                <h3 class="employee-stat-value">{{ $statistics['total'] ?? 0 }}</h3>
-                <p class="employee-stat-label">Total Karyawan</p>
-                <div class="employee-stat-detail">
-                    Semua departemen
-                </div>
+                <p class="metric-label mb-0.5 sm:mb-1">Karyawan</p>
+                <p class="metric-value">{{ $statistics['total'] ?? 0 }}</p>
+                <p class="metric-detail hidden sm:block">Semua departemen</p>
             </x-ui.card>
 
-            <!-- Active Today -->
-            <x-ui.card class="employee-card">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 bg-green-600 rounded-lg shadow-md">
-                        <x-icons.check-circle />
-                    </div>
-                    <span class="employee-stat-badge employee-stat-badge-green">Aktif</span>
+            <x-ui.card class="p-3 sm:p-4">
+                <div class="flex items-center justify-between mb-2 sm:mb-3">
+                    <x-icons.check-circle class="w-4 h-4 sm:w-5 sm:h-5 text-success" />
+                    <span class="badge badge-success text-[10px] sm:text-xs">Aktif</span>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">{{ $statistics['active_today'] ?? 0 }}</h3>
-                <p class="employee-stat-label">Aktif Hari Ini</p>
+                <p class="metric-label mb-0.5 sm:mb-1">Hadir</p>
+                <p class="metric-value">{{ $statistics['active_today'] ?? 0 }}</p>
                 @if(($statistics['active_today'] ?? 0) > 0)
-                <div class="mt-3">
-                    <span class="employee-attendance-badge">
-                        {{ round((($statistics['active_today'] ?? 0) / max($statistics['total'] ?? 1, 1)) * 100) }}% tingkat kehadiran
-                    </span>
-                </div>
+                <p class="metric-detail hidden sm:block">{{ round((($statistics['active_today'] ?? 0) / max($statistics['total'] ?? 1, 1)) * 100) }}% kehadiran</p>
                 @endif
             </x-ui.card>
 
-            <!-- Permanent Staff -->
-            <x-ui.card class="employee-card">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 bg-purple-600 rounded-lg shadow-md">
-                        <x-icons.briefcase />
-                    </div>
-                    <span class="employee-stat-badge employee-stat-badge-purple">Tetap</span>
+            <x-ui.card class="p-3 sm:p-4">
+                <div class="flex items-center justify-between mb-2 sm:mb-3">
+                    <x-icons.briefcase class="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
+                    <span class="badge badge-purple text-[10px] sm:text-xs">Tetap</span>
                 </div>
-                <h3 class="employee-stat-value">{{ $statistics['permanent'] ?? 0 }}</h3>
-                <p class="employee-stat-label">Pegawai Tetap</p>
-                <div class="employee-stat-detail">
-                    Staff full-time
-                </div>
+                <p class="metric-label mb-0.5 sm:mb-1">Pegawai</p>
+                <p class="metric-value">{{ $statistics['permanent'] ?? 0 }}</p>
+                <p class="metric-detail hidden sm:block">Staff full-time</p>
             </x-ui.card>
 
-            <!-- Honorary Teachers -->
-            <x-ui.card class="employee-card">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 bg-orange-600 rounded-lg shadow-md">
-                        <x-icons.book-open />
-                    </div>
-                    <span class="employee-stat-badge employee-stat-badge-orange">Kontrak</span>
+            <x-ui.card class="p-3 sm:p-4">
+                <div class="flex items-center justify-between mb-2 sm:mb-3">
+                    <x-icons.book-open class="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
+                    <span class="badge badge-warning text-[10px] sm:text-xs">Kontrak</span>
                 </div>
-                <h3 class="employee-stat-value">{{ $statistics['honorary'] ?? 0 }}</h3>
-                <p class="employee-stat-label">Guru Honorer</p>
-                <div class="employee-stat-detail">
-                    Tenaga kontrak
-                </div>
+                <p class="metric-label mb-0.5 sm:mb-1">Honorer</p>
+                <p class="metric-value">{{ $statistics['honorary'] ?? 0 }}</p>
+                <p class="metric-detail hidden sm:block">Tenaga kontrak</p>
             </x-ui.card>
         </div>
 
-        <!-- Employee Data Table -->
-        <x-ui.card class="employee-card">
-            <div class="employee-table-header">
+        <!-- Employee Data Table - macOS Style -->
+        <x-ui.card>
+            <div class="p-4 border-b border-border/50">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h3 class="employee-table-title">Data Karyawan</h3>
-                        <p class="employee-table-desc">Kelola dan pantau data karyawan</p>
+                        <h3 class="section-title">Data Karyawan</h3>
+                        <p class="section-desc">Kelola dan pantau data karyawan</p>
                     </div>
-                    <div class="flex items-center space-x-3">
-                        <button onclick="refreshEmployeeData()" class="btn-action-small" title="Refresh Data">
-                            <x-icons.refresh />
-                        </button>
-                        <button onclick="toggleTableSettings()" class="btn-action-small" title="Table Settings">
-                            <x-icons.cog />
-                        </button>
+                    <div class="flex items-center gap-2">
+                        <x-ui.button variant="ghost" size="sm" onclick="refreshEmployeeData()" title="Refresh">
+                            <x-icons.refresh class="w-4 h-4" />
+                        </x-ui.button>
+                        <x-ui.button variant="ghost" size="sm" onclick="toggleTableSettings()" title="Settings">
+                            <x-icons.cog class="w-4 h-4" />
+                        </x-ui.button>
                     </div>
                 </div>
             </div>

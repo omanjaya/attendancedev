@@ -1,98 +1,69 @@
-@extends('layouts.authenticated-unified')
+@extends('layouts.authenticated')
 
 @section('title', 'Profile Settings')
 
 @section('page-content')
 <div x-data="profileManager()">
-    <!-- Modern Page Header with Enhanced Actions -->
-    <div class="mb-8">
-        <div class="flex items-center justify-between">
+    <!-- Page Header - macOS Style -->
+    <div class="page-header">
+        <div class="page-header-flex">
             <div>
-                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Profil Saya</h1>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Kelola informasi akun, keamanan, dan pengaturan biometrik</p>
+                <h1 class="page-title">Profil Saya</h1>
+                <p class="page-desc">Kelola informasi akun, keamanan, dan pengaturan biometrik</p>
             </div>
-            <div class="flex items-center space-x-3">
-                <!-- Secondary Actions -->
-                <button type="button" @click="exportProfile()" class="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
-                    </svg>
-                    <span>Export Data</span>
-                </button>
-                <button type="button" onclick="window.history.back()" class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                    </svg>
-                    <span>Kembali</span>
-                </button>
+            <div class="page-actions">
+                <x-ui.button variant="outline" @click="exportProfile()">
+                    <x-icons.arrow-down-tray class="w-4 h-4" />
+                    <span class="hidden sm:inline">Export Data</span>
+                </x-ui.button>
+                <x-ui.button variant="secondary" onclick="window.history.back()">
+                    <x-icons.arrow-left class="w-4 h-4" />
+                    <span class="hidden sm:inline">Kembali</span>
+                </x-ui.button>
             </div>
         </div>
     </div>
 
-    <!-- Profile Statistics Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- Profile Statistics Cards - macOS Style (Responsive) -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <!-- Account Status Card -->
-        <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg shadow-md">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                    <span class="text-sm text-green-600 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">Aktif</span>
-                </div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ auth()->user()->name }}</h3>
-                <p class="text-gray-600 dark:text-gray-400 text-sm">{{ auth()->user()->email }}</p>
+        <x-ui.card class="p-3 sm:p-4">
+            <div class="flex items-center justify-between mb-2 sm:mb-3">
+                <x-icons.user-circle class="w-4 h-4 sm:w-5 sm:h-5 text-success" />
+                <span class="badge badge-success text-[10px] sm:text-xs">Aktif</span>
             </div>
+            <p class="metric-label mb-0.5 sm:mb-1 truncate">{{ auth()->user()->name }}</p>
+            <p class="text-[10px] sm:text-xs text-muted-foreground truncate">{{ auth()->user()->email }}</p>
         </x-ui.card>
 
         <!-- Security Level Card -->
-        <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-md">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                        </svg>
-                    </div>
-                    <span class="text-sm text-blue-600 bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded-full">Tinggi</span>
-                </div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100">85%</h3>
-                <p class="text-gray-600 dark:text-gray-400 text-sm">Tingkat Keamanan</p>
+        <x-ui.card class="p-3 sm:p-4">
+            <div class="flex items-center justify-between mb-2 sm:mb-3">
+                <x-icons.shield class="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                <span class="badge badge-info text-[10px] sm:text-xs">Tinggi</span>
             </div>
+            <p class="metric-label mb-0.5 sm:mb-1">Tingkat Keamanan</p>
+            <p class="metric-value">85%</p>
         </x-ui.card>
 
         <!-- Last Login Card -->
-        <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg shadow-md">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                    <span class="text-sm text-purple-600 bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded-full">Terbaru</span>
-                </div>
-                <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ now()->format('H:i') }}</h3>
-                <p class="text-gray-600 dark:text-gray-400 text-sm">Login Terakhir</p>
+        <x-ui.card class="p-3 sm:p-4">
+            <div class="flex items-center justify-between mb-2 sm:mb-3">
+                <x-icons.clock class="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
+                <span class="badge badge-purple text-[10px] sm:text-xs">Terbaru</span>
             </div>
+            <p class="metric-label mb-0.5 sm:mb-1">Login Terakhir</p>
+            <p class="metric-value">{{ now()->format('H:i') }}</p>
         </x-ui.card>
 
         <!-- Profile Completion Card -->
-        <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 bg-gradient-to-r from-amber-500 to-orange-600 rounded-lg shadow-md">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                    <span class="text-sm text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-2 py-1 rounded-full">90%</span>
-                </div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Lengkap</h3>
-                <p class="text-gray-600 dark:text-gray-400 text-sm">Profil Terisi</p>
+        <x-ui.card class="p-3 sm:p-4">
+            <div class="flex items-center justify-between mb-2 sm:mb-3">
+                <x-icons.check-circle class="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
+                <span class="badge badge-warning text-[10px] sm:text-xs">90%</span>
             </div>
+            <p class="metric-label mb-0.5 sm:mb-1">Profil Terisi</p>
+            <p class="metric-value">Lengkap</p>
         </x-ui.card>
     </div>
 
@@ -114,7 +85,7 @@
                     </div>
                 </div>
                 <div class="p-6">
-                    @include('pages.profile.update_profile_information_form')
+                    @include('pages.profile.update-profile-information-form')
                 </div>
             </x-ui.card>
 
@@ -133,7 +104,7 @@
                     </div>
                 </div>
                 <div class="p-6">
-                    @include('pages.profile.update_password_form')
+                    @include('pages.profile.update-password-form')
                 </div>
             </x-ui.card>
 
@@ -153,7 +124,7 @@
                     </div>
                 </div>
                 <div class="p-6">
-                    @include('pages.profile.delete_user_form')
+                    @include('pages.profile.delete-user-form')
                 </div>
             </x-ui.card>
         </div>

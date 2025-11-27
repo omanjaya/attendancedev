@@ -54,7 +54,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:access_admin_panel')
         ->group(function () {
             Route::get('/notifications', function () {
-                return view('demo.notifications');
+                return view('pages.demo.notifications');
             })->name('demo.notifications');
 
             Route::post('/notifications/test', function () {
@@ -189,5 +189,5 @@ require __DIR__.'/payroll.php'; // Payroll management
 require __DIR__.'/system.php'; // System administration
 require __DIR__.'/reports.php'; // Reports and analytics
 require __DIR__.'/holidays.php'; // Holiday and school calendar management
-require __DIR__.'/manual_attendance.php'; // Manual attendance entry
-require __DIR__.'/schedule_management.php'; // Schedule management system
+require __DIR__.'/manual-attendance.php'; // Manual attendance entry
+require __DIR__.'/schedule-management.php'; // Schedule management system

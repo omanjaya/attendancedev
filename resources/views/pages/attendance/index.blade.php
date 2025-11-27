@@ -1,75 +1,65 @@
-@extends('layouts.authenticated-unified')
+@extends('layouts.authenticated')
 
 @section('title', 'Manajemen Absensi')
 
 @section('page-content')
-<!-- Page Header -->
-<div class="mb-8">
-    <div class="flex items-center justify-between">
+<!-- Page Header - macOS Style -->
+<div class="page-header">
+    <div class="page-header-flex">
         <div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Manajemen Absensi</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Pantau dan kelola absensi karyawan dengan pelacakan real-time</p>
+            <h1 class="page-title">Manajemen Absensi</h1>
+            <p class="page-desc">Pantau dan kelola absensi karyawan dengan pelacakan real-time</p>
         </div>
-        <div class="flex items-center space-x-3">
-            <x-ui.button variant="secondary" onclick="window.location.href='{{ route('attendance.history') }}'"
-                class="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                Riwayat Absensi
+        <div class="page-actions">
+            <x-ui.button variant="outline" href="{{ route('attendance.history') }}">
+                <x-icons.clipboard-document-list class="w-4 h-4" />
+                <span class="hidden sm:inline">Riwayat</span>
             </x-ui.button>
-            <x-ui.button variant="primary" onclick="window.location.href='{{ route('attendance.check-in') }}'"
-                class="bg-blue-600 hover:bg-blue-700 text-white">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                Check-in/out
+            <x-ui.button variant="primary" href="{{ route('attendance.check-in') }}">
+                <x-icons.clock class="w-4 h-4" />
+                <span class="hidden sm:inline">Check-in/out</span>
             </x-ui.button>
         </div>
     </div>
 </div>
 
-<!-- Statistics Cards Section -->
+<!-- Statistics Cards Section - macOS Style (Responsive) -->
 @can('view_attendance_reports')
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-    <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-        <div class="flex items-center justify-between mb-4">
-            <div class="p-3 bg-green-600 rounded-lg shadow-md">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            </div>
-            <span class="text-sm text-green-600" id="today-present-status">Terkini</span>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
+    <x-ui.card class="p-3 sm:p-4">
+        <div class="flex items-center justify-between mb-2 sm:mb-3">
+            <x-icons.check-circle class="w-4 h-4 sm:w-5 sm:h-5 text-success" />
+            <span class="badge badge-success text-[10px] sm:text-xs" id="today-present-status">Terkini</span>
         </div>
-        <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100" id="today-present">-</h3>
-        <p class="text-gray-600 dark:text-gray-400 text-sm">Hadir Hari Ini</p>
+        <p class="metric-label mb-0.5 sm:mb-1">Hadir Hari Ini</p>
+        <p class="metric-value" id="today-present">-</p>
     </x-ui.card>
 
-    <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-        <div class="flex items-center justify-between mb-4">
-            <div class="p-3 bg-amber-600 rounded-lg shadow-md">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            </div>
-            <span class="text-sm text-amber-600" id="today-late-status">Terlambat</span>
+    <x-ui.card class="p-3 sm:p-4">
+        <div class="flex items-center justify-between mb-2 sm:mb-3">
+            <x-icons.clock class="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
+            <span class="badge badge-warning text-[10px] sm:text-xs" id="today-late-status">Terlambat</span>
         </div>
-        <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100" id="today-late">-</h3>
-        <p class="text-gray-600 dark:text-gray-400 text-sm">Terlambat</p>
+        <p class="metric-label mb-0.5 sm:mb-1">Terlambat</p>
+        <p class="metric-value" id="today-late">-</p>
     </x-ui.card>
 
-    <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-        <div class="flex items-center justify-between mb-4">
-            <div class="p-3 bg-blue-600 rounded-lg shadow-md">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.01M15 10h1.01m4.828 4.828A9 9 0 119.172 9.172a9 9 0 0110.656 10.656z"/></svg>
-            </div>
-            <span class="text-sm text-blue-600" id="today-incomplete-status">Aktif</span>
+    <x-ui.card class="p-3 sm:p-4">
+        <div class="flex items-center justify-between mb-2 sm:mb-3">
+            <x-icons.arrow-path class="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+            <span class="badge badge-info text-[10px] sm:text-xs" id="today-incomplete-status">Aktif</span>
         </div>
-        <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100" id="today-incomplete">-</h3>
-        <p class="text-gray-600 dark:text-gray-400 text-sm">Masih Bekerja</p>
+        <p class="metric-label mb-0.5 sm:mb-1">Masih Bekerja</p>
+        <p class="metric-value" id="today-incomplete">-</p>
     </x-ui.card>
 
-    <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-        <div class="flex items-center justify-between mb-4">
-            <div class="p-3 bg-purple-600 rounded-lg shadow-md">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-            </div>
-            <span class="text-sm text-purple-600" id="total-employees-status">Total</span>
+    <x-ui.card class="p-3 sm:p-4">
+        <div class="flex items-center justify-between mb-2 sm:mb-3">
+            <x-icons.users class="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
+            <span class="badge badge-purple text-[10px] sm:text-xs" id="total-employees-status">Total</span>
         </div>
-        <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100" id="total-employees">-</h3>
-        <p class="text-gray-600 dark:text-gray-400 text-sm">Total Karyawan</p>
+        <p class="metric-label mb-0.5 sm:mb-1">Total Karyawan</p>
+        <p class="metric-value" id="total-employees">-</p>
     </x-ui.card>
 </div>
 @endcan

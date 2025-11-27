@@ -2,138 +2,198 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="description" content="@yield('meta_description', config('app.description', 'Modern Attendance Management System'))">
-    <meta http-equiv="x-dns-prefetch-control" content="off">
+    <meta name="theme-color" content="#10b981">
     
-    <title>@yield('title', config('app.name', 'AttendanceHub')) - {{ config('app.name', 'AttendanceHub') }}</title>
+    <title>@yield('title', config('app.name', 'AttendanceHub'))</title>
     
-    <!-- Prevent FOUC (Flash of Unstyled Content) -->
-    <script>
-        // Theme initialization - must run before body renders
-        (function() {
-            const theme = localStorage.getItem('theme') || 'light';
-            document.documentElement.classList.add(theme);
-            if (theme === 'dark') {
-                document.documentElement.classList.add('dark');
-            }
-        })();
-    </script>
+    <!-- SEO and Social -->
+    <meta name="description" content="@yield('description', 'Modern attendance management system with face recognition')">
+    <meta name="author" content="{{ config('app.name') }}">
+    
+    <!-- PWA -->
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="{{ config('app.name') }}">
     
     <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
     
-    <!-- Core Styles -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
     
-    <!-- Alpine.js -->
+    <!-- Scripts and Styles -->
+    @vite(['resources/css/app.css', 'resources/js/app.ts'])
+    
+    <!-- Alpine.js with Persist Plugin -->
+    <script>
+        // Initialize Alpine persist before Alpine loads
+        document.addEventListener('alpine:init', () => {
+            if (!window.Alpine.plugin) return;
+            // Simple persist implementation if plugin not available
+            if (!Alpine.magic('persist')) {
+                Alpine.magic('persist', () => {
+                    return (key) => {
+                        return {
+                            get() {
+                                return localStorage.getItem(`_x_${key}`) || 'system';
+                            },
+                            set(value) {
+                                localStorage.setItem(`_x_${key}`, value);
+                            }
+                        };
+                    };
+                });
+            }
+        });
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     
-    <!-- Page Specific Styles -->
+    <!-- Additional styles -->
     @stack('styles')
     
-    <!-- Error Tracking Configuration -->
-    @include('partials.error-tracking-config')
+    <!-- Additional head content -->
+    @stack('head')
+    
+    <!-- Theme Script (Prevent FOUC) -->
+    <script>
+        // Prevent flash of unstyled content for theme
+        (function() {
+            const theme = localStorage.getItem('theme') || 
+                         (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.classList.toggle('dark', theme === 'dark');
+        })();
+    </script>
 </head>
-<body class="h-full bg-background text-foreground antialiased font-sans transition-colors duration-200">
+<body class="h-full font-sans antialiased bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100" 
+      x-data="{ 
+          theme: localStorage.getItem('_x_theme') || 'system',
+          loading: false,
+          notifications: []
+      }"
+      x-init="
+          // Initialize theme system
+          $nextTick(() => {
+              // Watch theme changes and save to localStorage
+              $watch('theme', value => {
+                  localStorage.setItem('_x_theme', value);
+                  if (value === 'system') {
+                      value = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                  }
+                  document.documentElement.classList.toggle('dark', value === 'dark');
+              });
+              
+              // Initial theme setup
+              let initialTheme = theme;
+              if (initialTheme === 'system') {
+                  initialTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+              }
+              document.documentElement.classList.toggle('dark', initialTheme === 'dark');
+              
+              // Listen for system theme changes
+              window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                  if (theme === 'system') {
+                      document.documentElement.classList.toggle('dark', e.matches);
+                  }
+              });
+          });
+      ">
+    
     <!-- Skip to content -->
-    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-white px-4 py-2 rounded-md shadow-lg">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-primary text-primary-foreground px-4 py-2 rounded-md shadow-sm z-50">
         Skip to main content
     </a>
     
-    <!-- App Container -->
-    <div id="app" class="min-h-screen flex flex-col">
-        <!-- Main Content -->
-        <main id="main-content" class="flex-1">
+    {{-- Global Loading Overlay --}}
+    <div x-show="loading" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 bg-gray-200 dark:bg-gray-800 flex items-center justify-center z-50"
+         style="display: none;">
+        <div class="flex flex-col items-center space-y-4">
+            <div class="animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent"></div>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+    </div>
+    
+    {{-- App Content --}}
+    <div id="app" class="min-h-screen">
+        <main id="main-content" class="min-h-screen">
             @yield('content')
         </main>
     </div>
     
-    <!-- Toast Notification Container -->
-    <x-ui.toast-container position="top-right" />
+    {{-- Notification Container --}}
+    <div id="notification-container" 
+         class="fixed top-4 right-4 z-50 space-y-2 max-w-sm w-full pointer-events-none">
+        {{-- Notifications will be inserted here --}}
+    </div>
     
-    <!-- jQuery (required for some legacy components) -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    {{-- Toast Container --}}
+    <div id="toast-container"
+         class="fixed bottom-4 right-4 z-50 space-y-2 max-w-sm w-full pointer-events-none">
+        {{-- Toasts will be inserted here --}}
+    </div>
     
-    <!-- Page Specific Scripts -->
+    {{-- jQuery (required for some components) --}}
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    
+    {{-- JavaScript Stack --}}
     @stack('scripts')
     
-    <!-- Inline Scripts -->
+    {{-- Global JavaScript --}}
     <script>
-        // Global app configuration
-        window.App = {
-            csrfToken: '{{ csrf_token() }}',
-            locale: '{{ app()->getLocale() }}',
-            user: @json(auth()->user() ? auth()->user()->only(['id', 'name', 'email']) : null),
-            routes: {
-                home: '{{ route('dashboard') }}',
+        // Global error handler
+        window.addEventListener('error', (e) => {
+            console.error('Global error:', e.error);
+        });
+        
+        // Unhandled promise rejection handler
+        window.addEventListener('unhandledrejection', (e) => {
+            console.error('Unhandled promise rejection:', e.reason);
+        });
+        
+        // Global keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Cmd/Ctrl + K for search
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                // Open search modal
+                const searchModal = document.getElementById('search-modal');
+                if (searchModal) {
+                    searchModal.style.display = 'block';
+                }
             }
-        };
+            
+            // ESC to close modals/overlays
+            if (e.key === 'Escape') {
+                // Close any open dropdowns
+                document.querySelectorAll('[x-data]').forEach(el => {
+                    if (el.__x && el.__x.$data.open) {
+                        el.__x.$data.open = false;
+                    }
+                });
+            }
+        });
+        
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => console.log('SW registered'))
+                    .catch(error => console.log('SW registration failed'));
+            });
+        }
     </script>
-
-    <!-- Flash Messages -->
-    @if(session('success'))
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                if (typeof showNotification === 'function') {
-                    showNotification('{{ session('success') }}', 'success');
-                } else if (typeof window.notify !== 'undefined') {
-                    window.notify.success('{{ session('success') }}');
-                } else {
-                    // Fallback alert
-                    setTimeout(() => alert('Success: {{ session('success') }}'), 100);
-                }
-            });
-        </script>
-    @endif
-
-    @if(session('error'))
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                if (typeof showNotification === 'function') {
-                    showNotification('{{ session('error') }}', 'error');
-                } else if (typeof window.notify !== 'undefined') {
-                    window.notify.error('{{ session('error') }}');
-                } else {
-                    // Fallback alert
-                    setTimeout(() => alert('Error: {{ session('error') }}'), 100);
-                }
-            });
-        </script>
-    @endif
-
-    @if(session('warning'))
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                if (typeof showNotification === 'function') {
-                    showNotification('{{ session('warning') }}', 'warning');
-                } else if (typeof window.notify !== 'undefined') {
-                    window.notify.warning('{{ session('warning') }}');
-                } else {
-                    // Fallback alert
-                    setTimeout(() => alert('Warning: {{ session('warning') }}'), 100);
-                }
-            });
-        </script>
-    @endif
-
-    @if(session('info'))
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                if (typeof showNotification === 'function') {
-                    showNotification('{{ session('info') }}', 'info');
-                } else if (typeof window.notify !== 'undefined') {
-                    window.notify.info('{{ session('info') }}');
-                } else {
-                    // Fallback alert
-                    setTimeout(() => alert('Info: {{ session('info') }}'), 100);
-                }
-            });
-        </script>
-    @endif
-
 </body>
 </html>

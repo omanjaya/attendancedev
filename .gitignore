@@ -55,3 +55,17 @@ storage/app/public/uploads/*
 *.bak
 *.backup
 *.old
+cookies.txt
+temp_*.js
+
+# Deployment archives
+*.tar.gz
+*.zip
+
+# Test/debug PHP files in root
+/test_*.php
+/check_*.php
+/debug_*.php
+/fix_*.php
+/clean_*.php
+/delete_*.php

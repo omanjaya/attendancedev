@@ -1,25 +1,22 @@
-@extends('layouts.authenticated-unified')
+@extends('layouts.authenticated')
 
 @section('title', 'Tambah Pegawai Baru')
 
 @section('page-content')
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="p-6 lg:p-8">
-        <!-- Page Header -->
-        <div class="mb-8">
-            <div class="flex items-center justify-between">
+<div class="page-container">
+    <div class="p-4 sm:p-6 lg:p-8">
+        <!-- Page Header - macOS Style -->
+        <div class="page-header">
+            <div class="page-header-flex">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Tambah Pegawai Baru</h1>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Buat profil pegawai baru untuk sistem</p>
+                    <h1 class="page-title">Tambah Pegawai Baru</h1>
+                    <p class="page-desc">Buat profil pegawai baru untuk sistem</p>
                 </div>
-                <div class="flex items-center space-x-3">
-                    <button onclick="window.location.href='{{ route('employees.index') }}'" 
-                            class="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 px-4 py-2 rounded-lg font-medium transition-colors duration-200">
-                        <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                        </svg>
-                        Kembali
-                    </button>
+                <div class="page-actions">
+                    <x-ui.button variant="outline" href="{{ route('employees.index') }}">
+                        <x-icons.arrow-left class="w-4 h-4" />
+                        <span class="hidden sm:inline">Kembali</span>
+                    </x-ui.button>
                 </div>
             </div>
         </div>

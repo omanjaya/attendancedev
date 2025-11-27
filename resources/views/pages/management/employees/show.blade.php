@@ -1,4 +1,4 @@
-@extends('layouts.authenticated-unified')
+@extends('layouts.authenticated')
 
 @section('title', 'Employee Profile - ' . $employee->full_name)
 

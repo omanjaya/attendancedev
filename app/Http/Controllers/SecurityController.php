@@ -39,7 +39,7 @@ class SecurityController extends Controller
             ->limit(10)
             ->get();
 
-        return view('security.dashboard', compact('metrics', 'recentEvents'));
+        return view('pages.security.dashboard', compact('metrics', 'recentEvents'));
     }
 
     /**
@@ -53,7 +53,7 @@ class SecurityController extends Controller
             ->orderBy('last_seen_at', 'desc')
             ->get();
 
-        return view('security.devices', compact('devices'));
+        return view('pages.security.devices', compact('devices'));
     }
 
     /**
@@ -72,7 +72,7 @@ class SecurityController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
-        return view('security.notifications', compact('notifications'));
+        return view('pages.security.notifications', compact('notifications'));
     }
 
     /**
@@ -87,7 +87,7 @@ class SecurityController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
-        return view('security.events', compact('events'));
+        return view('pages.security.events', compact('events'));
     }
 
     /**
@@ -97,7 +97,7 @@ class SecurityController extends Controller
     {
         $user = Auth::user();
 
-        return view('security.two-factor', compact('user'));
+        return view('pages.security.two-factor', compact('user'));
     }
 
     /**

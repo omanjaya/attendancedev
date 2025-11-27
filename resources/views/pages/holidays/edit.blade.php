@@ -1,22 +1,25 @@
-@extends('layouts.app')
+@extends('layouts.authenticated')
 
 @section('title', 'Edit Holiday')
 
 @section('content')
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Header -->
-    <div class="mb-8">
-        <div class="flex items-center space-x-4">
-            <a href="{{ route('holidays.show', $holiday) }}" 
-               class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700">
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                Back to Holiday
-            </a>
+<div class="page-container max-w-4xl mx-auto">
+    <!-- Page Header - macOS Style -->
+    <div class="p-4 sm:p-6 lg:p-8">
+        <div class="page-header">
+            <div class="page-header-flex">
+                <div>
+                    <h1 class="page-title">Edit Hari Libur</h1>
+                    <p class="page-desc">Perbarui informasi dan pengaturan hari libur</p>
+                </div>
+                <div class="page-actions">
+                    <x-ui.button variant="outline" href="{{ route('holidays.show', $holiday) }}">
+                        <x-icons.arrow-left class="w-4 h-4" />
+                        <span class="hidden sm:inline">Kembali</span>
+                    </x-ui.button>
+                </div>
+            </div>
         </div>
-        <h1 class="text-3xl font-bold text-gray-900 mt-4">Edit Holiday</h1>
-        <p class="mt-2 text-sm text-gray-600">Update holiday information and settings</p>
     </div>
 
     <!-- Form -->

@@ -24,7 +24,7 @@ class DashboardController extends Controller
 
         // Check if user wants modern dashboard
         if ($request->get('modern') === '1' || $request->get('view') === 'modern') {
-            return view('pages.dashboard-modern', compact('dashboardData'));
+            return view('pages.dashboard.modern', compact('dashboardData'));
         }
 
         // Route to role-specific dashboard view
@@ -48,7 +48,7 @@ class DashboardController extends Controller
         $user = $request->user();
         $dashboardData = $this->dashboardService->getDashboardData($user);
 
-        return view('pages.dashboard-modern', compact('dashboardData'));
+        return view('pages.dashboard.modern', compact('dashboardData'));
     }
 
     /**

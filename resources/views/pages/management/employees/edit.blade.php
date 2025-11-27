@@ -1,33 +1,28 @@
-@extends('layouts.authenticated-unified')
+@extends('layouts.authenticated')
 
 @section('title', 'Edit Pegawai')
 
 @section('page-content')
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="p-6 lg:p-8">
-        <!-- Page Header -->
-        <div class="mb-8">
-            <div class="flex items-center justify-between">
+<div class="page-container">
+    <div class="p-4 sm:p-6 lg:p-8">
+        <!-- Page Header - macOS Style -->
+        <div class="page-header">
+            <div class="page-header-flex">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Edit Pegawai</h1>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ $employee->full_name }} • {{ $employee->employee_id }}</p>
+                    <h1 class="page-title">Edit Pegawai</h1>
+                    <p class="page-desc">{{ $employee->full_name }} • {{ $employee->employee_id }}</p>
                 </div>
-                <div class="flex items-center space-x-3">
+                <div class="page-actions">
                     <div id="saveStatus" class="hidden">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
-                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                            </svg>
+                        <span class="badge badge-success">
+                            <x-icons.check class="w-3 h-3 mr-1" />
                             Tersimpan
                         </span>
                     </div>
-                    <button onclick="window.location.href='{{ route('employees.index') }}'" 
-                            class="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 px-4 py-2 rounded-lg font-medium transition-colors duration-200">
-                        <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                        </svg>
-                        Kembali
-                    </button>
+                    <x-ui.button variant="outline" href="{{ route('employees.index') }}">
+                        <x-icons.arrow-left class="w-4 h-4" />
+                        <span class="hidden sm:inline">Kembali</span>
+                    </x-ui.button>
                 </div>
             </div>
         </div>

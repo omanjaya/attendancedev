@@ -1,4 +1,4 @@
-@extends('layouts.authenticated-unified')
+@extends('layouts.authenticated')
 @section('title', 'Manajemen User & Password')
 
 @section('content')

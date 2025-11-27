@@ -1,23 +1,20 @@
-@extends('layouts.authenticated-unified')
+@extends('layouts.authenticated')
 
 @section('title', 'Edit: ' . $monthlySchedule->name)
 
 @section('page-content')
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="p-6 lg:p-8">
-        <!-- Modern Page Header -->
-        <div class="mb-8">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-4">
-                    <a href="{{ url()->previous() }}" 
-                       class="flex items-center justify-center w-10 h-10 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-all duration-200 shadow-sm">
-                        <svg class="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                        </svg>
-                    </a>
+<div class="page-container">
+    <div class="p-4 sm:p-6 lg:p-8">
+        <!-- Page Header - macOS Style -->
+        <div class="page-header">
+            <div class="page-header-flex">
+                <div class="flex items-center gap-3">
+                    <x-ui.button variant="ghost" onclick="history.back()" class="p-2">
+                        <x-icons.arrow-left class="w-5 h-5" />
+                    </x-ui.button>
                     <div>
-                        <h1 id="page-title" class="text-3xl font-bold text-gray-900 dark:text-white">Edit: {{ $monthlySchedule->name }}</h1>
-                        <p id="page-subtitle" class="mt-1 text-sm text-gray-500 dark:text-gray-400">Editing schedule for {{ \Carbon\Carbon::createFromDate($monthlySchedule->year, $monthlySchedule->month, 1)->format('F Y') }}</p>
+                        <h1 id="page-title" class="page-title">Edit: {{ $monthlySchedule->name }}</h1>
+                        <p id="page-subtitle" class="page-desc">Editing schedule for {{ \Carbon\Carbon::createFromDate($monthlySchedule->year, $monthlySchedule->month, 1)->format('F Y') }}</p>
                     </div>
                 </div>
             </div>

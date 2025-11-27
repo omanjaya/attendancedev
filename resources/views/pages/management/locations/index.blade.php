@@ -1,15 +1,15 @@
-@extends('layouts.authenticated-unified')
+@extends('layouts.authenticated')
 
 @section('title', 'Manajemen Lokasi')
 
 @section('page-content')
 <div x-data="locationManager()">
-    <!-- Modern Page Header with Enhanced Actions -->
-    <div class="mb-8">
-        <div class="flex items-center justify-between">
+    <!-- Page Header - macOS Style -->
+    <div class="page-header">
+        <div class="page-header-flex">
             <div>
-                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Manajemen Lokasi</h1>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Kelola lokasi kantor, radius presensi, dan setting geografis dengan teknologi GPS modern</p>
+                <h1 class="page-title">Manajemen Lokasi</h1>
+                <p class="page-desc">Kelola lokasi kantor, radius presensi, dan setting geografis</p>
                 <!-- Real-time Status Indicator -->
                 <div class="flex items-center space-x-4 mt-2">
                     <div class="flex items-center space-x-2">
@@ -67,70 +67,46 @@
         </div>
     </div>
     
-<!-- Location Statistics Cards -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+<!-- Location Statistics Cards - macOS Style (Responsive) -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
     <!-- Total Locations -->
-    <x-ui.card>
-        <div class="flex items-center justify-between mb-4">
-            <div class="p-3 bg-blue-600 rounded-lg shadow-md">
-                <x-icons.location class="w-6 h-6 text-white" />
-            </div>
-            <span class="badge-blue">Total</span>
+    <x-ui.card class="p-3 sm:p-4">
+        <div class="flex items-center justify-between mb-2 sm:mb-3">
+            <x-icons.map-pin class="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+            <span class="badge badge-info text-[10px] sm:text-xs">Total</span>
         </div>
-        <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1" id="stat-total">-</h3>
-        <p class="text-gray-600 dark:text-gray-400 text-sm">Total Lokasi</p>
-        <div class="mt-3 text-xs text-gray-500 dark:text-gray-400">
-            Semua kantor & cabang
-        </div>
+        <p class="metric-label mb-0.5 sm:mb-1">Total Lokasi</p>
+        <p class="metric-value" id="stat-total">-</p>
     </x-ui.card>
 
     <!-- Active Locations -->
-    <x-ui.card>
-        <div class="flex items-center justify-between mb-4">
-            <div class="p-3 bg-green-600 rounded-lg shadow-md">
-                <x-icons.check-circle class="w-6 h-6 text-white" />
-            </div>
-            <span class="badge-green">Online</span>
+    <x-ui.card class="p-3 sm:p-4">
+        <div class="flex items-center justify-between mb-2 sm:mb-3">
+            <x-icons.check-circle class="w-4 h-4 sm:w-5 sm:h-5 text-success" />
+            <span class="badge badge-success text-[10px] sm:text-xs">Online</span>
         </div>
-        <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1" id="stat-active">-</h3>
-        <p class="text-gray-600 dark:text-gray-400 text-sm">Lokasi Aktif</p>
-        <div class="mt-3 text-xs text-gray-500 dark:text-gray-400">
-            Siap untuk absensi
-        </div>
+        <p class="metric-label mb-0.5 sm:mb-1">Lokasi Aktif</p>
+        <p class="metric-value" id="stat-active">-</p>
     </x-ui.card>
 
     <!-- Employee Coverage -->
-    <x-ui.card>
-        <div class="flex items-center justify-between mb-4">
-            <div class="p-3 bg-purple-600 rounded-lg shadow-md">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
-                </svg>
-            </div>
-            <span class="badge-purple-lg">Terlayani</span>
+    <x-ui.card class="p-3 sm:p-4">
+        <div class="flex items-center justify-between mb-2 sm:mb-3">
+            <x-icons.users class="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
+            <span class="badge badge-purple text-[10px] sm:text-xs">Terlayani</span>
         </div>
-        <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1" id="stat-employees">-</h3>
-        <p class="text-gray-600 dark:text-gray-400 text-sm">Karyawan Terlayani</p>
-        <div class="mt-3 text-xs text-gray-500 dark:text-gray-400">
-            Total pengguna lokasi
-        </div>
+        <p class="metric-label mb-0.5 sm:mb-1">Karyawan</p>
+        <p class="metric-value" id="stat-employees">-</p>
     </x-ui.card>
 
     <!-- Average Radius -->
-    <x-ui.card>
-        <div class="flex items-center justify-between mb-4">
-            <div class="p-3 bg-orange-600 rounded-lg shadow-md">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
-                </svg>
-            </div>
-            <span class="text-sm text-orange-600 font-medium px-3 py-1 bg-orange-100 dark:bg-orange-900 rounded-full">Meter</span>
+    <x-ui.card class="p-3 sm:p-4">
+        <div class="flex items-center justify-between mb-2 sm:mb-3">
+            <x-icons.signal class="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
+            <span class="badge badge-warning text-[10px] sm:text-xs">Meter</span>
         </div>
-        <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1" id="stat-radius">-</h3>
-        <p class="text-gray-600 dark:text-gray-400 text-sm">Rata-rata Radius</p>
-        <div class="mt-3 text-xs text-gray-500 dark:text-gray-400">
-            Jangkauan absensi
-        </div>
+        <p class="metric-label mb-0.5 sm:mb-1">Rata-rata Radius</p>
+        <p class="metric-value" id="stat-radius">-</p>
     </x-ui.card>
 </div>
 

@@ -1,85 +1,62 @@
-@extends('layouts.authenticated-unified')
+@extends('layouts.authenticated')
 
 @section('title', 'Laporan & Analytics')
 
 @section('page-content')
 <div x-data="reportsManager()">
-    <!-- Modern Page Header with Enhanced Actions -->
-    <div class="mb-8">
-        <div class="flex items-center justify-between">
+    <!-- Page Header - macOS Style -->
+    <div class="page-header">
+        <div class="page-header-flex">
             <div>
-                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Laporan & Analytics</h1>
-                <p class="page-subtitle">Kelola laporan, analisis data, dan export informasi sistem</p>
+                <h1 class="page-title">Laporan & Analytics</h1>
+                <p class="page-desc">Kelola laporan dan analisis data</p>
             </div>
-            <div class="flex items-center space-x-3">
-                <!-- Schedule Report Button -->
-                <button @click="openScheduleModal()" class="btn-schedule">
-                    <x-icons.clock class="w-5 h-5 mr-2 inline" />
-                    Jadwalkan
-                </button>
-                
-                <!-- Analytics Dashboard Button -->
-                <a href="{{ route('analytics.dashboard') }}" class="btn-analytics">
-                    <x-icons.chart-bar class="w-5 h-5 mr-2 inline" />
-                    Analytics
-                </a>
-                
-                <!-- Custom Report Builder Button -->
-                <a href="{{ route('reports.builder') }}" class="btn-builder">
-                    <x-icons.edit class="w-5 h-5 mr-2 inline" />
-                    Report Builder
-                </a>
+            <div class="page-actions">
+                <x-ui.button variant="ghost" @click="openScheduleModal()">
+                    <x-icons.clock class="w-4 h-4" />
+                    <span class="hidden sm:inline">Jadwal</span>
+                </x-ui.button>
+                <x-ui.button variant="outline" href="{{ route('analytics.dashboard') }}">
+                    <x-icons.chart-bar class="w-4 h-4" />
+                    <span class="hidden sm:inline">Analytics</span>
+                </x-ui.button>
+                <x-ui.button variant="primary" href="{{ route('reports.builder') }}">
+                    <x-icons.edit class="w-4 h-4" />
+                    <span class="hidden sm:inline">Builder</span>
+                </x-ui.button>
             </div>
         </div>
     </div>
 
-    <!-- Enhanced Statistics Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-        <!-- Today's Attendance Card -->
-        <x-ui.card>
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="metric-icon metric-icon-green">
-                        <x-icons.check-circle class="w-6 h-6 text-white" />
-                    </div>
-                    <span class="text-sm font-medium px-3 py-1 bg-green-100 text-green-800 rounded-full">Live</span>
-                </div>
-                <h3 class="metric-heading">{{ $quickStats['todays_attendance'] ?? 0 }}</h3>
-                <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">Kehadiran Hari Ini</p>
-                <div class="mt-3 text-sm">
-                    <span class="text-green-600 font-medium">+12%</span>
-                    <span class="text-gray-500 ml-1">dari kemarin</span>
-                </div>
+    <!-- Statistics Cards - macOS Style (Responsive) -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        <!-- Today's Attendance -->
+        <x-ui.card class="p-3 sm:p-4">
+            <div class="flex items-center justify-between mb-2 sm:mb-3">
+                <x-icons.check-circle class="w-4 h-4 sm:w-5 sm:h-5 text-success" />
+                <span class="badge badge-success text-[10px] sm:text-xs">Live</span>
             </div>
+            <p class="metric-label mb-0.5 sm:mb-1">Hadir Hari Ini</p>
+            <p class="metric-value">{{ $quickStats['todays_attendance'] ?? 0 }}</p>
         </x-ui.card>
 
-        <!-- Pending Leaves Card -->
-        <x-ui.card>
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="metric-icon metric-icon-amber">
-                        <x-icons.clock class="w-6 h-6 text-white" />
-                    </div>
-                    <span class="status-badge status-badge-pending">Pending</span>
-                </div>
-                <h3 class="metric-heading">{{ $quickStats['pending_leaves'] ?? 0 }}</h3>
-                <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">Cuti Tertunda</p>
-                <div class="mt-3 text-sm">
-                    <span class="metric-value-orange">{{ $quickStats['pending_leaves'] ?? 0 > 0 ? 'Butuh Review' : 'Up to Date' }}</span>
-                </div>
+        <!-- Pending Leaves -->
+        <x-ui.card class="p-3 sm:p-4">
+            <div class="flex items-center justify-between mb-2 sm:mb-3">
+                <x-icons.clock class="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
+                <span class="badge badge-warning text-[10px] sm:text-xs">Pending</span>
             </div>
+            <p class="metric-label mb-0.5 sm:mb-1">Cuti Tertunda</p>
+            <p class="metric-value">{{ $quickStats['pending_leaves'] ?? 0 }}</p>
         </x-ui.card>
 
-        <!-- Monthly Payrolls Card -->
-        <x-ui.card>
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="metric-icon metric-icon-blue">
-                        <x-icons.currency-dollar class="w-6 h-6 text-white" />
-                    </div>
-                    <span class="text-sm font-medium px-3 py-1 bg-blue-100 text-blue-800 rounded-full">Monthly</span>
+        <!-- Monthly Payrolls -->
+        <x-ui.card class="p-3 sm:p-4">
+            <div class="flex items-center justify-between mb-2 sm:mb-3">
+                <x-icons.currency-dollar class="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                <span class="badge badge-info text-[10px] sm:text-xs">Monthly</span>
                 </div>
-                <h3 class="metric-heading">{{ $quickStats['monthly_payrolls'] ?? 0 }}</h3>
+                <h3 class="metric-value">{{ $quickStats['monthly_payrolls'] ?? 0 }}</h3>
                 <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">Penggajian Bulanan</p>
                 <div class="mt-3 text-sm">
                     <span class="metric-value-blue">Rp {{ number_format(($quickStats['payroll_total'] ?? 0), 0, ',', '.') }}</span>
@@ -96,7 +73,7 @@
                     </div>
                     <span class="status-badge status-badge-active">Active</span>
                 </div>
-                <h3 class="metric-heading">{{ $quickStats['total_employees'] ?? 0 }}</h3>
+                <h3 class="metric-value">{{ $quickStats['total_employees'] ?? 0 }}</h3>
                 <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">Total Karyawan</p>
                 <div class="mt-3 text-sm">
                     <span class="text-purple-600 font-medium">{{ ($quickStats['active_employees'] ?? 0) }} Aktif</span>

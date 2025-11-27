@@ -1,40 +1,31 @@
-@extends('layouts.authenticated-unified')
+@extends('layouts.authenticated')
 
 @section('title', $monthlySchedule->name . ' - Monthly Schedule')
 
 @section('page-content')
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="p-6 lg:p-8">
-        <!-- Modern Page Header -->
-        <div class="mb-8">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-4">
-                    <a href="{{ route('schedule-management.monthly.index') }}" 
-                       class="flex items-center justify-center w-10 h-10 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-all duration-200 shadow-sm">
-                        <svg class="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                        </svg>
-                    </a>
+<div class="page-container">
+    <div class="p-4 sm:p-6 lg:p-8">
+        <!-- Page Header - macOS Style -->
+        <div class="page-header">
+            <div class="page-header-flex">
+                <div class="flex items-center gap-3">
+                    <x-ui.button variant="ghost" href="{{ route('schedule-management.monthly.index') }}" class="p-2">
+                        <x-icons.arrow-left class="w-5 h-5" />
+                    </x-ui.button>
                     <div>
-                        <h1 id="schedule-title" class="text-3xl font-bold text-gray-900 dark:text-white">{{ $monthlySchedule->name }}</h1>
-                        <p id="schedule-subtitle" class="mt-1 text-sm text-gray-500 dark:text-gray-400">Loading schedule details...</p>
+                        <h1 id="schedule-title" class="page-title">{{ $monthlySchedule->name }}</h1>
+                        <p id="schedule-subtitle" class="page-desc">Loading schedule details...</p>
                     </div>
                 </div>
-                <div class="flex items-center space-x-3">
-                    <button onclick="assignEmployees()" 
-                            class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg">
-                        <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                        </svg>
-                        Assign Employees
-                    </button>
-                    <button onclick="editSchedule()" 
-                            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg">
-                        <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                        </svg>
-                        Edit Schedule
-                    </button>
+                <div class="page-actions">
+                    <x-ui.button variant="success" onclick="assignEmployees()">
+                        <x-icons.user-plus class="w-4 h-4" />
+                        <span class="hidden sm:inline">Tugaskan</span>
+                    </x-ui.button>
+                    <x-ui.button variant="primary" onclick="editSchedule()">
+                        <x-icons.edit class="w-4 h-4" />
+                        <span class="hidden sm:inline">Edit</span>
+                    </x-ui.button>
                 </div>
             </div>
         </div>

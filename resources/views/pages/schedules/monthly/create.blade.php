@@ -1,26 +1,24 @@
-@extends('layouts.authenticated-unified')
+@extends('layouts.authenticated')
 
 @section('title', 'Create Monthly Schedule')
 
 @section('page-content')
-<!-- Page Header Following System Command Center Pattern -->
-<div class="mb-8">
-    <div class="flex items-center justify-between">
+<!-- Page Header - macOS Style -->
+<div class="page-header">
+    <div class="page-header-flex">
         <div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Create Monthly Schedule</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Design a comprehensive schedule template for your team</p>
+            <h1 class="page-title">Buat Jadwal Bulanan</h1>
+            <p class="page-desc">Rancang template jadwal komprehensif untuk tim Anda</p>
         </div>
-        <div class="flex items-center space-x-3">
-            <a href="{{ route('schedule-management.monthly.index') }}" 
-               class="bg-white dark:bg-gray-700 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
-                <x-icons.arrow-left class="inline-block w-5 h-5 mr-2" />
-                Back
-            </a>
-            <button type="button" onclick="showPreview()" 
-                    class="bg-white dark:bg-gray-700 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
-                <x-icons.eye class="inline-block w-5 h-5 mr-2" />
-                Preview
-            </button>
+        <div class="page-actions">
+            <x-ui.button variant="outline" href="{{ route('schedule-management.monthly.index') }}">
+                <x-icons.arrow-left class="w-4 h-4" />
+                <span class="hidden sm:inline">Kembali</span>
+            </x-ui.button>
+            <x-ui.button variant="secondary" onclick="showPreview()">
+                <x-icons.eye class="w-4 h-4" />
+                <span class="hidden sm:inline">Preview</span>
+            </x-ui.button>
         </div>
     </div>
 </div>

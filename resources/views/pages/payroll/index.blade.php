@@ -1,97 +1,86 @@
-@extends('layouts.authenticated-unified')
+@extends('layouts.authenticated')
 
 @section('title', 'Manajemen Penggajian')
 
 @section('page-content')
-<!-- Page Header -->
-<div class="mb-8">
-    <div class="flex items-center justify-between">
+<!-- Page Header - macOS Style -->
+<div class="page-header">
+    <div class="page-header-flex">
         <div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Manajemen Penggajian</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Kelola perhitungan dan pembayaran gaji karyawan</p>
+            <h1 class="page-title">Manajemen Penggajian</h1>
+            <p class="page-desc">Kelola perhitungan dan pembayaran gaji karyawan</p>
         </div>
-        <div class="flex items-center space-x-3">
+        <div class="page-actions">
             @can('export_payroll_reports')
-                <x-ui.button variant="secondary" href="{{ route('payroll.summary') }}"
-                    class="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    Laporan
+                <x-ui.button variant="outline" href="{{ route('payroll.summary') }}">
+                    <x-icons.chart-bar class="w-4 h-4" />
+                    <span class="hidden sm:inline">Laporan</span>
                 </x-ui.button>
             @endcan
-            
+
             @can('create_payroll')
-                <x-ui.button variant="secondary" href="{{ route('payroll.bulk-calculate') }}"
-                    class="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                    Hitung Massal
+                <x-ui.button variant="secondary" href="{{ route('payroll.bulk-calculate') }}">
+                    <x-icons.calculator class="w-4 h-4" />
+                    <span class="hidden sm:inline">Hitung Massal</span>
                 </x-ui.button>
-                
-                <x-ui.button variant="primary" href="{{ route('payroll.create') }}"
-                    class="bg-blue-600 hover:bg-blue-700 text-white">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-                    Hitung Penggajian
+
+                <x-ui.button variant="primary" href="{{ route('payroll.create') }}">
+                    <x-icons.plus class="w-4 h-4" />
+                    <span class="hidden sm:inline">Hitung Penggajian</span>
                 </x-ui.button>
             @endcan
         </div>
     </div>
 </div>
         
-<!-- Statistics Cards Section -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+<!-- Statistics Cards Section - macOS Style (Responsive) -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
     <!-- Total Gaji Kotor -->
-    <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-        <div class="flex items-center justify-between mb-4">
-            <div class="p-3 bg-blue-600 rounded-lg shadow-md">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-            </div>
-            <span class="text-sm text-blue-600">Kotor</span>
+    <x-ui.card class="p-3 sm:p-4">
+        <div class="flex items-center justify-between mb-2 sm:mb-3">
+            <x-icons.banknotes class="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+            <span class="badge badge-info text-[10px] sm:text-xs">Kotor</span>
         </div>
-        <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1" id="totalGrossSalary">$0.00</h3>
-        <p class="text-gray-600 dark:text-gray-400 text-sm">Total Gaji Kotor</p>
+        <p class="metric-label mb-0.5 sm:mb-1">Total Gaji Kotor</p>
+        <p class="metric-value text-lg sm:text-xl" id="totalGrossSalary">$0.00</p>
     </x-ui.card>
 
     <!-- Total Gaji Bersih -->
-    <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-        <div class="flex items-center justify-between mb-4">
-            <div class="p-3 bg-green-600 rounded-lg shadow-md">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/></svg>
-            </div>
-            <span class="text-sm text-green-600">Bersih</span>
+    <x-ui.card class="p-3 sm:p-4">
+        <div class="flex items-center justify-between mb-2 sm:mb-3">
+            <x-icons.currency-dollar class="w-4 h-4 sm:w-5 sm:h-5 text-success" />
+            <span class="badge badge-success text-[10px] sm:text-xs">Bersih</span>
         </div>
-        <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1" id="totalNetSalary">$0.00</h3>
-        <p class="text-gray-600 dark:text-gray-400 text-sm">Total Gaji Bersih</p>
+        <p class="metric-label mb-0.5 sm:mb-1">Total Gaji Bersih</p>
+        <p class="metric-value text-lg sm:text-xl" id="totalNetSalary">$0.00</p>
     </x-ui.card>
 
     <!-- Total Potongan -->
-    <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-        <div class="flex items-center justify-between mb-4">
-            <div class="p-3 bg-red-600 rounded-lg shadow-md">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
-            </div>
-            <span class="text-sm text-red-600">Potongan</span>
+    <x-ui.card class="p-3 sm:p-4">
+        <div class="flex items-center justify-between mb-2 sm:mb-3">
+            <x-icons.minus-circle class="w-4 h-4 sm:w-5 sm:h-5 text-destructive" />
+            <span class="badge badge-destructive text-[10px] sm:text-xs">Potongan</span>
         </div>
-        <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1" id="totalDeductions">$0.00</h3>
-        <p class="text-gray-600 dark:text-gray-400 text-sm">Total Potongan</p>
+        <p class="metric-label mb-0.5 sm:mb-1">Total Potongan</p>
+        <p class="metric-value text-lg sm:text-xl" id="totalDeductions">$0.00</p>
     </x-ui.card>
 
     <!-- Total Karyawan -->
-    <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-        <div class="flex items-center justify-between mb-4">
-            <div class="p-3 bg-purple-600 rounded-lg shadow-md">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-            </div>
-            <span class="text-sm text-purple-600">Karyawan</span>
+    <x-ui.card class="p-3 sm:p-4">
+        <div class="flex items-center justify-between mb-2 sm:mb-3">
+            <x-icons.users class="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
+            <span class="badge badge-purple text-[10px] sm:text-xs">Karyawan</span>
         </div>
-        <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1" id="totalEmployees">0</h3>
-        <p class="text-gray-600 dark:text-gray-400 text-sm">Total Karyawan</p>
+        <p class="metric-label mb-0.5 sm:mb-1">Total Karyawan</p>
+        <p class="metric-value" id="totalEmployees">0</p>
     </x-ui.card>
 </div>
         
 <!-- Filters -->
-<x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-8">
-    <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-        <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Filter Catatan Penggajian</h3>
-        <p class="text-gray-600 dark:text-gray-400">Filter catatan berdasarkan karyawan, status, dan periode</p>
+<x-ui.card class="mb-6">
+    <div class="table-header">
+        <h3 class="section-title">Filter Catatan Penggajian</h3>
+        <p class="section-desc">Filter catatan berdasarkan karyawan, status, dan periode</p>
     </div>
     <div class="p-6">
             

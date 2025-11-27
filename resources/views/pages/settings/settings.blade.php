@@ -1,34 +1,29 @@
-@extends('layouts.authenticated-unified')
+@extends('layouts.authenticated')
 
 @section('title', 'Pengaturan Sistem')
 
 @section('page-content')
 <div x-data="systemSettings()">
-    <!-- Modern Page Header with Enhanced Actions -->
-    <div class="mb-8">
-        <div class="flex items-center justify-between">
+    <!-- Page Header - macOS Style -->
+    <div class="page-header">
+        <div class="page-header-flex">
             <div>
-                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Pengaturan Sistem</h1>
-                <p class="settings-page-desc">Konfigurasi dan kelola pengaturan sistem manajemen absensi</p>
+                <h1 class="page-title">Pengaturan Sistem</h1>
+                <p class="page-desc">Konfigurasi sistem manajemen absensi</p>
             </div>
-            <div class="flex items-center space-x-3">
-                <!-- Test Configuration Button -->
-                <button @click="testConfiguration()" class="btn-test">
-                    <x-icons.check class="w-5 h-5 mr-2 inline" />
-                    Test Config
-                </button>
-                
-                <!-- Reset to Defaults Button -->
-                <button @click="resetToDefaults()" class="btn-reset">
-                    <x-icons.refresh class="w-5 h-5 mr-2 inline" />
-                    Reset
-                </button>
-                
-                <!-- Save Settings Button -->
-                <button type="submit" form="settings-form" class="btn-save-gradient">
-                    <x-icons.check />
-                    Simpan Pengaturan
-                </button>
+            <div class="page-actions">
+                <x-ui.button variant="ghost" @click="testConfiguration()">
+                    <x-icons.check class="w-4 h-4" />
+                    <span class="hidden sm:inline">Test</span>
+                </x-ui.button>
+                <x-ui.button variant="outline" @click="resetToDefaults()">
+                    <x-icons.refresh class="w-4 h-4" />
+                    <span class="hidden sm:inline">Reset</span>
+                </x-ui.button>
+                <x-ui.button variant="primary" type="submit" form="settings-form">
+                    <x-icons.check class="w-4 h-4" />
+                    Simpan
+                </x-ui.button>
             </div>
         </div>
     </div>
@@ -78,12 +73,12 @@
         <div x-show="activeTab === 'general'" x-transition class="space-y-6">
             <x-ui.card class="settings-card">
                 <div class="settings-section-header">
-                    <h3 class="settings-section-title">
+                    <h3 class="section-title">
                         <x-icons.cog class="w-6 h-6 mr-3 text-blue-600" />
                         </svg>
                         Pengaturan Umum
                     </h3>
-                    <p class="settings-section-desc">Konfigurasi sistem dasar dan preferensi regional</p>
+                    <p class="section-desc">Konfigurasi sistem dasar dan preferensi regional</p>
                 </div>
                 <div class="p-6">
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -163,11 +158,11 @@
         <div x-show="activeTab === 'attendance'" x-transition class="space-y-6">
             <x-ui.card class="settings-card">
                 <div class="settings-section-header">
-                    <h3 class="settings-section-title">
+                    <h3 class="section-title">
                         <x-icons.check-circle class="w-6 h-6 mr-3 text-green-600" />
                         Pengaturan Absensi
                     </h3>
-                    <p class="settings-section-desc">Konfigurasi aturan dan kebijakan pelacakan absensi</p>
+                    <p class="section-desc">Konfigurasi aturan dan kebijakan pelacakan absensi</p>
                 </div>
                 <div class="p-6">
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -269,11 +264,11 @@
             <!-- Face Recognition Settings -->
             <x-ui.card class="settings-card">
                 <div class="settings-section-header">
-                    <h3 class="settings-section-title">
+                    <h3 class="section-title">
                         <x-icons.user class="w-6 h-6 mr-3 text-purple-600" />
                         Pengaturan Pengenalan Wajah
                     </h3>
-                    <p class="settings-section-desc">Konfigurasi parameter deteksi dan verifikasi wajah</p>
+                    <p class="section-desc">Konfigurasi parameter deteksi dan verifikasi wajah</p>
                 </div>
                 <div class="p-6">
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -366,11 +361,11 @@
             <!-- GPS & Location Settings -->
             <x-ui.card class="settings-card">
                 <div class="settings-section-header">
-                    <h3 class="settings-section-title">
+                    <h3 class="section-title">
                         <x-icons.location class="w-6 h-6 mr-3 text-orange-600" />
                         Pengaturan GPS & Lokasi
                     </h3>
-                    <p class="settings-section-desc">Konfigurasi verifikasi lokasi dan parameter GPS</p>
+                    <p class="section-desc">Konfigurasi verifikasi lokasi dan parameter GPS</p>
                 </div>
                 <div class="p-6">
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -439,11 +434,11 @@
         <div x-show="activeTab === 'notifications'" x-transition class="space-y-6">
             <x-ui.card class="settings-card">
                 <div class="settings-section-header">
-                    <h3 class="settings-section-title">
+                    <h3 class="section-title">
                         <x-icons.chart class="w-6 h-6 mr-3 text-yellow-600" />
                         Pengaturan Notifikasi
                     </h3>
-                    <p class="settings-section-desc">Konfigurasi sistem notifikasi dan peringatan</p>
+                    <p class="section-desc">Konfigurasi sistem notifikasi dan peringatan</p>
                 </div>
                 <div class="p-6">
                     <div class="space-y-6">
@@ -527,11 +522,11 @@
         <div x-show="activeTab === 'security'" x-transition class="space-y-6">
             <x-ui.card class="settings-card">
                 <div class="settings-section-header">
-                    <h3 class="settings-section-title">
+                    <h3 class="section-title">
                         <x-icons.shield class="w-6 h-6 mr-3 text-red-600" />
                         Pengaturan Keamanan
                     </h3>
-                    <p class="settings-section-desc">Konfigurasi kebijakan keamanan dan akses sistem</p>
+                    <p class="section-desc">Konfigurasi kebijakan keamanan dan akses sistem</p>
                 </div>
                 <div class="p-6">
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -606,11 +601,11 @@
         <div x-show="activeTab === 'maintenance'" x-transition class="space-y-6">
             <x-ui.card class="settings-card">
                 <div class="settings-section-header">
-                    <h3 class="settings-section-title">
+                    <h3 class="section-title">
                         <x-icons.cog class="w-6 h-6 mr-3 text-gray-600" />
                         Pengaturan Maintenance
                     </h3>
-                    <p class="settings-section-desc">Konfigurasi pemeliharaan sistem dan retensi data</p>
+                    <p class="section-desc">Konfigurasi pemeliharaan sistem dan retensi data</p>
                 </div>
                 <div class="p-6">
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">

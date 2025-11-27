@@ -1,25 +1,22 @@
-@extends('layouts.authenticated-unified')
+@extends('layouts.authenticated')
 
 @section('title', 'Assign Schedule to Employees')
 
 @section('page-content')
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="p-6 lg:p-8">
-        <!-- Modern Page Header -->
-        <div class="mb-8">
-            <div class="flex items-center justify-between">
+<div class="page-container">
+    <div class="p-4 sm:p-6 lg:p-8">
+        <!-- Page Header - macOS Style -->
+        <div class="page-header">
+            <div class="page-header-flex">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Assign Schedule to Employees</h1>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        Bulk assign employees to monthly schedule templates with smart filtering
-                    </p>
+                    <h1 class="page-title">Penugasan Jadwal</h1>
+                    <p class="page-desc">Tugaskan karyawan ke template jadwal bulanan</p>
                 </div>
-                <div class="flex items-center space-x-3">
-                    <a href="{{ route('schedule-management.monthly.index') }}" 
-                       class="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:shadow-md">
-                        <x-icons.arrow-left class="w-5 h-5 mr-2 inline" />
-                        Back to Schedules
-                    </a>
+                <div class="page-actions">
+                    <x-ui.button variant="outline" href="{{ route('schedule-management.monthly.index') }}">
+                        <x-icons.arrow-left class="w-4 h-4" />
+                        <span class="hidden sm:inline">Kembali</span>
+                    </x-ui.button>
                 </div>
             </div>
         </div>

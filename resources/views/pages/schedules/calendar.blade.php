@@ -1,52 +1,43 @@
-@extends('layouts.authenticated-unified')
+@extends('layouts.authenticated')
 
 @section('title', 'Kalender Jadwal')
 
 @section('page-content')
 <div x-data="scheduleCalendar()">
-    <!-- Modern Page Header with Enhanced Actions -->
-    <div class="mb-8">
-        <div class="flex items-center justify-between">
+    <!-- Page Header - macOS Style -->
+    <div class="page-header">
+        <div class="page-header-flex">
             <div>
-                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Kalender Jadwal</h1>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Lihat dan kelola jadwal dalam tampilan kalender interaktif</p>
+                <h1 class="page-title">Kalender Jadwal</h1>
+                <p class="page-desc">Lihat dan kelola jadwal dalam tampilan kalender interaktif</p>
             </div>
-            <div class="flex items-center space-x-3">
-                <!-- Back Button -->
-                <button onclick="location.href='{{ route('schedules.index') }}'" class="btn-analytics">
-                    <x-icons.arrow-left class="w-5 h-5 mr-2 inline" />
-                    Kembali
-                </button>
-                
-                <!-- Analytics Button -->
-                <button @click="showAnalytics()" class="btn-test">
-                    <x-icons.chart-bar class="w-5 h-5 mr-2 inline" />
-                    Analitik
-                </button>
-                
-                <!-- Schedule Builder Button -->
-                <button onclick="location.href='{{ route('schedules.builder') }}'" class="btn-analytics-gradient">
-                    <x-icons.edit class="w-5 h-5 mr-2 inline" />
-                    Schedule Builder
-                </button>
+            <div class="page-actions">
+                <x-ui.button variant="outline" href="{{ route('schedules.index') }}">
+                    <x-icons.arrow-left class="w-4 h-4" />
+                    <span class="hidden sm:inline">Kembali</span>
+                </x-ui.button>
+                <x-ui.button variant="secondary" @click="showAnalytics()">
+                    <x-icons.chart-bar class="w-4 h-4" />
+                    <span class="hidden sm:inline">Analitik</span>
+                </x-ui.button>
+                <x-ui.button variant="primary" href="{{ route('schedules.builder') }}">
+                    <x-icons.edit class="w-4 h-4" />
+                    <span class="hidden sm:inline">Builder</span>
+                </x-ui.button>
             </div>
         </div>
     </div>
 
-    <!-- Enhanced Statistics Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+    <!-- Statistics Cards - macOS Style (Responsive) -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <!-- Total Schedules Card -->
-        <x-ui.card>
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-md">
-                        <x-icons.calendar class="w-6 h-6 text-white" />
-                    </div>
-                    <span class="text-sm font-medium px-3 py-1 bg-blue-100 text-blue-800 rounded-full">Minggu Ini</span>
-                </div>
-                <h3 class="metric-heading" x-text="weekSchedules.length">0</h3>
-                <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">Total Jadwal</p>
+        <x-ui.card class="p-3 sm:p-4">
+            <div class="flex items-center justify-between mb-2 sm:mb-3">
+                <x-icons.calendar class="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                <span class="badge badge-info text-[10px] sm:text-xs">Minggu Ini</span>
             </div>
+            <p class="metric-label mb-0.5 sm:mb-1">Total Jadwal</p>
+            <p class="metric-value" x-text="weekSchedules.length">0</p>
         </x-ui.card>
 
         <!-- Active Teachers Card -->
@@ -58,7 +49,7 @@
                     </div>
                     <span class="text-sm font-medium px-3 py-1 bg-green-100 text-green-800 rounded-full">Aktif</span>
                 </div>
-                <h3 class="metric-heading" x-text="activeTeachers">0</h3>
+                <h3 class="metric-value" x-text="activeTeachers">0</h3>
                 <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">Guru Aktif</p>
             </div>
         </x-ui.card>
@@ -72,7 +63,7 @@
                     </div>
                     <span class="text-sm font-medium px-3 py-1 bg-purple-100 text-purple-800 rounded-full">Total</span>
                 </div>
-                <h3 class="metric-heading" x-text="uniqueSubjects">0</h3>
+                <h3 class="metric-value" x-text="uniqueSubjects">0</h3>
                 <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">Mata Pelajaran</p>
             </div>
         </x-ui.card>
@@ -86,7 +77,7 @@
                     </div>
                     <span class="text-sm font-medium px-3 py-1 bg-orange-100 text-orange-800 rounded-full">Total</span>
                 </div>
-                <h3 class="metric-heading" x-text="uniqueClasses">0</h3>
+                <h3 class="metric-value" x-text="uniqueClasses">0</h3>
                 <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">Kelas</p>
             </div>
         </x-ui.card>

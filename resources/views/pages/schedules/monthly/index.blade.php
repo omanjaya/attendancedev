@@ -1,33 +1,26 @@
-@extends('layouts.authenticated-unified')
+@extends('layouts.authenticated')
 
 @section('title', 'Monthly Schedules')
 
 @section('page-content')
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="p-6 lg:p-8">
-        <!-- Modern Page Header -->
-        <div class="mb-8">
-            <div class="flex items-center justify-between">
+<div class="page-container">
+    <div class="p-4 sm:p-6 lg:p-8">
+        <!-- Page Header - macOS Style -->
+        <div class="page-header">
+            <div class="page-header-flex">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Monthly Schedules</h1>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Kelola template jadwal bulanan dan penugasan karyawan</p>
+                    <h1 class="page-title">Jadwal Bulanan</h1>
+                    <p class="page-desc">Kelola template jadwal bulanan dan penugasan karyawan</p>
                 </div>
-                <div class="flex items-center space-x-3">
-                    <button type="button" 
-                            onclick="loadSchedules()"
-                            class="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:shadow-md">
-                        <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                        </svg>
-                        Refresh
-                    </button>
-                    <a href="{{ route('schedule-management.monthly.create') }}" 
-                       class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
-                        <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                        </svg>
-                        Create Schedule
-                    </a>
+                <div class="page-actions">
+                    <x-ui.button variant="outline" onclick="loadSchedules()">
+                        <x-icons.arrow-path class="w-4 h-4" />
+                        <span class="hidden sm:inline">Refresh</span>
+                    </x-ui.button>
+                    <x-ui.button variant="primary" href="{{ route('schedule-management.monthly.create') }}">
+                        <x-icons.plus class="w-4 h-4" />
+                        <span class="hidden sm:inline">Buat Jadwal</span>
+                    </x-ui.button>
                 </div>
             </div>
         </div>

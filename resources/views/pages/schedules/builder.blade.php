@@ -1,25 +1,25 @@
-@extends('layouts.authenticated-unified')
+@extends('layouts.authenticated')
 
 @section('title', 'Penyusunan Jadwal Mengajar Guru')
 
 @section('page-content')
 <div x-data="scheduleBuilder()">
-    <!-- Page Header -->
-    <div class="mb-8">
-        <div class="flex items-center justify-between">
+    <!-- Page Header - macOS Style -->
+    <div class="page-header">
+        <div class="page-header-flex">
             <div>
-                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Penyusunan Jadwal Mengajar Guru</h1>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Buat dan kelola jadwal mengajar untuk guru</p>
+                <h1 class="page-title">Penyusunan Jadwal Mengajar</h1>
+                <p class="page-desc">Buat dan kelola jadwal mengajar untuk guru</p>
             </div>
-            <div class="flex items-center space-x-3">
-                <button @click="resetData()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                    Reset Data
-                </button>
-                <button @click="undo()" :disabled="!canUndo" class="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
-                    Undo
-                </button>
+            <div class="page-actions">
+                <x-ui.button variant="destructive" @click="resetData()">
+                    <x-icons.arrow-path class="w-4 h-4" />
+                    <span class="hidden sm:inline">Reset</span>
+                </x-ui.button>
+                <x-ui.button variant="secondary" @click="undo()" :disabled="!canUndo">
+                    <x-icons.arrow-uturn-left class="w-4 h-4" />
+                    <span class="hidden sm:inline">Undo</span>
+                </x-ui.button>
             </div>
         </div>
     </div>

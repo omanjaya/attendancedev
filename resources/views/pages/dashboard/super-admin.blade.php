@@ -1,4 +1,4 @@
-@extends('layouts.authenticated-unified')
+@extends('layouts.authenticated')
 
 @section('title', 'Pusat Komando Sistem')
 
@@ -7,147 +7,131 @@
 @endpush
 
 @section('page-content')
-<!-- Page Header -->
-<div class="mb-8">
+<!-- Page Header - macOS Style -->
+<div class="mb-6">
     <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Pusat Komando Sistem</h1>
-            <p class="dashboard-page-desc">Pemantauan dan administrasi sistem lengkap</p>
+            <h1 class="page-title">Pusat Komando</h1>
+            <p class="page-desc">Pemantauan sistem real-time</p>
         </div>
-        <x-ui.button variant="secondary" onclick="refreshData()" class="btn-analytics">
-            <x-icons.refresh class="w-5 h-5 mr-2" />
+        <x-ui.button variant="ghost" onclick="refreshData()" class="text-muted-foreground hover:text-foreground">
+            <x-icons.refresh class="w-4 h-4 mr-1.5" />
             Segarkan
         </x-ui.button>
     </div>
 </div>
 
-            <!-- System Health Status -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-                <x-ui.card>
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="p-3 bg-green-600 rounded-lg shadow-md">
-                            <x-icons.shield class="w-6 h-6 text-white" />
-                        </div>
-                        <span class="badge-online">ONLINE</span>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">Kesehatan Sistem</h3>
-                    <p class="text-green-600 text-sm font-medium">Semua sistem beroperasi</p>
-                </x-ui.card>
+<!-- System Health Status - macOS Widget Style (Responsive) -->
+<div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
+    <x-ui.card class="p-3 sm:p-4">
+        <div class="flex items-center justify-between mb-2 sm:mb-3">
+            <x-icons.shield class="w-4 h-4 sm:w-5 sm:h-5 text-success" />
+            <span class="badge-online text-[10px] sm:text-xs">ONLINE</span>
+        </div>
+        <p class="metric-label mb-0.5 sm:mb-1">Status</p>
+        <p class="text-xs sm:text-sm font-medium text-success">Beroperasi</p>
+    </x-ui.card>
 
-                <x-ui.card>
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="p-3 bg-blue-600 rounded-lg shadow-md">
-                            <x-icons.users class="w-6 h-6 text-white" />
-                        </div>
-                        <span class="dashboard-status-text-blue">{{ $dashboardData['system_health']['active_sessions'] ?? 0 }} aktif</span>
-                    </div>
-                    <h3 class="metric-heading">{{ $dashboardData['realtime_status']['total_employees'] ?? 0 }}</h3>
-                    <p class="dashboard-metric-desc">Total Pengguna</p>
-                </x-ui.card>
+    <x-ui.card class="p-3 sm:p-4">
+        <div class="flex items-center justify-between mb-2 sm:mb-3">
+            <x-icons.users class="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+            <span class="status-text-info hidden sm:inline">{{ $dashboardData['system_health']['active_sessions'] ?? 0 }} aktif</span>
+        </div>
+        <p class="metric-label mb-0.5 sm:mb-1">Pengguna</p>
+        <p class="metric-value">{{ $dashboardData['realtime_status']['total_employees'] ?? 0 }}</p>
+    </x-ui.card>
 
-                <x-ui.card>
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="p-3 bg-emerald-600 rounded-lg shadow-md">
-                            <x-icons.check-circle class="w-6 h-6 text-white" />
-                        </div>
-                        <span class="dashboard-status-text-emerald">{{ $dashboardData['realtime_status']['attendance_rate'] ?? 0 }}%</span>
-                    </div>
-                    <h3 class="metric-heading">{{ $dashboardData['realtime_status']['checked_in_today'] ?? 0 }}</h3>
-                    <p class="dashboard-metric-desc">Hadir Hari Ini</p>
-                </x-ui.card>
+    <x-ui.card class="p-3 sm:p-4">
+        <div class="flex items-center justify-between mb-2 sm:mb-3">
+            <x-icons.check-circle class="w-4 h-4 sm:w-5 sm:h-5 text-success" />
+            <span class="status-text-success">{{ $dashboardData['realtime_status']['attendance_rate'] ?? 0 }}%</span>
+        </div>
+        <p class="metric-label mb-0.5 sm:mb-1">Hadir</p>
+        <p class="metric-value">{{ $dashboardData['realtime_status']['checked_in_today'] ?? 0 }}</p>
+    </x-ui.card>
 
-                <x-ui.card>
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="p-3 bg-amber-600 rounded-lg shadow-md">
-                            <x-icons.clock class="w-6 h-6 text-white" />
-                        </div>
-                        @if(($dashboardData['realtime_status']['late_arrivals'] ?? 0) > 0)
-                        <span class="badge-warning">Peringatan</span>
-                        @endif
-                    </div>
-                    <h3 class="metric-heading">{{ $dashboardData['realtime_status']['late_arrivals'] ?? 0 }}</h3>
-                    <p class="dashboard-metric-desc">Kedatangan Terlambat</p>
-                </x-ui.card>
+    <x-ui.card class="p-3 sm:p-4">
+        <div class="flex items-center justify-between mb-2 sm:mb-3">
+            <x-icons.clock class="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
+            @if(($dashboardData['realtime_status']['late_arrivals'] ?? 0) > 0)
+            <span class="badge-warning text-[10px] sm:text-xs">!</span>
+            @endif
+        </div>
+        <p class="metric-label mb-0.5 sm:mb-1">Terlambat</p>
+        <p class="metric-value">{{ $dashboardData['realtime_status']['late_arrivals'] ?? 0 }}</p>
+    </x-ui.card>
 
-                <x-ui.card>
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="p-3 bg-purple-600 rounded-lg shadow-md">
-                            <x-icons.calendar class="w-6 h-6 text-white" />
-                        </div>
-                        @if(($dashboardData['leave_management']['pending_requests'] ?? 0) > 0)
-                        <span class="badge-purple">{{ $dashboardData['leave_management']['pending_requests'] }}</span>
-                        @endif
-                    </div>
-                    <h3 class="metric-heading">{{ $dashboardData['leave_management']['pending_requests'] ?? 0 }}</h3>
-                    <p class="dashboard-metric-desc">Permintaan Tertunda</p>
-                </x-ui.card>
+    <x-ui.card class="p-3 sm:p-4 col-span-2 sm:col-span-1">
+        <div class="flex items-center justify-between mb-2 sm:mb-3">
+            <x-icons.calendar class="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
+            @if(($dashboardData['leave_management']['pending_requests'] ?? 0) > 0)
+            <span class="badge-purple text-[10px] sm:text-xs">{{ $dashboardData['leave_management']['pending_requests'] }}</span>
+            @endif
+        </div>
+        <p class="metric-label mb-0.5 sm:mb-1">Cuti Pending</p>
+        <p class="metric-value">{{ $dashboardData['leave_management']['pending_requests'] ?? 0 }}</p>
+    </x-ui.card>
+</div>
+
+<!-- Live System Monitoring - macOS Style -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+    <x-ui.card class="lg:col-span-2 p-4">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h3 class="section-title">Aktivitas Langsung</h3>
+                <p class="section-desc">Pemantauan absensi real-time</p>
             </div>
+            <div class="flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 bg-success rounded-full animate-pulse"></span>
+                <span class="text-xs font-medium text-success">Live</span>
+            </div>
+        </div>
 
-            <!-- Live System Monitoring -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                <x-ui.card class="lg:col-span-2">
-                    <div class="flex items-center justify-between mb-6">
-                        <div>
-                            <h3 class="dashboard-section-title">Aktivitas Karyawan Langsung</h3>
-                            <p class="dashboard-section-desc">Pemantauan absensi real-time</p>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                            <span class="text-sm text-green-600 dark:text-green-400 font-medium">Langsung</span>
-                        </div>
+        <div class="space-y-2">
+            @php
+            $recentCheckIns = \App\Models\Attendance::with('employee')
+                ->whereDate('date', today())
+                ->whereNotNull('check_in_time')
+                ->orderBy('check_in_time', 'desc')
+                ->limit(5)
+                ->get()
+                ->map(function($attendance) {
+                    return [
+                        'name' => $attendance->employee->first_name . ' ' . $attendance->employee->last_name,
+                        'time' => $attendance->check_in_time ? $attendance->check_in_time->format('H:i') : 'N/A',
+                        'status' => $attendance->status === 'late' ? 'late' : 'check-in',
+                        'method' => $attendance->metadata && isset(json_decode($attendance->metadata, true)['method']) ?
+                                   json_decode($attendance->metadata, true)['method'] : 'manual',
+                        'department' => $attendance->employee->department ?? 'General'
+                    ];
+                })->toArray();
+
+            if (empty($recentCheckIns)) {
+                $recentCheckIns = [];
+            }
+            @endphp
+
+            @forelse($recentCheckIns as $checkIn)
+            <div class="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-medium">
+                        {{ substr($checkIn['name'], 0, 2) }}
                     </div>
-                    
-                    <div class="space-y-3">
-                        @php
-                        // Get real recent check-ins from database
-                        $recentCheckIns = \App\Models\Attendance::with('employee')
-                            ->whereDate('date', today())
-                            ->whereNotNull('check_in_time')
-                            ->orderBy('check_in_time', 'desc')
-                            ->limit(5)
-                            ->get()
-                            ->map(function($attendance) {
-                                return [
-                                    'name' => $attendance->employee->first_name . ' ' . $attendance->employee->last_name,
-                                    'time' => $attendance->check_in_time ? $attendance->check_in_time->format('H:i') : 'N/A',
-                                    'status' => $attendance->status === 'late' ? 'late' : 'check-in',
-                                    'method' => $attendance->metadata && isset(json_decode($attendance->metadata, true)['method']) ? 
-                                               json_decode($attendance->metadata, true)['method'] : 'manual',
-                                    'department' => $attendance->employee->department ?? 'General'
-                                ];
-                            })->toArray();
-                        
-                        // If no data available, show empty state instead of fake data
-                        if (empty($recentCheckIns)) {
-                            $recentCheckIns = [];
-                        }
-                        @endphp
-                        
-                        @forelse($recentCheckIns as $checkIn)
-                        <div class="dashboard-activity-item">
-                            <div class="flex items-center space-x-4">
-                                <div class="dashboard-avatar bg-blue-600">
-                                    {{ substr($checkIn['name'], 0, 2) }}
-                                </div>
-                                <div class="ml-4">
-                                    <div class="dashboard-employee-name">{{ $checkIn['name'] }}</div>
-                                    <div class="dashboard-employee-dept">{{ $checkIn['department'] }}</div>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <div class="dashboard-time-display">{{ $checkIn['time'] }}</div>
-                                <div class="dashboard-date-display">{{ date('M d') }}</div>
-                            </div>
-                        </div>
-                        @empty
-                        <div class="text-center py-8">
-                            <div class="text-gray-400 dark:text-gray-500">
-                                <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                <p class="text-sm">Tidak ada aktivitas check-in hari ini</p>
-                            </div>
-                        </div>
+                    <div>
+                        <p class="text-sm font-medium text-foreground">{{ $checkIn['name'] }}</p>
+                        <p class="text-xs text-muted-foreground">{{ $checkIn['department'] }}</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm font-medium tabular-nums text-foreground">{{ $checkIn['time'] }}</p>
+                    <p class="text-xs text-muted-foreground">{{ date('M d') }}</p>
+                </div>
+            </div>
+            @empty
+            <div class="text-center py-6">
+                <x-icons.check-circle class="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+                <p class="text-sm text-muted-foreground">Tidak ada aktivitas hari ini</p>
+            </div>
                         @endforelse
                     </div>
                     
@@ -160,7 +144,7 @@
                 </x-ui.card>
 
                 <x-ui.card>
-                    <h3 class="dashboard-section-title mb-6">Peringatan Sistem</h3>
+                    <h3 class="section-title mb-6">Peringatan Sistem</h3>
                     <div class="space-y-4">
                         @php
                         // Get real system alerts from dashboard service

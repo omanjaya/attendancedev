@@ -20,40 +20,40 @@
 ])
 
 @php
-    // Color classes using CSS variables for theme support
+    // macOS-style color classes - subtle and muted
     $colorClasses = [
-        'primary' => 'text-primary bg-primary/10',
-        'success' => 'text-success bg-success/10', 
-        'warning' => 'text-warning bg-warning/10',
-        'destructive' => 'text-destructive bg-destructive/10',
-        'info' => 'text-info bg-info/10',
-        'muted' => 'text-muted-foreground bg-muted',
+        'primary' => 'text-primary bg-primary/8',
+        'success' => 'text-success bg-success/8',
+        'warning' => 'text-warning bg-warning/8',
+        'destructive' => 'text-destructive bg-destructive/8',
+        'info' => 'text-info bg-info/8',
+        'muted' => 'text-muted-foreground bg-muted/50',
     ];
-    
-    // Shadow classes
+
+    // macOS shadow system - very subtle
     $shadowClasses = [
         'none' => '',
         'sm' => 'shadow-sm',
-        'md' => 'shadow-md', 
-        'lg' => 'shadow-lg',
+        'md' => 'shadow',
+        'lg' => 'shadow-md',
     ];
-    
-    // Padding classes
+
+    // Padding - macOS spacing (responsive)
     $paddingClasses = [
         'none' => '',
-        'sm' => 'p-4',
-        'md' => 'p-6', 
-        'lg' => 'p-8',
+        'sm' => 'p-2.5 sm:p-3',
+        'md' => 'p-3 sm:p-4',
+        'lg' => 'p-4 sm:p-5',
     ];
-    
+
     $colorClass = $colorClasses[$color] ?? $colorClasses['primary'];
     $shadowClass = $shadowClasses[$shadow] ?? $shadowClasses['sm'];
     $paddingClass = $paddingClasses[$padding] ?? $paddingClasses['md'];
-    
-    $hoverClass = $hover ? 'transition-colors hover:bg-accent/5' : '';
-    
-    // Use design system classes
-    $baseClasses = "relative bg-card text-card-foreground rounded-xl border border-border $shadowClass $hoverClass";
+
+    $hoverClass = $hover ? 'hover:bg-muted/30 transition-colors duration-150' : '';
+
+    // macOS-style card - subtle border, light shadow, slight transparency
+    $baseClasses = "relative bg-card/95 backdrop-blur-sm text-card-foreground rounded-xl border border-border/60 $shadowClass $hoverClass";
 @endphp
 
 <div {{ $attributes->merge(['class' => $baseClasses]) }}>

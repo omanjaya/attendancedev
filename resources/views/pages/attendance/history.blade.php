@@ -1,135 +1,91 @@
-@extends('layouts.authenticated-unified')
+@extends('layouts.authenticated')
 
 @section('title', 'Riwayat Kehadiran')
 
 @section('page-content')
 <div x-data="attendanceHistoryManager()">
-    <!-- Modern Page Header with Enhanced Actions -->
-    <div class="mb-8">
-        <div class="flex items-center justify-between">
+    <!-- Page Header - macOS Style -->
+    <div class="page-header">
+        <div class="page-header-flex">
             <div>
-                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Riwayat Kehadiran</h1>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                <h1 class="page-title">Riwayat Kehadiran</h1>
+                <p class="page-desc">
                     @can('view_attendance_all')
-                        Kelola dan analisis data kehadiran semua karyawan
+                        Kelola dan analisis data kehadiran
                     @else
-                        Lacak kehadiran harian dan jam kerja Anda
+                        Lacak kehadiran dan jam kerja Anda
                     @endcan
                 </p>
             </div>
-            <div class="flex items-center space-x-3">
-                <!-- Secondary Actions -->
-                <button type="button" @click="toggleView()" class="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
-                    </svg>
-                    <span x-text="viewMode === 'table' ? 'Calendar View' : 'Table View'"></span>
-                </button>
-                <button type="button" @click="openFilterModal()" class="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
-                    </svg>
-                    <span>Filter</span>
-                </button>
-                <!-- Primary Actions -->
-                <button type="button" @click="exportAttendance()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
-                    </svg>
-                    <span>Export Data</span>
-                </button>
+            <div class="page-actions">
+                <x-ui.button variant="outline" @click="toggleView()">
+                    <x-icons.grid class="w-4 h-4" />
+                    <span class="hidden sm:inline" x-text="viewMode === 'table' ? 'Calendar' : 'Table'"></span>
+                </x-ui.button>
+                <x-ui.button variant="outline" @click="openFilterModal()">
+                    <x-icons.filter class="w-4 h-4" />
+                    <span class="hidden sm:inline">Filter</span>
+                </x-ui.button>
+                <x-ui.button variant="primary" @click="exportAttendance()">
+                    <x-icons.download class="w-4 h-4" />
+                    <span class="hidden sm:inline">Export</span>
+                </x-ui.button>
             </div>
         </div>
     </div>
 
-    <!-- Enhanced Statistics Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <!-- Present Days Card -->
-        <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg shadow-md">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                    <span class="text-sm text-green-600 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">Hadir</span>
-                </div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100" id="stat-present">--</h3>
-                <p class="text-gray-600 dark:text-gray-400 text-sm">Hari Hadir</p>
-                <div class="mt-3 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div class="bg-gradient-to-r from-green-500 to-emerald-600 h-2 rounded-full transition-all duration-300" style="width: 85%"></div>
-                </div>
+    <!-- Statistics Cards - macOS Style (Responsive) -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        <!-- Present Days -->
+        <x-ui.card class="p-3 sm:p-4">
+            <div class="flex items-center justify-between mb-2 sm:mb-3">
+                <x-icons.check-circle class="w-4 h-4 sm:w-5 sm:h-5 text-success" />
+                <span class="badge badge-success text-[10px] sm:text-xs">Hadir</span>
             </div>
+            <p class="metric-label mb-0.5 sm:mb-1">Hari Hadir</p>
+            <p class="metric-value" id="stat-present">--</p>
         </x-ui.card>
 
-        <!-- Late Days Card -->
-        <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 bg-gradient-to-r from-amber-500 to-orange-600 rounded-lg shadow-md">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                    <span class="text-sm text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-2 py-1 rounded-full">Terlambat</span>
-                </div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100" id="stat-late">--</h3>
-                <p class="text-gray-600 dark:text-gray-400 text-sm">Keterlambatan</p>
-                <div class="mt-3 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div class="bg-gradient-to-r from-amber-500 to-orange-600 h-2 rounded-full transition-all duration-300" style="width: 15%"></div>
-                </div>
+        <!-- Late Days -->
+        <x-ui.card class="p-3 sm:p-4">
+            <div class="flex items-center justify-between mb-2 sm:mb-3">
+                <x-icons.clock class="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
+                <span class="badge badge-warning text-[10px] sm:text-xs">Telat</span>
             </div>
+            <p class="metric-label mb-0.5 sm:mb-1">Terlambat</p>
+            <p class="metric-value" id="stat-late">--</p>
         </x-ui.card>
 
-        <!-- Total Hours Card -->
-        <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-md">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                    <span class="text-sm text-blue-600 bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded-full">Jam Kerja</span>
-                </div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100" id="stat-hours">--</h3>
-                <p class="text-gray-600 dark:text-gray-400 text-sm">Total Jam Kerja</p>
-                <div class="mt-3 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-300" style="width: 92%"></div>
-                </div>
+        <!-- Total Hours -->
+        <x-ui.card class="p-3 sm:p-4">
+            <div class="flex items-center justify-between mb-2 sm:mb-3">
+                <x-icons.clock class="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                <span class="badge badge-info text-[10px] sm:text-xs">Jam</span>
             </div>
+            <p class="metric-label mb-0.5 sm:mb-1">Total Jam</p>
+            <p class="metric-value" id="stat-hours">--</p>
         </x-ui.card>
 
-        <!-- Attendance Rate Card -->
-        <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg shadow-md">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                        </svg>
-                    </div>
-                    <span class="text-sm text-purple-600 bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded-full">Rate</span>
-                </div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100" id="stat-rate">--</h3>
-                <p class="text-gray-600 dark:text-gray-400 text-sm">Tingkat Kehadiran</p>
-                <div class="mt-3 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div class="bg-gradient-to-r from-purple-500 to-pink-600 h-2 rounded-full transition-all duration-300" style="width: 88%"></div>
-                </div>
+        <!-- Attendance Rate -->
+        <x-ui.card class="p-3 sm:p-4">
+            <div class="flex items-center justify-between mb-2 sm:mb-3">
+                <x-icons.chart-bar class="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
+                <span class="badge badge-purple text-[10px] sm:text-xs">Rate</span>
             </div>
+            <p class="metric-label mb-0.5 sm:mb-1">Kehadiran</p>
+            <p class="metric-value" id="stat-rate">--</p>
         </x-ui.card>
     </div>
 
     <!-- Main Content Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <!-- Attendance Data Table (3 columns) -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
+        <!-- Attendance Data Table -->
         <div class="lg:col-span-3">
-            <x-ui.card class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-                    <div class="flex items-center justify-between">
+            <x-ui.card>
+                <div class="table-header">
+                    <div class="table-header-flex">
                         <div>
-                            <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                            <h3 class="section-title">
                                 @can('view_attendance_all')
                                     Catatan Kehadiran Karyawan
                                 @else

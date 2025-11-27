@@ -25,7 +25,7 @@ Route::middleware(['auth', 'verified', 'permission:view_payroll'])
             Route::get('/create', [PayrollController::class, 'create'])->name('payroll.create');
 
             Route::get('/bulk-calculate', function () {
-                return view('pages.payroll.bulk_calculate');
+                return view('pages.payroll.bulk-calculate');
             })->name('payroll.bulk-calculate');
 
             Route::post('/bulk-calculate', function () {

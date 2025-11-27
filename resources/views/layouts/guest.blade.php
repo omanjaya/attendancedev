@@ -24,7 +24,7 @@
         <link href="https://fonts.bunny.net/css?family=inter:400,500,600&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @vite(['resources/css/app.css', 'resources/js/app.ts'])
     </head>
     <body class="h-full font-sans antialiased bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0">
