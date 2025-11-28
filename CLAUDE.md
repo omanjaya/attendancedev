@@ -116,3 +116,12 @@ Project-specific skills are available in `.claude/skills/`:
 - `frontend-design` - UI/UX design guidelines
 - `database-performance` - Query optimization strategies
 - remember to check this documentation untuk memakai shadcnblocks https://docs.shadcnblocks.com/blocks/shadcn-cli/
+- CLI
+All of our blocks are compatible and downloadable using the official shadcn CLI.
+
+ClI Docs: https://docs.shadcnblocks.com/blocks/shadcn-cli/
+
+Tailwind 4
+Built with Tailwind 4, see our tailwind config file to get started
+
+Tailwind Config: https://www.shadcnblocks.com/tailwind/globals.css
