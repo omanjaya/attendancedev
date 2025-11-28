@@ -115,3 +115,4 @@ Project-specific skills are available in `.claude/skills/`:
 - `tailwind-components` - Reusable component patterns
 - `frontend-design` - UI/UX design guidelines
 - `database-performance` - Query optimization strategies
+- remember to check this documentation untuk memakai shadcnblocks https://docs.shadcnblocks.com/blocks/shadcn-cli/

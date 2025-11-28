@@ -1,0 +1,467 @@
+import { useState, useRef, useCallback, useEffect } from 'react';
+import {
+  Camera,
+  User,
+  AlertCircle,
+  Loader2,
+  RefreshCw,
+  UserCheck,
+  UserX,
+  Scan,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Progress } from '@/components/ui/progress';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { faceDetectionService } from '@/lib/services/face-detection';
+import { useRegisteredFaces, useVerifyFace } from '@/hooks/use-face-recognition-api';
+import { useFaceStore } from '@/stores';
+import { findBestMatch } from '@/lib/api/face-recognition';
+import { cn } from '@/lib/utils';
+import type { KnownFaceDescriptor } from '@/types/face-recognition';
+
+interface FaceIdentificationPanelProps {
+  onIdentified?: (employeeId: string, employeeName: string, confidence: number) => void;
+  onNotRecognized?: () => void;
+  autoStart?: boolean;
+  showHistory?: boolean;
+  className?: string;
+}
+
+type IdentificationState = 'initializing' | 'ready' | 'scanning' | 'identified' | 'not_recognized' | 'error';
+
+interface IdentifiedEmployee {
+  id: string;
+  name: string;
+  similarity: number;
+  timestamp: number;
+  photoUrl?: string;
+}
+
+export function FaceIdentificationPanel({
+  onIdentified,
+  onNotRecognized,
+  autoStart = true,
+  showHistory = true,
+  className,
+}: FaceIdentificationPanelProps) {
+  const [state, setState] = useState<IdentificationState>('initializing');
+  const [error, setError] = useState<string | null>(null);
+  const [identifiedEmployee, setIdentifiedEmployee] = useState<IdentifiedEmployee | null>(null);
+  const [scanProgress, setScanProgress] = useState(0);
+  const [detectionStatus, setDetectionStatus] = useState<'none' | 'detected' | 'multiple'>('none');
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Fetch registered faces from API
+  const { data: apiRegisteredFaces, isLoading: isLoadingFaces, refetch: refetchFaces } = useRegisteredFaces();
+  const verifyFaceMutation = useVerifyFace();
+
+  // Local store for caching
+  const {
+    registeredFaces: cachedFaces,
+    setRegisteredFaces,
+    addToIdentificationHistory,
+    identificationHistory,
+    settings,
+  } = useFaceStore();
+
+  // Use cached faces or API faces
+  const registeredFaces: KnownFaceDescriptor[] = cachedFaces.length > 0 ? cachedFaces : (apiRegisteredFaces || []);
+
+  // Update cache when API data changes
+  useEffect(() => {
+    if (apiRegisteredFaces && apiRegisteredFaces.length > 0) {
+      setRegisteredFaces(apiRegisteredFaces);
+    }
+  }, [apiRegisteredFaces, setRegisteredFaces]);
+
+  // Initialize camera
+  useEffect(() => {
+    let mounted = true;
+
+    const init = async () => {
+      try {
+        await faceDetectionService.initialize();
+        if (!mounted) return;
+
+        if (videoRef.current) {
+          await faceDetectionService.startCamera(videoRef.current);
+        }
+
+        setState('ready');
+        if (autoStart) {
+          startDetectionLoop();
+        }
+      } catch (err) {
+        console.error('Initialization error:', err);
+        if (mounted) {
+          setError('Gagal mengakses kamera. Pastikan izin kamera telah diberikan.');
+          setState('error');
+        }
+      }
+    };
+
+    init();
+
+    return () => {
+      mounted = false;
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (scanIntervalRef.current) {
+        clearInterval(scanIntervalRef.current);
+      }
+      faceDetectionService.stopCamera();
+    };
+  }, [autoStart]);
+
+  // Detection loop for face tracking
+  const startDetectionLoop = useCallback(() => {
+    const detect = async () => {
+      if (!videoRef.current || !canvasRef.current) {
+        animationFrameRef.current = requestAnimationFrame(detect);
+        return;
+      }
+
+      try {
+        const detections = await faceDetectionService.detectFaces(videoRef.current);
+
+        if (detections.length === 1) {
+          setDetectionStatus('detected');
+          const displaySize = faceDetectionService.getDisplaySize(videoRef.current);
+          faceDetectionService.drawDetections(canvasRef.current, detections, displaySize);
+        } else if (detections.length === 0) {
+          setDetectionStatus('none');
+          const ctx = canvasRef.current.getContext('2d');
+          ctx?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        } else {
+          setDetectionStatus('multiple');
+        }
+      } catch {
+        // Ignore detection errors
+      }
+
+      animationFrameRef.current = requestAnimationFrame(detect);
+    };
+
+    detect();
+  }, []);
+
+  // Identify face
+  const identifyFace = useCallback(async () => {
+    if (!videoRef.current || detectionStatus !== 'detected') {
+      setError('Tidak ada wajah terdeteksi');
+      return;
+    }
+
+    if (registeredFaces.length === 0) {
+      setError('Tidak ada wajah terdaftar dalam sistem');
+      return;
+    }
+
+    setState('scanning');
+    setError(null);
+    setScanProgress(0);
+
+    try {
+      // Simulate scanning progress
+      const progressInterval = setInterval(() => {
+        setScanProgress((prev) => Math.min(prev + 10, 90));
+      }, 100);
+
+      // Get face descriptor
+      const faceData = await faceDetectionService.captureFaceDescriptor(
+        videoRef.current,
+        'temp-identification'
+      );
+
+      clearInterval(progressInterval);
+      setScanProgress(100);
+
+      // Try local matching first for speed
+      const localMatch = findBestMatch(
+        faceData.descriptor,
+        registeredFaces,
+        settings.confidence_threshold
+      );
+
+      if (localMatch.match) {
+        const identified: IdentifiedEmployee = {
+          id: String(localMatch.match.employeeId),
+          name: localMatch.match.name || 'Unknown',
+          similarity: localMatch.similarity,
+          timestamp: Date.now(),
+        };
+
+        setIdentifiedEmployee(identified);
+        addToIdentificationHistory({
+          employeeId: identified.id,
+          employeeName: identified.name,
+          similarity: identified.similarity,
+          timestamp: identified.timestamp,
+        });
+
+        setState('identified');
+        onIdentified?.(identified.id, identified.name, identified.similarity);
+      } else {
+        // Try backend verification as fallback
+        try {
+          const response = await verifyFaceMutation.mutateAsync({
+            descriptor: faceData.descriptor,
+            confidence: faceData.confidence,
+            threshold: settings.confidence_threshold,
+          });
+
+          if (response.data.success && response.data.employee) {
+            const identified: IdentifiedEmployee = {
+              id: response.data.employee.id,
+              name: response.data.employee.name,
+              similarity: response.data.confidence,
+              timestamp: Date.now(),
+              photoUrl: response.data.employee.photo_url,
+            };
+
+            setIdentifiedEmployee(identified);
+            addToIdentificationHistory({
+              employeeId: identified.id,
+              employeeName: identified.name,
+              similarity: identified.similarity,
+              timestamp: identified.timestamp,
+            });
+
+            setState('identified');
+            onIdentified?.(identified.id, identified.name, identified.similarity);
+          } else {
+            setState('not_recognized');
+            setIdentifiedEmployee(null);
+            onNotRecognized?.();
+          }
+        } catch {
+          setState('not_recognized');
+          setIdentifiedEmployee(null);
+          onNotRecognized?.();
+        }
+      }
+    } catch (err) {
+      console.error('Identification error:', err);
+      setError(err instanceof Error ? err.message : 'Gagal mengidentifikasi wajah');
+      setState('error');
+    }
+  }, [
+    detectionStatus,
+    registeredFaces,
+    settings.confidence_threshold,
+    verifyFaceMutation,
+    addToIdentificationHistory,
+    onIdentified,
+    onNotRecognized,
+  ]);
+
+  // Reset to ready state
+  const handleReset = () => {
+    setState('ready');
+    setIdentifiedEmployee(null);
+    setError(null);
+    setScanProgress(0);
+  };
+
+  // Get similarity color
+  const getSimilarityColor = (similarity: number): string => {
+    if (similarity >= 0.9) return 'text-green-600';
+    if (similarity >= 0.7) return 'text-blue-600';
+    if (similarity >= 0.6) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  return (
+    <Card className={cn('w-full max-w-lg', className)}>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Scan className="h-5 w-5" />
+          Identifikasi Wajah
+        </CardTitle>
+        <CardDescription>
+          {isLoadingFaces
+            ? 'Memuat data wajah terdaftar...'
+            : `${registeredFaces.length} wajah terdaftar dalam sistem`}
+        </CardDescription>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        {/* Error Alert */}
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Camera View */}
+        <div className="relative aspect-[4/3] bg-black rounded-lg overflow-hidden">
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="w-full h-full object-cover"
+          />
+          <canvas
+            ref={canvasRef}
+            className="absolute inset-0 pointer-events-none"
+            width={640}
+            height={480}
+          />
+
+          {/* Detection Status Badge */}
+          <div
+            className={cn(
+              'absolute top-4 left-4 px-3 py-1 rounded-full text-sm font-medium',
+              detectionStatus === 'detected' && 'bg-green-500 text-white',
+              detectionStatus === 'none' && 'bg-gray-500 text-white',
+              detectionStatus === 'multiple' && 'bg-yellow-500 text-white'
+            )}
+          >
+            {detectionStatus === 'detected' && 'Wajah Terdeteksi'}
+            {detectionStatus === 'none' && 'Tidak Ada Wajah'}
+            {detectionStatus === 'multiple' && 'Beberapa Wajah'}
+          </div>
+
+          {/* Scanning Overlay */}
+          {state === 'scanning' && (
+            <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center">
+              <Loader2 className="h-10 w-10 text-white animate-spin mb-4" />
+              <p className="text-white mb-2">Mengidentifikasi wajah...</p>
+              <div className="w-48">
+                <Progress value={scanProgress} className="h-2" />
+              </div>
+            </div>
+          )}
+
+          {/* Loading Overlay */}
+          {state === 'initializing' && (
+            <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center">
+              <Loader2 className="h-10 w-10 text-white animate-spin mb-2" />
+              <p className="text-white">Memuat kamera...</p>
+            </div>
+          )}
+        </div>
+
+        {/* Identification Result */}
+        {state === 'identified' && identifiedEmployee && (
+          <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-16 w-16">
+                <AvatarImage src={identifiedEmployee.photoUrl} />
+                <AvatarFallback className="bg-green-100 text-green-700 text-lg">
+                  {identifiedEmployee.name.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <UserCheck className="h-5 w-5 text-green-600" />
+                  <span className="font-semibold text-green-800 dark:text-green-200">
+                    Teridentifikasi
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold text-green-900 dark:text-green-100">
+                  {identifiedEmployee.name}
+                </h3>
+                <p className={cn('text-sm font-medium', getSimilarityColor(identifiedEmployee.similarity))}>
+                  Kecocokan: {Math.round(identifiedEmployee.similarity * 100)}%
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Not Recognized Result */}
+        {state === 'not_recognized' && (
+          <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <div className="flex items-center gap-4">
+              <div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center">
+                <UserX className="h-8 w-8 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-red-800 dark:text-red-200">
+                  Wajah Tidak Dikenali
+                </h3>
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  Wajah tidak cocok dengan data terdaftar
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex gap-2">
+          {(state === 'ready' || state === 'identified' || state === 'not_recognized') && (
+            <Button
+              onClick={identifyFace}
+              className="flex-1"
+              disabled={detectionStatus !== 'detected' || isLoadingFaces}
+            >
+              <Camera className="h-4 w-4 mr-2" />
+              {state === 'ready' ? 'Identifikasi' : 'Scan Ulang'}
+            </Button>
+          )}
+
+          {(state === 'identified' || state === 'not_recognized') && (
+            <Button variant="outline" onClick={handleReset}>
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          )}
+
+          {state === 'error' && (
+            <Button onClick={handleReset} className="flex-1">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Coba Lagi
+            </Button>
+          )}
+
+          <Button variant="ghost" onClick={() => refetchFaces()}>
+            <RefreshCw className={cn('h-4 w-4', isLoadingFaces && 'animate-spin')} />
+          </Button>
+        </div>
+
+        {/* Recent History */}
+        {showHistory && identificationHistory.length > 0 && (
+          <div className="border-t pt-4">
+            <h4 className="text-sm font-medium mb-2">Riwayat Identifikasi</h4>
+            <div className="space-y-2 max-h-32 overflow-y-auto">
+              {identificationHistory.slice(0, 5).map((item) => (
+                <div
+                  key={`${item.employeeId}-${item.timestamp}`}
+                  className="flex items-center justify-between text-sm py-1"
+                >
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span>{item.employeeName}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={getSimilarityColor(item.similarity)}>
+                      {Math.round(item.similarity * 100)}%
+                    </span>
+                    <span className="text-muted-foreground text-xs">
+                      {new Date(item.timestamp).toLocaleTimeString('id-ID', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+export default FaceIdentificationPanel;
