@@ -14,7 +14,11 @@ import {
   CheckSquare,
   XCircle,
   Loader2,
+  Users,
+  UserCheck,
+  CalendarOff,
 } from 'lucide-react';
+import { StatsGrid } from '@/components/dashboard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -501,32 +505,41 @@ export default function EmployeesPage() {
         </div>
       )}
 
-      {/* Stats */}
-      <div className="mb-6 grid gap-4 sm:grid-cols-4">
-        {[
-          { label: 'Total', value: mockEmployees.length, color: 'text-foreground' },
+      {/* Stats - using StatsGrid component */}
+      <StatsGrid
+        stats={[
           {
-            label: 'Aktif',
+            id: 'total',
+            title: 'Total Karyawan',
+            value: mockEmployees.length,
+            icon: Users,
+            color: 'default',
+          },
+          {
+            id: 'active',
+            title: 'Aktif',
             value: mockEmployees.filter((e) => e.status === 'active').length,
-            color: 'text-success',
+            icon: UserCheck,
+            color: 'success',
           },
           {
-            label: 'Cuti',
+            id: 'on-leave',
+            title: 'Cuti',
             value: mockEmployees.filter((e) => e.status === 'on_leave').length,
-            color: 'text-warning',
+            icon: CalendarOff,
+            color: 'warning',
           },
           {
-            label: 'Face ID',
+            id: 'face-id',
+            title: 'Face ID Terdaftar',
             value: mockEmployees.filter((e) => e.face_registered).length,
-            color: 'text-primary',
+            icon: ScanFace,
+            color: 'primary',
           },
-        ].map((stat) => (
-          <div key={stat.label} className="rounded-lg border border-border bg-card p-4">
-            <p className="text-xs text-muted-foreground">{stat.label}</p>
-            <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
-          </div>
-        ))}
-      </div>
+        ]}
+        columns={4}
+        variant="compact"
+      />
 
       {/* Data Table */}
       <div className="rounded-lg border border-border bg-card p-4">

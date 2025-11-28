@@ -18,6 +18,7 @@ import {
   Building,
   Receipt,
 } from 'lucide-react';
+import { EmptyState } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -580,25 +581,21 @@ export default function PayrollPage() {
             </CardHeader>
             <CardContent>
               {!selectedPeriodId ? (
-                <div className="flex flex-col items-center justify-center py-10">
-                  <Building className="h-12 w-12 text-muted-foreground/50" />
-                  <p className="mt-4 text-lg font-medium">Pilih Periode</p>
-                  <p className="text-sm text-muted-foreground">
-                    Pilih periode payroll untuk melihat data karyawan
-                  </p>
-                </div>
+                <EmptyState
+                  icon={Building}
+                  title="Pilih Periode"
+                  description="Pilih periode payroll untuk melihat data karyawan"
+                />
               ) : isLoading ? (
                 <div className="flex items-center justify-center py-10">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : payrollEmployees.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10">
-                  <Users className="h-12 w-12 text-muted-foreground/50" />
-                  <p className="mt-4 text-lg font-medium">Belum Ada Data</p>
-                  <p className="text-sm text-muted-foreground">
-                    Data payroll belum dihitung untuk periode ini
-                  </p>
-                </div>
+                <EmptyState
+                  icon={Users}
+                  title="Belum Ada Data"
+                  description="Data payroll belum dihitung untuk periode ini"
+                />
               ) : (
                 <div className="rounded-lg border">
                   <Table>
@@ -666,14 +663,12 @@ export default function PayrollPage() {
               <CardTitle>Laporan Payroll</CardTitle>
               <CardDescription>Analisis dan laporan penggajian</CardDescription>
             </CardHeader>
-            <CardContent className="flex items-center justify-center py-20">
-              <div className="text-center">
-                <TrendingUp className="h-12 w-12 text-muted-foreground/50 mx-auto" />
-                <p className="mt-4 text-lg font-medium">Coming Soon</p>
-                <p className="text-sm text-muted-foreground">
-                  Fitur laporan dan analisis akan segera hadir
-                </p>
-              </div>
+            <CardContent className="py-10">
+              <EmptyState
+                icon={TrendingUp}
+                title="Coming Soon"
+                description="Fitur laporan dan analisis akan segera hadir"
+              />
             </CardContent>
           </Card>
         </TabsContent>

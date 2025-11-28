@@ -18,6 +18,7 @@ import {
   CalendarCheck,
   CalendarX,
 } from 'lucide-react';
+import { EmptyState } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -471,16 +472,16 @@ export default function LeavePage() {
             </Card>
           ) : filteredRequests.length === 0 ? (
             <Card>
-              <CardContent className="flex flex-col items-center justify-center py-20">
-                <CalendarX className="h-12 w-12 text-muted-foreground/50" />
-                <p className="mt-4 text-lg font-medium">Tidak ada pengajuan cuti</p>
-                <p className="text-sm text-muted-foreground">
-                  Belum ada pengajuan cuti yang sesuai filter
-                </p>
-                <Button className="mt-4 gap-2" onClick={() => setShowCreateDialog(true)}>
-                  <Plus className="h-4 w-4" />
-                  Ajukan Cuti Baru
-                </Button>
+              <CardContent className="py-10">
+                <EmptyState
+                  icon={CalendarX}
+                  title="Tidak ada pengajuan cuti"
+                  description="Belum ada pengajuan cuti yang sesuai filter"
+                  action={{
+                    label: 'Ajukan Cuti Baru',
+                    onClick: () => setShowCreateDialog(true),
+                  }}
+                />
               </CardContent>
             </Card>
           ) : (
@@ -632,13 +633,11 @@ export default function LeavePage() {
             </CardHeader>
             <CardContent>
               {leaveRequests.filter((r) => r.status === 'pending').length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10">
-                  <CheckCircle2 className="h-12 w-12 text-emerald-500/50" />
-                  <p className="mt-4 text-lg font-medium">Semua Sudah Diproses</p>
-                  <p className="text-sm text-muted-foreground">
-                    Tidak ada pengajuan yang menunggu persetujuan
-                  </p>
-                </div>
+                <EmptyState
+                  icon={CheckCircle2}
+                  title="Semua Sudah Diproses"
+                  description="Tidak ada pengajuan yang menunggu persetujuan"
+                />
               ) : (
                 <div className="space-y-4">
                   {leaveRequests

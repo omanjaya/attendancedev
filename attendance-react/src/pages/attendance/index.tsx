@@ -15,7 +15,9 @@ import {
   X,
   Shield,
   UserCheck,
+  CalendarOff,
 } from 'lucide-react';
+import { StatsGrid } from '@/components/dashboard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -554,7 +556,7 @@ export default function AttendancePage() {
           </CardContent>
         </Card>
 
-        {/* Stats */}
+        {/* Stats - using StatsGrid component */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-macos-base">
@@ -563,24 +565,16 @@ export default function AttendancePage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-4 gap-4">
-              <div className="text-center p-3 rounded-lg bg-emerald-500/10">
-                <p className="text-2xl font-bold text-emerald-600">{stats.present}</p>
-                <p className="text-xs text-muted-foreground">Hadir</p>
-              </div>
-              <div className="text-center p-3 rounded-lg bg-amber-500/10">
-                <p className="text-2xl font-bold text-amber-600">{stats.late}</p>
-                <p className="text-xs text-muted-foreground">Terlambat</p>
-              </div>
-              <div className="text-center p-3 rounded-lg bg-red-500/10">
-                <p className="text-2xl font-bold text-red-600">{stats.absent}</p>
-                <p className="text-xs text-muted-foreground">Tidak Hadir</p>
-              </div>
-              <div className="text-center p-3 rounded-lg bg-slate-500/10">
-                <p className="text-2xl font-bold text-slate-600">{stats.leave}</p>
-                <p className="text-xs text-muted-foreground">Cuti</p>
-              </div>
-            </div>
+            <StatsGrid
+              stats={[
+                { id: 'present', title: 'Hadir', value: stats.present, icon: UserCheck, color: 'success' },
+                { id: 'late', title: 'Terlambat', value: stats.late, icon: Clock, color: 'warning' },
+                { id: 'absent', title: 'Tidak Hadir', value: stats.absent, icon: XCircle, color: 'destructive' },
+                { id: 'leave', title: 'Cuti', value: stats.leave, icon: CalendarOff, color: 'default' },
+              ]}
+              columns={4}
+              variant="compact"
+            />
           </CardContent>
         </Card>
       </div>

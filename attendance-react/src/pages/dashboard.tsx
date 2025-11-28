@@ -9,8 +9,6 @@ import {
   Clock,
   Calendar,
   Loader2,
-  ArrowUpRight,
-  ArrowDownRight,
   CheckCircle,
   AlertCircle,
   FileText,
@@ -20,6 +18,7 @@ import {
   Award,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatsGrid } from '@/components/dashboard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -107,75 +106,83 @@ export default function DashboardPage() {
     'pegawai': 'Pegawai',
   };
 
-  // Admin/Manager Stats
+  // Admin/Manager Stats - using StatsGrid format
   const adminStats = [
     {
+      id: 'total-employees',
       title: 'Total Karyawan',
       value: summary?.employees.total || 0,
       icon: Users,
-      change: `${summary?.employees.active || 0} aktif`,
+      description: `${summary?.employees.active || 0} aktif`,
       trend: 'up' as const,
-      color: 'bg-primary',
+      color: 'primary' as const,
     },
     {
+      id: 'present-today',
       title: 'Hadir Hari Ini',
       value: summary?.attendance.present || 0,
       icon: UserCheck,
-      change: `${summary?.attendance.attendance_rate?.toFixed(1) || 0}%`,
+      trendValue: `${summary?.attendance.attendance_rate?.toFixed(1) || 0}%`,
       trend: 'up' as const,
-      color: 'bg-success',
+      color: 'success' as const,
     },
     {
+      id: 'on-leave',
       title: 'Cuti / Izin',
       value: summary?.attendance.on_leave || 0,
       icon: CalendarOff,
-      change: `${summary?.pending_leaves || 0} pending`,
+      description: `${summary?.pending_leaves || 0} pending`,
       trend: 'neutral' as const,
-      color: 'bg-warning',
+      color: 'warning' as const,
     },
     {
+      id: 'absent',
       title: 'Tidak Hadir',
       value: summary?.attendance.absent || 0,
       icon: UserX,
-      change: `${summary?.attendance.late || 0} terlambat`,
+      description: `${summary?.attendance.late || 0} terlambat`,
       trend: 'down' as const,
-      color: 'bg-destructive',
+      color: 'destructive' as const,
     },
   ];
 
-  // Employee personal stats (mock)
+  // Employee personal stats - using StatsGrid format
   const employeeStats = [
     {
+      id: 'attendance-month',
       title: 'Kehadiran Bulan Ini',
       value: 22,
       icon: UserCheck,
-      change: '95.6%',
+      trendValue: '95.6%',
       trend: 'up' as const,
-      color: 'bg-success',
+      color: 'success' as const,
     },
     {
+      id: 'late-count',
       title: 'Terlambat',
       value: 1,
       icon: Clock,
-      change: 'bulan ini',
+      description: 'bulan ini',
       trend: 'neutral' as const,
-      color: 'bg-warning',
+      color: 'warning' as const,
     },
     {
+      id: 'leave-balance',
       title: 'Sisa Cuti',
       value: 10,
       icon: CalendarOff,
-      change: 'hari tersisa',
+      description: 'hari tersisa',
       trend: 'neutral' as const,
-      color: 'bg-primary',
+      color: 'primary' as const,
     },
     {
+      id: 'work-hours',
       title: 'Jam Kerja',
       value: 176,
       icon: Clock,
-      change: 'jam bulan ini',
+      description: 'jam bulan ini',
       trend: 'up' as const,
-      color: 'bg-blue-500',
+      color: 'primary' as const,
     },
   ];
 
@@ -254,31 +261,12 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      {/* Stats Grid - shadcnblocks style */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {(isAdmin || isManager ? adminStats : employeeStats).map((stat) => (
-          <Card key={stat.title} className="bg-accent/50 border-none shadow-sm hover:shadow-md transition-all">
-            <CardContent className="p-6">
-              <div className="flex flex-col items-center text-center">
-                <div className={`mb-3 rounded-xl p-3 ${stat.color}`}>
-                  <stat.icon className="h-6 w-6 text-white" />
-                </div>
-                <p className="mb-1 flex items-center justify-center text-3xl font-bold">
-                  {stat.trend === 'up' && (
-                    <ArrowUpRight className="mr-1 h-6 w-6 text-green-500" />
-                  )}
-                  {stat.trend === 'down' && (
-                    <ArrowDownRight className="mr-1 h-6 w-6 text-red-500" />
-                  )}
-                  {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
-                </p>
-                <p className="text-sm font-medium text-foreground">{stat.title}</p>
-                <p className="text-xs text-muted-foreground mt-1">{stat.change}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {/* Stats Grid - using StatsGrid component */}
+      <StatsGrid
+        stats={isAdmin || isManager ? adminStats : employeeStats}
+        columns={4}
+        variant="default"
+      />
 
       {/* Content Grid */}
       <div className="grid gap-6 lg:grid-cols-3">
