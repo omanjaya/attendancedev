@@ -4,45 +4,71 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Laravel 12 + Vue.js 3 attendance management system with face recognition, GPS verification, payroll calculation, and schedule management.
+**Monorepo** structure with Laravel 12 API backend and React 19 SPA frontend. Includes face recognition, GPS verification, payroll calculation, and schedule management.
 
-**Stack:** Laravel 12 (PHP 8.2+), Vue.js 3 (Composition API + TypeScript), Vite, Tailwind CSS, Pinia, SQLite (dev) / PostgreSQL (prod)
+**Stack:**
+- **Backend**: Laravel 12 (PHP 8.2+), Sanctum, SQLite (dev) / PostgreSQL (prod)
+- **Frontend**: React 19, TypeScript, TanStack Router/Query, Tailwind CSS 4
+- **Shared**: TypeScript types and constants
+
+## Monorepo Structure
+
+```
+attendancedev/
+├── backend/              # Laravel 12 API
+│   ├── app/              # Controllers, Services, Repositories, Models
+│   ├── routes/           # API routes
+│   ├── database/         # Migrations, seeders
+│   └── tests/            # PHPUnit tests
+├── frontend/             # React SPA
+│   ├── src/              # Components, pages, hooks, stores
+│   ├── e2e/              # Playwright tests
+│   └── public/           # Static assets
+└── shared/               # Shared types and constants
+    ├── types/            # TypeScript interfaces
+    └── constants/        # Shared constants
+```
 
 ## Development Commands
 
 ```bash
-# Start all development services (recommended)
-composer dev
+# From root directory:
+npm run dev                          # Start all services (backend + frontend)
+npm run dev:backend                  # Laravel API only (port 8000)
+npm run dev:frontend                 # React SPA only (port 5173)
 
-# Individual services
-php artisan serve                    # Laravel server (port 8000)
-npm run dev                          # Vite dev server with HMR
+# Building
+npm run build                        # Build all packages
+npm run build:frontend               # Build frontend only
+npm run build:backend                # Install backend deps optimized
 
 # Testing
-php artisan test                     # All PHP tests
-php artisan test --filter=TestName   # Single test
-npm run test                         # Vue component tests (Vitest)
-npm run test:run                     # Single test run
+npm run test                         # Run all tests
+npm run test:backend                 # PHPUnit tests
+npm run test:frontend                # Vitest tests
+npm run test:e2e                     # Playwright E2E tests
 
 # Code Quality
-npm run quality                      # Full check: type-check, lint, format, test
-npm run lint:fix                     # ESLint auto-fix
-npm run format                       # Prettier formatting
+npm run lint                         # ESLint
+cd frontend && npm run quality       # Full frontend quality check
 
 # Database
-php artisan migrate:fresh --seed     # Reset database with seeders
+cd backend && php artisan migrate:fresh --seed
 
 # API Documentation
-php artisan l5-swagger:generate      # Generate OpenAPI docs at /api/documentation
+cd backend && php artisan l5-swagger:generate  # /api/documentation
 ```
 
 ## Architecture
 
 ### Backend (Service Layer Pattern)
 
+Location: `backend/app/`
+
 ```
-app/
+backend/app/
 ├── Http/Controllers/    # Thin controllers - delegate to services
+│   └── Api/             # API controllers
 ├── Services/            # Business logic (18+ services)
 ├── Repositories/        # Data access layer (12+ repos)
 ├── Models/              # Eloquent models with relationships
@@ -54,32 +80,40 @@ app/
 - Controllers only handle HTTP concerns, delegate to services
 - Services contain business logic, use transactions for related operations
 - Use Form Requests for validation, not inline controller validation
-- Use PHP 8.1+ enums for status fields
+- Use PHP 8.2+ features (enums, readonly properties, named arguments)
+- All routes in `backend/routes/` are API-only (no web UI)
 
-### Frontend (Composition API)
+### Frontend (React + TypeScript)
+
+Location: `frontend/src/`
 
 ```
-resources/js/
-├── components/          # Vue components by feature (Face/, Schedule/, Security/)
-├── composables/         # Reusable composition functions
-├── stores/              # Pinia stores
-├── services/            # API client layer
-├── types/               # TypeScript interfaces
-└── tests/               # Vitest component tests
+frontend/src/
+├── pages/               # Route pages (TanStack Router)
+├── components/          # Reusable React components
+│   └── ui/              # shadcn/ui components
+├── lib/                 # Utilities and API clients
+│   └── api/             # API client layer
+├── stores/              # Zustand stores
+├── hooks/               # Custom React hooks
+└── types/               # Frontend-specific types
 ```
 
 **Key conventions:**
-- Use `<script setup lang="ts">` for all components
-- Define typed props with `defineProps<Props>()` and defaults with `withDefaults`
-- Use typed emits with `defineEmits<{...}>()`
-- Prefer `ref` for primitives and reassignable objects, `reactive` for mutated objects
+- Use functional components with hooks
+- Zustand for global state, React Query for server state
+- TypeScript strict mode enabled
+- Import shared types from `@attendance/shared`
+- Use shadcn/ui components for consistent UI
 
-### Routes Organization
+### Shared Package
 
-Routes are split into domain-specific files in `routes/`:
-- `attendance.php`, `employees.php`, `payroll.php`, `schedules.php`, `leave.php`
-- `api_v1.php` for versioned API endpoints
-- `api_face_recognition.php` for face recognition endpoints
+Location: `shared/`
+
+Contains types and constants shared between frontend and backend:
+- `types/index.ts` - Common TypeScript interfaces
+- `constants/index.ts` - Shared constants and enums
+- Imported as `@attendance/shared` in frontend
 
 ## Design System
 
@@ -95,33 +129,32 @@ Uses Glassmorphism design with CSS variable-based color system. See `.claude/ski
 
 ## Testing
 
-- **PHPUnit:** `tests/Unit/` and `tests/Feature/` - uses SQLite in-memory
-- **Vitest:** `resources/js/tests/` - uses happy-dom environment
-- **Dusk:** Browser tests for end-to-end flows
+- **PHPUnit:** `backend/tests/Unit/` and `backend/tests/Feature/` - uses SQLite in-memory
+- **Vitest:** `frontend/src/` - unit tests for React components
+- **Playwright:** `frontend/e2e/` - end-to-end browser tests
+- Run all tests: `npm test` from root
 
 ## Environment
 
-Copy `.env.example` to `.env` and configure:
+Copy `backend/.env.example` to `backend/.env` and configure:
 - Database connection (SQLite for dev, PostgreSQL for prod)
 - Payroll settings (PAYROLL_* variables)
 - Feature flags (ENABLE_FACE_RECOGNITION, ENABLE_GPS_VERIFICATION)
+- CORS settings for frontend (already configured for localhost:5173)
 
 ## Skills
 
 Project-specific skills are available in `.claude/skills/`:
 - `face-recognition` - Face detection, verification, enrollment, and liveness patterns
 - `laravel-patterns` - Laravel best practices and service layer patterns
-- `vuejs-patterns` - Vue 3 Composition API patterns
-- `tailwind-components` - Reusable component patterns
+- `tailwind-components` - Reusable component patterns (shadcn/ui based)
 - `frontend-design` - UI/UX design guidelines
 - `database-performance` - Query optimization strategies
-- remember to check this documentation untuk memakai shadcnblocks https://docs.shadcnblocks.com/blocks/shadcn-cli/
-- CLI
-All of our blocks are compatible and downloadable using the official shadcn CLI.
 
-ClI Docs: https://docs.shadcnblocks.com/blocks/shadcn-cli/
+## UI Components
 
-Tailwind 4
-Built with Tailwind 4, see our tailwind config file to get started
-
-Tailwind Config: https://www.shadcnblocks.com/tailwind/globals.css
+Uses **shadcn/ui** (Tailwind CSS 4 + Radix UI):
+- Documentation: https://docs.shadcnblocks.com/blocks/shadcn-cli/
+- CLI: `npx shadcn@latest add [component]` from `frontend/` directory
+- Tailwind 4 config: https://www.shadcnblocks.com/tailwind/globals.css
+- All components in `frontend/src/components/ui/`

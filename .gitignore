@@ -1,11 +1,38 @@
-# Laravel
+# Monorepo
+/node_modules
+/dist
+
+# Backend (Laravel)
+/backend/.env
+/backend/.env.backup
+/backend/.env.production
+/backend/node_modules
+/backend/vendor
+/backend/public/build
+/backend/public/hot
+/backend/public/storage
+/backend/storage/*.key
+/backend/storage/pail
+/backend/.phpunit.result.cache
+/backend/bootstrap/cache/*.php
+/backend/storage/framework/cache/*
+/backend/storage/framework/sessions/*
+/backend/storage/framework/views/*
+
+# Frontend
+/frontend/node_modules
+/frontend/dist
+/frontend/playwright-report
+/frontend/test-results
+
+# Shared
+/shared/node_modules
+/shared/dist
+
+# General
 *.log
 .DS_Store
-.env
-.env.backup
-.env.production
 .phpactor.json
-.phpunit.result.cache
 /.fleet
 /.idea
 /.nova
@@ -13,41 +40,28 @@
 /.vscode
 /.zed
 /auth.json
-/node_modules
-/public/build
-/public/hot
-/public/storage
-/storage/*.key
-/storage/pail
-/vendor
 Homestead.json
 Homestead.yaml
 Thumbs.db
 
 # Database
-/database/*.sqlite
-/database/*.sqlite-journal
+/backend/database/*.sqlite
+/backend/database/*.sqlite-journal
 
 # Development files
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Cache and compiled assets
-bootstrap/cache/*.php
-storage/framework/cache/*
-storage/framework/sessions/*
-storage/framework/views/*
-
 # AI Models (large files)
-public/models/*.bin
-public/models/*-shard*
-public/models/*-weights_manifest.json
-!public/models/README.md
+/frontend/public/models/*.bin
+/frontend/public/models/*-shard*
+/frontend/public/models/*-weights_manifest.json
+!/frontend/public/models/README.md
 
 # Uploads
-storage/app/public/uploads/*
-!storage/app/public/uploads/.gitkeep
+/backend/storage/app/public/uploads/*
+!/backend/storage/app/public/uploads/.gitkeep
 
 # Temporary files
 *.tmp

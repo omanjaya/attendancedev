@@ -1,76 +1,149 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Attendance Management System - Monorepo
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Modern attendance management system with face recognition, GPS verification, and payroll calculation.
 
-## About Laravel
+## Architecture
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must
-be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of
-development by easing common tasks used in many web projects, such as:
+This is a monorepo containing:
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and
-  [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+```
+attendancedev/
+├── backend/              # Laravel 12 API
+├── frontend/             # React + TypeScript SPA
+└── shared/               # Shared types and constants
+```
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Tech Stack
 
-## Learning Laravel
+- **Backend**: Laravel 12 (PHP 8.2+), Sanctum, SQLite/PostgreSQL
+- **Frontend**: React 19, TypeScript, TanStack Router, TanStack Query
+- **UI**: Tailwind CSS 4, shadcn/ui, Radix UI
+- **Testing**: PHPUnit, Vitest, Playwright
+- **Face Recognition**: Face-API.js, TensorFlow.js
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video
-tutorial library of all modern web application frameworks, making it a breeze to get started with
-the framework.
+## Quick Start
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided
-through building a modern Laravel application from scratch.
+### Prerequisites
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains
-thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and
-JavaScript. Boost your skills by digging into our comprehensive video library.
+- PHP 8.2+
+- Composer
+- Node.js 18+
+- npm 9+
 
-## Laravel Sponsors
+### Installation
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you
-are interested in becoming a sponsor, please visit the
-[Laravel Partners program](https://partners.laravel.com).
+```bash
+# Install all dependencies
+npm install
 
-### Premium Partners
+# Install backend dependencies
+cd backend && composer install
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+# Setup environment
+cp backend/.env.example backend/.env
+php backend/artisan key:generate
+touch backend/database/database.sqlite
 
-## Contributing
+# Run migrations
+php backend/artisan migrate --seed
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found
-in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Development
 
-## Code of Conduct
+```bash
+# Start all services (from root)
+npm run dev
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the
-[Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+# Or start individually
+npm run dev:backend    # Laravel server on :8000
+npm run dev:frontend   # Vite dev server on :5173
+```
 
-## Security Vulnerabilities
+### Building
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via
-[taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly
-addressed.
+```bash
+# Build all packages
+npm run build
+
+# Build individually
+npm run build:frontend
+npm run build:backend
+npm run build:shared
+```
+
+### Testing
+
+```bash
+# Run all tests
+npm run test
+
+# Backend tests
+npm run test:backend
+
+# Frontend tests
+npm run test:frontend
+
+# E2E tests
+npm run test:e2e
+```
+
+## Project Structure
+
+### Backend (`/backend`)
+
+Laravel API following service layer pattern:
+
+- `app/Http/Controllers/` - Thin controllers
+- `app/Services/` - Business logic
+- `app/Repositories/` - Data access
+- `app/Models/` - Eloquent models
+- `routes/` - API routes
+
+### Frontend (`/frontend`)
+
+React SPA with modern patterns:
+
+- `src/pages/` - Route pages
+- `src/components/` - Reusable components
+- `src/lib/` - Utilities and API clients
+- `src/stores/` - Zustand stores
+- `src/hooks/` - Custom hooks
+
+### Shared (`/shared`)
+
+TypeScript types and constants shared between frontend and backend:
+
+- `types/` - Shared TypeScript interfaces
+- `constants/` - Shared constants and enums
+
+## Features
+
+- ✅ Face recognition check-in/out
+- ✅ GPS location verification
+- ✅ Schedule management
+- ✅ Employee management
+- ✅ Payroll calculation
+- ✅ Leave management
+- ✅ Real-time notifications (Pusher)
+- ✅ 2FA authentication
+- ✅ Role-based access control
+
+## Environment Variables
+
+See `backend/.env.example` for all available configuration options.
+
+Key variables:
+- `DB_CONNECTION` - Database type (sqlite/pgsql)
+- `ENABLE_FACE_RECOGNITION` - Enable/disable face recognition
+- `ENABLE_GPS_VERIFICATION` - Enable/disable GPS checks
+- `PAYROLL_*` - Payroll calculation settings
+
+## Documentation
+
+- See `CLAUDE.md` for development guidelines
+- See `backend/README.md` for backend-specific docs
+- See `frontend/README.md` for frontend-specific docs
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the
-[MIT license](https://opensource.org/licenses/MIT).
+MIT
