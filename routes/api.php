@@ -25,6 +25,118 @@ Route::prefix('v1')
             return $request->user()->load(['employee', 'roles', 'permissions']);
         });
 
+        // Employee management endpoints
+        Route::prefix('employees')->group(function () {
+            Route::get('/', [App\Http\Controllers\Api\EmployeeApiController::class, 'index']);
+            Route::post('/', [App\Http\Controllers\Api\EmployeeApiController::class, 'store']);
+            Route::get('/search', [App\Http\Controllers\Api\EmployeeApiController::class, 'search']);
+            Route::get('/statistics', [App\Http\Controllers\Api\EmployeeApiController::class, 'statistics']);
+            Route::get('/{id}', [App\Http\Controllers\Api\EmployeeApiController::class, 'show']);
+            Route::put('/{id}', [App\Http\Controllers\Api\EmployeeApiController::class, 'update']);
+            Route::delete('/{id}', [App\Http\Controllers\Api\EmployeeApiController::class, 'destroy']);
+        });
+
+        // Attendance management endpoints (React frontend)
+        Route::prefix('attendance')->group(function () {
+            Route::get('/', [App\Http\Controllers\Api\AttendanceApiController::class, 'index']);
+            Route::get('/today', [App\Http\Controllers\Api\AttendanceApiController::class, 'today']);
+            Route::get('/statistics', [App\Http\Controllers\Api\AttendanceApiController::class, 'statistics']);
+            Route::get('/trends', [App\Http\Controllers\Api\AttendanceApiController::class, 'trends']);
+            Route::get('/{id}', [App\Http\Controllers\Api\AttendanceApiController::class, 'show']);
+            Route::put('/{id}', [App\Http\Controllers\Api\AttendanceApiController::class, 'update']);
+            Route::delete('/{id}', [App\Http\Controllers\Api\AttendanceApiController::class, 'destroy']);
+        });
+
+        // Payroll management endpoints
+        Route::prefix('payroll')->group(function () {
+            Route::get('/periods', [App\Http\Controllers\Api\PayrollApiController::class, 'periods']);
+            Route::post('/periods', [App\Http\Controllers\Api\PayrollApiController::class, 'storePeriod']);
+            Route::get('/periods/{id}', [App\Http\Controllers\Api\PayrollApiController::class, 'showPeriod']);
+            Route::put('/periods/{id}', [App\Http\Controllers\Api\PayrollApiController::class, 'updatePeriod']);
+            Route::delete('/periods/{id}', [App\Http\Controllers\Api\PayrollApiController::class, 'destroyPeriod']);
+            Route::get('/statistics', [App\Http\Controllers\Api\PayrollApiController::class, 'statistics']);
+            Route::get('/config', [App\Http\Controllers\Api\PayrollApiController::class, 'config']);
+        });
+
+        // Leave management endpoints
+        Route::prefix('leave-requests')->group(function () {
+            Route::get('/', [App\Http\Controllers\Api\LeaveApiController::class, 'index']);
+            Route::post('/', [App\Http\Controllers\Api\LeaveApiController::class, 'store']);
+            Route::get('/pending', [App\Http\Controllers\Api\LeaveApiController::class, 'pending']);
+            Route::get('/{id}', [App\Http\Controllers\Api\LeaveApiController::class, 'show']);
+            Route::post('/{id}/approve', [App\Http\Controllers\Api\LeaveApiController::class, 'approve']);
+            Route::post('/{id}/reject', [App\Http\Controllers\Api\LeaveApiController::class, 'reject']);
+            Route::post('/{id}/cancel', [App\Http\Controllers\Api\LeaveApiController::class, 'cancel']);
+        });
+
+        Route::prefix('leave')->group(function () {
+            Route::get('/balance', [App\Http\Controllers\Api\LeaveApiController::class, 'balance']);
+            Route::get('/balance/{employeeId}', [App\Http\Controllers\Api\LeaveApiController::class, 'balanceByEmployee']);
+            Route::get('/statistics', [App\Http\Controllers\Api\LeaveApiController::class, 'statistics']);
+        });
+
+        // Schedule management endpoints
+        Route::prefix('schedules')->group(function () {
+            Route::get('/', [App\Http\Controllers\Api\ScheduleApiController::class, 'index']);
+            Route::post('/', [App\Http\Controllers\Api\ScheduleApiController::class, 'store']);
+            Route::get('/statistics', [App\Http\Controllers\Api\ScheduleApiController::class, 'statistics']);
+            Route::get('/conflicts', [App\Http\Controllers\Api\ScheduleApiController::class, 'conflicts']);
+            Route::get('/time-slots', [App\Http\Controllers\Api\ScheduleApiController::class, 'timeSlots']);
+            Route::get('/subjects', [App\Http\Controllers\Api\ScheduleApiController::class, 'subjects']);
+            Route::get('/classes', [App\Http\Controllers\Api\ScheduleApiController::class, 'classes']);
+            Route::get('/available-teachers', [App\Http\Controllers\Api\ScheduleApiController::class, 'availableTeachers']);
+            Route::get('/class/{classId}', [App\Http\Controllers\Api\ScheduleApiController::class, 'byClass']);
+            Route::get('/monthly', [App\Http\Controllers\Api\ScheduleApiController::class, 'monthlySchedules']);
+            Route::post('/monthly', [App\Http\Controllers\Api\ScheduleApiController::class, 'storeMonthly']);
+            Route::get('/monthly/{id}', [App\Http\Controllers\Api\ScheduleApiController::class, 'showMonthly']);
+            Route::post('/monthly/{id}/publish', [App\Http\Controllers\Api\ScheduleApiController::class, 'publishMonthly']);
+            Route::delete('/monthly/{id}', [App\Http\Controllers\Api\ScheduleApiController::class, 'destroyMonthly']);
+            Route::get('/{id}', [App\Http\Controllers\Api\ScheduleApiController::class, 'show']);
+            Route::put('/{id}', [App\Http\Controllers\Api\ScheduleApiController::class, 'update']);
+            Route::delete('/{id}', [App\Http\Controllers\Api\ScheduleApiController::class, 'destroy']);
+            Route::post('/{id}/lock', [App\Http\Controllers\Api\ScheduleApiController::class, 'lock']);
+            Route::post('/{id}/unlock', [App\Http\Controllers\Api\ScheduleApiController::class, 'unlock']);
+        });
+
+        // Reports endpoints
+        Route::prefix('reports')->group(function () {
+            Route::get('/data', [App\Http\Controllers\Api\ReportsApiController::class, 'data']);
+            Route::get('/summary', [App\Http\Controllers\Api\ReportsApiController::class, 'summary']);
+            Route::get('/attendance/monthly', [App\Http\Controllers\Api\ReportsApiController::class, 'monthlyAttendance']);
+            Route::get('/attendance/weekly', [App\Http\Controllers\Api\ReportsApiController::class, 'weeklyTrend']);
+            Route::get('/departments', [App\Http\Controllers\Api\ReportsApiController::class, 'departmentStats']);
+            Route::get('/leave', [App\Http\Controllers\Api\ReportsApiController::class, 'leaveStats']);
+            Route::post('/generate', [App\Http\Controllers\Api\ReportsApiController::class, 'generate']);
+            Route::get('/templates', [App\Http\Controllers\Api\ReportsApiController::class, 'templates']);
+            Route::get('/generated', [App\Http\Controllers\Api\ReportsApiController::class, 'generatedReports']);
+        });
+
+        // Admin endpoints
+        Route::prefix('admin')->group(function () {
+            // Users
+            Route::get('/users', [App\Http\Controllers\Api\AdminApiController::class, 'users']);
+            Route::post('/users', [App\Http\Controllers\Api\AdminApiController::class, 'storeUser']);
+            Route::get('/users/statistics', [App\Http\Controllers\Api\AdminApiController::class, 'userStatistics']);
+            Route::get('/roles', [App\Http\Controllers\Api\AdminApiController::class, 'roles']);
+            Route::put('/users/{id}', [App\Http\Controllers\Api\AdminApiController::class, 'updateUser']);
+            Route::delete('/users/{id}', [App\Http\Controllers\Api\AdminApiController::class, 'destroyUser']);
+            Route::post('/users/{id}/toggle-status', [App\Http\Controllers\Api\AdminApiController::class, 'toggleUserStatus']);
+
+            // Locations
+            Route::get('/locations', [App\Http\Controllers\Api\AdminApiController::class, 'locations']);
+            Route::post('/locations', [App\Http\Controllers\Api\AdminApiController::class, 'storeLocation']);
+            Route::get('/locations/statistics', [App\Http\Controllers\Api\AdminApiController::class, 'locationStatistics']);
+            Route::put('/locations/{id}', [App\Http\Controllers\Api\AdminApiController::class, 'updateLocation']);
+            Route::delete('/locations/{id}', [App\Http\Controllers\Api\AdminApiController::class, 'destroyLocation']);
+
+            // Holidays
+            Route::get('/holidays', [App\Http\Controllers\Api\AdminApiController::class, 'holidays']);
+            Route::post('/holidays', [App\Http\Controllers\Api\AdminApiController::class, 'storeHoliday']);
+            Route::get('/holidays/statistics', [App\Http\Controllers\Api\AdminApiController::class, 'holidayStatistics']);
+            Route::put('/holidays/{id}', [App\Http\Controllers\Api\AdminApiController::class, 'updateHoliday']);
+            Route::delete('/holidays/{id}', [App\Http\Controllers\Api\AdminApiController::class, 'destroyHoliday']);
+        });
+
         // Two-Factor Authentication endpoints
         Route::prefix('two-factor')->group(function () {
             Route::post('/setup/initialize', [

@@ -140,7 +140,7 @@ export function DataTable<T>({
       {/* Pagination */}
       {(onPageChange || onPageSizeChange) && (
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2 text-macos-sm text-muted-foreground">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>Menampilkan</span>
             {onPageSizeChange ? (
               <Select
@@ -182,7 +182,7 @@ export function DataTable<T>({
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="px-4 text-macos-sm">
+              <span className="px-4 text-sm">
                 {page} / {totalPages}
               </span>
               <Button

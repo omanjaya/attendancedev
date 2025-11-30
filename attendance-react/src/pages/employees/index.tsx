@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
-import { DataTable, type Column } from '@/components/shared';
+import { DataTable, type Column, PageHeader, StatsGrid, type StatItem } from '@/components/shared';
 import {
   Dialog,
   DialogContent,
@@ -71,21 +71,6 @@ const getStatusBadge = (status: EmployeeStatus) => {
       return <Badge variant="secondary">{status}</Badge>;
   }
 };
-
-function StatsLoadingSkeleton() {
-  return (
-    <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {[1, 2, 3, 4].map((i) => (
-        <Card key={i} className="bg-card/50 backdrop-blur-sm">
-          <CardContent className="p-4">
-            <Skeleton className="h-4 w-24 mb-2" />
-            <Skeleton className="h-8 w-16" />
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-}
 
 function TableLoadingSkeleton() {
   return (
@@ -132,7 +117,6 @@ export default function EmployeesPage() {
   const {
     data: statsData,
     isLoading: isLoadingStats,
-    error: statsError,
   } = useEmployeeStatistics();
 
   const deleteEmployeeMutation = useDeleteEmployee();
@@ -383,130 +367,103 @@ export default function EmployeesPage() {
     );
   }
 
-  const stats = [
+  // Stats using new StatItem interface
+  const stats: StatItem[] = [
     {
-      title: 'Total Karyawan',
+      label: 'Total Karyawan',
       value: statsData?.total || 0,
       icon: Users,
-      color: 'primary' as const,
+      color: 'primary',
     },
     {
-      title: 'Aktif',
+      label: 'Aktif',
       value: statsData?.active || 0,
       icon: UserCheck,
-      color: 'success' as const,
+      color: 'success',
     },
     {
-      title: 'Cuti',
+      label: 'Cuti',
       value: statsData?.on_leave || 0,
       icon: CalendarOff,
-      color: 'warning' as const,
+      color: 'warning',
     },
     {
-      title: 'Face ID Terdaftar',
+      label: 'Face ID Terdaftar',
       value: employees.filter((e) => e.face_registered).length,
       icon: ScanFace,
-      color: 'primary' as const,
+      color: 'primary',
     },
   ];
 
-  const colorClasses = {
-    primary: 'bg-primary/10 text-primary',
-    success: 'bg-success/10 text-success',
-    warning: 'bg-warning/10 text-warning',
-    destructive: 'bg-destructive/10 text-destructive',
-  };
-
   return (
     <div className="space-y-6 p-6">
-      {/* Hero Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background p-8">
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
+      {/* Page Header */}
+      <PageHeader
+        title="Karyawan"
+        description="Kelola data karyawan perusahaan"
+        icon={Users}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />
+                  Import/Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExport}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Export CSV {selectedIds.length > 0 && `(${selectedIds.length})`}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Import CSV
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleDownloadTemplate}>
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />
+                  Download Template
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-        <div className="relative">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                <Users className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">Karyawan</h1>
-                <p className="text-sm text-muted-foreground">
-                  Kelola data karyawan perusahaan
-                </p>
-              </div>
-            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/employees/credentials">
+                <Key className="mr-2 h-4 w-4" />
+                User & Password
+              </Link>
+            </Button>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="bg-background/50 backdrop-blur-sm">
-                    <FileSpreadsheet className="mr-2 h-4 w-4" />
-                    Import/Export
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleExport}>
-                    <Download className="mr-2 h-4 w-4" />
-                    Export CSV {selectedIds.length > 0 && `(${selectedIds.length})`}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Import CSV
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleDownloadTemplate}>
-                    <FileSpreadsheet className="mr-2 h-4 w-4" />
-                    Download Template
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <Button variant="outline" size="sm" asChild className="bg-background/50 backdrop-blur-sm">
-                <Link to="/employees/credentials">
-                  <Key className="mr-2 h-4 w-4" />
-                  User & Password
-                </Link>
-              </Button>
-
-              <Button size="sm" asChild>
-                <Link to="/employees/create">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Tambah Karyawan
-                </Link>
-              </Button>
-            </div>
+            <Button size="sm" asChild>
+              <Link to="/employees/create">
+                <Plus className="mr-2 h-4 w-4" />
+                Tambah Karyawan
+              </Link>
+            </Button>
           </div>
+        }
+      />
 
-          {/* Stats Grid */}
-          {isLoadingStats || statsError ? (
-            <StatsLoadingSkeleton />
-          ) : (
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {stats.map((stat) => (
-                <Card key={stat.title} className="bg-card/50 backdrop-blur-sm">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-muted-foreground">{stat.title}</p>
-                        <p className="text-2xl font-bold">{stat.value}</p>
-                      </div>
-                      <div className={`rounded-lg p-2 ${colorClasses[stat.color]}`}>
-                        <stat.icon className="h-5 w-5" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+      {/* Stats Grid */}
+      {isLoadingStats ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-8 w-16" />
+              </CardContent>
+            </Card>
+          ))}
         </div>
-      </div>
+      ) : (
+        <StatsGrid stats={stats} columns={4} variant="cards" />
+      )}
 
       {/* Bulk Actions Bar */}
       {selectedIds.length > 0 && (
-        <Card className="border-primary/20 bg-primary/5">
+        <Card className="border-l-4 border-l-primary">
           <CardContent className="p-3">
             <div className="flex flex-wrap items-center gap-4">
               <span className="text-sm font-medium">

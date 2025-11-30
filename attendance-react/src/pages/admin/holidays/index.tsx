@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
+import { PageHeader, StatsGrid, type StatItem } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -483,82 +484,55 @@ export default function HolidaysPage() {
   const currentYear = new Date().getFullYear();
   const yearOptions = [currentYear - 1, currentYear, currentYear + 1];
 
+  const statsItems: StatItem[] = stats ? [
+    {
+      label: 'Tahun Ini',
+      value: stats.holidays_this_year,
+      icon: CalendarDays,
+      color: 'primary',
+    },
+    {
+      label: 'Bulan Ini',
+      value: stats.holidays_this_month,
+      icon: CalendarCheck,
+      color: 'success',
+    },
+    {
+      label: 'Berulang',
+      value: stats.recurring_holidays,
+      icon: Repeat,
+      color: 'warning',
+    },
+    {
+      label: 'Berbayar',
+      value: stats.paid_holidays,
+      icon: CalendarIcon,
+      color: 'info',
+    },
+  ] : [];
+
   return (
     <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-rose-600 via-pink-600 to-fuchsia-600 p-6 text-white shadow-lg">
-        <div className="absolute inset-0 bg-grid-white/10" />
-        <div className="relative">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">Manajemen Hari Libur</h1>
-              <p className="mt-1 text-rose-100">
-                Kelola kalender hari libur dan cuti bersama
-              </p>
-            </div>
-            <Button
-              onClick={() => {
-                setEditingHoliday(null);
-                setIsFormOpen(true);
-              }}
-              className="bg-white text-rose-600 hover:bg-rose-50"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Tambah Hari Libur
-            </Button>
-          </div>
+      {/* Page Header */}
+      <PageHeader
+        title="Manajemen Hari Libur"
+        description="Kelola kalender hari libur dan cuti bersama"
+        icon={CalendarDays}
+        actions={
+          <Button
+            onClick={() => {
+              setEditingHoliday(null);
+              setIsFormOpen(true);
+            }}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Tambah Hari Libur
+          </Button>
+        }
+      />
 
-          {/* Stats */}
-          {stats && (
-            <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-              <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-white/20 p-2">
-                    <CalendarDays className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-rose-100">Tahun Ini</p>
-                    <p className="text-2xl font-bold">{stats.holidays_this_year}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-success/20 p-2">
-                    <CalendarCheck className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-rose-100">Bulan Ini</p>
-                    <p className="text-2xl font-bold">{stats.holidays_this_month}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-warning/20 p-2">
-                    <Repeat className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-rose-100">Berulang</p>
-                    <p className="text-2xl font-bold">{stats.recurring_holidays}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-chart-5/20 p-2">
-                    <CalendarIcon className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-rose-100">Berbayar</p>
-                    <p className="text-2xl font-bold">{stats.paid_holidays}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Stats */}
+      {stats && <StatsGrid items={statsItems} columns={4} variant="cards" />}
 
       {/* Tabs */}
       <Tabs defaultValue="list">

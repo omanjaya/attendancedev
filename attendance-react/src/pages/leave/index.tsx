@@ -19,7 +19,7 @@ import {
   CalendarX,
   RefreshCw,
 } from 'lucide-react';
-import { EmptyState } from '@/components/shared';
+import { EmptyState, PageHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -373,113 +373,103 @@ export default function LeavePage() {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background p-8">
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
-
-        <div className="relative">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                <CalendarDays className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">Cuti & Izin</h1>
-                <p className="text-sm text-muted-foreground">
-                  Kelola pengajuan cuti dan izin karyawan
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="gap-2">
-                <Download className="h-4 w-4" />
-                Export
-              </Button>
-              <Button size="sm" className="gap-2" onClick={() => setShowCreateDialog(true)}>
-                <Plus className="h-4 w-4" />
-                Ajukan Cuti
-              </Button>
-            </div>
+      {/* Page Header */}
+      <PageHeader
+        title="Cuti & Izin"
+        description="Kelola pengajuan cuti dan izin karyawan"
+        icon={CalendarDays}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm">
+              <Download className="mr-2 h-4 w-4" />
+              Export
+            </Button>
+            <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Ajukan Cuti
+            </Button>
           </div>
+        }
+      />
 
-          {/* Stats & Balance */}
-          {isLoadingBalance ? (
-            <StatsLoadingSkeleton />
-          ) : (
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {/* Leave Balance Card */}
-              <Card className="bg-card/50 backdrop-blur-sm sm:col-span-2">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Saldo Cuti Anda
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span>Cuti Tahunan</span>
-                      <span className="font-medium">
-                        {balance.annual_remaining} / {balance.annual_total} hari
-                      </span>
-                    </div>
-                    <Progress
-                      value={(balance.annual_used / balance.annual_total) * 100}
-                      className="h-2"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span>Cuti Sakit</span>
-                      <span className="font-medium">
-                        {balance.sick_remaining} / {balance.sick_total} hari
-                      </span>
-                    </div>
-                    <Progress
-                      value={(balance.sick_used / balance.sick_total) * 100}
-                      className="h-2"
-                    />
-                  </div>
-                  {balance.carry_forward > 0 && (
-                    <div className="rounded-lg bg-warning/5 p-2 text-xs">
-                      <span className="text-warning">
-                        {balance.carry_forward} hari carry forward (exp: {balance.carry_forward_expiry})
-                      </span>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+      {/* Stats & Balance */}
+      {isLoadingBalance ? (
+        <StatsLoadingSkeleton />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Leave Balance Card */}
+          <Card className="sm:col-span-2">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Saldo Cuti Anda
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Cuti Tahunan</span>
+                  <span className="font-medium">
+                    {balance.annual_remaining} / {balance.annual_total} hari
+                  </span>
+                </div>
+                <Progress
+                  value={(balance.annual_used / balance.annual_total) * 100}
+                  className="h-2"
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Cuti Sakit</span>
+                  <span className="font-medium">
+                    {balance.sick_remaining} / {balance.sick_total} hari
+                  </span>
+                </div>
+                <Progress
+                  value={(balance.sick_used / balance.sick_total) * 100}
+                  className="h-2"
+                />
+              </div>
+              {balance.carry_forward > 0 && (
+                <div className="rounded-lg bg-warning/5 p-2 text-xs">
+                  <span className="text-warning">
+                    {balance.carry_forward} hari carry forward (exp: {balance.carry_forward_expiry})
+                  </span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-              {/* Pending */}
-              <Card className="bg-card/50 backdrop-blur-sm">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Menunggu Approval</p>
-                      <p className="text-2xl font-bold text-warning">{stats.pending}</p>
-                    </div>
-                    <Clock className="h-8 w-8 text-warning/30" />
-                  </div>
-                </CardContent>
-              </Card>
+          {/* Pending */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Menunggu Approval</p>
+                  <p className="text-2xl font-bold text-warning">{stats.pending}</p>
+                </div>
+                <div className="rounded-lg bg-warning/10 p-2">
+                  <Clock className="h-5 w-5 text-warning" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-              {/* Approved this month */}
-              <Card className="bg-card/50 backdrop-blur-sm">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Disetujui Bulan Ini</p>
-                      <p className="text-2xl font-bold text-success">{stats.approved}</p>
-                    </div>
-                    <CalendarCheck className="h-8 w-8 text-success/30" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+          {/* Approved this month */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Disetujui Bulan Ini</p>
+                  <p className="text-2xl font-bold text-success">{stats.approved}</p>
+                </div>
+                <div className="rounded-lg bg-success/10 p-2">
+                  <CalendarCheck className="h-5 w-5 text-success" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </div>
+      )}
 
       {/* Error Alert */}
       {requestsError && (

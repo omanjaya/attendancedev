@@ -7,85 +7,81 @@
 
 /* ============================================
    Attendance System Design System
-   Based on macOS design + shadcnblocks extras
+   Full shadcnblocks design tokens
    ============================================ */
 
 :root {
-  /* macOS corner radius: 10px */
-  --radius: 0.625rem;
+  /* shadcnblocks corner radius: 8px */
+  --radius: 0.5rem;
 
   /* Shadows */
   --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
   --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
   --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
   --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-  --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
-  --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
-  --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
-  --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+  --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.1), 0 2px 4px -2px hsl(0 0% 0% / 0.1);
+  --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -4px hsl(0 0% 0% / 0.1);
+  --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.1), 0 8px 10px -6px hsl(0 0% 0% / 0.1);
+  --shadow-2xl: 0 25px 50px -12px hsl(0 0% 0% / 0.25);
 
-  /* Light Mode - macOS Inspired */
-  --background: oklch(0.985 0 0);           /* #fafafa - subtle off-white */
-  --foreground: oklch(0.145 0 0);           /* #171717 - near black */
+  /* Light Mode - shadcnblocks Navy Palette */
+  --background: oklch(1 0 0);                      /* white */
+  --foreground: oklch(0.141 0.005 285.823);        /* dark navy */
 
-  --card: oklch(1 0 0);                     /* pure white cards */
-  --card-foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);                            /* white */
+  --card-foreground: oklch(0.141 0.005 285.823);
 
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.141 0.005 285.823);
 
-  /* macOS Blue - #007AFF */
-  --primary: oklch(0.585 0.228 264);
-  --primary-foreground: oklch(1 0 0);
+  /* shadcnblocks Navy Primary */
+  --primary: oklch(0.21 0.006 285.885);
+  --primary-foreground: oklch(0.985 0 0);
 
-  --secondary: oklch(0.968 0 0);            /* #f5f5f5 */
-  --secondary-foreground: oklch(0.145 0 0);
+  --secondary: oklch(0.967 0.001 286.375);         /* light gray */
+  --secondary-foreground: oklch(0.21 0.006 285.885);
 
-  --muted: oklch(0.968 0 0);
-  --muted-foreground: oklch(0.45 0 0);      /* #737373 */
+  --muted: oklch(0.967 0.001 286.375);
+  --muted-foreground: oklch(0.455 0.012 285.938);
 
-  --accent: oklch(0.585 0.228 264);         /* same as primary */
-  --accent-foreground: oklch(1 0 0);
+  --accent: oklch(0.967 0.001 286.375);
+  --accent-foreground: oklch(0.21 0.006 285.885);
 
-  /* macOS Red - #FF3B30 */
-  --destructive: oklch(0.628 0.258 29);
-  --destructive-foreground: oklch(1 0 0);
+  /* shadcnblocks Status Colors */
+  --destructive: oklch(0.577 0.245 27.325);        /* red */
+  --destructive-foreground: oklch(0.985 0 0);
 
-  /* macOS Green - #34C759 */
-  --success: oklch(0.723 0.191 142);
-  --success-foreground: oklch(1 0 0);
+  --success: oklch(0.34 0.069 165.96);             /* green */
+  --success-foreground: oklch(0.985 0 0);
 
-  /* macOS Orange - #FF9500 */
-  --warning: oklch(0.75 0.183 56);
-  --warning-foreground: oklch(1 0 0);
+  --warning: oklch(0.769 0.188 70.08);             /* yellow/amber */
+  --warning-foreground: oklch(0.21 0.006 285.885);
 
-  /* macOS Blue - same as primary */
-  --info: oklch(0.585 0.228 264);
-  --info-foreground: oklch(1 0 0);
+  --info: oklch(0.36 0.068 241.16);                /* blue */
+  --info-foreground: oklch(0.985 0 0);
 
-  /* Alert aliases for shadcnblocks compatibility */
-  --error: oklch(0.628 0.258 29);
+  --error: oklch(0.704 0.191 22.216);
 
-  --border: oklch(0.9 0 0);                 /* #e5e5e5 */
-  --input: oklch(0.9 0 0);
-  --ring: oklch(0.585 0.228 264);           /* primary blue */
+  --border: oklch(0.92 0.004 286.32);
+  --input: oklch(0.92 0.004 286.32);
+  --ring: oklch(0.705 0.015 286.067);
 
-  /* Chart colors - macOS palette */
-  --chart-1: oklch(0.585 0.228 264);        /* Blue */
-  --chart-2: oklch(0.723 0.191 142);        /* Green */
-  --chart-3: oklch(0.75 0.183 56);          /* Orange */
-  --chart-4: oklch(0.628 0.258 29);         /* Red */
-  --chart-5: oklch(0.6 0.2 300);            /* Purple */
+  /* Chart colors - shadcnblocks palette */
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
 
   /* Sidebar */
   --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.585 0.228 264);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.968 0 0);
-  --sidebar-accent-foreground: oklch(0.145 0 0);
-  --sidebar-border: oklch(0.9 0 0);
-  --sidebar-ring: oklch(0.585 0.228 264);
+  --sidebar-foreground: oklch(0.141 0.005 285.823);
+  --sidebar-primary: oklch(0.21 0.006 285.885);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.967 0.001 286.375);
+  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
+  --sidebar-border: oklch(0.92 0.004 286.32);
+  --sidebar-ring: oklch(0.705 0.015 286.067);
 
   /* Shadcnblocks Gradients */
   --gradient-1: oklch(0.643 0.4075 269.926);
@@ -101,68 +97,64 @@
 }
 
 .dark {
-  /* Dark Mode - macOS Dark */
-  --background: oklch(0.178 0 0);           /* #1a1a1a */
-  --foreground: oklch(0.985 0 0);           /* #fafafa */
+  /* Dark Mode - shadcnblocks Navy Dark */
+  --background: oklch(0.141 0.005 285.823);        /* dark navy */
+  --foreground: oklch(0.985 0 0);                  /* off-white */
 
-  --card: oklch(0.215 0 0);                 /* #242424 - elevated surface */
+  --card: oklch(0.141 0.005 285.823);
   --card-foreground: oklch(0.985 0 0);
 
-  --popover: oklch(0.235 0 0);
+  --popover: oklch(0.141 0.005 285.823);
   --popover-foreground: oklch(0.985 0 0);
 
-  /* Brighter blue for dark mode - #3395FF */
-  --primary: oklch(0.65 0.2 264);
-  --primary-foreground: oklch(1 0 0);
+  /* shadcnblocks Light Primary for dark mode */
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.21 0.006 285.885);
 
-  --secondary: oklch(0.25 0 0);             /* #2e2e2e */
+  --secondary: oklch(0.274 0.006 286.033);
   --secondary-foreground: oklch(0.985 0 0);
 
-  --muted: oklch(0.25 0 0);
-  --muted-foreground: oklch(0.55 0 0);      /* #8c8c8c */
+  --muted: oklch(0.274 0.006 286.033);
+  --muted-foreground: oklch(0.705 0.015 286.067);
 
-  --accent: oklch(0.65 0.2 264);
-  --accent-foreground: oklch(1 0 0);
+  --accent: oklch(0.274 0.006 286.033);
+  --accent-foreground: oklch(0.985 0 0);
 
-  /* Brighter red for dark mode */
-  --destructive: oklch(0.7 0.22 29);
-  --destructive-foreground: oklch(1 0 0);
+  /* shadcnblocks Status Colors - Dark mode */
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.985 0 0);
 
-  /* Brighter green for dark mode */
-  --success: oklch(0.75 0.18 142);
-  --success-foreground: oklch(1 0 0);
+  --success: oklch(0.527 0.154 150.069);
+  --success-foreground: oklch(0.985 0 0);
 
-  /* Brighter orange for dark mode */
-  --warning: oklch(0.78 0.17 56);
-  --warning-foreground: oklch(0.145 0 0);
+  --warning: oklch(0.769 0.188 70.08);
+  --warning-foreground: oklch(0.21 0.006 285.885);
 
-  /* Brighter blue for dark mode */
-  --info: oklch(0.65 0.2 264);
-  --info-foreground: oklch(1 0 0);
+  --info: oklch(0.511 0.262 256.099);
+  --info-foreground: oklch(0.985 0 0);
 
-  /* Alert alias */
-  --error: oklch(0.7 0.22 29);
+  --error: oklch(0.704 0.191 22.216);
 
-  --border: oklch(0.28 0 0);                /* #333333 */
-  --input: oklch(0.28 0 0);
-  --ring: oklch(0.65 0.2 264);
+  --border: oklch(0.274 0.006 286.033);
+  --input: oklch(0.274 0.006 286.033);
+  --ring: oklch(0.442 0.017 285.786);
 
-  /* Chart colors - brighter for dark mode */
-  --chart-1: oklch(0.65 0.2 264);
-  --chart-2: oklch(0.75 0.18 142);
-  --chart-3: oklch(0.78 0.17 56);
-  --chart-4: oklch(0.7 0.22 29);
-  --chart-5: oklch(0.65 0.2 300);
+  /* Chart colors - dark mode */
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
 
   /* Sidebar */
-  --sidebar: oklch(0.215 0 0);
+  --sidebar: oklch(0.21 0.006 285.885);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.65 0.2 264);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.25 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.274 0.006 286.033);
   --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.28 0 0);
-  --sidebar-ring: oklch(0.65 0.2 264);
+  --sidebar-border: oklch(0.274 0.006 286.033);
+  --sidebar-ring: oklch(0.442 0.017 285.786);
 
   /* Shadcnblocks Gradients */
   --gradient-1: oklch(0.643 0.4075 269.926);
@@ -471,8 +463,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
-                 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     scrollbar-gutter: stable;

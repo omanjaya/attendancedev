@@ -20,6 +20,7 @@ import {
   UserCheck,
   AlertCircle,
 } from 'lucide-react';
+import { StatsGrid, type StatItem } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -300,60 +301,36 @@ export default function ProfilePage() {
 
       {/* Statistics Cards */}
       {statistics && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-success/10">
-                  <UserCheck className="h-5 w-5 text-success" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Hadir</p>
-                  <p className="text-xl font-semibold">{statistics.present_days}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-warning/10">
-                  <Clock className="h-5 w-5 text-warning" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Terlambat</p>
-                  <p className="text-xl font-semibold">{statistics.late_days}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Calendar className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Cuti</p>
-                  <p className="text-xl font-semibold">{statistics.leave_days}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-chart-5/10">
-                  <TrendingUp className="h-5 w-5 text-chart-5" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Kehadiran</p>
-                  <p className="text-xl font-semibold">{statistics.current_month_attendance_rate}%</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <StatsGrid
+          items={[
+            {
+              label: 'Hadir',
+              value: statistics.present_days,
+              icon: UserCheck,
+              color: 'success',
+            },
+            {
+              label: 'Terlambat',
+              value: statistics.late_days,
+              icon: Clock,
+              color: 'warning',
+            },
+            {
+              label: 'Cuti',
+              value: statistics.leave_days,
+              icon: Calendar,
+              color: 'primary',
+            },
+            {
+              label: 'Kehadiran',
+              value: `${statistics.current_month_attendance_rate}%`,
+              icon: TrendingUp,
+              color: 'info',
+            },
+          ] as StatItem[]}
+          columns={4}
+          variant="cards"
+        />
       )}
 
       {/* Tabs */}

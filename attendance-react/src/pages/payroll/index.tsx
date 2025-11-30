@@ -18,7 +18,7 @@ import {
   Building,
   Receipt,
 } from 'lucide-react';
-import { EmptyState } from '@/components/shared';
+import { EmptyState, PageHeader, StatsGrid, type StatItem } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -303,7 +303,7 @@ export default function PayrollPage() {
   const clearError = () => setError(null);
 
   // Stats
-  const stats = {
+  const statsData = {
     total_periods: payrollPeriods.length,
     pending_approval: payrollPeriods.filter((p) => p.status === 'calculated').length,
     total_paid_this_month: payrollPeriods
@@ -313,6 +313,33 @@ export default function PayrollPage() {
     total_employees: payrollPeriods.find((p) => p.status === 'calculated')?.total_employees || 0,
   };
 
+  const stats: StatItem[] = [
+    {
+      label: 'Total Periode',
+      value: statsData.total_periods,
+      icon: Calendar,
+      color: 'primary',
+    },
+    {
+      label: 'Menunggu Approval',
+      value: statsData.pending_approval,
+      icon: Clock,
+      color: 'warning',
+    },
+    {
+      label: 'Dibayar Bulan Ini',
+      value: formatCurrency(statsData.total_paid_this_month),
+      icon: DollarSign,
+      color: 'success',
+    },
+    {
+      label: 'Total Karyawan',
+      value: statsData.total_employees,
+      icon: Users,
+      color: 'info',
+    },
+  ];
+
   const viewPayslip = (employee: PayrollEmployee) => {
     setSelectedEmployee(employee);
     setShowPayslip(true);
@@ -320,91 +347,27 @@ export default function PayrollPage() {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background p-8">
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
-
-        <div className="relative">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                <Wallet className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">Penggajian</h1>
-                <p className="text-sm text-muted-foreground">
-                  Kelola perhitungan dan pembayaran gaji karyawan
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="gap-2">
-                <Download className="h-4 w-4" />
-                Export
-              </Button>
-              <Button size="sm" className="gap-2">
-                <Calculator className="h-4 w-4" />
-                Hitung Payroll
-              </Button>
-            </div>
+      {/* Page Header */}
+      <PageHeader
+        title="Penggajian"
+        description="Kelola perhitungan dan pembayaran gaji karyawan"
+        icon={Wallet}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm">
+              <Download className="mr-2 h-4 w-4" />
+              Export
+            </Button>
+            <Button size="sm">
+              <Calculator className="mr-2 h-4 w-4" />
+              Hitung Payroll
+            </Button>
           </div>
+        }
+      />
 
-          {/* Stats */}
-          <div className="mt-6 grid gap-4 sm:grid-cols-4">
-            <Card className="bg-card/50 backdrop-blur-sm">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Total Periode</p>
-                    <p className="text-2xl font-bold">{stats.total_periods}</p>
-                  </div>
-                  <Calendar className="h-8 w-8 text-primary/30" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-card/50 backdrop-blur-sm">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Menunggu Approval</p>
-                    <p className="text-2xl font-bold text-warning">{stats.pending_approval}</p>
-                  </div>
-                  <Clock className="h-8 w-8 text-warning/30" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-card/50 backdrop-blur-sm">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Dibayar Bulan Ini</p>
-                    <p className="text-xl font-bold text-success">
-                      {formatCurrency(stats.total_paid_this_month)}
-                    </p>
-                  </div>
-                  <DollarSign className="h-8 w-8 text-success/30" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-card/50 backdrop-blur-sm">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Total Karyawan</p>
-                    <p className="text-2xl font-bold">{stats.total_employees}</p>
-                  </div>
-                  <Users className="h-8 w-8 text-primary/30" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
+      {/* Stats */}
+      <StatsGrid items={stats} columns={4} variant="cards" />
 
       {/* Error Alert */}
       {error && (

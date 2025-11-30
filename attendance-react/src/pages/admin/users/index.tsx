@@ -19,6 +19,7 @@ import {
   AlertCircle,
   Clock,
 } from 'lucide-react';
+import { PageHeader, StatsGrid, type StatItem } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -363,82 +364,55 @@ export default function UsersPage() {
     });
   };
 
+  const statsItems: StatItem[] = stats ? [
+    {
+      label: 'Total',
+      value: stats.total_users,
+      icon: Users,
+      color: 'primary',
+    },
+    {
+      label: 'Aktif',
+      value: stats.active_users,
+      icon: UserCheck,
+      color: 'success',
+    },
+    {
+      label: '2FA Aktif',
+      value: stats.users_with_2fa,
+      icon: Shield,
+      color: 'warning',
+    },
+    {
+      label: 'Terkunci',
+      value: stats.locked_users,
+      icon: Lock,
+      color: 'destructive',
+    },
+  ] : [];
+
   return (
     <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-600 p-6 text-white shadow-lg">
-        <div className="absolute inset-0 bg-grid-white/10" />
-        <div className="relative">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">Manajemen Pengguna</h1>
-              <p className="mt-1 text-violet-100">
-                Kelola pengguna sistem dan hak akses
-              </p>
-            </div>
-            <Button
-              onClick={() => {
-                setEditingUser(null);
-                setIsFormOpen(true);
-              }}
-              className="bg-white text-violet-600 hover:bg-violet-50"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Tambah Pengguna
-            </Button>
-          </div>
+      {/* Page Header */}
+      <PageHeader
+        title="Manajemen Pengguna"
+        description="Kelola pengguna sistem dan hak akses"
+        icon={Users}
+        actions={
+          <Button
+            onClick={() => {
+              setEditingUser(null);
+              setIsFormOpen(true);
+            }}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Tambah Pengguna
+          </Button>
+        }
+      />
 
-          {/* Stats */}
-          {stats && (
-            <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-              <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-white/20 p-2">
-                    <Users className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-violet-100">Total</p>
-                    <p className="text-2xl font-bold">{stats.total_users}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-success/20 p-2">
-                    <UserCheck className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-violet-100">Aktif</p>
-                    <p className="text-2xl font-bold">{stats.active_users}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-warning/20 p-2">
-                    <Shield className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-violet-100">2FA Aktif</p>
-                    <p className="text-2xl font-bold">{stats.users_with_2fa}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-destructive/20 p-2">
-                    <Lock className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-violet-100">Terkunci</p>
-                    <p className="text-2xl font-bold">{stats.locked_users}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Stats */}
+      {stats && <StatsGrid items={statsItems} columns={4} variant="cards" />}
 
       {/* Filters */}
       <Card>

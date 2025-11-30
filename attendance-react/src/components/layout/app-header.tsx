@@ -25,7 +25,7 @@ export function AppHeader({ title }: AppHeaderProps) {
 
         {/* Page Title */}
         {title && (
-          <h1 className="hidden text-macos-base font-medium text-foreground sm:block">
+          <h1 className="hidden text-base font-medium text-foreground sm:block">
             {title}
           </h1>
         )}

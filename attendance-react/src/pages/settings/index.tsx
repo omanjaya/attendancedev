@@ -21,7 +21,9 @@ import {
   Smartphone,
   MapPin,
   Users,
+  Settings,
 } from 'lucide-react';
+import { PageHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -168,27 +170,28 @@ export default function SettingsPage() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Pengaturan</h1>
-          <p className="text-muted-foreground">Kelola preferensi aplikasi Anda</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExportSettings} disabled={exportSettings.isPending}>
-            {exportSettings.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4 mr-2" />
-            )}
-            Ekspor
-          </Button>
-          <Button variant="outline" onClick={() => setResetDialog(true)}>
-            <RotateCcw className="h-4 w-4 mr-2" />
-            Reset
-          </Button>
-        </div>
-      </div>
+      {/* Page Header */}
+      <PageHeader
+        title="Pengaturan"
+        description="Kelola preferensi aplikasi Anda"
+        icon={Settings}
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleExportSettings} disabled={exportSettings.isPending}>
+              {exportSettings.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              Ekspor
+            </Button>
+            <Button variant="outline" onClick={() => setResetDialog(true)}>
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Reset
+            </Button>
+          </div>
+        }
+      />
 
       {/* Success Message */}
       {successMessage && (

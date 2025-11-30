@@ -31,9 +31,12 @@ export function AppSidebar() {
   const { user, logout } = useAuthStore();
 
   // Filter navigation based on user permissions
+  // Handle case where old localStorage data might not have permissions
+  const userPermissions = user?.permissions || [];
+  const userRole = user?.role || 'pegawai';
   const filteredNav = user
-    ? filterNavigation(navigation, user.permissions, user.role)
-    : [];
+    ? filterNavigation(navigation, userPermissions, userRole)
+    : navigation; // Show all navigation if no user (will be redirected by auth guard anyway)
 
   const handleLogout = async () => {
     await logout();

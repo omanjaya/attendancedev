@@ -3,6 +3,7 @@
 namespace App\Contracts\Services;
 
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 interface NotificationServiceInterface

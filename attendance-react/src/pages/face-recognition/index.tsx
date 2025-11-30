@@ -16,6 +16,7 @@ import {
   Activity,
   Clock,
 } from 'lucide-react';
+import { PageHeader, StatsGrid, type StatItem } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -128,75 +129,41 @@ export default function FaceRecognitionPage() {
   };
 
   // Stats data
-  const stats = [
+  const stats: StatItem[] = [
     {
       label: 'Verifikasi Sukses',
       value: '98.5%',
       description: 'Tingkat keberhasilan',
       icon: CheckCircle2,
-      color: 'text-success',
-      bgColor: 'bg-success/10',
+      color: 'success',
     },
     {
       label: 'Total Verifikasi',
       value: '1,247',
       description: 'Bulan ini',
       icon: Activity,
-      color: 'text-primary',
-      bgColor: 'bg-primary/10',
+      color: 'primary',
     },
     {
       label: 'Waktu Rata-rata',
       value: '1.2s',
       description: 'Per verifikasi',
       icon: Clock,
-      color: 'text-warning',
-      bgColor: 'bg-warning/10',
+      color: 'warning',
     },
   ];
 
   return (
     <div className="space-y-6 p-6">
-      {/* Premium Header Section */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background p-8">
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
+      {/* Page Header */}
+      <PageHeader
+        title="Face Recognition"
+        description="Verifikasi biometrik dengan AI-powered face detection"
+        icon={Scan}
+      />
 
-        <div className="relative">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-              <Scan className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Face Recognition</h1>
-              <p className="text-sm text-muted-foreground">
-                Verifikasi biometrik dengan AI-powered face detection
-              </p>
-            </div>
-          </div>
-
-          {/* Stats Grid */}
-          <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            {stats.map((stat, index) => (
-              <div
-                key={index}
-                className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-primary/20 hover:shadow-lg"
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">{stat.label}</p>
-                    <p className="mt-1 text-3xl font-bold tracking-tight">{stat.value}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">{stat.description}</p>
-                  </div>
-                  <div className={`rounded-lg p-2 ${stat.bgColor}`}>
-                    <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      {/* Stats Grid */}
+      <StatsGrid items={stats} columns={3} variant="cards" />
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">

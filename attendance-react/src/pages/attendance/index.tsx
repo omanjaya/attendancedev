@@ -3,7 +3,6 @@ import {
   Clock,
   LogIn,
   LogOut,
-  Calendar,
   MapPin,
   ScanFace,
   Filter,
@@ -19,7 +18,7 @@ import {
   ClipboardList,
   Download,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -38,7 +37,7 @@ import {
 } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { DataTable, type Column } from '@/components/shared';
+import { DataTable, PageHeader, StatsGrid, type Column, type StatItem } from '@/components/shared';
 import { useFaceDetection } from '@/hooks/use-face-detection';
 import { useRegisteredFaces, useVerifyFace } from '@/hooks/use-face-recognition-api';
 import { useFaceStore } from '@/stores';
@@ -410,124 +409,91 @@ export default function AttendancePage() {
     },
   ];
 
-  const stats = [
+  const stats: StatItem[] = [
     {
-      title: 'Hadir',
+      label: 'Hadir',
       value: statistics?.present || 0,
       icon: UserCheck,
-      color: 'success' as const,
+      color: 'success',
     },
     {
-      title: 'Terlambat',
+      label: 'Terlambat',
       value: statistics?.late || 0,
       icon: Clock,
-      color: 'warning' as const,
+      color: 'warning',
     },
     {
-      title: 'Tidak Hadir',
+      label: 'Tidak Hadir',
       value: statistics?.absent || 0,
       icon: XCircle,
-      color: 'destructive' as const,
+      color: 'destructive',
     },
     {
-      title: 'Cuti',
+      label: 'Cuti',
       value: statistics?.on_leave || 0,
       icon: CalendarOff,
-      color: 'primary' as const,
+      color: 'primary',
     },
   ];
 
-  const colorClasses = {
-    primary: 'bg-primary/10 text-primary',
-    success: 'bg-success/10 text-success',
-    warning: 'bg-warning/10 text-warning',
-    destructive: 'bg-destructive/10 text-destructive',
-  };
-
   return (
     <div className="space-y-6 p-6">
-      {/* Hero Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background p-8">
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
+      {/* Page Header */}
+      <PageHeader
+        title="Absensi"
+        description="Kelola kehadiran karyawan"
+        icon={ClipboardList}
+        actions={
+          <Button variant="outline" size="sm">
+            <Download className="mr-2 h-4 w-4" />
+            Export
+          </Button>
+        }
+      />
 
-        <div className="relative">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                <ClipboardList className="h-6 w-6 text-primary" />
+      {/* Stats + Check-in Widget */}
+      <div className="grid gap-4 lg:grid-cols-5">
+        {/* Check-in Widget */}
+        <Card className="lg:col-span-1">
+          <CardContent className="p-4 space-y-3">
+            <div className="text-center">
+              <p className="text-3xl font-bold tabular-nums">{currentTime}</p>
+              <p className="text-xs text-muted-foreground mt-1">{currentDate}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                size="sm"
+                className="bg-success hover:bg-success/90"
+                onClick={() => openCheckDialog('check_in')}
+              >
+                <LogIn className="mr-1 h-3 w-3" />
+                In
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => openCheckDialog('check_out')}
+              >
+                <LogOut className="mr-1 h-3 w-3" />
+                Out
+              </Button>
+            </div>
+            <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground pt-2 border-t">
+              <div className="flex items-center gap-1">
+                <MapPin className="h-3 w-3 text-success" />
+                GPS
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">Absensi</h1>
-                <p className="text-sm text-muted-foreground">
-                  Kelola kehadiran karyawan
-                </p>
+              <div className="flex items-center gap-1">
+                <ScanFace className="h-3 w-3 text-primary" />
+                Face ID
               </div>
             </div>
+          </CardContent>
+        </Card>
 
-            <Button variant="outline" size="sm" className="bg-background/50 backdrop-blur-sm">
-              <Download className="mr-2 h-4 w-4" />
-              Export
-            </Button>
-          </div>
-
-          {/* Stats + Check-in Widget */}
-          <div className="mt-6 grid gap-4 lg:grid-cols-5">
-            {/* Check-in Widget */}
-            <Card className="bg-card/50 backdrop-blur-sm lg:col-span-1">
-              <CardContent className="p-4 space-y-3">
-                <div className="text-center">
-                  <p className="text-3xl font-bold tabular-nums">{currentTime}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{currentDate}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    size="sm"
-                    className="bg-success hover:bg-success/90"
-                    onClick={() => openCheckDialog('check_in')}
-                  >
-                    <LogIn className="mr-1 h-3 w-3" />
-                    In
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => openCheckDialog('check_out')}
-                  >
-                    <LogOut className="mr-1 h-3 w-3" />
-                    Out
-                  </Button>
-                </div>
-                <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground pt-2 border-t">
-                  <div className="flex items-center gap-1">
-                    <MapPin className="h-3 w-3 text-success" />
-                    GPS
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <ScanFace className="h-3 w-3 text-primary" />
-                    Face ID
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Stats */}
-            {stats.map((stat) => (
-              <Card key={stat.title} className="bg-card/50 backdrop-blur-sm">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">{stat.title}</p>
-                      <p className="text-2xl font-bold">{stat.value}</p>
-                    </div>
-                    <div className={`rounded-lg p-2 ${colorClasses[stat.color]}`}>
-                      <stat.icon className="h-5 w-5" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+        {/* Stats */}
+        <div className="lg:col-span-4">
+          <StatsGrid items={stats} columns={4} variant="cards" />
         </div>
       </div>
 

@@ -24,6 +24,7 @@ import {
   Users,
   AlertCircle,
 } from 'lucide-react';
+import { PageHeader, StatsGrid, type StatItem } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -358,85 +359,57 @@ export default function SecurityPage() {
     return `${diffDays} hari lalu`;
   };
 
+  const securityStats: StatItem[] = overview ? [
+    {
+      label: '2FA Users',
+      value: overview.users_with_2fa,
+      icon: Users,
+      color: 'primary',
+    },
+    {
+      label: 'Active Sessions',
+      value: overview.active_sessions,
+      icon: Activity,
+      color: 'success',
+    },
+    {
+      label: 'Locked',
+      value: overview.locked_accounts,
+      icon: Lock,
+      color: 'destructive',
+    },
+    {
+      label: 'Failed Today',
+      value: overview.failed_logins_today,
+      icon: AlertTriangle,
+      color: 'warning',
+    },
+  ] : [];
+
   return (
     <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-success via-success/80 to-primary p-6 text-white shadow-lg">
-        <div className="absolute inset-0 bg-grid-white/10" />
-        <div className="relative">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">Keamanan</h1>
-              <p className="mt-1 text-white/80">
-                Kelola keamanan akun dan perangkat Anda
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              {twoFactorEnabled ? (
-                <Badge className="bg-success text-white">
-                  <ShieldCheck className="mr-1 h-3 w-3" />
-                  2FA Aktif
-                </Badge>
-              ) : (
-                <Badge variant="secondary" className="bg-warning text-white">
-                  <ShieldOff className="mr-1 h-3 w-3" />
-                  2FA Nonaktif
-                </Badge>
-              )}
-            </div>
-          </div>
+      {/* Page Header */}
+      <PageHeader
+        title="Keamanan"
+        description="Kelola keamanan akun dan perangkat Anda"
+        icon={Shield}
+        actions={
+          twoFactorEnabled ? (
+            <Badge className="bg-success text-white">
+              <ShieldCheck className="mr-1 h-3 w-3" />
+              2FA Aktif
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="bg-warning text-white">
+              <ShieldOff className="mr-1 h-3 w-3" />
+              2FA Nonaktif
+            </Badge>
+          )
+        }
+      />
 
-          {/* Stats */}
-          {overview && (
-            <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-              <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-white/20 p-2">
-                    <Users className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-white/80">2FA Users</p>
-                    <p className="text-2xl font-bold">{overview.users_with_2fa}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-success/20 p-2">
-                    <Activity className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-white/80">Active Sessions</p>
-                    <p className="text-2xl font-bold">{overview.active_sessions}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-destructive/20 p-2">
-                    <Lock className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-white/80">Locked</p>
-                    <p className="text-2xl font-bold">{overview.locked_accounts}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-warning/20 p-2">
-                    <AlertTriangle className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-white/80">Failed Today</p>
-                    <p className="text-2xl font-bold">{overview.failed_logins_today}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Stats */}
+      {overview && <StatsGrid items={securityStats} columns={4} variant="cards" />}
 
       {/* Security Alerts */}
       {alerts.filter((a) => !a.resolved_at).length > 0 && (

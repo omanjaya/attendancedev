@@ -23,6 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { StatsGrid, PageHeader, type StatItem } from '@/components/shared';
 import {
   Area,
   AreaChart,
@@ -102,142 +103,101 @@ export default function DashboardPage() {
     'pegawai': 'Pegawai',
   };
 
-  // Stats data
-  const adminStats = [
+  // Stats data using new StatItem interface
+  const adminStats: StatItem[] = [
     {
-      title: 'Total Karyawan',
+      label: 'Total Karyawan',
       value: summary?.employees.total || 0,
-      subtitle: `${summary?.employees.active || 0} aktif`,
+      description: `${summary?.employees.active || 0} aktif`,
       icon: Users,
-      color: 'primary' as const,
+      color: 'primary',
     },
     {
-      title: 'Hadir Hari Ini',
+      label: 'Hadir Hari Ini',
       value: summary?.attendance.present || 0,
-      subtitle: `${summary?.attendance.attendance_rate?.toFixed(1) || 0}%`,
+      description: `${summary?.attendance.attendance_rate?.toFixed(1) || 0}%`,
       icon: UserCheck,
-      color: 'success' as const,
+      color: 'success',
     },
     {
-      title: 'Cuti / Izin',
+      label: 'Cuti / Izin',
       value: summary?.attendance.on_leave || 0,
-      subtitle: `${summary?.pending_leaves || 0} pending`,
+      description: `${summary?.pending_leaves || 0} pending`,
       icon: CalendarOff,
-      color: 'warning' as const,
+      color: 'warning',
     },
     {
-      title: 'Tidak Hadir',
+      label: 'Tidak Hadir',
       value: summary?.attendance.absent || 0,
-      subtitle: `${summary?.attendance.late || 0} terlambat`,
+      description: `${summary?.attendance.late || 0} terlambat`,
       icon: UserX,
-      color: 'destructive' as const,
+      color: 'destructive',
     },
   ];
 
-  const employeeStats = [
+  const employeeStats: StatItem[] = [
     {
-      title: 'Kehadiran Bulan Ini',
+      label: 'Kehadiran Bulan Ini',
       value: 22,
-      subtitle: '95.6%',
+      description: '95.6%',
       icon: UserCheck,
-      color: 'success' as const,
+      color: 'success',
     },
     {
-      title: 'Terlambat',
+      label: 'Terlambat',
       value: 1,
-      subtitle: 'bulan ini',
+      description: 'bulan ini',
       icon: Clock,
-      color: 'warning' as const,
+      color: 'warning',
     },
     {
-      title: 'Sisa Cuti',
+      label: 'Sisa Cuti',
       value: 10,
-      subtitle: 'hari tersisa',
+      description: 'hari tersisa',
       icon: CalendarOff,
-      color: 'primary' as const,
+      color: 'primary',
     },
     {
-      title: 'Jam Kerja',
+      label: 'Jam Kerja',
       value: 176,
-      subtitle: 'jam bulan ini',
+      description: 'jam bulan ini',
       icon: Clock,
-      color: 'primary' as const,
+      color: 'primary',
     },
   ];
 
   const stats = isAdmin || isManager ? adminStats : employeeStats;
 
-  const colorClasses = {
-    primary: 'bg-primary/10 text-primary',
-    success: 'bg-success/10 text-success',
-    warning: 'bg-warning/10 text-warning',
-    destructive: 'bg-destructive/10 text-destructive',
-  };
-
   return (
     <div className="space-y-6 p-6">
-      {/* Hero Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background p-8">
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
+      {/* Page Header */}
+      <PageHeader
+        title={`Selamat datang, ${user?.name?.split(' ')[0]}!`}
+        description={new Date().toLocaleDateString('id-ID', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        })}
+        icon={LayoutDashboard}
+        actions={
+          <Badge variant="secondary">
+            {roleLabels[user?.role || ''] || user?.role}
+          </Badge>
+        }
+        size="lg"
+      />
 
-        <div className="relative">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                <LayoutDashboard className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">
-                  Selamat datang, {user?.name?.split(' ')[0]}!
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  {new Date().toLocaleDateString('id-ID', {
-                    weekday: 'long',
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                  })}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="bg-background/50 backdrop-blur-sm">
-                {roleLabels[user?.role || ''] || user?.role}
-              </Badge>
-            </div>
-          </div>
-
-          {/* Stats Grid */}
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {stats.map((stat) => (
-              <Card key={stat.title} className="bg-card/50 backdrop-blur-sm">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">{stat.title}</p>
-                      <p className="text-2xl font-bold">{stat.value}</p>
-                      <p className="text-xs text-muted-foreground">{stat.subtitle}</p>
-                    </div>
-                    <div className={`rounded-lg p-2 ${colorClasses[stat.color]}`}>
-                      <stat.icon className="h-5 w-5" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </div>
+      {/* Stats Grid using new StatsGrid component */}
+      <StatsGrid stats={stats} columns={4} variant="cards" />
 
       {/* Quick Check-in Banner for Employees */}
       {isEmployee && (
-        <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
+        <Card className="border-l-4 border-l-primary">
           <CardContent className="p-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                   <Clock className="h-5 w-5 text-primary" />
                 </div>
                 <div>
@@ -260,11 +220,11 @@ export default function DashboardPage() {
 
       {/* Pending Approvals Banner for Admins */}
       {(isAdmin || isManager) && (summary?.pending_leaves || 0) > 0 && (
-        <Card className="border-warning/20 bg-gradient-to-r from-warning/5 to-transparent">
+        <Card className="border-l-4 border-l-warning">
           <CardContent className="p-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-warning/10">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10">
                   <AlertCircle className="h-5 w-5 text-warning" />
                 </div>
                 <div>
@@ -303,8 +263,8 @@ export default function DashboardPage() {
                   <AreaChart data={attendance_trends}>
                     <defs>
                       <linearGradient id="colorPresent" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                        <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <XAxis
@@ -321,7 +281,7 @@ export default function DashboardPage() {
                       content={({ active, payload, label }) => {
                         if (active && payload && payload.length && label) {
                           return (
-                            <div className="rounded-lg border bg-background p-3 shadow-lg">
+                            <div className="rounded-lg border bg-card p-3 shadow-lg">
                               <p className="mb-2 text-sm font-medium">
                                 {new Date(String(label)).toLocaleDateString('id-ID', {
                                   weekday: 'long',
@@ -343,7 +303,7 @@ export default function DashboardPage() {
                     <Area
                       type="monotone"
                       dataKey="present"
-                      stroke="hsl(var(--primary))"
+                      stroke="var(--color-primary)"
                       strokeWidth={2}
                       fillOpacity={1}
                       fill="url(#colorPresent)"
@@ -422,94 +382,54 @@ export default function DashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="grid gap-2">
-              <a
+              <QuickActionLink
                 href="/face-recognition"
-                className="flex items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition-all hover:bg-muted hover:border-primary/20"
-              >
-                <div className="rounded-lg bg-primary/10 p-2">
-                  <Clock className="h-4 w-4 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">Absen Sekarang</p>
-                  <p className="text-xs text-muted-foreground">Check-in / Check-out</p>
-                </div>
-                <ArrowRight className="h-4 w-4 text-muted-foreground" />
-              </a>
-              <a
+                icon={Clock}
+                title="Absen Sekarang"
+                description="Check-in / Check-out"
+                iconColor="primary"
+              />
+              <QuickActionLink
                 href="/leave"
-                className="flex items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition-all hover:bg-muted hover:border-warning/20"
-              >
-                <div className="rounded-lg bg-warning/10 p-2">
-                  <CalendarOff className="h-4 w-4 text-warning" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">
-                    {isAdmin || isManager ? 'Kelola Cuti' : 'Ajukan Cuti'}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {isAdmin || isManager ? 'Review pengajuan' : 'Buat pengajuan baru'}
-                  </p>
-                </div>
-                <ArrowRight className="h-4 w-4 text-muted-foreground" />
-              </a>
+                icon={CalendarOff}
+                title={isAdmin || isManager ? 'Kelola Cuti' : 'Ajukan Cuti'}
+                description={isAdmin || isManager ? 'Review pengajuan' : 'Buat pengajuan baru'}
+                iconColor="warning"
+              />
               {(isAdmin || isManager) && (
                 <>
-                  <a
+                  <QuickActionLink
                     href="/employees"
-                    className="flex items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition-all hover:bg-muted hover:border-primary/20"
-                  >
-                    <div className="rounded-lg bg-primary/10 p-2">
-                      <Users className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-foreground">Data Karyawan</p>
-                      <p className="text-xs text-muted-foreground">Kelola karyawan</p>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                  </a>
-                  <a
+                    icon={Users}
+                    title="Data Karyawan"
+                    description="Kelola karyawan"
+                    iconColor="primary"
+                  />
+                  <QuickActionLink
                     href="/reports"
-                    className="flex items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition-all hover:bg-muted hover:border-chart-5/20"
-                  >
-                    <div className="rounded-lg bg-chart-5/10 p-2">
-                      <FileText className="h-4 w-4 text-chart-5" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-foreground">Laporan</p>
-                      <p className="text-xs text-muted-foreground">Generate laporan</p>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                  </a>
+                    icon={FileText}
+                    title="Laporan"
+                    description="Generate laporan"
+                    iconColor="info"
+                  />
                 </>
               )}
               {isEmployee && (
                 <>
-                  <a
+                  <QuickActionLink
                     href="/payroll"
-                    className="flex items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition-all hover:bg-muted hover:border-success/20"
-                  >
-                    <div className="rounded-lg bg-success/10 p-2">
-                      <DollarSign className="h-4 w-4 text-success" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-foreground">Slip Gaji</p>
-                      <p className="text-xs text-muted-foreground">Lihat slip gaji</p>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                  </a>
-                  <a
+                    icon={DollarSign}
+                    title="Slip Gaji"
+                    description="Lihat slip gaji"
+                    iconColor="success"
+                  />
+                  <QuickActionLink
                     href="/schedules"
-                    className="flex items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition-all hover:bg-muted hover:border-chart-5/20"
-                  >
-                    <div className="rounded-lg bg-chart-5/10 p-2">
-                      <Calendar className="h-4 w-4 text-chart-5" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-foreground">Jadwal Saya</p>
-                      <p className="text-xs text-muted-foreground">Lihat jadwal kerja</p>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                  </a>
+                    icon={Calendar}
+                    title="Jadwal Saya"
+                    description="Lihat jadwal kerja"
+                    iconColor="info"
+                  />
                 </>
               )}
             </CardContent>
@@ -592,32 +512,67 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Kehadiran</span>
-                    <span className="font-medium">22/23 hari</span>
-                  </div>
-                  <Progress value={95.6} className="h-2" />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Tepat Waktu</span>
-                    <span className="font-medium">21/22 hari</span>
-                  </div>
-                  <Progress value={95.4} className="h-2" />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Jam Kerja</span>
-                    <span className="font-medium">176/184 jam</span>
-                  </div>
-                  <Progress value={95.6} className="h-2" />
-                </div>
+                <ProgressItem label="Kehadiran" current="22/23 hari" value={95.6} />
+                <ProgressItem label="Tepat Waktu" current="21/22 hari" value={95.4} />
+                <ProgressItem label="Jam Kerja" current="176/184 jam" value={95.6} />
               </CardContent>
             </Card>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// Helper components
+interface QuickActionLinkProps {
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
+  iconColor: 'primary' | 'success' | 'warning' | 'destructive' | 'info';
+}
+
+const iconColorClasses = {
+  primary: 'bg-primary/10 text-primary',
+  success: 'bg-success/10 text-success',
+  warning: 'bg-warning/10 text-warning',
+  destructive: 'bg-destructive/10 text-destructive',
+  info: 'bg-info/10 text-info',
+};
+
+function QuickActionLink({ href, icon: Icon, title, description, iconColor }: QuickActionLinkProps) {
+  return (
+    <a
+      href={href}
+      className="flex items-center gap-3 rounded-lg border border-border bg-card p-3 text-left transition-all hover:bg-muted hover:shadow-sm"
+    >
+      <div className={`rounded-lg p-2 ${iconColorClasses[iconColor]}`}>
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="flex-1">
+        <p className="text-sm font-medium text-foreground">{title}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+    </a>
+  );
+}
+
+interface ProgressItemProps {
+  label: string;
+  current: string;
+  value: number;
+}
+
+function ProgressItem({ label, current, value }: ProgressItemProps) {
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between text-sm">
+        <span className="text-muted-foreground">{label}</span>
+        <span className="font-medium">{current}</span>
+      </div>
+      <Progress value={value} className="h-2" />
     </div>
   );
 }

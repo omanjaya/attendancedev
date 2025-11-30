@@ -134,7 +134,9 @@ export const useAuthStore = create<AuthState>()(
         // Super admin has all permissions
         if (user.role === 'super-admin') return true;
 
-        return user.permissions.includes(permission);
+        // Handle case where permissions might be undefined (old localStorage data)
+        const permissions = user.permissions || [];
+        return permissions.includes(permission);
       },
 
       hasRole: (role: string | string[]) => {

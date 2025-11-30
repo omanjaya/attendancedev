@@ -15,6 +15,7 @@ import {
   PowerOff,
   Map,
 } from 'lucide-react';
+import { PageHeader, StatsGrid, type StatItem } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -460,82 +461,55 @@ export default function LocationsPage() {
     }
   };
 
+  const statsItems: StatItem[] = stats ? [
+    {
+      label: 'Total Lokasi',
+      value: stats.total_locations,
+      icon: Map,
+      color: 'primary',
+    },
+    {
+      label: 'Aktif',
+      value: stats.active_locations,
+      icon: Power,
+      color: 'success',
+    },
+    {
+      label: 'Total Pegawai',
+      value: stats.total_employees_assigned,
+      icon: Users,
+      color: 'info',
+    },
+    {
+      label: 'Dengan WiFi',
+      value: stats.locations_with_wifi,
+      icon: Wifi,
+      color: 'warning',
+    },
+  ] : [];
+
   return (
     <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary via-primary/80 to-success p-6 text-white shadow-lg">
-        <div className="absolute inset-0 bg-grid-white/10" />
-        <div className="relative">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">Manajemen Lokasi</h1>
-              <p className="mt-1 text-white/80">
-                Kelola lokasi untuk verifikasi absensi GPS
-              </p>
-            </div>
-            <Button
-              onClick={() => {
-                setEditingLocation(null);
-                setIsFormOpen(true);
-              }}
-              className="bg-white text-primary hover:bg-primary/10"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Tambah Lokasi
-            </Button>
-          </div>
+      {/* Page Header */}
+      <PageHeader
+        title="Manajemen Lokasi"
+        description="Kelola lokasi untuk verifikasi absensi GPS"
+        icon={MapPin}
+        actions={
+          <Button
+            onClick={() => {
+              setEditingLocation(null);
+              setIsFormOpen(true);
+            }}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Tambah Lokasi
+          </Button>
+        }
+      />
 
-          {/* Stats */}
-          {stats && (
-            <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-              <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-white/20 p-2">
-                    <Map className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-white/80">Total Lokasi</p>
-                    <p className="text-2xl font-bold">{stats.total_locations}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-success/20 p-2">
-                    <Power className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-white/80">Aktif</p>
-                    <p className="text-2xl font-bold">{stats.active_locations}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-chart-5/20 p-2">
-                    <Users className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-white/80">Total Pegawai</p>
-                    <p className="text-2xl font-bold">{stats.total_employees_assigned}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-warning/20 p-2">
-                    <Wifi className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-white/80">Dengan WiFi</p>
-                    <p className="text-2xl font-bold">{stats.locations_with_wifi}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Stats */}
+      {stats && <StatsGrid items={statsItems} columns={4} variant="cards" />}
 
       {/* Filters */}
       <Card>
