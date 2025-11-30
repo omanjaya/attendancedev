@@ -322,8 +322,8 @@ export default function AttendancePage() {
   const attendanceRecords = attendanceData?.data || [];
   const filteredData = search
     ? attendanceRecords.filter((att) =>
-        att.employee_name.toLowerCase().includes(search.toLowerCase())
-      )
+      att.employee_name.toLowerCase().includes(search.toLowerCase())
+    )
     : attendanceRecords;
   const totalPages = attendanceData?.meta?.last_page || 1;
   const totalItems = attendanceData?.meta?.total || 0;
@@ -336,7 +336,7 @@ export default function AttendancePage() {
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
             <span className="text-xs font-medium text-primary">
-              {row.employee_name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+              {(row.employee_name || '').split(' ').map((n) => n[0]).join('').slice(0, 2)}
             </span>
           </div>
           <span className="font-medium">{row.employee_name}</span>
@@ -493,7 +493,7 @@ export default function AttendancePage() {
 
         {/* Stats */}
         <div className="lg:col-span-4">
-          <StatsGrid items={stats} columns={4} variant="cards" />
+          <StatsGrid stats={stats} columns={4} variant="cards" />
         </div>
       </div>
 

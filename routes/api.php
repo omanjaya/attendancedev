@@ -17,9 +17,13 @@ Route::middleware('auth')->group(function () {
 });
 
 // API v1 routes
-Route::prefix('v1')
-    ->middleware('auth:sanctum')
-    ->group(function () {
+Route::prefix('v1')->group(function () {
+    // Auth routes
+    Route::post('/auth/login', [App\Http\Controllers\Api\AuthController::class, 'login']);
+
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/auth/logout', [App\Http\Controllers\Api\AuthController::class, 'logout']);
+        Route::get('/auth/me', [App\Http\Controllers\Api\AuthController::class, 'me']);
         // User info
         Route::get('/user', function (Request $request) {
             return $request->user()->load(['employee', 'roles', 'permissions']);
@@ -354,6 +358,12 @@ Route::prefix('v1')
             ])->middleware('permission:view_leave_own');
         });
 
+        // Reports endpoints
+        Route::prefix('reports')->group(function () {
+            Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'getData'])
+                ->middleware('permission:view_attendance_reports');
+        });
+
         // Dashboard endpoints for Vue component (consolidated)
         Route::prefix('dashboard')->group(function () {
             Route::get('/attendance', [
@@ -367,6 +377,7 @@ Route::prefix('v1')
                 ->name('api.attendance.stats');
         });
     });
+});
 
 // Session-based API routes for Vue dashboard (outside Sanctum middleware)
 Route::prefix('vue')

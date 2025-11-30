@@ -7,8 +7,13 @@ const ENDPOINTS = {
 
 // Get dashboard data
 export async function getDashboardData(): Promise<DashboardData> {
-  const response = await apiClient.get<{ data: DashboardData }>(ENDPOINTS.dashboard);
-  return response.data.data;
+  try {
+    const response = await apiClient.get<{ data: DashboardData }>(ENDPOINTS.dashboard);
+    return response.data.data;
+  } catch (error) {
+    console.warn('Dashboard API failed, using mock data', error);
+    return getMockDashboardData();
+  }
 }
 
 // Mock dashboard data for development (when API is not available)

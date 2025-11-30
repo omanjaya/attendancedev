@@ -126,7 +126,7 @@ export default function EmployeesPage() {
   const totalPages = employeesData?.meta?.last_page || 1;
 
   const getInitials = (name: string) => {
-    return name
+    return (name || '')
       .split(' ')
       .map((n) => n[0])
       .join('')
@@ -290,9 +290,8 @@ export default function EmployeesPage() {
       cell: (row) => (
         <div className="flex items-center gap-1">
           <ScanFace
-            className={`h-4 w-4 ${
-              row.face_registered ? 'text-success' : 'text-muted-foreground'
-            }`}
+            className={`h-4 w-4 ${row.face_registered ? 'text-success' : 'text-muted-foreground'
+              }`}
           />
           <span className="text-xs text-muted-foreground">
             {row.face_registered ? 'Terdaftar' : 'Belum'}

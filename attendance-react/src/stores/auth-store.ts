@@ -47,39 +47,16 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
             error: null,
           });
-        } catch (error: unknown) {
-          // DEMO MODE: Use mock data if API fails (backend not available)
-          console.warn('API not available, using mock authentication');
-          const mockUser = {
-            id: 1,
-            name: 'Admin User',
-            email: credentials.email,
-            role: 'admin' as const,
-            permissions: [
-              'dashboard.view',
-              'employees.view',
-              'employees.create',
-              'employees.edit',
-              'attendance.view',
-              'attendance.create',
-              'schedules.view',
-              'schedules.create',
-              'leave.view',
-              'leave.approve',
-              'payroll.view',
-              'reports.view',
-              'settings.view',
-            ],
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          };
+        } catch (error: any) {
+          const message = error.response?.data?.message || 'Login failed';
           set({
-            user: mockUser,
-            token: 'mock-token-demo',
-            isAuthenticated: true,
+            error: message,
             isLoading: false,
-            error: null,
+            isAuthenticated: false,
+            user: null,
+            token: null,
           });
+          throw error;
         }
       },
 

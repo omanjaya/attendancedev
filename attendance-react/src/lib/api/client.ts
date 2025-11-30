@@ -38,6 +38,8 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       // Clear auth data and redirect to login
+      // Clear auth data and redirect to login
+      localStorage.removeItem('auth-storage'); // Clear Zustand persist storage
       localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_user');
 

@@ -24,7 +24,7 @@ export interface UserResponse {
 
 // Login user
 export async function login(credentials: LoginCredentials): Promise<LoginResponse> {
-  const response = await apiClient.post<LoginResponse>(AUTH_ENDPOINTS.login, credentials);
+  const response = await apiClient.post<LoginResponse>(AUTH_ENDPOINTS.login, { ...credentials, device_name: 'web' });
 
   // Store token in localStorage
   if (response.data.token) {

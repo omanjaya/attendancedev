@@ -11,7 +11,8 @@ class DashboardController extends Controller
 {
     public function __construct(
         private DashboardService $dashboardService
-    ) {}
+    ) {
+    }
 
     /**
      * Display the main dashboard
@@ -124,7 +125,7 @@ class DashboardController extends Controller
     public function getChartData(Request $request): JsonResponse
     {
         $period = $request->get('period', 'week');
-        
+
         try {
             $chartData = match ($period) {
                 'week' => $this->dashboardService->getWeeklyAttendanceChart(),
@@ -153,7 +154,7 @@ class DashboardController extends Controller
      */
     private function getRecentActivities(): array
     {
-        $recentAttendances = Attendance::with('employee.user')
+        $recentAttendances = \App\Models\Attendance::with('employee.user')
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
@@ -208,7 +209,7 @@ class DashboardController extends Controller
         }
 
         // Sort by timestamp and return latest 10
-        usort($activities, function($a, $b) {
+        usort($activities, function ($a, $b) {
             return strtotime($b['timestamp']) - strtotime($a['timestamp']);
         });
 
@@ -222,14 +223,14 @@ class DashboardController extends Controller
     {
         $today = now()->format('Y-m-d');
         $employee = $user->employee;
-        
+
         if (!$employee) {
             return [];
         }
 
         // Get teaching schedules for today
         $schedules = [];
-        
+
         // Check if employee schedules table exists and get today's schedule
         try {
             $employeeSchedules = \DB::table('employee_schedules')
@@ -251,7 +252,7 @@ class DashboardController extends Controller
             foreach ($employeeSchedules as $schedule) {
                 $currentTime = now()->format('H:i');
                 $status = 'upcoming';
-                
+
                 if ($currentTime >= $schedule->start_time && $currentTime <= $schedule->end_time) {
                     $status = 'ongoing';
                 } elseif ($currentTime > $schedule->end_time) {
@@ -282,9 +283,9 @@ class DashboardController extends Controller
         try {
             $meetings = \DB::table('events')
                 ->where('date', $today)
-                ->where(function($query) use ($employee) {
+                ->where(function ($query) use ($employee) {
                     $query->whereNull('employee_id')
-                          ->orWhere('employee_id', $employee->id);
+                        ->orWhere('employee_id', $employee->id);
                 })
                 ->get();
 
@@ -308,7 +309,7 @@ class DashboardController extends Controller
         }
 
         // Sort by start time
-        usort($schedules, function($a, $b) {
+        usort($schedules, function ($a, $b) {
             return strcmp($a['start_time'], $b['start_time']);
         });
 
@@ -321,7 +322,7 @@ class DashboardController extends Controller
     private function getSystemStatus(): array
     {
         $services = [];
-        
+
         // Check database
         $dbStatus = $this->checkDatabaseHealth();
         $services[] = [
@@ -331,7 +332,7 @@ class DashboardController extends Controller
             'uptime' => $dbStatus['uptime'],
             'responseTime' => $dbStatus['responseTime'],
         ];
-        
+
         // Check file storage
         $storageStatus = $this->checkStorageHealth();
         $services[] = [
@@ -341,7 +342,7 @@ class DashboardController extends Controller
             'uptime' => $storageStatus['uptime'],
             'responseTime' => $storageStatus['responseTime'],
         ];
-        
+
         // Check face recognition (if enabled)
         $faceStatus = $this->checkFaceRecognitionHealth();
         $services[] = [
@@ -351,26 +352,26 @@ class DashboardController extends Controller
             'uptime' => $faceStatus['uptime'],
             'responseTime' => $faceStatus['responseTime'],
         ];
-        
+
         // Determine overall status
         $operationalCount = collect($services)->where('status', 'operational')->count();
-        $overall = $operationalCount === count($services) ? 'healthy' : 
-                  ($operationalCount > count($services) / 2 ? 'degraded' : 'critical');
-        
+        $overall = $operationalCount === count($services) ? 'healthy' :
+            ($operationalCount > count($services) / 2 ? 'degraded' : 'critical');
+
         return [
             'overall' => $overall,
             'services' => $services,
             'lastUpdated' => now()->toISOString(),
         ];
     }
-    
+
     private function checkDatabaseHealth(): array
     {
         $start = microtime(true);
         try {
             \DB::connection()->getPdo();
             $responseTime = round((microtime(true) - $start) * 1000);
-            
+
             return [
                 'status' => 'operational',
                 'uptime' => 99.9,
@@ -384,7 +385,7 @@ class DashboardController extends Controller
             ];
         }
     }
-    
+
     private function checkStorageHealth(): array
     {
         $start = microtime(true);
@@ -402,21 +403,21 @@ class DashboardController extends Controller
         } catch (\Exception $e) {
             // Fall through to error case
         }
-        
+
         return [
             'status' => 'degraded',
             'uptime' => 85.0,
             'responseTime' => 1000,
         ];
     }
-    
+
     private function checkFaceRecognitionHealth(): array
     {
         // Simple check - count recent face recognition attempts
         $recentAttempts = \App\Models\Attendance::where('created_at', '>=', now()->subHour())
             ->whereNotNull('metadata')
             ->count();
-            
+
         return [
             'status' => $recentAttempts > 0 ? 'operational' : 'idle',
             'uptime' => 95.0,
@@ -430,31 +431,31 @@ class DashboardController extends Controller
     private function calculateSystemHealthScore(): int
     {
         $score = 100;
-        
+
         // Check database health
         try {
             \DB::connection()->getPdo();
         } catch (\Exception $e) {
             $score -= 30;
         }
-        
+
         // Check if storage is writable
         if (!is_writable(storage_path('app'))) {
             $score -= 20;
         }
-        
+
         // Check for recent errors in logs
         $recentErrors = \DB::table('audit_logs')
             ->where('level', 'error')
             ->where('created_at', '>=', now()->subHours(24))
             ->count();
-            
+
         if ($recentErrors > 10) {
             $score -= 15;
         } elseif ($recentErrors > 5) {
             $score -= 10;
         }
-        
+
         return max(0, $score);
     }
 
@@ -465,17 +466,17 @@ class DashboardController extends Controller
     {
         $today = \Carbon\Carbon::today();
         $yesterday = \Carbon\Carbon::yesterday();
-        
+
         $presentToday = \App\Models\Attendance::whereDate('date', $today)
             ->whereNotNull('check_in_time')
             ->distinct('employee_id')
             ->count();
-            
+
         $presentYesterday = \App\Models\Attendance::whereDate('date', $yesterday)
             ->whereNotNull('check_in_time')
             ->distinct('employee_id')
             ->count();
-            
+
         return $presentToday - $presentYesterday;
     }
 
@@ -487,24 +488,25 @@ class DashboardController extends Controller
         $thisWeek = \Carbon\Carbon::now()->startOfWeek();
         $lastWeek = \Carbon\Carbon::now()->subWeek()->startOfWeek();
         $lastWeekEnd = $lastWeek->copy()->endOfWeek();
-        
+
         $totalEmployees = \App\Models\Employee::active()->count();
-        
-        if ($totalEmployees === 0) return 0;
-        
+
+        if ($totalEmployees === 0)
+            return 0;
+
         // This week's rate
         $thisWeekAttendance = \App\Models\Attendance::whereBetween('date', [$thisWeek, now()])
             ->whereNotNull('check_in_time')
             ->count();
         $thisWeekDays = $thisWeek->diffInDays(now()) + 1;
         $thisWeekRate = ($thisWeekAttendance / ($totalEmployees * $thisWeekDays)) * 100;
-        
+
         // Last week's rate
         $lastWeekAttendance = \App\Models\Attendance::whereBetween('date', [$lastWeek, $lastWeekEnd])
             ->whereNotNull('check_in_time')
             ->count();
         $lastWeekRate = ($lastWeekAttendance / ($totalEmployees * 7)) * 100;
-        
+
         return round($thisWeekRate - $lastWeekRate, 1);
     }
 
@@ -516,14 +518,14 @@ class DashboardController extends Controller
         $thisWeek = \App\Models\Leave::where('status', 'pending')
             ->where('created_at', '>=', \Carbon\Carbon::now()->startOfWeek())
             ->count();
-            
+
         $lastWeek = \App\Models\Leave::where('status', 'pending')
             ->whereBetween('created_at', [
                 \Carbon\Carbon::now()->subWeek()->startOfWeek(),
                 \Carbon\Carbon::now()->subWeek()->endOfWeek()
             ])
             ->count();
-            
+
         return $thisWeek - $lastWeek;
     }
 
@@ -548,15 +550,15 @@ class DashboardController extends Controller
                     return [
                         'id' => $attendance->id,
                         'employee_id' => $attendance->employee_id,
-                        'employee_name' => $attendance->employee ? 
+                        'employee_name' => $attendance->employee ?
                             $attendance->employee->first_name . ' ' . $attendance->employee->last_name : 'Unknown',
                         'check_in_time' => $attendance->check_in_time,
                         'check_out_time' => $attendance->check_out_time,
-                        'check_in_formatted' => $attendance->check_in_time ? 
+                        'check_in_formatted' => $attendance->check_in_time ?
                             $attendance->check_in_time->format('H:i') : '-',
-                        'check_out_formatted' => $attendance->check_out_time ? 
+                        'check_out_formatted' => $attendance->check_out_time ?
                             $attendance->check_out_time->format('H:i') : '-',
-                        'working_hours_formatted' => $attendance->working_hours ? 
+                        'working_hours_formatted' => $attendance->working_hours ?
                             floor($attendance->working_hours) . 'j ' . (($attendance->working_hours - floor($attendance->working_hours)) * 60) . 'm' : '0j 0m',
                         'status' => $attendance->status,
                         'date' => $attendance->date,

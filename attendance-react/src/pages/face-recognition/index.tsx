@@ -163,7 +163,7 @@ export default function FaceRecognitionPage() {
       />
 
       {/* Stats Grid */}
-      <StatsGrid items={stats} columns={3} variant="cards" />
+      <StatsGrid stats={stats} columns={3} variant="cards" />
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -342,7 +342,7 @@ export default function FaceRecognitionPage() {
                   <div className="flex items-center gap-4">
                     <div className="relative">
                       <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 text-lg font-semibold text-primary-foreground">
-                        {user?.name?.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+                        {user?.name ? user.name.split(' ').map((n) => n[0]).join('').slice(0, 2) : 'U'}
                       </div>
                       <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-background bg-success">
                         <CheckCircle2 className="h-3 w-3 text-white" />
@@ -400,8 +400,8 @@ export default function FaceRecognitionPage() {
                       className={detectionStatus === 'detected' ? 'bg-success' : ''}
                     >
                       {detectionStatus === 'detected' ? 'Terdeteksi' :
-                       detectionStatus === 'no_face' ? 'Tidak ada' :
-                       detectionStatus === 'multiple_faces' ? 'Multiple' : 'Idle'}
+                        detectionStatus === 'no_face' ? 'Tidak ada' :
+                          detectionStatus === 'multiple_faces' ? 'Multiple' : 'Idle'}
                     </Badge>
                   </div>
                   {detectionStatus === 'detected' && (
@@ -469,13 +469,12 @@ export default function FaceRecognitionPage() {
                     {[1, 2, 3].map((step) => (
                       <div key={step} className="flex items-center gap-2">
                         <div
-                          className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
-                            capturedDescriptors.length >= step
-                              ? 'bg-success text-white'
-                              : capturedDescriptors.length === step - 1
+                          className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${capturedDescriptors.length >= step
+                            ? 'bg-success text-white'
+                            : capturedDescriptors.length === step - 1
                               ? 'bg-primary text-primary-foreground'
                               : 'bg-muted text-muted-foreground'
-                          }`}
+                            }`}
                         >
                           {capturedDescriptors.length >= step ? (
                             <CheckCircle2 className="h-4 w-4" />
@@ -487,9 +486,8 @@ export default function FaceRecognitionPage() {
                           Foto {step}
                         </span>
                         {step < 3 && (
-                          <div className={`h-0.5 w-12 ${
-                            capturedDescriptors.length >= step ? 'bg-success' : 'bg-muted'
-                          }`} />
+                          <div className={`h-0.5 w-12 ${capturedDescriptors.length >= step ? 'bg-success' : 'bg-muted'
+                            }`} />
                         )}
                       </div>
                     ))}
@@ -632,11 +630,10 @@ export default function FaceRecognitionPage() {
                   >
                     <div className="flex items-center gap-4">
                       <div
-                        className={`flex h-10 w-10 items-center justify-center rounded-full ${
-                          item.status === 'success'
-                            ? 'bg-success/10 text-success'
-                            : 'bg-destructive/10 text-destructive'
-                        }`}
+                        className={`flex h-10 w-10 items-center justify-center rounded-full ${item.status === 'success'
+                          ? 'bg-success/10 text-success'
+                          : 'bg-destructive/10 text-destructive'
+                          }`}
                       >
                         {item.status === 'success' ? (
                           <CheckCircle2 className="h-5 w-5" />

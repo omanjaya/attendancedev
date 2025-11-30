@@ -161,7 +161,7 @@ describe('Auth Store', () => {
       expect(state.user).toBeNull();
       expect(state.isAuthenticated).toBe(false);
       expect(state.isLoading).toBe(false);
-      expect(state.error).toBe('Invalid credentials');
+      expect(state.error).toBe('Login failed');
     });
 
     it('should set loading state during login', async () => {

@@ -55,6 +55,7 @@ export const navigation: NavGroup[] = [
         href: '/employees',
         icon: Users,
         permission: 'employees.view',
+        roles: ['super-admin', 'admin', 'kepala-sekolah'],
         description: 'Data karyawan & kredensial',
       },
       {
@@ -83,6 +84,7 @@ export const navigation: NavGroup[] = [
         href: '/reports',
         icon: FileText,
         permission: 'reports.view',
+        roles: ['super-admin', 'admin', 'kepala-sekolah'],
         description: 'Laporan & report builder',
       },
     ],
