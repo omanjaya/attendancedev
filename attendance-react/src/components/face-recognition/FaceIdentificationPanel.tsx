@@ -272,10 +272,10 @@ export function FaceIdentificationPanel({
 
   // Get similarity color
   const getSimilarityColor = (similarity: number): string => {
-    if (similarity >= 0.9) return 'text-green-600';
-    if (similarity >= 0.7) return 'text-blue-600';
-    if (similarity >= 0.6) return 'text-yellow-600';
-    return 'text-red-600';
+    if (similarity >= 0.9) return 'text-success';
+    if (similarity >= 0.7) return 'text-primary';
+    if (similarity >= 0.6) return 'text-warning';
+    return 'text-destructive';
   };
 
   return (
@@ -321,9 +321,9 @@ export function FaceIdentificationPanel({
           <div
             className={cn(
               'absolute top-4 left-4 px-3 py-1 rounded-full text-sm font-medium',
-              detectionStatus === 'detected' && 'bg-green-500 text-white',
-              detectionStatus === 'none' && 'bg-gray-500 text-white',
-              detectionStatus === 'multiple' && 'bg-yellow-500 text-white'
+              detectionStatus === 'detected' && 'bg-success text-success-foreground',
+              detectionStatus === 'none' && 'bg-muted text-muted-foreground',
+              detectionStatus === 'multiple' && 'bg-warning text-warning-foreground'
             )}
           >
             {detectionStatus === 'detected' && 'Wajah Terdeteksi'}
@@ -353,22 +353,22 @@ export function FaceIdentificationPanel({
 
         {/* Identification Result */}
         {state === 'identified' && identifiedEmployee && (
-          <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4">
+          <div className="bg-success/5 dark:bg-success/10 border border-success/20 rounded-lg p-4">
             <div className="flex items-center gap-4">
               <Avatar className="h-16 w-16">
                 <AvatarImage src={identifiedEmployee.photoUrl} />
-                <AvatarFallback className="bg-green-100 text-green-700 text-lg">
+                <AvatarFallback className="bg-success/10 text-success text-lg">
                   {identifiedEmployee.name.charAt(0)}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <UserCheck className="h-5 w-5 text-green-600" />
-                  <span className="font-semibold text-green-800 dark:text-green-200">
+                  <UserCheck className="h-5 w-5 text-success" />
+                  <span className="font-semibold text-success">
                     Teridentifikasi
                   </span>
                 </div>
-                <h3 className="text-lg font-bold text-green-900 dark:text-green-100">
+                <h3 className="text-lg font-bold text-foreground">
                   {identifiedEmployee.name}
                 </h3>
                 <p className={cn('text-sm font-medium', getSimilarityColor(identifiedEmployee.similarity))}>
@@ -381,16 +381,16 @@ export function FaceIdentificationPanel({
 
         {/* Not Recognized Result */}
         {state === 'not_recognized' && (
-          <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <div className="bg-destructive/5 dark:bg-destructive/10 border border-destructive/20 rounded-lg p-4">
             <div className="flex items-center gap-4">
-              <div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center">
-                <UserX className="h-8 w-8 text-red-600" />
+              <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
+                <UserX className="h-8 w-8 text-destructive" />
               </div>
               <div>
-                <h3 className="font-semibold text-red-800 dark:text-red-200">
+                <h3 className="font-semibold text-destructive">
                   Wajah Tidak Dikenali
                 </h3>
-                <p className="text-sm text-red-600 dark:text-red-400">
+                <p className="text-sm text-destructive/80">
                   Wajah tidak cocok dengan data terdaftar
                 </p>
               </div>

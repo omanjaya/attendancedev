@@ -63,9 +63,9 @@ export default function FaceRecognitionSettingsPage() {
   };
 
   const getConfidenceLevel = (value: number) => {
-    if (value >= 0.8) return { label: 'Tinggi', color: 'text-emerald-500' };
-    if (value >= 0.6) return { label: 'Sedang', color: 'text-amber-500' };
-    return { label: 'Rendah', color: 'text-red-500' };
+    if (value >= 0.8) return { label: 'Tinggi', color: 'text-success' };
+    if (value >= 0.6) return { label: 'Sedang', color: 'text-warning' };
+    return { label: 'Rendah', color: 'text-destructive' };
   };
 
   return (
@@ -107,9 +107,9 @@ export default function FaceRecognitionSettingsPage() {
 
       {/* Saved Alert */}
       {showSavedAlert && (
-        <Alert className="border-emerald-500/50 bg-emerald-500/10">
-          <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-          <AlertTitle className="text-emerald-600">Berhasil!</AlertTitle>
+        <Alert className="border-success/50 bg-success/10">
+          <CheckCircle2 className="h-4 w-4 text-success" />
+          <AlertTitle className="text-success">Berhasil!</AlertTitle>
           <AlertDescription>
             Pengaturan berhasil disimpan dan akan diterapkan pada verifikasi selanjutnya.
           </AlertDescription>

@@ -76,9 +76,9 @@ const mockApprovals = [
 ];
 
 const leaveTypeColors: Record<string, string> = {
-  annual: 'bg-blue-100 text-blue-700',
-  sick: 'bg-red-100 text-red-700',
-  personal: 'bg-purple-100 text-purple-700',
+  annual: 'bg-primary/10 text-primary',
+  sick: 'bg-destructive/10 text-destructive',
+  personal: 'bg-chart-5/10 text-chart-5',
 };
 
 export default function LeaveApprovalsPage() {

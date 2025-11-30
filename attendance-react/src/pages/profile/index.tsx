@@ -203,9 +203,9 @@ export default function ProfilePage() {
     <div className="p-6 space-y-6">
       {/* Success Message */}
       {successMessage && (
-        <Alert className="bg-green-50 border-green-200 dark:bg-green-950/50 dark:border-green-800">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-600">{successMessage}</AlertDescription>
+        <Alert className="bg-success/10 border-success/20">
+          <CheckCircle className="h-4 w-4 text-success" />
+          <AlertDescription className="text-success">{successMessage}</AlertDescription>
         </Alert>
       )}
 
@@ -304,8 +304,8 @@ export default function ProfilePage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
-                  <UserCheck className="h-5 w-5 text-green-600" />
+                <div className="p-2 rounded-lg bg-success/10">
+                  <UserCheck className="h-5 w-5 text-success" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Hadir</p>
@@ -317,8 +317,8 @@ export default function ProfilePage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/30">
-                  <Clock className="h-5 w-5 text-yellow-600" />
+                <div className="p-2 rounded-lg bg-warning/10">
+                  <Clock className="h-5 w-5 text-warning" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Terlambat</p>
@@ -330,8 +330,8 @@ export default function ProfilePage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                  <Calendar className="h-5 w-5 text-blue-600" />
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Calendar className="h-5 w-5 text-primary" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Cuti</p>
@@ -343,8 +343,8 @@ export default function ProfilePage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
-                  <TrendingUp className="h-5 w-5 text-purple-600" />
+                <div className="p-2 rounded-lg bg-chart-5/10">
+                  <TrendingUp className="h-5 w-5 text-chart-5" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Kehadiran</p>
@@ -487,15 +487,15 @@ export default function ProfilePage() {
                 </div>
                 <div className="grid grid-cols-3 gap-4 pt-4 border-t">
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-green-600">{statistics.present_days}</p>
+                    <p className="text-2xl font-bold text-success">{statistics.present_days}</p>
                     <p className="text-sm text-muted-foreground">Hari Hadir</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-yellow-600">{statistics.late_days}</p>
+                    <p className="text-2xl font-bold text-warning">{statistics.late_days}</p>
                     <p className="text-sm text-muted-foreground">Terlambat</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-red-600">{statistics.absent_days}</p>
+                    <p className="text-2xl font-bold text-destructive">{statistics.absent_days}</p>
                     <p className="text-sm text-muted-foreground">Tidak Hadir</p>
                   </div>
                 </div>
@@ -515,12 +515,12 @@ export default function ProfilePage() {
               <div className="flex items-center justify-between p-4 rounded-lg border">
                 <div className="flex items-center gap-3">
                   <div
-                    className={`p-2 rounded-lg ${profile.two_factor_enabled ? 'bg-green-100 dark:bg-green-900/30' : 'bg-gray-100 dark:bg-gray-800'}`}
+                    className={`p-2 rounded-lg ${profile.two_factor_enabled ? 'bg-success/10' : 'bg-muted'}`}
                   >
                     {profile.two_factor_enabled ? (
-                      <ShieldCheck className="h-5 w-5 text-green-600" />
+                      <ShieldCheck className="h-5 w-5 text-success" />
                     ) : (
-                      <Shield className="h-5 w-5 text-gray-500" />
+                      <Shield className="h-5 w-5 text-muted-foreground" />
                     )}
                   </div>
                   <div>
@@ -541,8 +541,8 @@ export default function ProfilePage() {
 
               <div className="flex items-center justify-between p-4 rounded-lg border">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                    <Lock className="h-5 w-5 text-blue-600" />
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Lock className="h-5 w-5 text-primary" />
                   </div>
                   <div>
                     <p className="font-medium">Password</p>
@@ -557,12 +557,12 @@ export default function ProfilePage() {
               <div className="flex items-center justify-between p-4 rounded-lg border">
                 <div className="flex items-center gap-3">
                   <div
-                    className={`p-2 rounded-lg ${profile.email_verified_at ? 'bg-green-100 dark:bg-green-900/30' : 'bg-yellow-100 dark:bg-yellow-900/30'}`}
+                    className={`p-2 rounded-lg ${profile.email_verified_at ? 'bg-success/10' : 'bg-warning/10'}`}
                   >
                     {profile.email_verified_at ? (
-                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      <CheckCircle className="h-5 w-5 text-success" />
                     ) : (
-                      <AlertCircle className="h-5 w-5 text-yellow-600" />
+                      <AlertCircle className="h-5 w-5 text-warning" />
                     )}
                   </div>
                   <div>
@@ -584,17 +584,17 @@ export default function ProfilePage() {
 
         {/* Danger Zone Tab */}
         <TabsContent value="danger">
-          <Card className="border-red-200 dark:border-red-800">
+          <Card className="border-destructive/30">
             <CardHeader>
-              <CardTitle className="text-red-600">Zona Bahaya</CardTitle>
+              <CardTitle className="text-destructive">Zona Bahaya</CardTitle>
               <CardDescription>
                 Tindakan di bawah ini bersifat permanen dan tidak dapat dibatalkan
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between p-4 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30">
+              <div className="flex items-center justify-between p-4 rounded-lg border border-destructive/30 bg-destructive/5">
                 <div>
-                  <p className="font-medium text-red-600">Hapus Akun</p>
+                  <p className="font-medium text-destructive">Hapus Akun</p>
                   <p className="text-sm text-muted-foreground">
                     Menghapus akun akan menghapus semua data Anda secara permanen
                   </p>
@@ -673,7 +673,7 @@ export default function ProfilePage() {
       <AlertDialog open={deleteDialog} onOpenChange={setDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-red-600">Hapus Akun</AlertDialogTitle>
+            <AlertDialogTitle className="text-destructive">Hapus Akun</AlertDialogTitle>
             <AlertDialogDescription className="space-y-4">
               <p>
                 Apakah Anda yakin ingin menghapus akun? Tindakan ini tidak dapat dibatalkan dan
@@ -700,7 +700,7 @@ export default function ProfilePage() {
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setDeletePassword('')}>Batal</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90"
               onClick={handleDeleteAccount}
               disabled={deleteAccount.isPending || !deletePassword}
             >

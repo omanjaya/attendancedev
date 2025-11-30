@@ -29,7 +29,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useNotificationStore } from '@/stores';
+import { useCreateEmployee } from '@/hooks';
 
 const employeeSchema = z.object({
   nip: z.string().min(5, 'NIP minimal 5 karakter'),
@@ -72,10 +72,11 @@ const banks = [
 
 export default function EmployeeCreatePage() {
   const navigate = useNavigate();
-  const { success, error: showError } = useNotificationStore();
-  const [isLoading, setIsLoading] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Use create employee mutation
+  const createEmployeeMutation = useCreateEmployee();
 
   const {
     register,
@@ -97,7 +98,6 @@ export default function EmployeeCreatePage() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        showError('Error', 'Ukuran foto maksimal 2MB');
         return;
       }
       const reader = new FileReader();
@@ -107,17 +107,27 @@ export default function EmployeeCreatePage() {
   };
 
   const onSubmit = async (data: EmployeeForm) => {
-    setIsLoading(true);
+    // Map form data to API format
+    const department = departments.find(d => d.id === data.department_id);
+
+    const apiData = {
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      position: data.position,
+      department: department?.name || data.department_id,
+      status: 'active' as const,
+      join_date: data.join_date,
+      address: data.address,
+      birth_date: data.birth_date,
+      gender: data.gender,
+    };
+
     try {
-      console.log('Creating employee:', data);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      success('Berhasil', 'Karyawan baru berhasil ditambahkan');
+      await createEmployeeMutation.mutateAsync(apiData);
       navigate({ to: '/employees' });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Gagal menambahkan karyawan';
-      showError('Error', message);
-    } finally {
-      setIsLoading(false);
+    } catch {
+      // Error handled by mutation hook
     }
   };
 
@@ -455,8 +465,8 @@ export default function EmployeeCreatePage() {
 
               {/* Actions */}
               <div className="flex w-full flex-col justify-end space-y-3 pt-2">
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? (
+                <Button type="submit" disabled={createEmployeeMutation.isPending}>
+                  {createEmployeeMutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Menyimpan...

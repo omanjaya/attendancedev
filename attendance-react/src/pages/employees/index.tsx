@@ -17,8 +17,10 @@ import {
   Users,
   UserCheck,
   CalendarOff,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
-import { StatsGrid } from '@/components/dashboard';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -31,7 +33,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable, type Column } from '@/components/shared';
-import { EmployeeFormDialog } from '@/components/features/employees';
 import {
   Dialog,
   DialogContent,
@@ -50,135 +51,96 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useNotificationStore } from '@/stores';
-import type { Employee, EmployeeStatus, EmployeeFormData } from '@/types';
+import { useEmployees, useEmployeeStatistics, useDeleteEmployee } from '@/hooks';
+import type { Employee, EmployeeStatus } from '@/types';
 
-// Mock data
-const mockEmployees: Employee[] = [
-  {
-    id: 1,
-    employee_id: 'EMP001',
-    name: 'Ahmad Rizki',
-    email: 'ahmad.rizki@company.com',
-    phone: '081234567890',
-    position: 'Software Engineer',
-    department: 'IT',
-    status: 'active',
-    join_date: '2023-01-15',
-    face_registered: true,
-    created_at: '2023-01-15T00:00:00',
-    updated_at: '2023-01-15T00:00:00',
-  },
-  {
-    id: 2,
-    employee_id: 'EMP002',
-    name: 'Siti Nurhaliza',
-    email: 'siti.nurhaliza@company.com',
-    phone: '081234567891',
-    position: 'HR Manager',
-    department: 'HR',
-    status: 'active',
-    join_date: '2022-06-01',
-    face_registered: true,
-    created_at: '2022-06-01T00:00:00',
-    updated_at: '2022-06-01T00:00:00',
-  },
-  {
-    id: 3,
-    employee_id: 'EMP003',
-    name: 'Budi Santoso',
-    email: 'budi.santoso@company.com',
-    phone: '081234567892',
-    position: 'Accountant',
-    department: 'Finance',
-    status: 'active',
-    join_date: '2023-03-10',
-    face_registered: false,
-    created_at: '2023-03-10T00:00:00',
-    updated_at: '2023-03-10T00:00:00',
-  },
-  {
-    id: 4,
-    employee_id: 'EMP004',
-    name: 'Dewi Anggraini',
-    email: 'dewi.anggraini@company.com',
-    phone: '081234567893',
-    position: 'Marketing Specialist',
-    department: 'Marketing',
-    status: 'on_leave',
-    join_date: '2022-09-20',
-    face_registered: true,
-    created_at: '2022-09-20T00:00:00',
-    updated_at: '2022-09-20T00:00:00',
-  },
-  {
-    id: 5,
-    employee_id: 'EMP005',
-    name: 'Eko Prasetyo',
-    email: 'eko.prasetyo@company.com',
-    phone: '081234567894',
-    position: 'Operations Manager',
-    department: 'Operations',
-    status: 'active',
-    join_date: '2021-11-05',
-    face_registered: true,
-    created_at: '2021-11-05T00:00:00',
-    updated_at: '2021-11-05T00:00:00',
-  },
-];
-
-// Status badge styles
 const getStatusBadge = (status: EmployeeStatus) => {
   switch (status) {
     case 'active':
-      return <Badge className="bg-success text-success-foreground">Aktif</Badge>;
+      return <Badge className="bg-success/10 text-success border-0">Aktif</Badge>;
     case 'inactive':
       return <Badge variant="secondary">Nonaktif</Badge>;
     case 'on_leave':
-      return <Badge className="bg-warning text-warning-foreground">Cuti</Badge>;
+      return <Badge className="bg-warning/10 text-warning border-0">Cuti</Badge>;
     case 'terminated':
-      return <Badge variant="destructive">Berhenti</Badge>;
+      return <Badge className="bg-destructive/10 text-destructive border-0">Berhenti</Badge>;
     default:
       return <Badge variant="secondary">{status}</Badge>;
   }
 };
+
+function StatsLoadingSkeleton() {
+  return (
+    <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {[1, 2, 3, 4].map((i) => (
+        <Card key={i} className="bg-card/50 backdrop-blur-sm">
+          <CardContent className="p-4">
+            <Skeleton className="h-4 w-24 mb-2" />
+            <Skeleton className="h-8 w-16" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function TableLoadingSkeleton() {
+  return (
+    <div className="space-y-3">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
+          <Skeleton className="h-10 w-10 rounded-full" />
+          <div className="space-y-2 flex-1">
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-3 w-32" />
+          </div>
+          <Skeleton className="h-6 w-16" />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function EmployeesPage() {
   const { success } = useNotificationStore();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [bulkAction, setBulkAction] = useState<'activate' | 'deactivate' | 'delete' | null>(null);
+  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Handle form submit
-  const handleFormSubmit = async (data: EmployeeFormData) => {
-    setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    console.log('Form data:', data);
-    setIsSubmitting(false);
-    setSelectedEmployee(null);
-    success('Berhasil', 'Data karyawan berhasil disimpan');
-  };
+  const {
+    data: employeesData,
+    isLoading: isLoadingEmployees,
+    error: employeesError,
+    refetch: refetchEmployees,
+  } = useEmployees({
+    search: search || undefined,
+    page,
+    per_page: pageSize,
+  });
 
-  // Filter data based on search
-  const filteredData = mockEmployees.filter(
-    (emp) =>
-      emp.name.toLowerCase().includes(search.toLowerCase()) ||
-      emp.email.toLowerCase().includes(search.toLowerCase()) ||
-      emp.employee_id.toLowerCase().includes(search.toLowerCase()) ||
-      emp.department.toLowerCase().includes(search.toLowerCase())
-  );
+  const {
+    data: statsData,
+    isLoading: isLoadingStats,
+    error: statsError,
+  } = useEmployeeStatistics();
 
-  // Get initials for avatar
+  const deleteEmployeeMutation = useDeleteEmployee();
+
+  const employees = employeesData?.data || [];
+  const totalItems = employeesData?.meta?.total || 0;
+  const totalPages = employeesData?.meta?.last_page || 1;
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -188,16 +150,14 @@ export default function EmployeesPage() {
       .slice(0, 2);
   };
 
-  // Handle select all
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(filteredData.map((e) => e.id));
+      setSelectedIds(employees.map((e) => e.id));
     } else {
       setSelectedIds([]);
     }
   };
 
-  // Handle select single
   const handleSelect = (id: number, checked: boolean) => {
     if (checked) {
       setSelectedIds([...selectedIds, id]);
@@ -206,11 +166,33 @@ export default function EmployeesPage() {
     }
   };
 
-  // Export to CSV
+  const handleDelete = async () => {
+    if (!employeeToDelete) return;
+    try {
+      await deleteEmployeeMutation.mutateAsync(employeeToDelete.id);
+      setDeleteDialogOpen(false);
+      setEmployeeToDelete(null);
+    } catch {
+      // Error handled by mutation
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      for (const id of selectedIds) {
+        await deleteEmployeeMutation.mutateAsync(id);
+      }
+      setSelectedIds([]);
+      setBulkDeleteDialogOpen(false);
+    } catch {
+      // Error handled by mutation
+    }
+  };
+
   const handleExport = () => {
     const data = selectedIds.length > 0
-      ? mockEmployees.filter((e) => selectedIds.includes(e.id))
-      : mockEmployees;
+      ? employees.filter((e) => selectedIds.includes(e.id))
+      : employees;
 
     const csv = [
       ['ID', 'Nama', 'Email', 'Telepon', 'Departemen', 'Jabatan', 'Status', 'Tanggal Bergabung'],
@@ -218,7 +200,7 @@ export default function EmployeesPage() {
         e.employee_id,
         e.name,
         e.email,
-        e.phone,
+        e.phone || '',
         e.department,
         e.position,
         e.status,
@@ -237,7 +219,6 @@ export default function EmployeesPage() {
     success('Berhasil', `${data.length} data karyawan berhasil diexport`);
   };
 
-  // Download template
   const handleDownloadTemplate = () => {
     const template = [
       ['employee_id', 'name', 'email', 'phone', 'department', 'position', 'join_date'],
@@ -255,46 +236,23 @@ export default function EmployeesPage() {
     success('Berhasil', 'Template berhasil diunduh');
   };
 
-  // Handle import
   const handleImport = async () => {
     if (!importFile) return;
-
     setIsImporting(true);
     await new Promise((resolve) => setTimeout(resolve, 2000));
     setIsImporting(false);
     setImportDialogOpen(false);
     setImportFile(null);
+    refetchEmployees();
     success('Berhasil', 'Data karyawan berhasil diimport');
   };
 
-  // Handle bulk action
-  const handleBulkAction = async () => {
-    if (!bulkAction || selectedIds.length === 0) return;
-
-    setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    const actionText =
-      bulkAction === 'activate'
-        ? 'diaktifkan'
-        : bulkAction === 'deactivate'
-        ? 'dinonaktifkan'
-        : 'dihapus';
-
-    success('Berhasil', `${selectedIds.length} karyawan berhasil ${actionText}`);
-    setSelectedIds([]);
-    setBulkAction(null);
-    setDeleteDialogOpen(false);
-    setIsSubmitting(false);
-  };
-
-  // Define columns
   const columns: Column<Employee>[] = [
     {
       key: 'select',
       header: () => (
         <Checkbox
-          checked={selectedIds.length === filteredData.length && filteredData.length > 0}
+          checked={selectedIds.length === employees.length && employees.length > 0}
           onCheckedChange={handleSelectAll}
         />
       ),
@@ -310,10 +268,10 @@ export default function EmployeesPage() {
       key: 'name',
       header: 'Karyawan',
       cell: (row) => (
-        <a href={`/employees/${row.id}`} className="flex items-center gap-3 hover:opacity-80">
+        <Link to="/employees/$id" params={{ id: String(row.id) }} className="flex items-center gap-3 hover:opacity-80">
           <Avatar className="h-9 w-9">
             <AvatarImage src={row.avatar} alt={row.name} />
-            <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+            <AvatarFallback className="bg-primary/10 text-primary text-xs">
               {getInitials(row.name)}
             </AvatarFallback>
           </Avatar>
@@ -321,7 +279,7 @@ export default function EmployeesPage() {
             <p className="font-medium text-foreground">{row.name}</p>
             <p className="text-xs text-muted-foreground">{row.employee_id}</p>
           </div>
-        </a>
+        </Link>
       ),
     },
     {
@@ -371,25 +329,33 @@ export default function EmployeesPage() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem asChild>
-              <a href={`/employees/${row.id}`}>
+              <Link to="/employees/$id" params={{ id: String(row.id) }}>
                 <Eye className="mr-2 h-4 w-4" />
                 Lihat Detail
-              </a>
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <a href={`/employees/${row.id}/edit`}>
+              <Link to="/employees/$id/edit" params={{ id: String(row.id) }}>
                 <Pencil className="mr-2 h-4 w-4" />
                 Edit
-              </a>
+              </Link>
             </DropdownMenuItem>
             {!row.face_registered && (
-              <DropdownMenuItem>
-                <ScanFace className="mr-2 h-4 w-4" />
-                Daftarkan Wajah
+              <DropdownMenuItem asChild>
+                <Link to="/employees/$id/edit" params={{ id: String(row.id) }}>
+                  <ScanFace className="mr-2 h-4 w-4" />
+                  Daftarkan Wajah
+                </Link>
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">
+            <DropdownMenuItem
+              className="text-destructive"
+              onClick={() => {
+                setEmployeeToDelete(row);
+                setDeleteDialogOpen(true);
+              }}
+            >
               <Trash2 className="mr-2 h-4 w-4" />
               Hapus
             </DropdownMenuItem>
@@ -399,190 +365,237 @@ export default function EmployeesPage() {
     },
   ];
 
+  if (employeesError) {
+    return (
+      <div className="p-6">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            Gagal memuat data karyawan. {employeesError.message}
+          </AlertDescription>
+        </Alert>
+        <Button onClick={() => refetchEmployees()} className="mt-4">
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Coba Lagi
+        </Button>
+      </div>
+    );
+  }
+
+  const stats = [
+    {
+      title: 'Total Karyawan',
+      value: statsData?.total || 0,
+      icon: Users,
+      color: 'primary' as const,
+    },
+    {
+      title: 'Aktif',
+      value: statsData?.active || 0,
+      icon: UserCheck,
+      color: 'success' as const,
+    },
+    {
+      title: 'Cuti',
+      value: statsData?.on_leave || 0,
+      icon: CalendarOff,
+      color: 'warning' as const,
+    },
+    {
+      title: 'Face ID Terdaftar',
+      value: employees.filter((e) => e.face_registered).length,
+      icon: ScanFace,
+      color: 'primary' as const,
+    },
+  ];
+
+  const colorClasses = {
+    primary: 'bg-primary/10 text-primary',
+    success: 'bg-success/10 text-success',
+    warning: 'bg-warning/10 text-warning',
+    destructive: 'bg-destructive/10 text-destructive',
+  };
+
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Karyawan</h1>
-          <p className="text-sm text-muted-foreground">
-            Kelola data karyawan perusahaan
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {/* Import/Export Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                <FileSpreadsheet className="mr-2 h-4 w-4" />
-                Import/Export
+    <div className="space-y-6 p-6">
+      {/* Hero Header */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background p-8">
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
+
+        <div className="relative">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                <Users className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">Karyawan</h1>
+                <p className="text-sm text-muted-foreground">
+                  Kelola data karyawan perusahaan
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="bg-background/50 backdrop-blur-sm">
+                    <FileSpreadsheet className="mr-2 h-4 w-4" />
+                    Import/Export
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleExport}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Export CSV {selectedIds.length > 0 && `(${selectedIds.length})`}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Import CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleDownloadTemplate}>
+                    <FileSpreadsheet className="mr-2 h-4 w-4" />
+                    Download Template
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <Button variant="outline" size="sm" asChild className="bg-background/50 backdrop-blur-sm">
+                <Link to="/employees/credentials">
+                  <Key className="mr-2 h-4 w-4" />
+                  User & Password
+                </Link>
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleExport}>
-                <Download className="mr-2 h-4 w-4" />
-                Export CSV {selectedIds.length > 0 && `(${selectedIds.length})`}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
-                <Upload className="mr-2 h-4 w-4" />
-                Import CSV
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleDownloadTemplate}>
-                <FileSpreadsheet className="mr-2 h-4 w-4" />
-                Download Template
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
 
-          {/* Credentials Link */}
-          <Button variant="outline" asChild>
-            <Link to="/employees/credentials">
-              <Key className="mr-2 h-4 w-4" />
-              User & Password
-            </Link>
-          </Button>
+              <Button size="sm" asChild>
+                <Link to="/employees/create">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Tambah Karyawan
+                </Link>
+              </Button>
+            </div>
+          </div>
 
-          {/* Add New */}
-          <Button asChild>
-            <Link to="/employees/create">
-              <Plus className="mr-2 h-4 w-4" />
-              Tambah Karyawan
-            </Link>
-          </Button>
+          {/* Stats Grid */}
+          {isLoadingStats || statsError ? (
+            <StatsLoadingSkeleton />
+          ) : (
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {stats.map((stat) => (
+                <Card key={stat.title} className="bg-card/50 backdrop-blur-sm">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-muted-foreground">{stat.title}</p>
+                        <p className="text-2xl font-bold">{stat.value}</p>
+                      </div>
+                      <div className={`rounded-lg p-2 ${colorClasses[stat.color]}`}>
+                        <stat.icon className="h-5 w-5" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Bulk Actions Bar */}
       {selectedIds.length > 0 && (
-        <div className="mb-4 flex items-center gap-4 rounded-lg border border-primary/20 bg-primary/5 p-3">
-          <span className="text-sm font-medium">
-            {selectedIds.length} karyawan dipilih
-          </span>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                setBulkAction('activate');
-                handleBulkAction();
-              }}
-            >
-              <CheckSquare className="mr-1 h-4 w-4" />
-              Aktifkan
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                setBulkAction('deactivate');
-                handleBulkAction();
-              }}
-            >
-              <XCircle className="mr-1 h-4 w-4" />
-              Nonaktifkan
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => {
-                setBulkAction('delete');
-                setDeleteDialogOpen(true);
-              }}
-            >
-              <Trash2 className="mr-1 h-4 w-4" />
-              Hapus
-            </Button>
-          </div>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setSelectedIds([])}
-            className="ml-auto"
-          >
-            Batal
-          </Button>
-        </div>
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="p-3">
+            <div className="flex flex-wrap items-center gap-4">
+              <span className="text-sm font-medium">
+                {selectedIds.length} karyawan dipilih
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => success('Info', 'Fitur bulk activate akan segera hadir')}
+                >
+                  <CheckSquare className="mr-1 h-4 w-4" />
+                  Aktifkan
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => success('Info', 'Fitur bulk deactivate akan segera hadir')}
+                >
+                  <XCircle className="mr-1 h-4 w-4" />
+                  Nonaktifkan
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => setBulkDeleteDialogOpen(true)}
+                >
+                  <Trash2 className="mr-1 h-4 w-4" />
+                  Hapus
+                </Button>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setSelectedIds([])}
+                className="ml-auto"
+              >
+                Batal
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Stats - using StatsGrid component */}
-      <StatsGrid
-        stats={[
-          {
-            id: 'total',
-            title: 'Total Karyawan',
-            value: mockEmployees.length,
-            icon: Users,
-            color: 'default',
-          },
-          {
-            id: 'active',
-            title: 'Aktif',
-            value: mockEmployees.filter((e) => e.status === 'active').length,
-            icon: UserCheck,
-            color: 'success',
-          },
-          {
-            id: 'on-leave',
-            title: 'Cuti',
-            value: mockEmployees.filter((e) => e.status === 'on_leave').length,
-            icon: CalendarOff,
-            color: 'warning',
-          },
-          {
-            id: 'face-id',
-            title: 'Face ID Terdaftar',
-            value: mockEmployees.filter((e) => e.face_registered).length,
-            icon: ScanFace,
-            color: 'primary',
-          },
-        ]}
-        columns={4}
-        variant="compact"
-      />
-
       {/* Data Table */}
-      <div className="rounded-lg border border-border bg-card p-4">
-        <DataTable
-          columns={columns}
-          data={filteredData}
-          searchPlaceholder="Cari nama, email, atau departemen..."
-          searchValue={search}
-          onSearchChange={setSearch}
-          page={page}
-          pageSize={pageSize}
-          totalPages={Math.ceil(filteredData.length / pageSize)}
-          totalItems={filteredData.length}
-          onPageChange={setPage}
-          onPageSizeChange={(size) => {
-            setPageSize(size);
-            setPage(1);
-          }}
-          emptyMessage="Tidak ada karyawan ditemukan"
-        />
-      </div>
-
-      {/* Employee Form Dialog */}
-      <EmployeeFormDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        employee={selectedEmployee}
-        onSubmit={handleFormSubmit}
-        isLoading={isSubmitting}
-      />
+      <Card>
+        <CardContent className="p-4">
+          {isLoadingEmployees ? (
+            <TableLoadingSkeleton />
+          ) : (
+            <DataTable
+              columns={columns}
+              data={employees}
+              searchPlaceholder="Cari nama, email, atau departemen..."
+              searchValue={search}
+              onSearchChange={(value) => {
+                setSearch(value);
+                setPage(1);
+              }}
+              page={page}
+              pageSize={pageSize}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              onPageChange={setPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1);
+              }}
+              emptyMessage="Tidak ada karyawan ditemukan"
+            />
+          )}
+        </CardContent>
+      </Card>
 
       {/* Import Dialog */}
       <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Import Data Karyawan</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5 text-primary" />
+              Import Data Karyawan
+            </DialogTitle>
             <DialogDescription>
               Upload file CSV untuk import data karyawan secara massal
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div
-              className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
+              className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-all"
               onClick={() => fileInputRef.current?.click()}
             >
               <input
@@ -596,17 +609,12 @@ export default function EmployeesPage() {
               {importFile ? (
                 <p className="font-medium">{importFile.name}</p>
               ) : (
-                <p className="text-muted-foreground">
-                  Klik atau drag file CSV ke sini
-                </p>
+                <p className="text-muted-foreground">Klik atau drag file CSV ke sini</p>
               )}
             </div>
             <p className="text-xs text-muted-foreground">
               Pastikan format file sesuai dengan template.{' '}
-              <button
-                className="text-primary underline"
-                onClick={handleDownloadTemplate}
-              >
+              <button className="text-primary underline" onClick={handleDownloadTemplate}>
                 Download template
               </button>
             </p>
@@ -632,26 +640,52 @@ export default function EmployeesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Single Delete Confirmation */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus Karyawan?</AlertDialogTitle>
             <AlertDialogDescription>
-              Anda akan menghapus {selectedIds.length} karyawan. Tindakan ini tidak
-              dapat dibatalkan.
+              Anda akan menghapus <strong>{employeeToDelete?.name}</strong>. Tindakan ini tidak dapat dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleBulkAction}
+              onClick={handleDelete}
               className="bg-destructive text-destructive-foreground"
+              disabled={deleteEmployeeMutation.isPending}
             >
-              {isSubmitting ? (
+              {deleteEmployeeMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 'Hapus'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus {selectedIds.length} Karyawan?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Anda akan menghapus {selectedIds.length} karyawan. Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              className="bg-destructive text-destructive-foreground"
+              disabled={deleteEmployeeMutation.isPending}
+            >
+              {deleteEmployeeMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Hapus Semua'
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

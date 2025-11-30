@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Calendar,
   Clock,
@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Loader2,
   XCircle,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -29,7 +30,17 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useSchedules } from '@/hooks/use-schedules';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  useSchedulesByClass,
+  useScheduleConflicts,
+  useTimeSlots,
+  useAcademicClasses,
+  useSubjects,
+  useDeleteSchedule,
+  useLockSchedule,
+  useUnlockSchedule,
+} from '@/hooks';
 import type { DayOfWeek, Schedule, TimeSlot } from '@/types/schedule';
 
 // Day labels in Indonesian
@@ -44,6 +55,27 @@ const dayLabels: Record<DayOfWeek, string> = {
 
 const days: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
 
+// Loading skeleton
+function ScheduleListSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex gap-2">
+          <Skeleton className="h-9 w-24" />
+          <Skeleton className="h-9 w-24" />
+        </div>
+        <Skeleton className="h-9 w-32" />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-5">
+        {[...Array(5)].map((_, i) => (
+          <Skeleton key={i} className="h-20" />
+        ))}
+      </div>
+      <Skeleton className="h-96" />
+    </div>
+  );
+}
+
 // Schedule Cell Component
 function ScheduleCell({
   schedule,
@@ -51,12 +83,16 @@ function ScheduleCell({
   onEdit,
   onDelete,
   onToggleLock,
+  isDeleting,
+  isLocking,
 }: {
   schedule?: Schedule;
   timeSlot: TimeSlot;
   onEdit: (schedule: Schedule) => void;
   onDelete: (id: string) => void;
-  onToggleLock: (id: string) => void;
+  onToggleLock: (id: string, isLocked: boolean) => void;
+  isDeleting: boolean;
+  isLocking: boolean;
 }) {
   if (timeSlot.is_break) {
     return (
@@ -79,7 +115,7 @@ function ScheduleCell({
   return (
     <td
       className={`border border-border p-1 transition-colors ${
-        schedule.is_locked ? 'bg-red-50 dark:bg-red-950/20' : 'hover:bg-muted/20'
+        schedule.is_locked ? 'bg-destructive/5' : 'hover:bg-muted/20'
       }`}
     >
       <div
@@ -88,7 +124,7 @@ function ScheduleCell({
         onClick={() => !schedule.is_locked && onEdit(schedule)}
       >
         {schedule.is_locked && (
-          <Lock className="absolute top-1 right-1 h-3 w-3 text-red-500" />
+          <Lock className="absolute top-1 right-1 h-3 w-3 text-destructive" />
         )}
         <div className="font-semibold truncate" style={{ color: schedule.subject?.color }}>
           {schedule.subject?.code}
@@ -104,11 +140,23 @@ function ScheduleCell({
             <Button size="sm" variant="ghost" className="h-6 px-2" onClick={(e) => { e.stopPropagation(); onEdit(schedule); }}>
               Edit
             </Button>
-            <Button size="sm" variant="ghost" className="h-6 px-2" onClick={(e) => { e.stopPropagation(); onToggleLock(schedule.id); }}>
-              <Lock className="h-3 w-3" />
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 px-2"
+              onClick={(e) => { e.stopPropagation(); onToggleLock(schedule.id, !!schedule.is_locked); }}
+              disabled={isLocking}
+            >
+              {isLocking ? <Loader2 className="h-3 w-3 animate-spin" /> : <Lock className="h-3 w-3" />}
             </Button>
-            <Button size="sm" variant="ghost" className="h-6 px-2 text-red-500" onClick={(e) => { e.stopPropagation(); onDelete(schedule.id); }}>
-              <XCircle className="h-3 w-3" />
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 px-2 text-destructive"
+              onClick={(e) => { e.stopPropagation(); onDelete(schedule.id); }}
+              disabled={isDeleting}
+            >
+              {isDeleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <XCircle className="h-3 w-3" />}
             </Button>
           </div>
         )}
@@ -120,35 +168,49 @@ function ScheduleCell({
 export function ScheduleListContent() {
   const [activeView, setActiveView] = useState<'grid' | 'list'>('grid');
   const [, setSelectedSchedule] = useState<Schedule | null>(null);
+  const [selectedClassId, setSelectedClassId] = useState<string>('');
 
+  // Fetch data using React Query hooks
+  const { data: classes = [], isLoading: classesLoading } = useAcademicClasses();
+  const { data: timeSlots = [], isLoading: timeSlotsLoading } = useTimeSlots();
+  const { data: subjects = [], isLoading: subjectsLoading } = useSubjects();
   const {
-    isLoading,
-    error,
-    schedules,
-    conflicts,
-    selectedClassId,
-    timeSlots,
-    classes,
-    subjects,
-    fetchScheduleGrid,
-    deleteSchedule,
-    toggleLock,
-    setSelectedClassId,
-    clearError,
-  } = useSchedules();
+    data: schedules = [],
+    isLoading: schedulesLoading,
+    error: schedulesError,
+    refetch: refetchSchedules
+  } = useSchedulesByClass(selectedClassId || classes[0]?.id || '');
+  const { data: conflicts = [] } = useScheduleConflicts(selectedClassId);
 
-  // Load initial data
-  useEffect(() => {
-    if (classes.length > 0 && !selectedClassId) {
-      setSelectedClassId(classes[0].id);
-      fetchScheduleGrid(classes[0].id);
-    }
-  }, [classes, selectedClassId, setSelectedClassId, fetchScheduleGrid]);
+  // Mutations
+  const deleteScheduleMutation = useDeleteSchedule();
+  const lockScheduleMutation = useLockSchedule();
+  const unlockScheduleMutation = useUnlockSchedule();
+
+  // Set initial class when classes are loaded
+  if (classes.length > 0 && !selectedClassId) {
+    setSelectedClassId(classes[0].id);
+  }
+
+  const isLoading = classesLoading || timeSlotsLoading || subjectsLoading || schedulesLoading;
 
   // Handle class change
   const handleClassChange = (classId: string) => {
     setSelectedClassId(classId);
-    fetchScheduleGrid(classId);
+  };
+
+  // Handle delete
+  const handleDelete = (id: string) => {
+    deleteScheduleMutation.mutate(id);
+  };
+
+  // Handle toggle lock
+  const handleToggleLock = (id: string, isLocked: boolean) => {
+    if (isLocked) {
+      unlockScheduleMutation.mutate(id);
+    } else {
+      lockScheduleMutation.mutate({ id });
+    }
   };
 
   // Get schedule for a specific cell
@@ -168,6 +230,10 @@ export function ScheduleListContent() {
   };
 
   const selectedClass = classes.find((c) => c.id === selectedClassId);
+
+  if (isLoading) {
+    return <ScheduleListSkeleton />;
+  }
 
   return (
     <div className="space-y-6">
@@ -210,7 +276,7 @@ export function ScheduleListContent() {
                 <p className="text-xs text-muted-foreground">Mata Pelajaran</p>
                 <p className="text-2xl font-bold">{stats.subjects}</p>
               </div>
-              <Grid3X3 className="h-8 w-8 text-blue-500/30" />
+              <Grid3X3 className="h-8 w-8 text-primary/30" />
             </div>
           </CardContent>
         </Card>
@@ -222,7 +288,7 @@ export function ScheduleListContent() {
                 <p className="text-xs text-muted-foreground">Guru Mengajar</p>
                 <p className="text-2xl font-bold">{stats.teachers}</p>
               </div>
-              <Users className="h-8 w-8 text-emerald-500/30" />
+              <Users className="h-8 w-8 text-success/30" />
             </div>
           </CardContent>
         </Card>
@@ -234,7 +300,7 @@ export function ScheduleListContent() {
                 <p className="text-xs text-muted-foreground">Terkunci</p>
                 <p className="text-2xl font-bold">{stats.locked}</p>
               </div>
-              <Lock className="h-8 w-8 text-amber-500/30" />
+              <Lock className="h-8 w-8 text-warning/30" />
             </div>
           </CardContent>
         </Card>
@@ -244,11 +310,11 @@ export function ScheduleListContent() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground">Konflik</p>
-                <p className={`text-2xl font-bold ${stats.conflicts > 0 ? 'text-red-500' : ''}`}>
+                <p className={`text-2xl font-bold ${stats.conflicts > 0 ? 'text-destructive' : ''}`}>
                   {stats.conflicts}
                 </p>
               </div>
-              <AlertTriangle className={`h-8 w-8 ${stats.conflicts > 0 ? 'text-red-500/30' : 'text-muted-foreground/30'}`} />
+              <AlertTriangle className={`h-8 w-8 ${stats.conflicts > 0 ? 'text-destructive/30' : 'text-muted-foreground/30'}`} />
             </div>
           </CardContent>
         </Card>
@@ -269,13 +335,16 @@ export function ScheduleListContent() {
       )}
 
       {/* Error Alert */}
-      {error && (
+      {schedulesError && (
         <Alert variant="destructive">
           <XCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-          <Button variant="ghost" size="sm" onClick={clearError}>
-            Tutup
+          <AlertDescription>
+            {schedulesError.message || 'Gagal memuat jadwal'}
+          </AlertDescription>
+          <Button variant="ghost" size="sm" onClick={() => refetchSchedules()}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Coba Lagi
           </Button>
         </Alert>
       )}
@@ -322,148 +391,139 @@ export function ScheduleListContent() {
       </div>
 
       {/* Main Content */}
-      {isLoading ? (
-        <Card>
-          <CardContent className="flex items-center justify-center py-20">
-            <div className="text-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-              <p className="mt-2 text-sm text-muted-foreground">Memuat jadwal...</p>
+      <Card>
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-primary" />
+                Jadwal Kelas {selectedClass?.name}
+              </CardTitle>
+              <CardDescription>
+                Tahun Ajaran 2024/2025 - Semester Ganjil
+              </CardDescription>
             </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-primary" />
-                  Jadwal Kelas {selectedClass?.name}
-                </CardTitle>
-                <CardDescription>
-                  Tahun Ajaran 2024/2025 - Semester Ganjil
-                </CardDescription>
-              </div>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Settings className="h-4 w-4" />
-                Pengaturan
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {activeView === 'grid' ? (
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-sm">
-                  <thead>
-                    <tr>
-                      <th className="border border-border bg-muted/50 p-2 text-left font-medium w-24">
-                        <Clock className="h-4 w-4 inline-block mr-1" />
-                        Jam
+            <Button variant="outline" size="sm" className="gap-2">
+              <Settings className="h-4 w-4" />
+              Pengaturan
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {activeView === 'grid' ? (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr>
+                    <th className="border border-border bg-muted/50 p-2 text-left font-medium w-24">
+                      <Clock className="h-4 w-4 inline-block mr-1" />
+                      Jam
+                    </th>
+                    {days.map((day) => (
+                      <th key={day} className="border border-border bg-muted/50 p-2 text-center font-medium">
+                        {dayLabels[day]}
                       </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {timeSlots.map((slot) => (
+                    <tr key={slot.id}>
+                      <td className="border border-border bg-muted/30 p-2">
+                        <div className="font-medium text-xs">{slot.name}</div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {slot.start_time} - {slot.end_time}
+                        </div>
+                      </td>
                       {days.map((day) => (
-                        <th key={day} className="border border-border bg-muted/50 p-2 text-center font-medium">
-                          {dayLabels[day]}
-                        </th>
+                        <ScheduleCell
+                          key={`${day}-${slot.id}`}
+                          schedule={getScheduleForCell(day, slot.id)}
+                          timeSlot={slot}
+                          onEdit={setSelectedSchedule}
+                          onDelete={handleDelete}
+                          onToggleLock={handleToggleLock}
+                          isDeleting={deleteScheduleMutation.isPending}
+                          isLocking={lockScheduleMutation.isPending || unlockScheduleMutation.isPending}
+                        />
                       ))}
                     </tr>
-                  </thead>
-                  <tbody>
-                    {timeSlots.map((slot) => (
-                      <tr key={slot.id}>
-                        <td className="border border-border bg-muted/30 p-2">
-                          <div className="font-medium text-xs">{slot.name}</div>
-                          <div className="text-[10px] text-muted-foreground">
-                            {slot.start_time} - {slot.end_time}
-                          </div>
-                        </td>
-                        {days.map((day) => (
-                          <ScheduleCell
-                            key={`${day}-${slot.id}`}
-                            schedule={getScheduleForCell(day, slot.id)}
-                            timeSlot={slot}
-                            onEdit={setSelectedSchedule}
-                            onDelete={deleteSchedule}
-                            onToggleLock={toggleLock}
-                          />
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {days.map((day) => {
-                  const daySchedules = schedules
-                    .filter((s) => s.day_of_week === day)
-                    .sort((a, b) => {
-                      const slotA = timeSlots.find((t) => t.id === a.time_slot_id);
-                      const slotB = timeSlots.find((t) => t.id === b.time_slot_id);
-                      return (slotA?.start_time || '').localeCompare(slotB?.start_time || '');
-                    });
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {days.map((day) => {
+                const daySchedules = schedules
+                  .filter((s) => s.day_of_week === day)
+                  .sort((a, b) => {
+                    const slotA = timeSlots.find((t) => t.id === a.time_slot_id);
+                    const slotB = timeSlots.find((t) => t.id === b.time_slot_id);
+                    return (slotA?.start_time || '').localeCompare(slotB?.start_time || '');
+                  });
 
-                  return (
-                    <div key={day} className="space-y-2">
-                      <h3 className="font-semibold text-foreground flex items-center gap-2">
-                        <CalendarDays className="h-4 w-4 text-primary" />
-                        {dayLabels[day]}
-                        <Badge variant="secondary" className="ml-2">
-                          {daySchedules.length} jadwal
-                        </Badge>
-                      </h3>
-                      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                        {daySchedules.map((schedule) => (
-                          <Card
-                            key={schedule.id}
-                            className={`cursor-pointer transition-colors ${
-                              schedule.is_locked
-                                ? 'bg-red-50 dark:bg-red-950/20 border-red-200'
-                                : 'hover:bg-muted/50'
-                            }`}
-                            onClick={() => !schedule.is_locked && setSelectedSchedule(schedule)}
-                          >
-                            <CardContent className="p-3">
-                              <div className="flex items-start justify-between">
-                                <div>
-                                  <div
-                                    className="font-semibold"
-                                    style={{ color: schedule.subject?.color }}
-                                  >
-                                    {schedule.subject?.name}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {schedule.time_slot?.start_time} - {schedule.time_slot?.end_time}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground mt-1">
-                                    {schedule.employee?.name}
-                                  </div>
+                return (
+                  <div key={day} className="space-y-2">
+                    <h3 className="font-semibold text-foreground flex items-center gap-2">
+                      <CalendarDays className="h-4 w-4 text-primary" />
+                      {dayLabels[day]}
+                      <Badge variant="secondary" className="ml-2">
+                        {daySchedules.length} jadwal
+                      </Badge>
+                    </h3>
+                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {daySchedules.map((schedule) => (
+                        <Card
+                          key={schedule.id}
+                          className={`cursor-pointer transition-colors ${
+                            schedule.is_locked
+                              ? 'bg-destructive/5 border-destructive/20'
+                              : 'hover:bg-muted/50'
+                          }`}
+                          onClick={() => !schedule.is_locked && setSelectedSchedule(schedule)}
+                        >
+                          <CardContent className="p-3">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <div
+                                  className="font-semibold"
+                                  style={{ color: schedule.subject?.color }}
+                                >
+                                  {schedule.subject?.name}
                                 </div>
-                                <div className="flex items-center gap-1">
-                                  {schedule.is_locked && (
-                                    <Lock className="h-4 w-4 text-red-500" />
-                                  )}
-                                  <Badge variant="outline" className="text-[10px]">
-                                    {schedule.room}
-                                  </Badge>
+                                <div className="text-xs text-muted-foreground">
+                                  {schedule.time_slot?.start_time} - {schedule.time_slot?.end_time}
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  {schedule.employee?.name}
                                 </div>
                               </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                        {daySchedules.length === 0 && (
-                          <p className="text-sm text-muted-foreground col-span-full py-4 text-center">
-                            Belum ada jadwal untuk hari ini
-                          </p>
-                        )}
-                      </div>
+                              <div className="flex items-center gap-1">
+                                {schedule.is_locked && (
+                                  <Lock className="h-4 w-4 text-destructive" />
+                                )}
+                                <Badge variant="outline" className="text-[10px]">
+                                  {schedule.room}
+                                </Badge>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                      {daySchedules.length === 0 && (
+                        <p className="text-sm text-muted-foreground col-span-full py-4 text-center">
+                          Belum ada jadwal untuk hari ini
+                        </p>
+                      )}
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Legend */}
       <Card>

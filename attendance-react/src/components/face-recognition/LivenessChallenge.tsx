@@ -355,16 +355,16 @@ export function LivenessChallenge({
                 key={challenge.type}
                 className={cn(
                   'flex flex-col items-center gap-1',
-                  isCompleted && 'text-green-600',
-                  isCurrent && !isCompleted && 'text-blue-600',
+                  isCompleted && 'text-success',
+                  isCurrent && !isCompleted && 'text-primary',
                   !isCompleted && !isCurrent && 'text-muted-foreground'
                 )}
               >
                 <div
                   className={cn(
                     'w-10 h-10 rounded-full flex items-center justify-center border-2',
-                    isCompleted && 'bg-green-100 border-green-600',
-                    isCurrent && !isCompleted && 'bg-blue-100 border-blue-600 animate-pulse',
+                    isCompleted && 'bg-success/10 border-success',
+                    isCurrent && !isCompleted && 'bg-primary/10 border-primary animate-pulse',
                     !isCompleted && !isCurrent && 'bg-muted border-muted-foreground/30'
                   )}
                 >
@@ -412,18 +412,18 @@ export function LivenessChallenge({
 
           {/* Success Overlay */}
           {challengeState === 'success' && (
-            <div className="absolute inset-0 bg-green-500/30 flex items-center justify-center">
+            <div className="absolute inset-0 bg-success/30 flex items-center justify-center">
               <div className="bg-white rounded-full p-4">
-                <Check className="h-12 w-12 text-green-600" />
+                <Check className="h-12 w-12 text-success" />
               </div>
             </div>
           )}
 
           {/* Timeout Overlay */}
           {challengeState === 'timeout' && (
-            <div className="absolute inset-0 bg-red-500/30 flex items-center justify-center">
+            <div className="absolute inset-0 bg-destructive/30 flex items-center justify-center">
               <div className="bg-white rounded-full p-4">
-                <X className="h-12 w-12 text-red-600" />
+                <X className="h-12 w-12 text-destructive" />
               </div>
             </div>
           )}
@@ -435,16 +435,16 @@ export function LivenessChallenge({
             className={cn(
               'rounded-lg p-4 text-center',
               challengeState === 'success'
-                ? 'bg-green-50 dark:bg-green-950 border border-green-200'
-                : 'bg-blue-50 dark:bg-blue-950 border border-blue-200'
+                ? 'bg-success/5 dark:bg-success/10 border border-success/20'
+                : 'bg-primary/5 dark:bg-primary/10 border border-primary/20'
             )}
           >
             <div
               className={cn(
                 'w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-3',
                 challengeState === 'success'
-                  ? 'bg-green-100 text-green-600'
-                  : 'bg-blue-100 text-blue-600'
+                  ? 'bg-success/10 text-success'
+                  : 'bg-primary/10 text-primary'
               )}
             >
               {challengeState === 'success' ? (

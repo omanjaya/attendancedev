@@ -317,10 +317,10 @@ export function FaceEnrollmentFromPhoto({
   };
 
   const getQualityLabel = (score: number): { label: string; color: string } => {
-    if (score >= 80) return { label: 'Sangat Baik', color: 'text-green-600' };
-    if (score >= 60) return { label: 'Baik', color: 'text-blue-600' };
-    if (score >= 40) return { label: 'Cukup', color: 'text-yellow-600' };
-    return { label: 'Kurang', color: 'text-red-600' };
+    if (score >= 80) return { label: 'Sangat Baik', color: 'text-success' };
+    if (score >= 60) return { label: 'Baik', color: 'text-primary' };
+    if (score >= 40) return { label: 'Cukup', color: 'text-warning' };
+    return { label: 'Kurang', color: 'text-destructive' };
   };
 
   const qualityInfo = getQualityLabel(qualityScore);
@@ -397,12 +397,12 @@ export function FaceEnrollmentFromPhoto({
 
         {/* Detection Info */}
         {detectionResult && (
-          <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-3">
-            <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
+          <div className="bg-success/5 dark:bg-success/10 border border-success/20 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-success">
               <Check className="h-5 w-5" />
               <span className="font-medium">Wajah Terdeteksi</span>
             </div>
-            <p className="text-sm text-green-600 dark:text-green-400 mt-1">
+            <p className="text-sm text-success/80 mt-1">
               Confidence: {Math.round(detectionResult.confidence * 100)}%
             </p>
           </div>

@@ -95,7 +95,7 @@ function RoleBadge({ role }: { role: AdminUserRole }) {
 function StatusIndicator({ user }: { user: AdminUser }) {
   if (user.account_locked) {
     return (
-      <div className="flex items-center gap-1 text-red-500">
+      <div className="flex items-center gap-1 text-destructive">
         <Lock className="h-3 w-3" />
         <span className="text-xs">Terkunci</span>
       </div>
@@ -103,14 +103,14 @@ function StatusIndicator({ user }: { user: AdminUser }) {
   }
   if (!user.is_active) {
     return (
-      <div className="flex items-center gap-1 text-gray-500">
+      <div className="flex items-center gap-1 text-muted-foreground">
         <UserX className="h-3 w-3" />
         <span className="text-xs">Nonaktif</span>
       </div>
     );
   }
   return (
-    <div className="flex items-center gap-1 text-green-500">
+    <div className="flex items-center gap-1 text-success">
       <UserCheck className="h-3 w-3" />
       <span className="text-xs">Aktif</span>
     </div>
@@ -404,7 +404,7 @@ export default function UsersPage() {
               </div>
               <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
                 <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-green-500/20 p-2">
+                  <div className="rounded-lg bg-success/20 p-2">
                     <UserCheck className="h-5 w-5" />
                   </div>
                   <div>
@@ -415,7 +415,7 @@ export default function UsersPage() {
               </div>
               <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
                 <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-yellow-500/20 p-2">
+                  <div className="rounded-lg bg-warning/20 p-2">
                     <Shield className="h-5 w-5" />
                   </div>
                   <div>
@@ -426,7 +426,7 @@ export default function UsersPage() {
               </div>
               <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
                 <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-red-500/20 p-2">
+                  <div className="rounded-lg bg-destructive/20 p-2">
                     <Lock className="h-5 w-5" />
                   </div>
                   <div>
@@ -560,25 +560,25 @@ export default function UsersPage() {
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-1">
                             {user.two_factor_enabled ? (
-                              <Badge variant="outline" className="border-green-500 text-green-500">
+                              <Badge variant="outline" className="border-success text-success">
                                 <Shield className="mr-1 h-3 w-3" />
                                 2FA
                               </Badge>
                             ) : (
-                              <Badge variant="outline" className="border-gray-400 text-gray-400">
+                              <Badge variant="outline" className="border-muted-foreground text-muted-foreground">
                                 <ShieldOff className="mr-1 h-3 w-3" />
                                 No 2FA
                               </Badge>
                             )}
                           </div>
                           {user.force_password_change && (
-                            <div className="flex items-center gap-1 text-xs text-amber-500">
+                            <div className="flex items-center gap-1 text-xs text-warning">
                               <AlertCircle className="h-3 w-3" />
                               Wajib ganti password
                             </div>
                           )}
                           {user.failed_login_attempts > 0 && (
-                            <div className="flex items-center gap-1 text-xs text-red-500">
+                            <div className="flex items-center gap-1 text-xs text-destructive">
                               <AlertCircle className="h-3 w-3" />
                               {user.failed_login_attempts}x gagal login
                             </div>
@@ -651,7 +651,7 @@ export default function UsersPage() {
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              className="text-red-600"
+                              className="text-destructive"
                               onClick={() => setDeletingUser(user)}
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
@@ -695,7 +695,7 @@ export default function UsersPage() {
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90"
             >
               Hapus
             </AlertDialogAction>

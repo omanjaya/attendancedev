@@ -10,6 +10,7 @@ import {
   Table,
   Printer,
   Settings,
+  Loader2,
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -25,7 +26,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { useNotificationStore } from '@/stores';
+import { useGenerateReport } from '@/hooks/use-reports';
+import type { ReportType, ReportFormat } from '@/types/reports';
 
 const reportTypes = [
   { id: 'attendance', label: 'Laporan Kehadiran', icon: Calendar },
@@ -82,33 +84,42 @@ const columns = {
 };
 
 export function ReportBuilderContent() {
-  const { success } = useNotificationStore();
-  const [reportType, setReportType] = useState('attendance');
+  const generateReportMutation = useGenerateReport();
+  const [reportType, setReportType] = useState<ReportType>('attendance');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [department, setDepartment] = useState('all');
   const [selectedColumns, setSelectedColumns] = useState<string[]>(
-    columns.attendance.filter(c => c.default).map(c => c.id)
+    columns.attendance.filter((c) => c.default).map((c) => c.id)
   );
-  const [outputFormat, setOutputFormat] = useState('pdf');
+  const [outputFormat, setOutputFormat] = useState<ReportFormat>('pdf');
 
   const currentColumns = columns[reportType as keyof typeof columns] || columns.attendance;
 
   const handleReportTypeChange = (type: string) => {
-    setReportType(type);
+    setReportType(type as ReportType);
     const newColumns = columns[type as keyof typeof columns] || columns.attendance;
-    setSelectedColumns(newColumns.filter(c => c.default).map(c => c.id));
+    setSelectedColumns(newColumns.filter((c) => c.default).map((c) => c.id));
   };
 
   const toggleColumn = (columnId: string) => {
-    setSelectedColumns(prev =>
-      prev.includes(columnId)
-        ? prev.filter(c => c !== columnId)
-        : [...prev, columnId]
+    setSelectedColumns((prev) =>
+      prev.includes(columnId) ? prev.filter((c) => c !== columnId) : [...prev, columnId]
     );
   };
 
   const handleGenerate = () => {
-    success('Laporan Dibuat', 'Laporan sedang diproses dan akan diunduh');
+    if (!dateRange.start || !dateRange.end) {
+      return;
+    }
+
+    generateReportMutation.mutate({
+      report_type: reportType,
+      format: outputFormat,
+      start_date: dateRange.start,
+      end_date: dateRange.end,
+      department_id: department !== 'all' ? department : undefined,
+      columns: selectedColumns,
+    });
   };
 
   return (
@@ -245,7 +256,7 @@ export function ReportBuilderContent() {
                 ${outputFormat === 'pdf' ? 'bg-primary/10 border-primary' : 'bg-background hover:bg-muted'}
               `}
             >
-              <FileText className="h-5 w-5 text-red-500" />
+              <FileText className="h-5 w-5 text-destructive" />
               <div className="text-left">
                 <p className="font-medium">PDF</p>
                 <p className="text-xs text-muted-foreground">Dokumen siap cetak</p>
@@ -258,7 +269,7 @@ export function ReportBuilderContent() {
                 ${outputFormat === 'excel' ? 'bg-primary/10 border-primary' : 'bg-background hover:bg-muted'}
               `}
             >
-              <Table className="h-5 w-5 text-green-500" />
+              <Table className="h-5 w-5 text-success" />
               <div className="text-left">
                 <p className="font-medium">Excel</p>
                 <p className="text-xs text-muted-foreground">Spreadsheet yang dapat diedit</p>
@@ -271,7 +282,7 @@ export function ReportBuilderContent() {
                 ${outputFormat === 'csv' ? 'bg-primary/10 border-primary' : 'bg-background hover:bg-muted'}
               `}
             >
-              <FileText className="h-5 w-5 text-blue-500" />
+              <FileText className="h-5 w-5 text-primary" />
               <div className="text-left">
                 <p className="font-medium">CSV</p>
                 <p className="text-xs text-muted-foreground">Data mentah untuk import</p>
@@ -304,9 +315,22 @@ export function ReportBuilderContent() {
             <Separator />
 
             <div className="space-y-2">
-              <Button className="w-full" onClick={handleGenerate}>
-                <Download className="h-4 w-4 mr-2" />
-                Generate Laporan
+              <Button
+                className="w-full"
+                onClick={handleGenerate}
+                disabled={generateReportMutation.isPending || !dateRange.start || !dateRange.end}
+              >
+                {generateReportMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Memproses...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-2" />
+                    Generate Laporan
+                  </>
+                )}
               </Button>
               <Button variant="outline" className="w-full">
                 <Printer className="h-4 w-4 mr-2" />

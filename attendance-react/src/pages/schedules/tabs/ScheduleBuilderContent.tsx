@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   CheckCircle,
   Loader2,
+  Filter,
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -32,17 +33,20 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useNotificationStore } from '@/stores';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  useTimeSlots,
+  useSubjects,
+  useAcademicClasses,
+  useSchedulesByClass,
+  useCreateSchedule,
+  useUpdateSchedule,
+  useDeleteSchedule,
+} from '@/hooks';
+import { useEmployees } from '@/hooks/use-employees';
+import type { DayOfWeek, Schedule, ScheduleFormData } from '@/types/schedule';
 
 // Types
-interface TimeSlot {
-  id: string;
-  name: string;
-  startTime: string;
-  endTime: string;
-  isBreak: boolean;
-}
-
 interface ScheduleItem {
   id: string;
   dayOfWeek: number;
@@ -52,46 +56,33 @@ interface ScheduleItem {
   room: string;
 }
 
-// Mock data
-const mockSubjects = [
-  { id: '1', name: 'Matematika', code: 'MTK', color: '#3B82F6' },
-  { id: '2', name: 'Bahasa Indonesia', code: 'BIN', color: '#10B981' },
-  { id: '3', name: 'Bahasa Inggris', code: 'BIG', color: '#8B5CF6' },
-  { id: '4', name: 'Fisika', code: 'FIS', color: '#F59E0B' },
-  { id: '5', name: 'Kimia', code: 'KIM', color: '#EF4444' },
-  { id: '6', name: 'Biologi', code: 'BIO', color: '#06B6D4' },
-];
-
-const mockTeachers = [
-  { id: '1', name: 'Ahmad Fauzi, S.Pd' },
-  { id: '2', name: 'Siti Rahayu, M.Pd' },
-  { id: '3', name: 'Budi Santoso, S.Pd' },
-  { id: '4', name: 'Dewi Lestari, M.Pd' },
-  { id: '5', name: 'Eko Prasetyo, S.Pd' },
-];
-
-const defaultTimeSlots: TimeSlot[] = [
-  { id: '1', name: 'Jam 1', startTime: '07:00', endTime: '07:45', isBreak: false },
-  { id: '2', name: 'Jam 2', startTime: '07:45', endTime: '08:30', isBreak: false },
-  { id: '3', name: 'Jam 3', startTime: '08:30', endTime: '09:15', isBreak: false },
-  { id: 'break1', name: 'Istirahat', startTime: '09:15', endTime: '09:30', isBreak: true },
-  { id: '4', name: 'Jam 4', startTime: '09:30', endTime: '10:15', isBreak: false },
-  { id: '5', name: 'Jam 5', startTime: '10:15', endTime: '11:00', isBreak: false },
-  { id: '6', name: 'Jam 6', startTime: '11:00', endTime: '11:45', isBreak: false },
-  { id: 'break2', name: 'Istirahat', startTime: '11:45', endTime: '12:30', isBreak: true },
-  { id: '7', name: 'Jam 7', startTime: '12:30', endTime: '13:15', isBreak: false },
-  { id: '8', name: 'Jam 8', startTime: '13:15', endTime: '14:00', isBreak: false },
-];
-
 const dayNames = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+const daysOfWeek: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+
+// Loading skeleton
+function BuilderSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-9 w-24" />
+        <Skeleton className="h-9 w-32" />
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[...Array(4)].map((_, i) => (
+          <Skeleton key={i} className="h-20" />
+        ))}
+      </div>
+      <Skeleton className="h-96" />
+    </div>
+  );
+}
 
 export function ScheduleBuilderContent() {
-  const { success } = useNotificationStore();
-  const [timeSlots] = useState<TimeSlot[]>(defaultTimeSlots);
-  const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<string>('');
+  const [localScheduleItems, setLocalScheduleItems] = useState<ScheduleItem[]>([]);
   const [selectedCell, setSelectedCell] = useState<{ day: number; slotId: string } | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSavingAll, setIsSavingAll] = useState(false);
   const [conflicts, setConflicts] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
@@ -100,22 +91,58 @@ export function ScheduleBuilderContent() {
     room: '',
   });
 
-  const getScheduleItem = (dayOfWeek: number, timeSlotId: string) => {
-    return scheduleItems.find(
+  // Fetch data using React Query hooks
+  const { data: classes = [], isLoading: classesLoading } = useAcademicClasses();
+  const { data: timeSlots = [], isLoading: timeSlotsLoading } = useTimeSlots();
+  const { data: subjects = [], isLoading: subjectsLoading } = useSubjects();
+  const { data: employeesResponse } = useEmployees();
+  const employees = employeesResponse?.data ?? [];
+  const { data: existingSchedules = [] } = useSchedulesByClass(selectedClassId);
+
+  // Mutations
+  const createScheduleMutation = useCreateSchedule();
+  const updateScheduleMutation = useUpdateSchedule();
+  const deleteScheduleMutation = useDeleteSchedule();
+
+  const isLoading = classesLoading || timeSlotsLoading || subjectsLoading;
+
+  // Set initial class when classes are loaded
+  if (classes.length > 0 && !selectedClassId) {
+    setSelectedClassId(classes[0].id);
+  }
+
+  // Convert existing schedules to local format
+  const getExistingScheduleItem = (dayOfWeek: number, timeSlotId: string): Schedule | undefined => {
+    const dayKey = daysOfWeek[dayOfWeek];
+    return existingSchedules.find(
+      (s) => s.day_of_week === dayKey && s.time_slot_id === timeSlotId
+    );
+  };
+
+  const getLocalScheduleItem = (dayOfWeek: number, timeSlotId: string) => {
+    return localScheduleItems.find(
       (item) => item.dayOfWeek === dayOfWeek && item.timeSlotId === timeSlotId
     );
   };
 
   const handleCellClick = (day: number, slotId: string) => {
     const slot = timeSlots.find((s) => s.id === slotId);
-    if (slot?.isBreak) return;
+    if (slot?.is_break) return;
 
-    const existing = getScheduleItem(day, slotId);
-    if (existing) {
+    const existingFromApi = getExistingScheduleItem(day, slotId);
+    const existingLocal = getLocalScheduleItem(day, slotId);
+
+    if (existingFromApi) {
       setFormData({
-        subjectId: existing.subjectId,
-        teacherId: existing.teacherId,
-        room: existing.room,
+        subjectId: existingFromApi.subject_id,
+        teacherId: existingFromApi.employee_id,
+        room: existingFromApi.room || '',
+      });
+    } else if (existingLocal) {
+      setFormData({
+        subjectId: existingLocal.subjectId,
+        teacherId: existingLocal.teacherId,
+        room: existingLocal.room,
       });
     } else {
       setFormData({ subjectId: '', teacherId: '', room: '' });
@@ -125,83 +152,178 @@ export function ScheduleBuilderContent() {
     setDialogOpen(true);
   };
 
-  const handleSaveItem = () => {
+  const handleSaveItem = async () => {
     if (!selectedCell || !formData.subjectId || !formData.teacherId || !formData.room) return;
 
-    const existingItem = getScheduleItem(selectedCell.day, selectedCell.slotId);
+    const existingFromApi = getExistingScheduleItem(selectedCell.day, selectedCell.slotId);
 
-    if (existingItem) {
-      setScheduleItems(
-        scheduleItems.map((item) =>
-          item.id === existingItem.id ? { ...item, ...formData } : item
-        )
-      );
-    } else {
-      const newId = String(new Date().getTime());
-      setScheduleItems([
-        ...scheduleItems,
-        {
-          id: newId,
-          dayOfWeek: selectedCell.day,
-          timeSlotId: selectedCell.slotId,
-          ...formData,
+    if (existingFromApi) {
+      // Update existing schedule via API
+      await updateScheduleMutation.mutateAsync({
+        id: existingFromApi.id,
+        data: {
+          subject_id: formData.subjectId,
+          employee_id: formData.teacherId,
+          room: formData.room,
         },
-      ]);
+      });
+    } else {
+      // Add to local state for batch save
+      const existingLocal = getLocalScheduleItem(selectedCell.day, selectedCell.slotId);
+
+      if (existingLocal) {
+        setLocalScheduleItems(
+          localScheduleItems.map((item) =>
+            item.id === existingLocal.id ? { ...item, ...formData } : item
+          )
+        );
+      } else {
+        const newId = String(new Date().getTime());
+        setLocalScheduleItems([
+          ...localScheduleItems,
+          {
+            id: newId,
+            dayOfWeek: selectedCell.day,
+            timeSlotId: selectedCell.slotId,
+            subjectId: formData.subjectId,
+            teacherId: formData.teacherId,
+            room: formData.room,
+          },
+        ]);
+      }
     }
 
     setDialogOpen(false);
-    success('Berhasil', 'Jadwal berhasil disimpan');
   };
 
-  const handleDeleteItem = () => {
+  const handleDeleteItem = async () => {
     if (!selectedCell) return;
-    const existing = getScheduleItem(selectedCell.day, selectedCell.slotId);
-    if (existing) {
-      setScheduleItems(scheduleItems.filter((item) => item.id !== existing.id));
-      setDialogOpen(false);
-      success('Berhasil', 'Jadwal berhasil dihapus');
+
+    const existingFromApi = getExistingScheduleItem(selectedCell.day, selectedCell.slotId);
+
+    if (existingFromApi) {
+      await deleteScheduleMutation.mutateAsync(existingFromApi.id);
+    } else {
+      const existingLocal = getLocalScheduleItem(selectedCell.day, selectedCell.slotId);
+      if (existingLocal) {
+        setLocalScheduleItems(localScheduleItems.filter((item) => item.id !== existingLocal.id));
+      }
     }
+
+    setDialogOpen(false);
   };
 
   const handleCopyDay = (fromDay: number, toDay: number) => {
-    const dayItems = scheduleItems.filter((item) => item.dayOfWeek === fromDay);
+    const dayItems = localScheduleItems.filter((item) => item.dayOfWeek === fromDay);
     const newItems = dayItems.map((item, idx) => ({
       ...item,
       id: String(new Date().getTime()) + idx,
       dayOfWeek: toDay,
     }));
-    setScheduleItems([
-      ...scheduleItems.filter((item) => item.dayOfWeek !== toDay),
+    setLocalScheduleItems([
+      ...localScheduleItems.filter((item) => item.dayOfWeek !== toDay),
       ...newItems,
     ]);
-    success('Berhasil', `Jadwal hari ${dayNames[fromDay]} disalin ke ${dayNames[toDay]}`);
   };
 
   const handleSaveAll = async () => {
-    setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsLoading(false);
-    success('Berhasil', 'Semua jadwal berhasil disimpan');
+    if (!selectedClassId || localScheduleItems.length === 0) return;
+
+    setIsSavingAll(true);
+    try {
+      // Create all new schedules
+      for (const item of localScheduleItems) {
+        const scheduleData: ScheduleFormData = {
+          subject_id: item.subjectId,
+          employee_id: item.teacherId,
+          time_slot_id: item.timeSlotId,
+          day_of_week: daysOfWeek[item.dayOfWeek],
+          room: item.room,
+          effective_from: new Date().toISOString().split('T')[0], // Today's date
+        };
+        await createScheduleMutation.mutateAsync({
+          classId: selectedClassId,
+          data: scheduleData,
+        });
+      }
+      // Clear local items after successful save
+      setLocalScheduleItems([]);
+    } finally {
+      setIsSavingAll(false);
+    }
   };
+
+  // Stats combining API and local data
+  const allScheduleItems = [
+    ...existingSchedules.map((s) => ({
+      id: s.id,
+      subjectId: s.subject_id,
+      teacherId: s.employee_id,
+    })),
+    ...localScheduleItems.map((s) => ({
+      id: s.id,
+      subjectId: s.subjectId,
+      teacherId: s.teacherId,
+    })),
+  ];
+
+  const stats = {
+    total: allScheduleItems.length,
+    teachers: new Set(allScheduleItems.map((i) => i.teacherId)).size,
+    subjects: new Set(allScheduleItems.map((i) => i.subjectId)).size,
+    lessonSlots: timeSlots.filter((s) => !s.is_break).length,
+    unsaved: localScheduleItems.length,
+  };
+
+  if (isLoading) {
+    return <BuilderSkeleton />;
+  }
 
   return (
     <div className="space-y-6">
-      {/* Action Bar */}
-      <div className="flex items-center justify-between">
+      {/* Class Selector & Action Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Pilih Kelas" />
+              </SelectTrigger>
+              <SelectContent>
+                {classes.map((cls) => (
+                  <SelectItem key={cls.id} value={cls.id}>
+                    {cls.name} - {cls.homeroom_teacher_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {stats.unsaved > 0 && (
+            <span className="text-sm text-warning">
+              {stats.unsaved} jadwal belum disimpan
+            </span>
+          )}
+        </div>
+
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setScheduleItems([])}>
+          <Button variant="outline" onClick={() => setLocalScheduleItems([])}>
             <Trash2 className="h-4 w-4 mr-2" />
             Reset
           </Button>
+          <Button
+            onClick={handleSaveAll}
+            disabled={isSavingAll || localScheduleItems.length === 0}
+          >
+            {isSavingAll ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            Simpan Semua ({stats.unsaved})
+          </Button>
         </div>
-        <Button onClick={handleSaveAll} disabled={isLoading}>
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4 mr-2" />
-          )}
-          Simpan Semua
-        </Button>
       </div>
 
       {/* Stats */}
@@ -211,7 +333,7 @@ export function ScheduleBuilderContent() {
             <div className="flex items-center gap-3">
               <Calendar className="h-8 w-8 text-primary/30" />
               <div>
-                <p className="text-2xl font-bold">{scheduleItems.length}</p>
+                <p className="text-2xl font-bold">{stats.total}</p>
                 <p className="text-xs text-muted-foreground">Total Jadwal</p>
               </div>
             </div>
@@ -222,9 +344,7 @@ export function ScheduleBuilderContent() {
             <div className="flex items-center gap-3">
               <Users className="h-8 w-8 text-success/30" />
               <div>
-                <p className="text-2xl font-bold">
-                  {new Set(scheduleItems.map((i) => i.teacherId)).size}
-                </p>
+                <p className="text-2xl font-bold">{stats.teachers}</p>
                 <p className="text-xs text-muted-foreground">Guru</p>
               </div>
             </div>
@@ -235,7 +355,7 @@ export function ScheduleBuilderContent() {
             <div className="flex items-center gap-3">
               <Clock className="h-8 w-8 text-warning/30" />
               <div>
-                <p className="text-2xl font-bold">{timeSlots.filter((s) => !s.isBreak).length}</p>
+                <p className="text-2xl font-bold">{stats.lessonSlots}</p>
                 <p className="text-xs text-muted-foreground">Jam Pelajaran</p>
               </div>
             </div>
@@ -246,9 +366,7 @@ export function ScheduleBuilderContent() {
             <div className="flex items-center gap-3">
               <CheckCircle className="h-8 w-8 text-primary/30" />
               <div>
-                <p className="text-2xl font-bold">
-                  {new Set(scheduleItems.map((i) => i.subjectId)).size}
-                </p>
+                <p className="text-2xl font-bold">{stats.subjects}</p>
                 <p className="text-xs text-muted-foreground">Mata Pelajaran</p>
               </div>
             </div>
@@ -298,11 +416,11 @@ export function ScheduleBuilderContent() {
                     <td className="border bg-muted/30 p-2">
                       <div className="text-xs font-medium">{slot.name}</div>
                       <div className="text-[10px] text-muted-foreground">
-                        {slot.startTime} - {slot.endTime}
+                        {slot.start_time} - {slot.end_time}
                       </div>
                     </td>
                     {dayNames.slice(0, 5).map((_, dayIndex) => {
-                      if (slot.isBreak) {
+                      if (slot.is_break) {
                         return (
                           <td
                             key={dayIndex}
@@ -313,14 +431,33 @@ export function ScheduleBuilderContent() {
                         );
                       }
 
-                      const item = getScheduleItem(dayIndex, slot.id);
-                      const subject = item ? mockSubjects.find((s) => s.id === item.subjectId) : null;
-                      const teacher = item ? mockTeachers.find((t) => t.id === item.teacherId) : null;
+                      // Check API schedule first, then local
+                      const existingFromApi = getExistingScheduleItem(dayIndex, slot.id);
+                      const localItem = getLocalScheduleItem(dayIndex, slot.id);
+                      const item = existingFromApi || localItem;
+
+                      let subject;
+                      let teacher;
+                      let room;
+                      let isFromApi = false;
+
+                      if (existingFromApi) {
+                        subject = subjects.find((s) => s.id === existingFromApi.subject_id);
+                        teacher = employees.find((t) => String(t.id) === existingFromApi.employee_id);
+                        room = existingFromApi.room;
+                        isFromApi = true;
+                      } else if (localItem) {
+                        subject = subjects.find((s) => s.id === localItem.subjectId);
+                        teacher = employees.find((t) => String(t.id) === localItem.teacherId);
+                        room = localItem.room;
+                      }
 
                       return (
                         <td
                           key={dayIndex}
-                          className="border p-1 cursor-pointer hover:bg-muted/20 transition-colors"
+                          className={`border p-1 cursor-pointer hover:bg-muted/20 transition-colors ${
+                            localItem && !isFromApi ? 'bg-warning/10' : ''
+                          }`}
                           onClick={() => handleCellClick(dayIndex, slot.id)}
                         >
                           {item ? (
@@ -332,9 +469,9 @@ export function ScheduleBuilderContent() {
                                 {subject?.code}
                               </div>
                               <div className="text-muted-foreground truncate text-[10px]">
-                                {teacher?.name.split(',')[0]}
+                                {teacher?.name?.split(',')[0]}
                               </div>
-                              <div className="text-muted-foreground/70 text-[10px]">{item.room}</div>
+                              <div className="text-muted-foreground/70 text-[10px]">{room}</div>
                             </div>
                           ) : (
                             <div className="h-16 flex items-center justify-center group">
@@ -359,7 +496,7 @@ export function ScheduleBuilderContent() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3">
-            {mockSubjects.map((subject) => (
+            {subjects.map((subject) => (
               <div key={subject.id} className="flex items-center gap-2">
                 <div className="h-3 w-3 rounded" style={{ backgroundColor: subject.color }} />
                 <span className="text-xs text-muted-foreground">
@@ -376,7 +513,7 @@ export function ScheduleBuilderContent() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {selectedCell && getScheduleItem(selectedCell.day, selectedCell.slotId)
+              {selectedCell && (getExistingScheduleItem(selectedCell.day, selectedCell.slotId) || getLocalScheduleItem(selectedCell.day, selectedCell.slotId))
                 ? 'Edit Jadwal'
                 : 'Tambah Jadwal'}
             </DialogTitle>
@@ -414,7 +551,7 @@ export function ScheduleBuilderContent() {
                   <SelectValue placeholder="Pilih mata pelajaran" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockSubjects.map((subject) => (
+                  {subjects.map((subject) => (
                     <SelectItem key={subject.id} value={subject.id}>
                       <div className="flex items-center gap-2">
                         <div className="h-2 w-2 rounded-full" style={{ backgroundColor: subject.color }} />
@@ -436,9 +573,9 @@ export function ScheduleBuilderContent() {
                   <SelectValue placeholder="Pilih guru" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockTeachers.map((teacher) => (
-                    <SelectItem key={teacher.id} value={teacher.id}>
-                      {teacher.name}
+                  {employees.map((employee) => (
+                    <SelectItem key={employee.id} value={String(employee.id)}>
+                      {employee.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -456,17 +593,32 @@ export function ScheduleBuilderContent() {
           </div>
 
           <DialogFooter className="gap-2">
-            {selectedCell && getScheduleItem(selectedCell.day, selectedCell.slotId) && (
-              <Button variant="destructive" onClick={handleDeleteItem}>
-                <Trash2 className="h-4 w-4 mr-2" />
+            {selectedCell && (getExistingScheduleItem(selectedCell.day, selectedCell.slotId) || getLocalScheduleItem(selectedCell.day, selectedCell.slotId)) && (
+              <Button
+                variant="destructive"
+                onClick={handleDeleteItem}
+                disabled={deleteScheduleMutation.isPending}
+              >
+                {deleteScheduleMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4 mr-2" />
+                )}
                 Hapus
               </Button>
             )}
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               Batal
             </Button>
-            <Button onClick={handleSaveItem}>
-              <Save className="h-4 w-4 mr-2" />
+            <Button
+              onClick={handleSaveItem}
+              disabled={updateScheduleMutation.isPending || !formData.subjectId || !formData.teacherId || !formData.room}
+            >
+              {updateScheduleMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
               Simpan
             </Button>
           </DialogFooter>

@@ -110,10 +110,10 @@ const eventIcons: Record<string, React.ElementType> = {
 };
 
 const severityColors: Record<string, string> = {
-  info: 'bg-blue-100 text-blue-700',
-  success: 'bg-green-100 text-green-700',
-  warning: 'bg-yellow-100 text-yellow-700',
-  danger: 'bg-red-100 text-red-700',
+  info: 'bg-primary/10 text-primary',
+  success: 'bg-success/10 text-success',
+  warning: 'bg-warning/10 text-warning',
+  danger: 'bg-destructive/10 text-destructive',
 };
 
 export default function SecurityEventsPage() {

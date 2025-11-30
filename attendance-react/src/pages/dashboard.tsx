@@ -1,5 +1,5 @@
 import { useAuthStore } from '@/stores';
-import { useMockDashboard } from '@/hooks';
+import { useDashboard } from '@/hooks';
 import {
   Users,
   UserCheck,
@@ -16,9 +16,10 @@ import {
   Briefcase,
   Target,
   Award,
+  LayoutDashboard,
+  ArrowRight,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { StatsGrid } from '@/components/dashboard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -33,7 +34,7 @@ import {
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
-  const { data: dashboardData, isLoading } = useMockDashboard();
+  const { data: dashboardData, isLoading } = useDashboard();
 
   if (isLoading) {
     return (
@@ -45,13 +46,10 @@ export default function DashboardPage() {
 
   const { summary, recent_activity, attendance_trends, today_schedule } = dashboardData || {};
 
-  // Determine user role for conditional rendering
-  // Valid roles: 'super-admin' | 'admin' | 'kepala-sekolah' | 'guru' | 'pegawai'
   const isAdmin = user?.role === 'super-admin' || user?.role === 'admin';
   const isManager = user?.role === 'kepala-sekolah';
   const isEmployee = user?.role === 'guru' || user?.role === 'pegawai';
 
-  // Format time for display
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString('id-ID', {
       hour: '2-digit',
@@ -59,7 +57,6 @@ export default function DashboardPage() {
     });
   };
 
-  // Get activity status style
   const getActivityStyle = (type: string) => {
     switch (type) {
       case 'check_in':
@@ -94,7 +91,6 @@ export default function DashboardPage() {
     }
   };
 
-  // Role labels
   const roleLabels: Record<string, string> = {
     'super-admin': 'Super Admin',
     'admin': 'Administrator',
@@ -106,121 +102,143 @@ export default function DashboardPage() {
     'pegawai': 'Pegawai',
   };
 
-  // Admin/Manager Stats - using StatsGrid format
+  // Stats data
   const adminStats = [
     {
-      id: 'total-employees',
       title: 'Total Karyawan',
       value: summary?.employees.total || 0,
+      subtitle: `${summary?.employees.active || 0} aktif`,
       icon: Users,
-      description: `${summary?.employees.active || 0} aktif`,
-      trend: 'up' as const,
       color: 'primary' as const,
     },
     {
-      id: 'present-today',
       title: 'Hadir Hari Ini',
       value: summary?.attendance.present || 0,
+      subtitle: `${summary?.attendance.attendance_rate?.toFixed(1) || 0}%`,
       icon: UserCheck,
-      trendValue: `${summary?.attendance.attendance_rate?.toFixed(1) || 0}%`,
-      trend: 'up' as const,
       color: 'success' as const,
     },
     {
-      id: 'on-leave',
       title: 'Cuti / Izin',
       value: summary?.attendance.on_leave || 0,
+      subtitle: `${summary?.pending_leaves || 0} pending`,
       icon: CalendarOff,
-      description: `${summary?.pending_leaves || 0} pending`,
-      trend: 'neutral' as const,
       color: 'warning' as const,
     },
     {
-      id: 'absent',
       title: 'Tidak Hadir',
       value: summary?.attendance.absent || 0,
+      subtitle: `${summary?.attendance.late || 0} terlambat`,
       icon: UserX,
-      description: `${summary?.attendance.late || 0} terlambat`,
-      trend: 'down' as const,
       color: 'destructive' as const,
     },
   ];
 
-  // Employee personal stats - using StatsGrid format
   const employeeStats = [
     {
-      id: 'attendance-month',
       title: 'Kehadiran Bulan Ini',
       value: 22,
+      subtitle: '95.6%',
       icon: UserCheck,
-      trendValue: '95.6%',
-      trend: 'up' as const,
       color: 'success' as const,
     },
     {
-      id: 'late-count',
       title: 'Terlambat',
       value: 1,
+      subtitle: 'bulan ini',
       icon: Clock,
-      description: 'bulan ini',
-      trend: 'neutral' as const,
       color: 'warning' as const,
     },
     {
-      id: 'leave-balance',
       title: 'Sisa Cuti',
       value: 10,
+      subtitle: 'hari tersisa',
       icon: CalendarOff,
-      description: 'hari tersisa',
-      trend: 'neutral' as const,
       color: 'primary' as const,
     },
     {
-      id: 'work-hours',
       title: 'Jam Kerja',
       value: 176,
+      subtitle: 'jam bulan ini',
       icon: Clock,
-      description: 'jam bulan ini',
-      trend: 'up' as const,
       color: 'primary' as const,
     },
   ];
 
+  const stats = isAdmin || isManager ? adminStats : employeeStats;
+
+  const colorClasses = {
+    primary: 'bg-primary/10 text-primary',
+    success: 'bg-success/10 text-success',
+    warning: 'bg-warning/10 text-warning',
+    destructive: 'bg-destructive/10 text-destructive',
+  };
+
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-macos-2xl font-bold text-foreground">Dashboard</h1>
-            <p className="text-macos-sm text-muted-foreground">
-              Selamat datang kembali, {user?.name}!
-            </p>
+    <div className="space-y-6 p-6">
+      {/* Hero Header */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background p-8">
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
+
+        <div className="relative">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                <LayoutDashboard className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">
+                  Selamat datang, {user?.name?.split(' ')[0]}!
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  {new Date().toLocaleDateString('id-ID', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="bg-background/50 backdrop-blur-sm">
+                {roleLabels[user?.role || ''] || user?.role}
+              </Badge>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="capitalize">
-              {roleLabels[user?.role || ''] || user?.role}
-            </Badge>
-            <span className="text-macos-sm text-muted-foreground">
-              {new Date().toLocaleDateString('id-ID', {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-              })}
-            </span>
+
+          {/* Stats Grid */}
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {stats.map((stat) => (
+              <Card key={stat.title} className="bg-card/50 backdrop-blur-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">{stat.title}</p>
+                      <p className="text-2xl font-bold">{stat.value}</p>
+                      <p className="text-xs text-muted-foreground">{stat.subtitle}</p>
+                    </div>
+                    <div className={`rounded-lg p-2 ${colorClasses[stat.color]}`}>
+                      <stat.icon className="h-5 w-5" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </div>
 
       {/* Quick Check-in Banner for Employees */}
       {isEmployee && (
-        <Card className="mb-6 border-primary/50 bg-primary/5">
+        <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
           <CardContent className="p-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="p-3 rounded-full bg-primary/10">
-                  <Clock className="h-6 w-6 text-primary" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                  <Clock className="h-5 w-5 text-primary" />
                 </div>
                 <div>
                   <p className="font-medium">Belum Check-in Hari Ini</p>
@@ -229,8 +247,11 @@ export default function DashboardPage() {
                   </p>
                 </div>
               </div>
-              <Button asChild>
-                <a href="/face-recognition">Check-in Sekarang</a>
+              <Button asChild className="gap-2">
+                <a href="/face-recognition">
+                  Check-in Sekarang
+                  <ArrowRight className="h-4 w-4" />
+                </a>
               </Button>
             </div>
           </CardContent>
@@ -239,12 +260,12 @@ export default function DashboardPage() {
 
       {/* Pending Approvals Banner for Admins */}
       {(isAdmin || isManager) && (summary?.pending_leaves || 0) > 0 && (
-        <Card className="mb-6 border-warning/50 bg-warning/5">
+        <Card className="border-warning/20 bg-gradient-to-r from-warning/5 to-transparent">
           <CardContent className="p-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="p-3 rounded-full bg-warning/10">
-                  <AlertCircle className="h-6 w-6 text-warning" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-warning/10">
+                  <AlertCircle className="h-5 w-5 text-warning" />
                 </div>
                 <div>
                   <p className="font-medium">{summary?.pending_leaves} Pengajuan Menunggu Persetujuan</p>
@@ -253,20 +274,16 @@ export default function DashboardPage() {
                   </p>
                 </div>
               </div>
-              <Button variant="outline" asChild>
-                <a href="/leave">Lihat Pengajuan</a>
+              <Button variant="outline" asChild className="gap-2">
+                <a href="/leave">
+                  Lihat Pengajuan
+                  <ArrowRight className="h-4 w-4" />
+                </a>
               </Button>
             </div>
           </CardContent>
         </Card>
       )}
-
-      {/* Stats Grid - using StatsGrid component */}
-      <StatsGrid
-        stats={isAdmin || isManager ? adminStats : employeeStats}
-        columns={4}
-        variant="default"
-      />
 
       {/* Content Grid */}
       <div className="grid gap-6 lg:grid-cols-3">
@@ -275,7 +292,7 @@ export default function DashboardPage() {
           {/* Attendance Trend Chart */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="flex items-center gap-2 text-macos-base font-semibold">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold">
                 <TrendingUp className="h-5 w-5 text-primary" />
                 {isEmployee ? 'Kehadiran Saya (7 Hari)' : 'Tren Kehadiran (7 Hari)'}
               </CardTitle>
@@ -340,53 +357,55 @@ export default function DashboardPage() {
           {/* Recent Activity */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="flex items-center gap-2 text-macos-base font-semibold">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold">
                 <Clock className="h-5 w-5 text-primary" />
                 {isEmployee ? 'Aktivitas Saya' : 'Aktivitas Terbaru'}
               </CardTitle>
-              <button className="text-macos-sm text-primary hover:underline">
+              <Button variant="ghost" size="sm" className="text-primary">
                 Lihat Semua
-              </button>
+              </Button>
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y divide-border">
-                {recent_activity?.map((activity) => (
+                {recent_activity?.slice(0, 5).map((activity) => (
                   <div
                     key={activity.id}
-                    className="flex items-center justify-between p-4"
+                    className="flex items-center justify-between p-4 transition-colors hover:bg-muted/50"
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-                        <span className="text-macos-sm font-medium text-foreground">
+                        <span className="text-sm font-medium text-foreground">
                           {activity.employee_name
                             .split(' ')
                             .map((n) => n[0])
-                            .join('')}
+                            .join('')
+                            .slice(0, 2)}
                         </span>
                       </div>
                       <div>
-                        <p className="text-macos-sm font-medium text-foreground">
+                        <p className="text-sm font-medium text-foreground">
                           {isEmployee ? 'Anda' : activity.employee_name}
                         </p>
-                        <p className="text-macos-xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground">
                           {activity.description}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-macos-sm text-foreground">
+                      <p className="text-sm text-foreground">
                         {formatTime(activity.timestamp)}
                       </p>
-                      <span
-                        className={`inline-block rounded-full px-2 py-0.5 text-macos-xs font-medium ${getActivityStyle(
-                          activity.type
-                        )}`}
-                      >
+                      <Badge variant="secondary" className={getActivityStyle(activity.type)}>
                         {getActivityLabel(activity.type)}
-                      </span>
+                      </Badge>
                     </div>
                   </div>
                 ))}
+                {(!recent_activity || recent_activity.length === 0) && (
+                  <div className="p-8 text-center">
+                    <p className="text-sm text-muted-foreground">Belum ada aktivitas</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -397,7 +416,7 @@ export default function DashboardPage() {
           {/* Quick Actions */}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-macos-base font-semibold">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold">
                 <Target className="h-5 w-5 text-primary" />
                 Aksi Cepat
               </CardTitle>
@@ -405,69 +424,61 @@ export default function DashboardPage() {
             <CardContent className="grid gap-2">
               <a
                 href="/face-recognition"
-                className="flex items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition-colors hover:bg-muted"
+                className="flex items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition-all hover:bg-muted hover:border-primary/20"
               >
                 <div className="rounded-lg bg-primary/10 p-2">
                   <Clock className="h-4 w-4 text-primary" />
                 </div>
-                <div>
-                  <p className="text-macos-sm font-medium text-foreground">
-                    Absen Sekarang
-                  </p>
-                  <p className="text-macos-xs text-muted-foreground">
-                    Check-in / Check-out
-                  </p>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground">Absen Sekarang</p>
+                  <p className="text-xs text-muted-foreground">Check-in / Check-out</p>
                 </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground" />
               </a>
               <a
                 href="/leave"
-                className="flex items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition-colors hover:bg-muted"
+                className="flex items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition-all hover:bg-muted hover:border-warning/20"
               >
                 <div className="rounded-lg bg-warning/10 p-2">
                   <CalendarOff className="h-4 w-4 text-warning" />
                 </div>
-                <div>
-                  <p className="text-macos-sm font-medium text-foreground">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground">
                     {isAdmin || isManager ? 'Kelola Cuti' : 'Ajukan Cuti'}
                   </p>
-                  <p className="text-macos-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {isAdmin || isManager ? 'Review pengajuan' : 'Buat pengajuan baru'}
                   </p>
                 </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground" />
               </a>
               {(isAdmin || isManager) && (
                 <>
                   <a
                     href="/employees"
-                    className="flex items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition-colors hover:bg-muted"
+                    className="flex items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition-all hover:bg-muted hover:border-primary/20"
                   >
-                    <div className="rounded-lg bg-blue-500/10 p-2">
-                      <Users className="h-4 w-4 text-blue-500" />
+                    <div className="rounded-lg bg-primary/10 p-2">
+                      <Users className="h-4 w-4 text-primary" />
                     </div>
-                    <div>
-                      <p className="text-macos-sm font-medium text-foreground">
-                        Data Karyawan
-                      </p>
-                      <p className="text-macos-xs text-muted-foreground">
-                        Kelola karyawan
-                      </p>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-foreground">Data Karyawan</p>
+                      <p className="text-xs text-muted-foreground">Kelola karyawan</p>
                     </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
                   </a>
                   <a
                     href="/reports"
-                    className="flex items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition-colors hover:bg-muted"
+                    className="flex items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition-all hover:bg-muted hover:border-chart-5/20"
                   >
-                    <div className="rounded-lg bg-purple-500/10 p-2">
-                      <FileText className="h-4 w-4 text-purple-500" />
+                    <div className="rounded-lg bg-chart-5/10 p-2">
+                      <FileText className="h-4 w-4 text-chart-5" />
                     </div>
-                    <div>
-                      <p className="text-macos-sm font-medium text-foreground">
-                        Laporan
-                      </p>
-                      <p className="text-macos-xs text-muted-foreground">
-                        Generate laporan
-                      </p>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-foreground">Laporan</p>
+                      <p className="text-xs text-muted-foreground">Generate laporan</p>
                     </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
                   </a>
                 </>
               )}
@@ -475,35 +486,29 @@ export default function DashboardPage() {
                 <>
                   <a
                     href="/payroll"
-                    className="flex items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition-colors hover:bg-muted"
+                    className="flex items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition-all hover:bg-muted hover:border-success/20"
                   >
-                    <div className="rounded-lg bg-green-500/10 p-2">
-                      <DollarSign className="h-4 w-4 text-green-500" />
+                    <div className="rounded-lg bg-success/10 p-2">
+                      <DollarSign className="h-4 w-4 text-success" />
                     </div>
-                    <div>
-                      <p className="text-macos-sm font-medium text-foreground">
-                        Slip Gaji
-                      </p>
-                      <p className="text-macos-xs text-muted-foreground">
-                        Lihat slip gaji
-                      </p>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-foreground">Slip Gaji</p>
+                      <p className="text-xs text-muted-foreground">Lihat slip gaji</p>
                     </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
                   </a>
                   <a
                     href="/schedules"
-                    className="flex items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition-colors hover:bg-muted"
+                    className="flex items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition-all hover:bg-muted hover:border-chart-5/20"
                   >
-                    <div className="rounded-lg bg-purple-500/10 p-2">
-                      <Calendar className="h-4 w-4 text-purple-500" />
+                    <div className="rounded-lg bg-chart-5/10 p-2">
+                      <Calendar className="h-4 w-4 text-chart-5" />
                     </div>
-                    <div>
-                      <p className="text-macos-sm font-medium text-foreground">
-                        Jadwal Saya
-                      </p>
-                      <p className="text-macos-xs text-muted-foreground">
-                        Lihat jadwal kerja
-                      </p>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-foreground">Jadwal Saya</p>
+                      <p className="text-xs text-muted-foreground">Lihat jadwal kerja</p>
                     </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
                   </a>
                 </>
               )}
@@ -513,44 +518,35 @@ export default function DashboardPage() {
           {/* Today's Schedule */}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-macos-base font-semibold">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold">
                 <Calendar className="h-5 w-5 text-primary" />
                 Jadwal Hari Ini
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {today_schedule ? (
-                <div className="rounded-lg bg-muted p-3">
+                <div className="rounded-lg bg-muted/50 p-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-macos-sm font-medium text-foreground">
+                      <p className="text-sm font-medium text-foreground">
                         {today_schedule.shift_name}
                       </p>
-                      <p className="text-macos-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         {today_schedule.start_time} - {today_schedule.end_time}
                       </p>
                     </div>
-                    <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
+                    <Badge className="bg-success/10 text-success border-0">
                       <CheckCircle className="h-3 w-3 mr-1" />
                       Aktif
                     </Badge>
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-4">
-                  <p className="text-macos-sm text-muted-foreground">
-                    Tidak ada jadwal
-                  </p>
+                <div className="rounded-lg bg-muted/50 p-6 text-center">
+                  <Calendar className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Tidak ada jadwal</p>
                 </div>
               )}
-              <div className="text-center text-macos-xs text-muted-foreground">
-                {new Date().toLocaleDateString('id-ID', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </div>
             </CardContent>
           </Card>
 
@@ -558,28 +554,30 @@ export default function DashboardPage() {
           {(isAdmin || isManager) && (
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-macos-base font-semibold">
+                <CardTitle className="flex items-center gap-2 text-base font-semibold">
                   <Briefcase className="h-5 w-5 text-primary" />
                   Per Departemen
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="space-y-3">
                 {summary?.employees.by_department &&
                   Object.entries(summary.employees.by_department)
                     .slice(0, 5)
                     .map(([dept, count]) => (
                       <div
                         key={dept}
-                        className="flex items-center justify-between"
+                        className="flex items-center justify-between rounded-lg bg-muted/30 px-3 py-2"
                       >
-                        <span className="text-macos-sm text-muted-foreground">
-                          {dept}
-                        </span>
-                        <span className="text-macos-sm font-medium text-foreground">
-                          {count}
-                        </span>
+                        <span className="text-sm text-muted-foreground">{dept}</span>
+                        <Badge variant="secondary">{count}</Badge>
                       </div>
                     ))}
+                {(!summary?.employees.by_department ||
+                  Object.keys(summary.employees.by_department).length === 0) && (
+                  <div className="py-4 text-center">
+                    <p className="text-sm text-muted-foreground">Tidak ada data</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -588,28 +586,28 @@ export default function DashboardPage() {
           {isEmployee && (
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-macos-base font-semibold">
+                <CardTitle className="flex items-center gap-2 text-base font-semibold">
                   <Award className="h-5 w-5 text-primary" />
                   Progres Bulan Ini
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Kehadiran</span>
                     <span className="font-medium">22/23 hari</span>
                   </div>
                   <Progress value={95.6} className="h-2" />
                 </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Tepat Waktu</span>
                     <span className="font-medium">21/22 hari</span>
                   </div>
                   <Progress value={95.4} className="h-2" />
                 </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Jam Kerja</span>
                     <span className="font-medium">176/184 jam</span>
                   </div>

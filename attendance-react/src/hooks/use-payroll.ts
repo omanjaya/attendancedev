@@ -1,305 +1,368 @@
-import { useState, useCallback } from 'react';
-import type {
-  PayrollPeriod,
-  PayrollEmployee,
-  PayrollSummary,
-  PayrollStatistics,
-  PayrollStatus,
-} from '@/types/payroll';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  getPayrollPeriods,
+  getPayrollPeriod,
+  createPayrollPeriod,
+  updatePayrollPeriod,
+  deletePayrollPeriod,
+  getPayrollEmployees,
+  getPayrollEmployee,
+  updatePayrollEmployee,
+  calculatePayroll,
+  approvePayroll,
+  rejectPayroll,
+  markPayrollPaid,
+  cancelPayroll,
+  getPayrollSummary,
+  getPayrollStatistics,
+  getPayrollConfig,
+  updatePayrollConfig,
+  type PayrollFilters,
+  type PayrollEmployeeFilters,
+} from '@/lib/api/payroll';
+import type { PayrollCalculateFormData, PayrollConfig } from '@/types/payroll';
+import { useNotificationStore } from '@/stores';
 
-// Mock data
-const mockPayrollPeriods: PayrollPeriod[] = [
-  {
-    id: '1',
-    name: 'Januari 2024',
-    type: 'monthly',
-    start_date: '2024-01-01',
-    end_date: '2024-01-31',
-    pay_date: '2024-02-01',
-    status: 'paid',
-    total_employees: 45,
-    total_gross: 450000000,
-    total_deductions: 67500000,
-    total_net: 382500000,
-    created_at: '2024-01-25T00:00:00',
-    updated_at: '2024-02-01T10:00:00',
-    approved_by: 'Director',
-    approved_at: '2024-01-30T14:00:00',
-  },
-  {
-    id: '2',
-    name: 'Februari 2024',
-    type: 'monthly',
-    start_date: '2024-02-01',
-    end_date: '2024-02-29',
-    pay_date: '2024-03-01',
-    status: 'approved',
-    total_employees: 46,
-    total_gross: 460000000,
-    total_deductions: 69000000,
-    total_net: 391000000,
-    created_at: '2024-02-25T00:00:00',
-    updated_at: '2024-02-28T15:00:00',
-    approved_by: 'Director',
-    approved_at: '2024-02-28T15:00:00',
-  },
-  {
-    id: '3',
-    name: 'Maret 2024',
-    type: 'monthly',
-    start_date: '2024-03-01',
-    end_date: '2024-03-31',
-    pay_date: '2024-04-01',
-    status: 'calculated',
-    total_employees: 46,
-    total_gross: 465000000,
-    total_deductions: 69750000,
-    total_net: 395250000,
-    created_at: '2024-03-25T00:00:00',
-    updated_at: '2024-03-28T10:00:00',
-  },
-  {
-    id: '4',
-    name: 'April 2024',
-    type: 'monthly',
-    start_date: '2024-04-01',
-    end_date: '2024-04-30',
-    pay_date: '2024-05-01',
-    status: 'draft',
-    total_employees: 0,
-    total_gross: 0,
-    total_deductions: 0,
-    total_net: 0,
-    created_at: '2024-03-30T00:00:00',
-    updated_at: '2024-03-30T00:00:00',
-  },
-];
+// Query keys
+export const payrollKeys = {
+  all: ['payroll'] as const,
+  periods: () => [...payrollKeys.all, 'periods'] as const,
+  periodList: (filters: PayrollFilters) => [...payrollKeys.periods(), 'list', filters] as const,
+  periodDetail: (id: string) => [...payrollKeys.periods(), 'detail', id] as const,
+  employees: (periodId: string) => [...payrollKeys.all, 'employees', periodId] as const,
+  employeeList: (filters: PayrollEmployeeFilters) =>
+    [...payrollKeys.employees(filters.period_id), 'list', filters] as const,
+  employeeDetail: (periodId: string, employeeId: string) =>
+    [...payrollKeys.employees(periodId), 'detail', employeeId] as const,
+  summary: (periodId: string) => [...payrollKeys.all, 'summary', periodId] as const,
+  statistics: () => [...payrollKeys.all, 'statistics'] as const,
+  config: () => [...payrollKeys.all, 'config'] as const,
+};
 
-const mockPayrollEmployees: PayrollEmployee[] = [
-  {
-    id: '1',
-    payroll_period_id: '3',
-    employee_id: '1',
-    employee_name: 'Ahmad Rizki',
-    employee_nip: '198501012010011001',
-    department: 'IT',
-    position: 'Senior Developer',
-    working_days: 22,
-    present_days: 21,
-    absent_days: 1,
-    late_days: 2,
-    overtime_hours: 10,
-    base_salary: 15000000,
-    position_allowance: 2000000,
-    transport_allowance: 1000000,
-    meal_allowance: 500000,
-    overtime_pay: 750000,
-    bonus: 0,
-    other_allowances: 0,
-    gross_salary: 19250000,
-    tax: 2887500,
-    bpjs_kesehatan: 192500,
-    bpjs_ketenagakerjaan: 385000,
-    loan_deduction: 0,
-    absence_deduction: 500000,
-    late_deduction: 50000,
-    other_deductions: 0,
-    total_deductions: 4015000,
-    net_salary: 15235000,
-    status: 'calculated',
-    created_at: '2024-03-25T00:00:00',
-    updated_at: '2024-03-28T10:00:00',
-  },
-  {
-    id: '2',
-    payroll_period_id: '3',
-    employee_id: '2',
-    employee_name: 'Siti Nurhaliza',
-    employee_nip: '198702032011012002',
-    department: 'HR',
-    position: 'HR Manager',
-    working_days: 22,
-    present_days: 22,
-    absent_days: 0,
-    late_days: 0,
-    overtime_hours: 5,
-    base_salary: 12000000,
-    position_allowance: 1500000,
-    transport_allowance: 1000000,
-    meal_allowance: 500000,
-    overtime_pay: 375000,
-    bonus: 500000,
-    other_allowances: 0,
-    gross_salary: 15875000,
-    tax: 2381250,
-    bpjs_kesehatan: 158750,
-    bpjs_ketenagakerjaan: 317500,
-    loan_deduction: 0,
-    absence_deduction: 0,
-    late_deduction: 0,
-    other_deductions: 0,
-    total_deductions: 2857500,
-    net_salary: 13017500,
-    status: 'calculated',
-    created_at: '2024-03-25T00:00:00',
-    updated_at: '2024-03-28T10:00:00',
-  },
-];
+// Get payroll periods list
+export function usePayrollPeriods(filters?: PayrollFilters) {
+  return useQuery({
+    queryKey: payrollKeys.periodList(filters || {}),
+    queryFn: () => getPayrollPeriods(filters),
+  });
+}
 
+// Get single payroll period
+export function usePayrollPeriod(id: string) {
+  return useQuery({
+    queryKey: payrollKeys.periodDetail(id),
+    queryFn: () => getPayrollPeriod(id),
+    enabled: !!id,
+  });
+}
+
+// Get employees for a payroll period
+export function usePayrollEmployees(filters: PayrollEmployeeFilters) {
+  return useQuery({
+    queryKey: payrollKeys.employeeList(filters),
+    queryFn: () => getPayrollEmployees(filters),
+    enabled: !!filters.period_id,
+  });
+}
+
+// Get single employee payroll
+export function usePayrollEmployee(periodId: string, employeeId: string) {
+  return useQuery({
+    queryKey: payrollKeys.employeeDetail(periodId, employeeId),
+    queryFn: () => getPayrollEmployee(periodId, employeeId),
+    enabled: !!periodId && !!employeeId,
+  });
+}
+
+// Get payroll summary
+export function usePayrollSummary(periodId: string) {
+  return useQuery({
+    queryKey: payrollKeys.summary(periodId),
+    queryFn: () => getPayrollSummary(periodId),
+    enabled: !!periodId,
+  });
+}
+
+// Get payroll statistics
+export function usePayrollStatistics() {
+  return useQuery({
+    queryKey: payrollKeys.statistics(),
+    queryFn: getPayrollStatistics,
+  });
+}
+
+// Get payroll configuration
+export function usePayrollConfig() {
+  return useQuery({
+    queryKey: payrollKeys.config(),
+    queryFn: getPayrollConfig,
+    staleTime: 1000 * 60 * 30, // Cache for 30 minutes
+  });
+}
+
+// Create payroll period mutation
+export function useCreatePayrollPeriod() {
+  const queryClient = useQueryClient();
+  const { success, error } = useNotificationStore();
+
+  return useMutation({
+    mutationFn: (data: {
+      name: string;
+      type: 'monthly' | 'weekly' | 'biweekly';
+      start_date: string;
+      end_date: string;
+      pay_date: string;
+    }) => createPayrollPeriod(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: payrollKeys.periods() });
+      queryClient.invalidateQueries({ queryKey: payrollKeys.statistics() });
+      success('Berhasil', 'Periode penggajian berhasil dibuat');
+    },
+    onError: (err: Error) => {
+      error('Gagal', err.message || 'Gagal membuat periode penggajian');
+    },
+  });
+}
+
+// Update payroll period mutation
+export function useUpdatePayrollPeriod() {
+  const queryClient = useQueryClient();
+  const { success, error } = useNotificationStore();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: Partial<{ name: string; pay_date: string; notes: string }>;
+    }) => updatePayrollPeriod(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: payrollKeys.periodDetail(id) });
+      queryClient.invalidateQueries({ queryKey: payrollKeys.periods() });
+      success('Berhasil', 'Periode penggajian berhasil diperbarui');
+    },
+    onError: (err: Error) => {
+      error('Gagal', err.message || 'Gagal memperbarui periode penggajian');
+    },
+  });
+}
+
+// Delete payroll period mutation
+export function useDeletePayrollPeriod() {
+  const queryClient = useQueryClient();
+  const { success, error } = useNotificationStore();
+
+  return useMutation({
+    mutationFn: (id: string) => deletePayrollPeriod(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: payrollKeys.periods() });
+      queryClient.invalidateQueries({ queryKey: payrollKeys.statistics() });
+      success('Berhasil', 'Periode penggajian berhasil dihapus');
+    },
+    onError: (err: Error) => {
+      error('Gagal', err.message || 'Gagal menghapus periode penggajian');
+    },
+  });
+}
+
+// Update employee payroll mutation
+export function useUpdatePayrollEmployee() {
+  const queryClient = useQueryClient();
+  const { success, error } = useNotificationStore();
+
+  return useMutation({
+    mutationFn: ({
+      periodId,
+      employeeId,
+      data,
+    }: {
+      periodId: string;
+      employeeId: string;
+      data: Partial<{
+        bonus: number;
+        other_allowances: number;
+        loan_deduction: number;
+        other_deductions: number;
+        notes: string;
+      }>;
+    }) => updatePayrollEmployee(periodId, employeeId, data),
+    onSuccess: (_, { periodId, employeeId }) => {
+      queryClient.invalidateQueries({ queryKey: payrollKeys.employeeDetail(periodId, employeeId) });
+      queryClient.invalidateQueries({ queryKey: payrollKeys.employees(periodId) });
+      queryClient.invalidateQueries({ queryKey: payrollKeys.summary(periodId) });
+      success('Berhasil', 'Data gaji karyawan berhasil diperbarui');
+    },
+    onError: (err: Error) => {
+      error('Gagal', err.message || 'Gagal memperbarui data gaji karyawan');
+    },
+  });
+}
+
+// Calculate payroll mutation
+export function useCalculatePayroll() {
+  const queryClient = useQueryClient();
+  const { success, error } = useNotificationStore();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: PayrollCalculateFormData }) =>
+      calculatePayroll(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: payrollKeys.periodDetail(id) });
+      queryClient.invalidateQueries({ queryKey: payrollKeys.periods() });
+      queryClient.invalidateQueries({ queryKey: payrollKeys.employees(id) });
+      queryClient.invalidateQueries({ queryKey: payrollKeys.summary(id) });
+      success('Berhasil', 'Penggajian berhasil dihitung');
+    },
+    onError: (err: Error) => {
+      error('Gagal', err.message || 'Gagal menghitung penggajian');
+    },
+  });
+}
+
+// Approve payroll mutation
+export function useApprovePayroll() {
+  const queryClient = useQueryClient();
+  const { success, error } = useNotificationStore();
+
+  return useMutation({
+    mutationFn: ({ id, notes }: { id: string; notes?: string }) => approvePayroll(id, notes),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: payrollKeys.periodDetail(id) });
+      queryClient.invalidateQueries({ queryKey: payrollKeys.periods() });
+      queryClient.invalidateQueries({ queryKey: payrollKeys.statistics() });
+      success('Berhasil', 'Penggajian berhasil disetujui');
+    },
+    onError: (err: Error) => {
+      error('Gagal', err.message || 'Gagal menyetujui penggajian');
+    },
+  });
+}
+
+// Reject payroll mutation
+export function useRejectPayroll() {
+  const queryClient = useQueryClient();
+  const { success, error } = useNotificationStore();
+
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => rejectPayroll(id, reason),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: payrollKeys.periodDetail(id) });
+      queryClient.invalidateQueries({ queryKey: payrollKeys.periods() });
+      success('Berhasil', 'Penggajian berhasil ditolak');
+    },
+    onError: (err: Error) => {
+      error('Gagal', err.message || 'Gagal menolak penggajian');
+    },
+  });
+}
+
+// Mark payroll as paid mutation
+export function useMarkPayrollPaid() {
+  const queryClient = useQueryClient();
+  const { success, error } = useNotificationStore();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: { payment_date: string; payment_method: string; notes?: string };
+    }) => markPayrollPaid(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: payrollKeys.periodDetail(id) });
+      queryClient.invalidateQueries({ queryKey: payrollKeys.periods() });
+      queryClient.invalidateQueries({ queryKey: payrollKeys.employees(id) });
+      queryClient.invalidateQueries({ queryKey: payrollKeys.statistics() });
+      success('Berhasil', 'Penggajian berhasil ditandai sebagai dibayar');
+    },
+    onError: (err: Error) => {
+      error('Gagal', err.message || 'Gagal menandai penggajian sebagai dibayar');
+    },
+  });
+}
+
+// Cancel payroll mutation
+export function useCancelPayroll() {
+  const queryClient = useQueryClient();
+  const { success, error } = useNotificationStore();
+
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => cancelPayroll(id, reason),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: payrollKeys.periodDetail(id) });
+      queryClient.invalidateQueries({ queryKey: payrollKeys.periods() });
+      queryClient.invalidateQueries({ queryKey: payrollKeys.statistics() });
+      success('Berhasil', 'Penggajian berhasil dibatalkan');
+    },
+    onError: (err: Error) => {
+      error('Gagal', err.message || 'Gagal membatalkan penggajian');
+    },
+  });
+}
+
+// Update payroll config mutation
+export function useUpdatePayrollConfig() {
+  const queryClient = useQueryClient();
+  const { success, error } = useNotificationStore();
+
+  return useMutation({
+    mutationFn: (data: Partial<PayrollConfig>) => updatePayrollConfig(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: payrollKeys.config() });
+      success('Berhasil', 'Konfigurasi penggajian berhasil diperbarui');
+    },
+    onError: (err: Error) => {
+      error('Gagal', err.message || 'Gagal memperbarui konfigurasi penggajian');
+    },
+  });
+}
+
+// Legacy hook for backward compatibility with existing pages
 export function usePayroll() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [payrollPeriods, setPayrollPeriods] = useState<PayrollPeriod[]>(mockPayrollPeriods);
-  const [payrollEmployees, setPayrollEmployees] = useState<PayrollEmployee[]>(mockPayrollEmployees);
-  const [selectedPeriod, setSelectedPeriod] = useState<PayrollPeriod | null>(null);
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
 
-  // Fetch payroll periods
-  const fetchPayrollPeriods = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setPayrollPeriods(mockPayrollPeriods);
-    } catch (err) {
-      setError('Gagal memuat data payroll');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const periodsQuery = usePayrollPeriods({ year: currentYear });
+  const statisticsQuery = usePayrollStatistics();
 
-  // Fetch employees for a period
-  const fetchPayrollEmployees = useCallback(async (periodId: string) => {
-    setIsLoading(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      const filtered = mockPayrollEmployees.filter((e) => e.payroll_period_id === periodId);
-      setPayrollEmployees(filtered);
-      setSelectedPeriod(payrollPeriods.find((p) => p.id === periodId) || null);
-    } catch (err) {
-      setError('Gagal memuat data karyawan');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [payrollPeriods]);
+  // Get the current/latest period
+  const periods = periodsQuery.data?.data ?? [];
+  const currentPeriod = periods.find(
+    (p) =>
+      new Date(p.start_date).getMonth() + 1 === currentMonth &&
+      new Date(p.start_date).getFullYear() === currentYear
+  ) || periods[0];
 
-  // Calculate payroll
-  const calculatePayroll = useCallback(async (periodId: string) => {
-    setIsLoading(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setPayrollPeriods((prev) =>
-        prev.map((p) =>
-          p.id === periodId
-            ? { ...p, status: 'calculated' as PayrollStatus, updated_at: new Date().toISOString() }
-            : p
-        )
-      );
-    } catch (err) {
-      setError('Gagal menghitung payroll');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const employeesQuery = usePayrollEmployees({
+    period_id: currentPeriod?.id ?? '',
+  });
 
-  // Approve payroll
-  const approvePayroll = useCallback(async (periodId: string) => {
-    setIsLoading(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setPayrollPeriods((prev) =>
-        prev.map((p) =>
-          p.id === periodId
-            ? {
-                ...p,
-                status: 'approved' as PayrollStatus,
-                approved_by: 'Current User',
-                approved_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              }
-            : p
-        )
-      );
-    } catch (err) {
-      setError('Gagal menyetujui payroll');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Mark as paid
-  const markAsPaid = useCallback(async (periodId: string) => {
-    setIsLoading(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setPayrollPeriods((prev) =>
-        prev.map((p) =>
-          p.id === periodId
-            ? { ...p, status: 'paid' as PayrollStatus, updated_at: new Date().toISOString() }
-            : p
-        )
-      );
-    } catch (err) {
-      setError('Gagal mengupdate status pembayaran');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Get summary
-  const getSummary = useCallback(async (periodId: string): Promise<PayrollSummary> => {
-    const period = payrollPeriods.find((p) => p.id === periodId);
-    const employees = mockPayrollEmployees.filter((e) => e.payroll_period_id === periodId);
-
-    return {
-      total_employees: period?.total_employees || employees.length,
-      total_gross_salary: period?.total_gross || employees.reduce((sum, e) => sum + e.gross_salary, 0),
-      total_deductions: period?.total_deductions || employees.reduce((sum, e) => sum + e.total_deductions, 0),
-      total_net_salary: period?.total_net || employees.reduce((sum, e) => sum + e.net_salary, 0),
-      average_salary: employees.length > 0 ? employees.reduce((sum, e) => sum + e.net_salary, 0) / employees.length : 0,
-      highest_salary: Math.max(...employees.map((e) => e.net_salary), 0),
-      lowest_salary: Math.min(...employees.map((e) => e.net_salary), 0),
-      total_overtime_pay: employees.reduce((sum, e) => sum + e.overtime_pay, 0),
-      total_bonus: employees.reduce((sum, e) => sum + e.bonus, 0),
-      total_tax: employees.reduce((sum, e) => sum + e.tax, 0),
-      total_bpjs: employees.reduce((sum, e) => sum + e.bpjs_kesehatan + e.bpjs_ketenagakerjaan, 0),
-    };
-  }, [payrollPeriods]);
-
-  // Get statistics
-  const getStatistics = useCallback(async (): Promise<PayrollStatistics> => {
-    const paidPeriods = payrollPeriods.filter((p) => p.status === 'paid');
-    const totalPaid = paidPeriods.reduce((sum, p) => sum + p.total_net, 0);
-
-    return {
-      total_payrolls_this_year: paidPeriods.length,
-      total_paid_this_year: totalPaid,
-      average_monthly_payroll: paidPeriods.length > 0 ? totalPaid / paidPeriods.length : 0,
-      pending_approvals: payrollPeriods.filter((p) => p.status === 'calculated').length,
-      upcoming_pay_date: payrollPeriods.find((p) => p.status === 'approved')?.pay_date,
-      year_to_date_tax: 15000000,
-      year_to_date_bpjs: 5000000,
-    };
-  }, [payrollPeriods]);
+  const summaryQuery = usePayrollSummary(currentPeriod?.id ?? '');
 
   return {
-    // State
-    isLoading,
-    error,
-    payrollPeriods,
-    payrollEmployees,
-    selectedPeriod,
+    // Data
+    payrollPeriods: periods,
+    payrollEmployees: employeesQuery.data?.data ?? [],
+    selectedPeriod: currentPeriod,
+    summary: summaryQuery.data,
+    statistics: statisticsQuery.data,
 
-    // Actions
-    fetchPayrollPeriods,
-    fetchPayrollEmployees,
-    calculatePayroll,
-    approvePayroll,
-    markAsPaid,
-    getSummary,
-    getStatistics,
-    clearError: () => setError(null),
+    // Loading states
+    isLoading: periodsQuery.isLoading || statisticsQuery.isLoading,
+    isLoadingEmployees: employeesQuery.isLoading,
+    isLoadingSummary: summaryQuery.isLoading,
+
+    // Errors
+    error: periodsQuery.error?.message || statisticsQuery.error?.message || null,
+
+    // Refetch functions
+    fetchPayrollPeriods: periodsQuery.refetch,
+    fetchPayrollEmployees: employeesQuery.refetch,
+    refetchSummary: summaryQuery.refetch,
+
+    // Clear error (no-op for React Query, handled automatically)
+    clearError: () => {},
   };
 }

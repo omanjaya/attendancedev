@@ -305,16 +305,16 @@ export function FaceEnrollmentWizard({
                 key={step.step}
                 className={cn(
                   'flex flex-col items-center gap-1',
-                  isCompleted && 'text-green-600',
-                  isCurrent && !isCompleted && 'text-blue-600',
+                  isCompleted && 'text-success',
+                  isCurrent && !isCompleted && 'text-primary',
                   !isCompleted && !isCurrent && 'text-muted-foreground'
                 )}
               >
                 <div
                   className={cn(
                     'w-10 h-10 rounded-full flex items-center justify-center border-2',
-                    isCompleted && 'bg-green-100 border-green-600',
-                    isCurrent && !isCompleted && 'bg-blue-100 border-blue-600',
+                    isCompleted && 'bg-success/10 border-success',
+                    isCurrent && !isCompleted && 'bg-primary/10 border-primary',
                     !isCompleted && !isCurrent && 'bg-muted border-muted-foreground/30'
                   )}
                 >
@@ -391,9 +391,9 @@ export function FaceEnrollmentWizard({
             <div
               className={cn(
                 'absolute top-4 left-4 px-3 py-1 rounded-full text-sm font-medium',
-                detectionStatus === 'detected' && 'bg-green-500 text-white',
-                detectionStatus === 'none' && 'bg-red-500 text-white',
-                detectionStatus === 'detecting' && 'bg-yellow-500 text-white'
+                detectionStatus === 'detected' && 'bg-success text-success-foreground',
+                detectionStatus === 'none' && 'bg-destructive text-destructive-foreground',
+                detectionStatus === 'detecting' && 'bg-warning text-warning-foreground'
               )}
             >
               {detectionStatus === 'detected' && 'Wajah Terdeteksi'}
@@ -416,10 +416,10 @@ export function FaceEnrollmentWizard({
         {/* Completed State */}
         {state === 'completed' && (
           <div className="text-center py-8">
-            <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-              <Check className="h-10 w-10 text-green-600" />
+            <div className="w-20 h-20 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-4">
+              <Check className="h-10 w-10 text-success" />
             </div>
-            <h3 className="text-lg font-semibold text-green-600 mb-2">Pendaftaran Berhasil!</h3>
+            <h3 className="text-lg font-semibold text-success mb-2">Pendaftaran Berhasil!</h3>
             <p className="text-muted-foreground">
               Wajah {employeeName} telah berhasil didaftarkan dalam sistem.
             </p>
@@ -428,16 +428,16 @@ export function FaceEnrollmentWizard({
 
         {/* Current Step Instruction */}
         {state === 'ready' && currentStep && (
-          <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-lg p-4">
             <div className="flex items-center gap-3">
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                 {currentStep.icon}
               </div>
               <div>
-                <h4 className="font-medium text-blue-800 dark:text-blue-200">
+                <h4 className="font-medium text-primary">
                   Langkah {currentStepIndex + 1}: {currentStep.label}
                 </h4>
-                <p className="text-sm text-blue-600 dark:text-blue-400">
+                <p className="text-sm text-primary/80">
                   {currentStep.instruction}
                 </p>
               </div>

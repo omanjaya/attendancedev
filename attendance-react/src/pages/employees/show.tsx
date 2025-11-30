@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from '@tanstack/react-router';
+import { Link, useParams, useNavigate } from '@tanstack/react-router';
 import {
   ArrowLeft,
   ArrowRight,
@@ -12,9 +12,12 @@ import {
   MapPin,
   Edit,
   Trash2,
-  CheckCircle,
   Camera,
   Shield,
+  AlertCircle,
+  RefreshCw,
+  Loader2,
+  CheckCircle,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -32,26 +35,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useEmployee, useDeleteEmployee } from '@/hooks';
 
-// Mock employee data
-const mockEmployee = {
-  id: 1,
-  nip: 'EMP2022001',
-  name: 'Ahmad Fauzi',
-  email: 'ahmad.fauzi@example.com',
-  phone: '081234567890',
-  department: 'IT & Development',
-  position: 'Senior Developer',
-  join_date: '2022-01-15',
-  address: 'Jl. Sudirman No. 123, Jakarta Selatan',
-  status: 'active',
-  face_enrolled: true,
-  attendance_rate: 95.6,
-  total_present: 22,
-  total_late: 2,
-  total_leave: 3,
-};
-
+// Mock attendance data (TODO: integrate with attendance API)
 const recentAttendance = [
   { date: '2024-11-28', check_in: '08:15', check_out: '17:30', status: 'present' },
   { date: '2024-11-27', check_in: '08:45', check_out: '17:00', status: 'late' },
@@ -60,31 +48,130 @@ const recentAttendance = [
   { date: '2024-11-24', check_in: '-', check_out: '-', status: 'leave' },
 ];
 
-// Stats data for Stats8 style
-const stats = [
-  { id: 'stat-1', value: `${mockEmployee.attendance_rate}%`, label: 'tingkat kehadiran bulan ini' },
-  { id: 'stat-2', value: `${mockEmployee.total_present}`, label: 'hari hadir dalam bulan ini' },
-  { id: 'stat-3', value: `${mockEmployee.total_late}`, label: 'kali terlambat bulan ini' },
-  { id: 'stat-4', value: `${mockEmployee.total_leave}`, label: 'hari cuti digunakan' },
-];
+// Loading skeleton
+function ShowLoadingSkeleton() {
+  return (
+    <section className="py-16">
+      <div className="container">
+        <Skeleton className="h-4 w-48 mb-8" />
+        <div className="flex flex-col md:flex-row md:items-start gap-8 mb-16">
+          <Skeleton className="h-28 w-28 rounded-full" />
+          <div className="flex-1 space-y-4">
+            <Skeleton className="h-10 w-64" />
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-32" />
+            <div className="flex gap-3 mt-4">
+              <Skeleton className="h-10 w-32" />
+              <Skeleton className="h-10 w-24" />
+            </div>
+          </div>
+        </div>
+        <div className="mb-16">
+          <Skeleton className="h-8 w-48 mb-4" />
+          <div className="grid gap-x-5 gap-y-8 md:grid-cols-2 lg:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex flex-col gap-4">
+                <Skeleton className="h-16 w-24" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export default function EmployeeShowPage() {
+  const { id } = useParams({ strict: false }) as { id: string };
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
-  const employee = mockEmployee;
-  const id = '1';
+
+  // Fetch employee data
+  const {
+    data: employee,
+    isLoading,
+    error,
+    refetch,
+  } = useEmployee(Number(id));
+
+  // Delete mutation
+  const deleteEmployeeMutation = useDeleteEmployee();
+
+  const handleDelete = async () => {
+    try {
+      await deleteEmployeeMutation.mutateAsync(Number(id));
+      navigate({ to: '/employees' });
+    } catch {
+      // Error handled by mutation
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'present':
-        return <Badge variant="outline">Hadir</Badge>;
+        return <Badge variant="outline" className="border-success/50 text-success">Hadir</Badge>;
       case 'late':
-        return <Badge variant="outline" className="border-amber-500 text-amber-600">Terlambat</Badge>;
+        return <Badge variant="outline" className="border-warning/50 text-warning">Terlambat</Badge>;
       case 'leave':
-        return <Badge variant="outline" className="border-blue-500 text-blue-600">Cuti</Badge>;
+        return <Badge variant="outline" className="border-info/50 text-info">Cuti</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
   };
+
+  // Show loading state
+  if (isLoading) {
+    return <ShowLoadingSkeleton />;
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <section className="py-16">
+        <div className="container">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              Gagal memuat data karyawan. {error.message}
+            </AlertDescription>
+          </Alert>
+          <Button onClick={() => refetch()} className="mt-4">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Coba Lagi
+          </Button>
+        </div>
+      </section>
+    );
+  }
+
+  if (!employee) {
+    return (
+      <section className="py-16">
+        <div className="container">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Tidak Ditemukan</AlertTitle>
+            <AlertDescription>
+              Karyawan dengan ID {id} tidak ditemukan.
+            </AlertDescription>
+          </Alert>
+          <Button asChild className="mt-4">
+            <Link to="/employees">Kembali ke Daftar</Link>
+          </Button>
+        </div>
+      </section>
+    );
+  }
+
+  // Stats data for Stats8 style
+  const stats = [
+    { id: 'stat-1', value: '95.6%', label: 'tingkat kehadiran bulan ini' },
+    { id: 'stat-2', value: '22', label: 'hari hadir dalam bulan ini' },
+    { id: 'stat-3', value: '2', label: 'kali terlambat bulan ini' },
+    { id: 'stat-4', value: '3', label: 'hari cuti digunakan' },
+  ];
 
   return (
     <section className="py-16">
@@ -101,7 +188,7 @@ export default function EmployeeShowPage() {
         {/* Profile Header - shadcnblocks style */}
         <div className="flex flex-col md:flex-row md:items-start gap-8 mb-16">
           <Avatar className="h-28 w-28 border-4 border-background shadow-lg">
-            <AvatarImage src="" />
+            <AvatarImage src={employee.avatar} />
             <AvatarFallback className="text-3xl">
               {employee.name.split(' ').map(n => n[0]).join('')}
             </AvatarFallback>
@@ -114,7 +201,7 @@ export default function EmployeeShowPage() {
                 <Badge variant={employee.status === 'active' ? 'default' : 'secondary'}>
                   {employee.status === 'active' ? 'Aktif' : 'Tidak Aktif'}
                 </Badge>
-                {employee.face_enrolled && (
+                {employee.face_registered && (
                   <Badge variant="outline">
                     <Camera className="h-3 w-3 mr-1" />
                     Face Enrolled
@@ -122,15 +209,15 @@ export default function EmployeeShowPage() {
                 )}
               </div>
               <p className="text-xl text-muted-foreground">{employee.position}</p>
-              <p className="text-muted-foreground">{employee.department} • {employee.nip}</p>
+              <p className="text-muted-foreground">{employee.department} • {employee.employee_id}</p>
             </div>
 
             <div className="flex gap-3">
               <Button variant="outline" asChild>
-                <a href={`/employees/${id}/edit`}>
+                <Link to="/employees/$id/edit" params={{ id }}>
                   <Edit className="h-4 w-4 mr-2" />
                   Edit Profil
-                </a>
+                </Link>
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -148,8 +235,16 @@ export default function EmployeeShowPage() {
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Batal</AlertDialogCancel>
-                    <AlertDialogAction className="bg-destructive text-destructive-foreground">
-                      Hapus
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      className="bg-destructive text-destructive-foreground"
+                      disabled={deleteEmployeeMutation.isPending}
+                    >
+                      {deleteEmployeeMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        'Hapus'
+                      )}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -209,14 +304,14 @@ export default function EmployeeShowPage() {
                     <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
                     <div>
                       <p className="text-sm text-muted-foreground">Telepon</p>
-                      <p>{employee.phone}</p>
+                      <p>{employee.phone || '-'}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
                     <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
                     <div>
                       <p className="text-sm text-muted-foreground">Alamat</p>
-                      <p>{employee.address}</p>
+                      <p>{employee.address || '-'}</p>
                     </div>
                   </div>
                 </div>
@@ -310,19 +405,23 @@ export default function EmployeeShowPage() {
                   <div>
                     <p className="font-medium">Face Recognition</p>
                     <p className="text-sm text-muted-foreground">
-                      {employee.face_enrolled
+                      {employee.face_registered
                         ? 'Wajah sudah terdaftar untuk absensi'
                         : 'Wajah belum didaftarkan'}
                     </p>
                   </div>
                 </div>
-                {employee.face_enrolled ? (
-                  <Badge variant="outline" className="border-green-500 text-green-600">
+                {employee.face_registered ? (
+                  <Badge variant="outline" className="border-success/50 text-success">
                     <CheckCircle className="h-3 w-3 mr-1" />
                     Terdaftar
                   </Badge>
                 ) : (
-                  <Button>Daftarkan Wajah</Button>
+                  <Button asChild>
+                    <Link to="/employees/$id/edit" params={{ id }}>
+                      Daftarkan Wajah
+                    </Link>
+                  </Button>
                 )}
               </div>
             </div>

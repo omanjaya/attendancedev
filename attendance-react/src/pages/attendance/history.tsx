@@ -32,79 +32,47 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-
-// Mock data
-const mockAttendanceData = [
-  {
-    id: 1,
-    date: '2024-11-28',
-    employee_name: 'Ahmad Fauzi',
-    employee_id: 'EMP001',
-    check_in: '08:15',
-    check_out: '17:30',
-    total_hours: '9h 15m',
-    status: 'present',
-  },
-  {
-    id: 2,
-    date: '2024-11-27',
-    employee_name: 'Ahmad Fauzi',
-    employee_id: 'EMP001',
-    check_in: '08:45',
-    check_out: '17:00',
-    total_hours: '8h 15m',
-    status: 'late',
-  },
-  {
-    id: 3,
-    date: '2024-11-26',
-    employee_name: 'Ahmad Fauzi',
-    employee_id: 'EMP001',
-    check_in: '08:00',
-    check_out: '16:00',
-    total_hours: '8h 0m',
-    status: 'early_departure',
-  },
-  {
-    id: 4,
-    date: '2024-11-25',
-    employee_name: 'Ahmad Fauzi',
-    employee_id: 'EMP001',
-    check_in: '-',
-    check_out: '-',
-    total_hours: '-',
-    status: 'absent',
-  },
-  {
-    id: 5,
-    date: '2024-11-24',
-    employee_name: 'Ahmad Fauzi',
-    employee_id: 'EMP001',
-    check_in: '07:55',
-    check_out: '17:15',
-    total_hours: '9h 20m',
-    status: 'present',
-  },
-];
-
-const stats = {
-  present: 22,
-  late: 3,
-  totalHours: 176,
-  attendanceRate: 95.6,
-};
+import { Skeleton } from '@/components/ui/skeleton';
+import { useAttendance, useAttendanceStatistics } from '@/hooks';
+import type { AttendanceFilters, AttendanceStatus } from '@/types';
 
 const statusConfig = {
   present: { label: 'Hadir', color: 'bg-success/10 text-success', icon: CheckCircle },
   late: { label: 'Terlambat', color: 'bg-warning/10 text-warning', icon: Clock },
   absent: { label: 'Tidak Hadir', color: 'bg-destructive/10 text-destructive', icon: XCircle },
-  early_departure: { label: 'Pulang Awal', color: 'bg-orange-100 text-orange-600', icon: AlertTriangle },
+  early_departure: { label: 'Pulang Awal', color: 'bg-warning/10 text-warning', icon: AlertTriangle },
 };
 
 export default function AttendanceHistoryPage() {
   const [viewMode, setViewMode] = useState<'table' | 'calendar'>('table');
   const [filterOpen, setFilterOpen] = useState(false);
   const [currentFilter, setCurrentFilter] = useState('month');
+  const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
+  // API hooks
+  const filters: AttendanceFilters = {
+    status: statusFilter !== 'all' ? statusFilter as AttendanceStatus : undefined,
+    date_from: dateFrom || undefined,
+    date_to: dateTo || undefined,
+    page,
+    per_page: 10,
+  };
+  const { data: attendanceData, isLoading, refetch } = useAttendance(filters);
+  const { data: statistics, isLoading: isLoadingStats } = useAttendanceStatistics();
+
+  // Stats from API
+  const stats = {
+    present: statistics?.present || 0,
+    late: statistics?.late || 0,
+    totalHours: 0, // Not available in API, would need calculation
+    attendanceRate: statistics?.attendance_rate || 0,
+  };
+
+  const attendanceRecords = attendanceData?.data || [];
+  const totalPages = attendanceData?.meta?.last_page || 1;
 
   const getStatusBadge = (status: string) => {
     const config = statusConfig[status as keyof typeof statusConfig];
@@ -161,16 +129,16 @@ export default function AttendanceHistoryPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Tanggal Mulai</label>
-                    <Input type="date" />
+                    <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Tanggal Selesai</label>
-                    <Input type="date" />
+                    <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Status</label>
-                  <Select>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger>
                       <SelectValue placeholder="Semua Status" />
                     </SelectTrigger>
@@ -179,13 +147,18 @@ export default function AttendanceHistoryPage() {
                       <SelectItem value="present">Hadir</SelectItem>
                       <SelectItem value="late">Terlambat</SelectItem>
                       <SelectItem value="absent">Tidak Hadir</SelectItem>
-                      <SelectItem value="early_departure">Pulang Awal</SelectItem>
+                      <SelectItem value="leave">Cuti</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setFilterOpen(false)}>
-                    Batal
+                  <Button variant="outline" onClick={() => {
+                    setDateFrom('');
+                    setDateTo('');
+                    setStatusFilter('all');
+                    setFilterOpen(false);
+                  }}>
+                    Reset
                   </Button>
                   <Button onClick={() => setFilterOpen(false)}>Terapkan Filter</Button>
                 </div>
@@ -209,7 +182,11 @@ export default function AttendanceHistoryPage() {
                 Hadir
               </Badge>
             </div>
-            <p className="text-2xl font-bold">{stats.present}</p>
+            {isLoadingStats ? (
+              <Skeleton className="h-8 w-12" />
+            ) : (
+              <p className="text-2xl font-bold">{stats.present}</p>
+            )}
             <p className="text-xs text-muted-foreground">Hari Hadir</p>
           </CardContent>
         </Card>
@@ -222,7 +199,11 @@ export default function AttendanceHistoryPage() {
                 Telat
               </Badge>
             </div>
-            <p className="text-2xl font-bold">{stats.late}</p>
+            {isLoadingStats ? (
+              <Skeleton className="h-8 w-12" />
+            ) : (
+              <p className="text-2xl font-bold">{stats.late}</p>
+            )}
             <p className="text-xs text-muted-foreground">Terlambat</p>
           </CardContent>
         </Card>
@@ -235,7 +216,11 @@ export default function AttendanceHistoryPage() {
                 Jam
               </Badge>
             </div>
-            <p className="text-2xl font-bold">{stats.totalHours}h</p>
+            {isLoadingStats ? (
+              <Skeleton className="h-8 w-12" />
+            ) : (
+              <p className="text-2xl font-bold">{stats.totalHours}h</p>
+            )}
             <p className="text-xs text-muted-foreground">Total Jam</p>
           </CardContent>
         </Card>
@@ -243,12 +228,16 @@ export default function AttendanceHistoryPage() {
         <Card className="bg-accent/50 border-none">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <CheckCircle className="h-5 w-5 text-purple-500" />
-              <Badge variant="outline" className="bg-purple-100 text-purple-600 text-xs">
+              <CheckCircle className="h-5 w-5 text-chart-5" />
+              <Badge variant="outline" className="bg-chart-5/10 text-chart-5 text-xs">
                 Rate
               </Badge>
             </div>
-            <p className="text-2xl font-bold">{stats.attendanceRate}%</p>
+            {isLoadingStats ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <p className="text-2xl font-bold">{stats.attendanceRate}%</p>
+            )}
             <p className="text-xs text-muted-foreground">Kehadiran</p>
           </CardContent>
         </Card>
@@ -266,8 +255,8 @@ export default function AttendanceHistoryPage() {
                   Riwayat lengkap check-in dan check-out
                 </p>
               </div>
-              <Button variant="ghost" size="icon">
-                <RefreshCw className="h-4 w-4" />
+              <Button variant="ghost" size="icon" onClick={() => refetch()} disabled={isLoading}>
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
               </Button>
             </CardHeader>
             <CardContent>
@@ -285,7 +274,7 @@ export default function AttendanceHistoryPage() {
                         Check Out
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                        Total Jam
+                        Jam Kerja
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
                         Status
@@ -293,21 +282,39 @@ export default function AttendanceHistoryPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {mockAttendanceData.map((record) => (
-                      <tr key={record.id} className="border-b last:border-0 hover:bg-muted/50">
-                        <td className="px-4 py-3 text-sm">
-                          {new Date(record.date).toLocaleDateString('id-ID', {
-                            weekday: 'short',
-                            day: 'numeric',
-                            month: 'short',
-                          })}
+                    {isLoading ? (
+                      Array.from({ length: 5 }).map((_, i) => (
+                        <tr key={i} className="border-b last:border-0">
+                          <td className="px-4 py-3"><Skeleton className="h-4 w-24" /></td>
+                          <td className="px-4 py-3"><Skeleton className="h-4 w-16" /></td>
+                          <td className="px-4 py-3"><Skeleton className="h-4 w-16" /></td>
+                          <td className="px-4 py-3"><Skeleton className="h-4 w-16" /></td>
+                          <td className="px-4 py-3"><Skeleton className="h-6 w-20" /></td>
+                        </tr>
+                      ))
+                    ) : attendanceRecords.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                          Tidak ada data kehadiran
                         </td>
-                        <td className="px-4 py-3 text-sm font-mono">{record.check_in}</td>
-                        <td className="px-4 py-3 text-sm font-mono">{record.check_out}</td>
-                        <td className="px-4 py-3 text-sm">{record.total_hours}</td>
-                        <td className="px-4 py-3">{getStatusBadge(record.status)}</td>
                       </tr>
-                    ))}
+                    ) : (
+                      attendanceRecords.map((record) => (
+                        <tr key={record.id} className="border-b last:border-0 hover:bg-muted/50">
+                          <td className="px-4 py-3 text-sm">
+                            {new Date(record.date).toLocaleDateString('id-ID', {
+                              weekday: 'short',
+                              day: 'numeric',
+                              month: 'short',
+                            })}
+                          </td>
+                          <td className="px-4 py-3 text-sm font-mono">{record.check_in || '-'}</td>
+                          <td className="px-4 py-3 text-sm font-mono">{record.check_out || '-'}</td>
+                          <td className="px-4 py-3 text-sm">{record.work_hours ? `${record.work_hours.toFixed(1)}h` : '-'}</td>
+                          <td className="px-4 py-3">{getStatusBadge(record.status)}</td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -315,13 +322,23 @@ export default function AttendanceHistoryPage() {
               {/* Pagination */}
               <div className="flex items-center justify-between pt-4">
                 <p className="text-sm text-muted-foreground">
-                  Menampilkan 1-5 dari 30 data
+                  Halaman {page} dari {totalPages}
                 </p>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="icon" disabled>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={page <= 1}
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                  >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="icon">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={page >= totalPages}
+                    onClick={() => setPage(p => p + 1)}
+                  >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
@@ -383,7 +400,7 @@ export default function AttendanceHistoryPage() {
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Calendar className="h-5 w-5 text-purple-500" />
+                  <Calendar className="h-5 w-5 text-chart-5" />
                   <div>
                     <p className="font-medium text-sm">Bulan Ini</p>
                     <p className="text-xs text-muted-foreground">November 2024</p>

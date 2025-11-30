@@ -2,24 +2,21 @@ import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import {
   ArrowLeft,
-  Users,
+  ArrowRight,
   UserPlus,
   Key,
   Download,
   Search,
   CheckCircle,
-  AlertCircle,
   Loader2,
   RefreshCw,
   Copy,
 } from 'lucide-react';
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table,
@@ -70,6 +67,14 @@ interface CreatedUser {
   role: string;
 }
 
+// Stats data for shadcnblocks Stats8 style
+const stats = [
+  { id: 'stat-1', value: `${mockStats.total_employees}`, label: 'total karyawan terdaftar' },
+  { id: 'stat-2', value: `${mockStats.with_users}`, label: 'sudah memiliki akun user' },
+  { id: 'stat-3', value: `${mockStats.without_users}`, label: 'belum memiliki akun user' },
+  { id: 'stat-4', value: `${mockStats.percentage_with_users}%`, label: 'tingkat kelengkapan akun' },
+];
+
 export default function EmployeeCredentialsPage() {
   const { success, error: showError } = useNotificationStore();
   const [activeTab, setActiveTab] = useState('create-users');
@@ -112,10 +117,8 @@ export default function EmployeeCredentialsPage() {
   const handleCreateUsers = async (employeeIds: number[]) => {
     setIsLoading(true);
     try {
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      // Generate mock passwords
       const results: CreatedUser[] = employeeIds.map(id => {
         const emp = mockEmployeesWithoutUsers.find(e => e.id === id);
         return {
@@ -130,7 +133,7 @@ export default function EmployeeCredentialsPage() {
       setShowResultsDialog(true);
       setSelectedWithoutUsers([]);
       success('Berhasil', `${results.length} user berhasil dibuat`);
-    } catch (err) {
+    } catch {
       showError('Error', 'Gagal membuat user');
     } finally {
       setIsLoading(false);
@@ -157,7 +160,7 @@ export default function EmployeeCredentialsPage() {
       setShowResultsDialog(true);
       setSelectedWithUsers([]);
       success('Berhasil', `Password ${results.length} user berhasil direset`);
-    } catch (err) {
+    } catch {
       showError('Error', 'Gagal reset password');
     } finally {
       setIsLoading(false);
@@ -187,131 +190,96 @@ export default function EmployeeCredentialsPage() {
   };
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-6">
+    <section className="py-16">
+      <div className="container">
+        {/* Back Link */}
         <Link
           to="/employees"
-          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
+          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-8"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Kembali ke daftar karyawan
         </Link>
-        <h1 className="text-2xl font-bold text-foreground">Manajemen User & Password</h1>
-        <p className="text-sm text-muted-foreground">
-          Kelola akun user untuk guru dan karyawan
-        </p>
-      </div>
 
-      {/* Statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Users className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{mockStats.total_employees}</p>
-                <p className="text-xs text-muted-foreground">Total Karyawan</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Header - shadcnblocks Stats8 style */}
+        <div className="mb-16">
+          <div className="flex flex-col gap-4 mb-10">
+            <h1 className="text-4xl font-bold md:text-5xl">Manajemen User & Password</h1>
+            <p className="text-lg text-muted-foreground">Kelola akun user untuk guru dan karyawan</p>
+            <a
+              href="/employees"
+              className="flex items-center gap-1 font-bold hover:underline w-fit"
+            >
+              Lihat daftar karyawan
+              <ArrowRight className="h-auto w-4" />
+            </a>
+          </div>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-success/10">
-                <CheckCircle className="h-5 w-5 text-success" />
+          {/* Stats Grid - shadcnblocks Stats8 style */}
+          <div className="grid gap-x-5 gap-y-8 md:grid-cols-2 lg:grid-cols-4">
+            {stats.map((stat) => (
+              <div key={stat.id} className="flex flex-col gap-4">
+                <div className="text-5xl font-bold md:text-6xl">{stat.value}</div>
+                <p className="text-muted-foreground">{stat.label}</p>
               </div>
-              <div>
-                <p className="text-2xl font-bold">{mockStats.with_users}</p>
-                <p className="text-xs text-muted-foreground">Sudah Punya User</p>
+            ))}
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-8">
+            <TabsTrigger value="create-users" className="gap-2">
+              <UserPlus className="h-4 w-4" />
+              Buat User Baru
+              <Badge variant="destructive" className="ml-1">{mockStats.without_users}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="reset-passwords" className="gap-2">
+              <Key className="h-4 w-4" />
+              Reset Password
+              <Badge variant="secondary" className="ml-1">{mockStats.with_users}</Badge>
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Create Users Tab */}
+          <TabsContent value="create-users">
+            <div className="border-border bg-background rounded-xl border shadow-sm overflow-hidden">
+              <div className="p-6 border-b">
+                <h3 className="text-lg font-semibold">Karyawan Tanpa Akun User</h3>
+                <p className="text-sm text-muted-foreground">Pilih karyawan untuk dibuatkan akun user dan password</p>
               </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-destructive/10">
-                <AlertCircle className="h-5 w-5 text-destructive" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{mockStats.without_users}</p>
-                <p className="text-xs text-muted-foreground">Belum Punya User</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div>
-              <p className="text-2xl font-bold">{mockStats.percentage_with_users}%</p>
-              <p className="text-xs text-muted-foreground mb-2">Progress</p>
-              <Progress value={mockStats.percentage_with_users} className="h-2" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-4">
-          <TabsTrigger value="create-users" className="gap-2">
-            <UserPlus className="h-4 w-4" />
-            Buat User Baru
-            <Badge variant="destructive" className="ml-1">{mockStats.without_users}</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="reset-passwords" className="gap-2">
-            <Key className="h-4 w-4" />
-            Reset Password
-            <Badge variant="secondary" className="ml-1">{mockStats.with_users}</Badge>
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Create Users Tab */}
-        <TabsContent value="create-users">
-          <Card>
-            <CardHeader>
-              <CardTitle>Karyawan Tanpa Akun User</CardTitle>
-              <CardDescription>
-                Pilih karyawan untuk dibuatkan akun user dan password
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
               {/* Actions Bar */}
-              <div className="flex flex-col sm:flex-row gap-4 mb-4">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Cari nama atau email..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
+              <div className="p-4 border-b bg-muted/30">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Cari nama atau email..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <Button
+                    onClick={() => handleCreateUsers(selectedWithoutUsers)}
+                    disabled={selectedWithoutUsers.length === 0 || isLoading}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <UserPlus className="h-4 w-4 mr-2" />
+                    )}
+                    Buat User ({selectedWithoutUsers.length})
+                  </Button>
                 </div>
-                <Button
-                  onClick={() => handleCreateUsers(selectedWithoutUsers)}
-                  disabled={selectedWithoutUsers.length === 0 || isLoading}
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <UserPlus className="h-4 w-4 mr-2" />
-                  )}
-                  Buat User ({selectedWithoutUsers.length})
-                </Button>
               </div>
 
               {/* Table */}
-              <div className="border rounded-lg">
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="bg-muted/50">
                       <TableHead className="w-12">
                         <Checkbox
                           checked={selectedWithoutUsers.length === filteredWithoutUsers.length && filteredWithoutUsers.length > 0}
@@ -371,51 +339,49 @@ export default function EmployeeCredentialsPage() {
                   </TableBody>
                 </Table>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </div>
+          </TabsContent>
 
-        {/* Reset Passwords Tab */}
-        <TabsContent value="reset-passwords">
-          <Card>
-            <CardHeader>
-              <CardTitle>Karyawan dengan Akun User</CardTitle>
-              <CardDescription>
-                Reset password untuk karyawan yang sudah memiliki akun
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          {/* Reset Passwords Tab */}
+          <TabsContent value="reset-passwords">
+            <div className="border-border bg-background rounded-xl border shadow-sm overflow-hidden">
+              <div className="p-6 border-b">
+                <h3 className="text-lg font-semibold">Karyawan dengan Akun User</h3>
+                <p className="text-sm text-muted-foreground">Reset password untuk karyawan yang sudah memiliki akun</p>
+              </div>
+
               {/* Actions Bar */}
-              <div className="flex flex-col sm:flex-row gap-4 mb-4">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Cari nama atau email..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
+              <div className="p-4 border-b bg-muted/30">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Cari nama atau email..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleResetPasswords(selectedWithUsers)}
+                    disabled={selectedWithUsers.length === 0 || isLoading}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    Reset Password ({selectedWithUsers.length})
+                  </Button>
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={() => handleResetPasswords(selectedWithUsers)}
-                  disabled={selectedWithUsers.length === 0 || isLoading}
-                  className="text-warning border-warning hover:bg-warning/10"
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                  )}
-                  Reset Password ({selectedWithUsers.length})
-                </Button>
               </div>
 
               {/* Table */}
-              <div className="border rounded-lg">
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="bg-muted/50">
                       <TableHead className="w-12">
                         <Checkbox
                           checked={selectedWithUsers.length === filteredWithUsers.length && filteredWithUsers.length > 0}
@@ -458,7 +424,6 @@ export default function EmployeeCredentialsPage() {
                             variant="outline"
                             onClick={() => handleResetPasswords([employee.id])}
                             disabled={isLoading}
-                            className="text-warning"
                           >
                             Reset
                           </Button>
@@ -468,10 +433,10 @@ export default function EmployeeCredentialsPage() {
                   </TableBody>
                 </Table>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
 
       {/* Results Dialog */}
       <AlertDialog open={showResultsDialog} onOpenChange={setShowResultsDialog}>
@@ -486,10 +451,10 @@ export default function EmployeeCredentialsPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
 
-          <div className="max-h-[400px] overflow-auto">
+          <div className="max-h-[400px] overflow-auto border rounded-lg">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-muted/50">
                   <TableHead>Nama</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Password</TableHead>
@@ -503,7 +468,7 @@ export default function EmployeeCredentialsPage() {
                     <TableCell className="font-medium">{user.employee_name}</TableCell>
                     <TableCell>{user.employee_email}</TableCell>
                     <TableCell>
-                      <code className="px-2 py-1 rounded bg-destructive/10 text-destructive font-mono text-sm">
+                      <code className="px-2 py-1 rounded bg-muted font-mono text-sm">
                         {user.password}
                       </code>
                     </TableCell>
@@ -534,6 +499,6 @@ export default function EmployeeCredentialsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </section>
   );
 }

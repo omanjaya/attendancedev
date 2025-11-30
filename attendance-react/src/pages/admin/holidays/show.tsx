@@ -40,9 +40,9 @@ const mockHoliday = {
 };
 
 const holidayTypeConfig = {
-  national: { label: 'Nasional', icon: Flag, color: 'bg-red-100 text-red-600 border-red-200' },
-  religious: { label: 'Keagamaan', icon: Star, color: 'bg-purple-100 text-purple-600 border-purple-200' },
-  company: { label: 'Perusahaan', icon: Palmtree, color: 'bg-green-100 text-green-600 border-green-200' },
+  national: { label: 'Nasional', icon: Flag, color: 'bg-destructive/10 text-destructive border-destructive/20' },
+  religious: { label: 'Keagamaan', icon: Star, color: 'bg-chart-5/10 text-chart-5 border-chart-5/20' },
+  company: { label: 'Perusahaan', icon: Palmtree, color: 'bg-success/10 text-success border-success/20' },
 };
 
 export default function HolidayShowPage() {

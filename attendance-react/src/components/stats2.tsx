@@ -12,7 +12,7 @@ const Stats2 = () => {
         <div className="grid gap-6 pt-9 text-center md:grid-cols-3 lg:pt-20">
           <Card className="bg-accent border-none p-8 lg:p-10">
             <p className="mb-1 flex items-center justify-center text-2xl font-semibold lg:text-3xl">
-              <ArrowUp className="mr-1 h-8 text-green-400" />
+              <ArrowUp className="mr-1 h-8 text-success" />
               20,000
             </p>
             <p className="text-muted-foreground">
@@ -21,7 +21,7 @@ const Stats2 = () => {
           </Card>
           <Card className="bg-accent border-none p-8 lg:p-10">
             <p className="mb-1 flex items-center justify-center text-2xl font-semibold lg:text-3xl">
-              <ArrowUp className="mr-1 h-8 text-green-400" />
+              <ArrowUp className="mr-1 h-8 text-success" />
               20+
             </p>
             <p className="text-muted-foreground">
@@ -30,7 +30,7 @@ const Stats2 = () => {
           </Card>
           <Card className="bg-accent border-none p-8 lg:p-10">
             <p className="mb-1 flex items-center justify-center text-2xl font-semibold lg:text-3xl">
-              <ArrowDown className="mr-1 h-8 text-red-400" />
+              <ArrowDown className="mr-1 h-8 text-destructive" />
               50%
             </p>
             <p className="text-muted-foreground">
@@ -39,7 +39,7 @@ const Stats2 = () => {
           </Card>
           <Card className="bg-accent border-none p-8 lg:p-10">
             <p className="mb-1 flex items-center justify-center text-2xl font-semibold lg:text-3xl">
-              <ArrowUp className="mr-1 h-8 text-green-400" />
+              <ArrowUp className="mr-1 h-8 text-success" />
               100+
             </p>
             <p className="text-muted-foreground">
@@ -48,7 +48,7 @@ const Stats2 = () => {
           </Card>
           <Card className="bg-accent border-none p-8 lg:p-10">
             <p className="mb-1 flex items-center justify-center text-2xl font-semibold lg:text-3xl">
-              <ArrowUp className="mr-1 h-8 text-green-400" />
+              <ArrowUp className="mr-1 h-8 text-success" />
               100%
             </p>
             <p className="text-muted-foreground">

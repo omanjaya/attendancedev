@@ -150,9 +150,9 @@ function TwoFactorSetupDialog({
             <div className="flex justify-center">
               <div className="rounded-lg border bg-white p-4">
                 {/* QR Code placeholder - in real app, generate actual QR */}
-                <div className="flex h-48 w-48 items-center justify-center bg-gray-100 text-center text-sm text-gray-500">
+                <div className="flex h-48 w-48 items-center justify-center bg-muted text-center text-sm text-muted-foreground">
                   <div>
-                    <Shield className="mx-auto h-12 w-12 text-gray-400" />
+                    <Shield className="mx-auto h-12 w-12 text-muted-foreground" />
                     <p className="mt-2">QR Code</p>
                     <p className="text-xs">Scan dengan Authenticator App</p>
                   </div>
@@ -229,7 +229,7 @@ function TwoFactorSetupDialog({
                     onClick={() => handleCopyCode(recoveryCode, index)}
                   >
                     {copiedIndex === index ? (
-                      <Check className="h-3 w-3 text-green-500" />
+                      <Check className="h-3 w-3 text-success" />
                     ) : (
                       <Copy className="h-3 w-3" />
                     )}
@@ -361,24 +361,24 @@ export default function SecurityPage() {
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 p-6 text-white shadow-lg">
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-success via-success/80 to-primary p-6 text-white shadow-lg">
         <div className="absolute inset-0 bg-grid-white/10" />
         <div className="relative">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold">Keamanan</h1>
-              <p className="mt-1 text-emerald-100">
+              <p className="mt-1 text-white/80">
                 Kelola keamanan akun dan perangkat Anda
               </p>
             </div>
             <div className="flex items-center gap-2">
               {twoFactorEnabled ? (
-                <Badge className="bg-green-500 text-white">
+                <Badge className="bg-success text-white">
                   <ShieldCheck className="mr-1 h-3 w-3" />
                   2FA Aktif
                 </Badge>
               ) : (
-                <Badge variant="secondary" className="bg-yellow-500 text-white">
+                <Badge variant="secondary" className="bg-warning text-white">
                   <ShieldOff className="mr-1 h-3 w-3" />
                   2FA Nonaktif
                 </Badge>
@@ -395,40 +395,40 @@ export default function SecurityPage() {
                     <Users className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm text-emerald-100">2FA Users</p>
+                    <p className="text-sm text-white/80">2FA Users</p>
                     <p className="text-2xl font-bold">{overview.users_with_2fa}</p>
                   </div>
                 </div>
               </div>
               <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
                 <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-green-500/20 p-2">
+                  <div className="rounded-lg bg-success/20 p-2">
                     <Activity className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm text-emerald-100">Active Sessions</p>
+                    <p className="text-sm text-white/80">Active Sessions</p>
                     <p className="text-2xl font-bold">{overview.active_sessions}</p>
                   </div>
                 </div>
               </div>
               <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
                 <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-red-500/20 p-2">
+                  <div className="rounded-lg bg-destructive/20 p-2">
                     <Lock className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm text-emerald-100">Locked</p>
+                    <p className="text-sm text-white/80">Locked</p>
                     <p className="text-2xl font-bold">{overview.locked_accounts}</p>
                   </div>
                 </div>
               </div>
               <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
                 <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-yellow-500/20 p-2">
+                  <div className="rounded-lg bg-warning/20 p-2">
                     <AlertTriangle className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm text-emerald-100">Failed Today</p>
+                    <p className="text-sm text-white/80">Failed Today</p>
                     <p className="text-2xl font-bold">{overview.failed_logins_today}</p>
                   </div>
                 </div>
@@ -489,11 +489,11 @@ export default function SecurityPage() {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div className="flex items-center gap-4">
-                  <div className={`rounded-full p-3 ${twoFactorEnabled ? 'bg-green-100' : 'bg-gray-100'}`}>
+                  <div className={`rounded-full p-3 ${twoFactorEnabled ? 'bg-success/10' : 'bg-muted'}`}>
                     {twoFactorEnabled ? (
-                      <ShieldCheck className="h-6 w-6 text-green-600" />
+                      <ShieldCheck className="h-6 w-6 text-success" />
                     ) : (
-                      <ShieldOff className="h-6 w-6 text-gray-400" />
+                      <ShieldOff className="h-6 w-6 text-muted-foreground" />
                     )}
                   </div>
                   <div>
@@ -556,7 +556,7 @@ export default function SecurityPage() {
                     <div
                       key={device.id}
                       className={`flex items-center justify-between rounded-lg border p-4 ${
-                        device.is_current ? 'border-green-500 bg-green-50' : ''
+                        device.is_current ? 'border-success bg-success/5' : ''
                       }`}
                     >
                       <div className="flex items-center gap-4">
@@ -572,7 +572,7 @@ export default function SecurityPage() {
                               </Badge>
                             )}
                             {device.is_trusted && (
-                              <Badge variant="outline" className="border-green-500 text-green-500 text-xs">
+                              <Badge variant="outline" className="border-success text-success text-xs">
                                 Trusted
                               </Badge>
                             )}
@@ -652,7 +652,7 @@ export default function SecurityPage() {
                     <div
                       key={session.id}
                       className={`flex items-center justify-between rounded-lg border p-4 ${
-                        session.is_current ? 'border-green-500 bg-green-50' : ''
+                        session.is_current ? 'border-success bg-success/5' : ''
                       }`}
                     >
                       <div className="flex items-center gap-4">
@@ -849,7 +849,7 @@ export default function SecurityPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleRemoveDevice} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction onClick={handleRemoveDevice} className="bg-destructive hover:bg-destructive/90">
               Hapus
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -867,7 +867,7 @@ export default function SecurityPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleTerminateSession} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction onClick={handleTerminateSession} className="bg-destructive hover:bg-destructive/90">
               Logout
             </AlertDialogAction>
           </AlertDialogFooter>

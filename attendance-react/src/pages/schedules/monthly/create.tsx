@@ -52,10 +52,10 @@ const mockEmployees = [
 ];
 
 const mockScheduleTypes = [
-  { id: '1', name: 'Pagi', startTime: '07:00', endTime: '15:00', color: 'bg-blue-500' },
-  { id: '2', name: 'Siang', startTime: '13:00', endTime: '21:00', color: 'bg-orange-500' },
-  { id: '3', name: 'Malam', startTime: '21:00', endTime: '07:00', color: 'bg-purple-500' },
-  { id: 'off', name: 'Libur', startTime: '-', endTime: '-', color: 'bg-gray-400' },
+  { id: '1', name: 'Pagi', startTime: '07:00', endTime: '15:00', color: 'bg-primary' },
+  { id: '2', name: 'Siang', startTime: '13:00', endTime: '21:00', color: 'bg-warning' },
+  { id: '3', name: 'Malam', startTime: '21:00', endTime: '07:00', color: 'bg-chart-5' },
+  { id: 'off', name: 'Libur', startTime: '-', endTime: '-', color: 'bg-muted-foreground' },
 ];
 
 const months = [

@@ -256,7 +256,7 @@ export default function ReportBuilderPage() {
                   ${outputFormat === 'pdf' ? 'bg-primary/10 border-primary' : 'bg-background hover:bg-muted'}
                 `}
               >
-                <FileText className="h-5 w-5 text-red-500" />
+                <FileText className="h-5 w-5 text-destructive" />
                 <div className="text-left">
                   <p className="font-medium">PDF</p>
                   <p className="text-xs text-muted-foreground">Dokumen siap cetak</p>
@@ -269,7 +269,7 @@ export default function ReportBuilderPage() {
                   ${outputFormat === 'excel' ? 'bg-primary/10 border-primary' : 'bg-background hover:bg-muted'}
                 `}
               >
-                <Table className="h-5 w-5 text-green-500" />
+                <Table className="h-5 w-5 text-success" />
                 <div className="text-left">
                   <p className="font-medium">Excel</p>
                   <p className="text-xs text-muted-foreground">Spreadsheet yang dapat diedit</p>
@@ -282,7 +282,7 @@ export default function ReportBuilderPage() {
                   ${outputFormat === 'csv' ? 'bg-primary/10 border-primary' : 'bg-background hover:bg-muted'}
                 `}
               >
-                <FileText className="h-5 w-5 text-blue-500" />
+                <FileText className="h-5 w-5 text-primary" />
                 <div className="text-left">
                   <p className="font-medium">CSV</p>
                   <p className="text-xs text-muted-foreground">Data mentah untuk import</p>

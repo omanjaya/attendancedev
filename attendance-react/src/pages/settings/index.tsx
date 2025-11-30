@@ -192,9 +192,9 @@ export default function SettingsPage() {
 
       {/* Success Message */}
       {successMessage && (
-        <Alert className="bg-green-50 border-green-200 dark:bg-green-950/50 dark:border-green-800">
-          <Check className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-600">{successMessage}</AlertDescription>
+        <Alert className="bg-success/10 border-success/20">
+          <Check className="h-4 w-4 text-success" />
+          <AlertDescription className="text-success">{successMessage}</AlertDescription>
         </Alert>
       )}
 

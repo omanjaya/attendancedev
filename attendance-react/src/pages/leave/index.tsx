@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Calendar,
   CalendarDays,
@@ -17,6 +17,7 @@ import {
   Building,
   CalendarCheck,
   CalendarX,
+  RefreshCw,
 } from 'lucide-react';
 import { EmptyState } from '@/components/shared';
 import { Button } from '@/components/ui/button';
@@ -49,7 +50,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import { useLeave } from '@/hooks/use-leave';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  useLeaveRequests,
+  useLeaveBalance,
+  useCreateLeaveRequest,
+  useApproveLeaveRequest,
+  useRejectLeaveRequest,
+  useCancelLeaveRequest,
+} from '@/hooks';
+import type { LeaveFilters } from '@/lib/api/leave';
 import {
   leaveTypeLabels,
   leaveStatusLabels,
@@ -62,10 +72,10 @@ import {
 // Status badge component
 function StatusBadge({ status }: { status: LeaveStatus }) {
   const variants: Record<LeaveStatus, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; className: string }> = {
-    pending: { variant: 'secondary', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
-    approved: { variant: 'default', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
-    rejected: { variant: 'destructive', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
-    cancelled: { variant: 'outline', className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400' },
+    pending: { variant: 'secondary', className: 'bg-warning/10 text-warning' },
+    approved: { variant: 'default', className: 'bg-success/10 text-success' },
+    rejected: { variant: 'destructive', className: 'bg-destructive/10 text-destructive' },
+    cancelled: { variant: 'outline', className: 'bg-muted text-muted-foreground' },
   };
 
   const config = variants[status];
@@ -78,6 +88,41 @@ function StatusBadge({ status }: { status: LeaveStatus }) {
       {status === 'cancelled' && <AlertCircle className="mr-1 h-3 w-3" />}
       {leaveStatusLabels[status]}
     </Badge>
+  );
+}
+
+// Loading skeleton for stats
+function StatsLoadingSkeleton() {
+  return (
+    <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="sm:col-span-2">
+        <Skeleton className="h-32 w-full" />
+      </div>
+      <Skeleton className="h-24 w-full" />
+      <Skeleton className="h-24 w-full" />
+    </div>
+  );
+}
+
+// Loading skeleton for requests
+function RequestsLoadingSkeleton() {
+  return (
+    <div className="space-y-4">
+      {[1, 2, 3].map((i) => (
+        <Card key={i}>
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between">
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-4 w-64" />
+              </div>
+              <Skeleton className="h-8 w-24" />
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
   );
 }
 
@@ -240,39 +285,67 @@ export default function LeavePage() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
+  // Build filters
+  const filters: LeaveFilters = {};
+  if (statusFilter !== 'all') filters.status = statusFilter as LeaveStatus;
+  if (typeFilter !== 'all') filters.type = typeFilter as LeaveType;
+
+  // Fetch leave requests
   const {
-    isLoading,
-    error,
-    leaveRequests,
-    leaveBalance,
-    fetchLeaveRequests,
-    fetchLeaveBalance,
-    createLeaveRequest,
-    approveLeaveRequest,
-    rejectLeaveRequest,
-    cancelLeaveRequest,
-    clearError,
-  } = useLeave();
+    data: leaveRequestsData,
+    isLoading: isLoadingRequests,
+    error: requestsError,
+    refetch: refetchRequests,
+  } = useLeaveRequests(filters);
 
-  // Load data on mount
-  useEffect(() => {
-    fetchLeaveRequests();
-    fetchLeaveBalance();
-  }, [fetchLeaveRequests, fetchLeaveBalance]);
+  // Fetch leave balance
+  const {
+    data: leaveBalance,
+    isLoading: isLoadingBalance,
+  } = useLeaveBalance();
 
-  // Filter requests
-  const filteredRequests = leaveRequests.filter((req) => {
-    if (statusFilter !== 'all' && req.status !== statusFilter) return false;
-    if (typeFilter !== 'all' && req.type !== typeFilter) return false;
-    return true;
-  });
+  // Mutations
+  const createLeaveRequestMutation = useCreateLeaveRequest();
+  const approveLeaveRequestMutation = useApproveLeaveRequest();
+  const rejectLeaveRequestMutation = useRejectLeaveRequest();
+  const cancelLeaveRequestMutation = useCancelLeaveRequest();
+
+  // Get requests from response
+  const leaveRequests = leaveRequestsData?.data || [];
 
   // Handle create
   const handleCreate = async (data: LeaveRequestFormData) => {
     try {
-      await createLeaveRequest(data);
+      await createLeaveRequestMutation.mutateAsync(data);
       setShowCreateDialog(false);
-    } catch (err) {
+    } catch {
+      // Error handled in hook
+    }
+  };
+
+  // Handle approve
+  const handleApprove = async (id: string) => {
+    try {
+      await approveLeaveRequestMutation.mutateAsync({ id });
+    } catch {
+      // Error handled in hook
+    }
+  };
+
+  // Handle reject
+  const handleReject = async (id: string, reason: string) => {
+    try {
+      await rejectLeaveRequestMutation.mutateAsync({ id, reason });
+    } catch {
+      // Error handled in hook
+    }
+  };
+
+  // Handle cancel
+  const handleCancel = async (id: string) => {
+    try {
+      await cancelLeaveRequestMutation.mutateAsync(id);
+    } catch {
       // Error handled in hook
     }
   };
@@ -284,6 +357,18 @@ export default function LeavePage() {
     total_days_this_month: leaveRequests
       .filter((r) => r.status === 'approved')
       .reduce((acc, r) => acc + r.total_days, 0),
+  };
+
+  // Default balance values
+  const balance = leaveBalance || {
+    annual_total: 12,
+    annual_used: 0,
+    annual_remaining: 12,
+    sick_total: 12,
+    sick_used: 0,
+    sick_remaining: 12,
+    carry_forward: 0,
+    carry_forward_expiry: undefined,
   };
 
   return (
@@ -320,86 +405,91 @@ export default function LeavePage() {
           </div>
 
           {/* Stats & Balance */}
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {/* Leave Balance Card */}
-            <Card className="bg-card/50 backdrop-blur-sm sm:col-span-2">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Saldo Cuti Anda
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span>Cuti Tahunan</span>
-                    <span className="font-medium">
-                      {leaveBalance.annual_remaining} / {leaveBalance.annual_total} hari
-                    </span>
+          {isLoadingBalance ? (
+            <StatsLoadingSkeleton />
+          ) : (
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {/* Leave Balance Card */}
+              <Card className="bg-card/50 backdrop-blur-sm sm:col-span-2">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Saldo Cuti Anda
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span>Cuti Tahunan</span>
+                      <span className="font-medium">
+                        {balance.annual_remaining} / {balance.annual_total} hari
+                      </span>
+                    </div>
+                    <Progress
+                      value={(balance.annual_used / balance.annual_total) * 100}
+                      className="h-2"
+                    />
                   </div>
-                  <Progress
-                    value={(leaveBalance.annual_used / leaveBalance.annual_total) * 100}
-                    className="h-2"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span>Cuti Sakit</span>
-                    <span className="font-medium">
-                      {leaveBalance.sick_remaining} / {leaveBalance.sick_total} hari
-                    </span>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span>Cuti Sakit</span>
+                      <span className="font-medium">
+                        {balance.sick_remaining} / {balance.sick_total} hari
+                      </span>
+                    </div>
+                    <Progress
+                      value={(balance.sick_used / balance.sick_total) * 100}
+                      className="h-2"
+                    />
                   </div>
-                  <Progress
-                    value={(leaveBalance.sick_used / leaveBalance.sick_total) * 100}
-                    className="h-2"
-                  />
-                </div>
-                {leaveBalance.carry_forward > 0 && (
-                  <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 p-2 text-xs">
-                    <span className="text-amber-700 dark:text-amber-400">
-                      {leaveBalance.carry_forward} hari carry forward (exp: {leaveBalance.carry_forward_expiry})
-                    </span>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  {balance.carry_forward > 0 && (
+                    <div className="rounded-lg bg-warning/5 p-2 text-xs">
+                      <span className="text-warning">
+                        {balance.carry_forward} hari carry forward (exp: {balance.carry_forward_expiry})
+                      </span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
-            {/* Pending */}
-            <Card className="bg-card/50 backdrop-blur-sm">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Menunggu Approval</p>
-                    <p className="text-2xl font-bold text-amber-600">{stats.pending}</p>
+              {/* Pending */}
+              <Card className="bg-card/50 backdrop-blur-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Menunggu Approval</p>
+                      <p className="text-2xl font-bold text-warning">{stats.pending}</p>
+                    </div>
+                    <Clock className="h-8 w-8 text-warning/30" />
                   </div>
-                  <Clock className="h-8 w-8 text-amber-500/30" />
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            {/* Approved this month */}
-            <Card className="bg-card/50 backdrop-blur-sm">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Disetujui Bulan Ini</p>
-                    <p className="text-2xl font-bold text-emerald-600">{stats.approved}</p>
+              {/* Approved this month */}
+              <Card className="bg-card/50 backdrop-blur-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Disetujui Bulan Ini</p>
+                      <p className="text-2xl font-bold text-success">{stats.approved}</p>
+                    </div>
+                    <CalendarCheck className="h-8 w-8 text-success/30" />
                   </div>
-                  <CalendarCheck className="h-8 w-8 text-emerald-500/30" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Error Alert */}
-      {error && (
+      {requestsError && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-          <Button variant="ghost" size="sm" onClick={clearError}>
-            Tutup
+          <AlertDescription>{requestsError.message}</AlertDescription>
+          <Button variant="ghost" size="sm" onClick={() => refetchRequests()}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Coba Lagi
           </Button>
         </Alert>
       )}
@@ -461,16 +551,9 @@ export default function LeavePage() {
 
         {/* Requests Tab */}
         <TabsContent value="requests" className="mt-6">
-          {isLoading ? (
-            <Card>
-              <CardContent className="flex items-center justify-center py-20">
-                <div className="text-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-                  <p className="mt-2 text-sm text-muted-foreground">Memuat data...</p>
-                </div>
-              </CardContent>
-            </Card>
-          ) : filteredRequests.length === 0 ? (
+          {isLoadingRequests ? (
+            <RequestsLoadingSkeleton />
+          ) : leaveRequests.length === 0 ? (
             <Card>
               <CardContent className="py-10">
                 <EmptyState
@@ -486,7 +569,7 @@ export default function LeavePage() {
             </Card>
           ) : (
             <div className="space-y-4">
-              {filteredRequests.map((request) => (
+              {leaveRequests.map((request) => (
                 <Card key={request.id} className="overflow-hidden">
                   <CardContent className="p-0">
                     <div className="flex flex-col sm:flex-row">
@@ -552,15 +635,17 @@ export default function LeavePage() {
                                 {request.status === 'pending' && (
                                   <>
                                     <DropdownMenuItem
-                                      className="text-emerald-600"
-                                      onClick={() => approveLeaveRequest(request.id)}
+                                      className="text-success"
+                                      onClick={() => handleApprove(request.id)}
+                                      disabled={approveLeaveRequestMutation.isPending}
                                     >
                                       <CheckCircle2 className="mr-2 h-4 w-4" />
                                       Setujui
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
-                                      className="text-red-600"
-                                      onClick={() => rejectLeaveRequest(request.id, 'Ditolak')}
+                                      className="text-destructive"
+                                      onClick={() => handleReject(request.id, 'Ditolak')}
+                                      disabled={rejectLeaveRequestMutation.isPending}
                                     >
                                       <XCircle className="mr-2 h-4 w-4" />
                                       Tolak
@@ -569,7 +654,8 @@ export default function LeavePage() {
                                 )}
                                 {request.status === 'pending' && (
                                   <DropdownMenuItem
-                                    onClick={() => cancelLeaveRequest(request.id)}
+                                    onClick={() => handleCancel(request.id)}
+                                    disabled={cancelLeaveRequestMutation.isPending}
                                   >
                                     <AlertCircle className="mr-2 h-4 w-4" />
                                     Batalkan
@@ -590,7 +676,7 @@ export default function LeavePage() {
                               </span>
                             )}
                             {request.status === 'rejected' && (
-                              <span className="text-red-600">
+                              <span className="text-destructive">
                                 Ditolak: {request.rejection_reason}
                               </span>
                             )}
@@ -662,16 +748,18 @@ export default function LeavePage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="text-red-600"
-                            onClick={() => rejectLeaveRequest(request.id, 'Ditolak')}
+                            className="text-destructive"
+                            onClick={() => handleReject(request.id, 'Ditolak')}
+                            disabled={rejectLeaveRequestMutation.isPending}
                           >
                             <XCircle className="mr-1 h-4 w-4" />
                             Tolak
                           </Button>
                           <Button
                             size="sm"
-                            className="bg-emerald-600 hover:bg-emerald-700"
-                            onClick={() => approveLeaveRequest(request.id)}
+                            className="bg-success hover:bg-success/90"
+                            onClick={() => handleApprove(request.id)}
+                            disabled={approveLeaveRequestMutation.isPending}
                           >
                             <CheckCircle2 className="mr-1 h-4 w-4" />
                             Setujui
@@ -691,7 +779,7 @@ export default function LeavePage() {
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
         onSubmit={handleCreate}
-        isLoading={isLoading}
+        isLoading={createLeaveRequestMutation.isPending}
       />
     </div>
   );

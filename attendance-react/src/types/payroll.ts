@@ -116,7 +116,6 @@ export interface PayrollStatistics {
 
 // Form types
 export interface PayrollCalculateFormData {
-  period_id: string;
   employee_ids?: string[];
   include_overtime: boolean;
   include_bonus: boolean;

@@ -16,11 +16,12 @@ import {
   Shield,
   UserCheck,
   CalendarOff,
+  ClipboardList,
+  Download,
 } from 'lucide-react';
-import { StatsGrid } from '@/components/dashboard';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -44,90 +45,21 @@ import { useFaceStore } from '@/stores';
 import { faceDetectionService } from '@/lib/services/face-detection';
 import { findBestMatch } from '@/lib/api/face-recognition';
 import { useAuthStore } from '@/stores';
-import apiClient from '@/lib/api/client';
-import type { Attendance, AttendanceStatus } from '@/types';
+import { useAttendance, useAttendanceStatistics, useCheckIn, useCheckOut } from '@/hooks';
+import type { Attendance, AttendanceStatus, AttendanceFilters } from '@/types';
 
-// Mock data
-const mockAttendance: Attendance[] = [
-  {
-    id: 1,
-    employee_id: 1,
-    employee_name: 'Ahmad Rizki',
-    date: '2024-01-15',
-    check_in: '08:02:00',
-    check_out: '17:05:00',
-    status: 'present',
-    work_hours: 9.05,
-    face_verified: true,
-    created_at: '2024-01-15T08:02:00',
-    updated_at: '2024-01-15T17:05:00',
-  },
-  {
-    id: 2,
-    employee_id: 2,
-    employee_name: 'Siti Nurhaliza',
-    date: '2024-01-15',
-    check_in: '08:15:00',
-    check_out: '17:10:00',
-    status: 'present',
-    work_hours: 8.92,
-    face_verified: true,
-    created_at: '2024-01-15T08:15:00',
-    updated_at: '2024-01-15T17:10:00',
-  },
-  {
-    id: 3,
-    employee_id: 3,
-    employee_name: 'Budi Santoso',
-    date: '2024-01-15',
-    check_in: '08:45:00',
-    check_out: '17:00:00',
-    status: 'late',
-    late_minutes: 45,
-    work_hours: 8.25,
-    face_verified: true,
-    created_at: '2024-01-15T08:45:00',
-    updated_at: '2024-01-15T17:00:00',
-  },
-  {
-    id: 4,
-    employee_id: 4,
-    employee_name: 'Dewi Anggraini',
-    date: '2024-01-15',
-    status: 'leave',
-    face_verified: false,
-    created_at: '2024-01-15T00:00:00',
-    updated_at: '2024-01-15T00:00:00',
-  },
-  {
-    id: 5,
-    employee_id: 5,
-    employee_name: 'Eko Prasetyo',
-    date: '2024-01-15',
-    check_in: '07:55:00',
-    check_out: '18:30:00',
-    status: 'present',
-    overtime_minutes: 90,
-    work_hours: 10.58,
-    face_verified: true,
-    created_at: '2024-01-15T07:55:00',
-    updated_at: '2024-01-15T18:30:00',
-  },
-];
-
-// Status badge
 const getStatusBadge = (status: AttendanceStatus) => {
   switch (status) {
     case 'present':
-      return <Badge className="bg-success text-success-foreground">Hadir</Badge>;
+      return <Badge className="bg-success/10 text-success border-0">Hadir</Badge>;
     case 'late':
-      return <Badge className="bg-warning text-warning-foreground">Terlambat</Badge>;
+      return <Badge className="bg-warning/10 text-warning border-0">Terlambat</Badge>;
     case 'absent':
-      return <Badge variant="destructive">Tidak Hadir</Badge>;
+      return <Badge className="bg-destructive/10 text-destructive border-0">Tidak Hadir</Badge>;
     case 'leave':
       return <Badge variant="secondary">Cuti</Badge>;
     case 'holiday':
-      return <Badge className="bg-primary text-primary-foreground">Libur</Badge>;
+      return <Badge className="bg-primary/10 text-primary border-0">Libur</Badge>;
     default:
       return <Badge variant="secondary">{status}</Badge>;
   }
@@ -154,7 +86,6 @@ export default function AttendancePage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  // Face verification dialog
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [checkMode, setCheckMode] = useState<CheckInMode>('check_in');
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>('idle');
@@ -163,17 +94,24 @@ export default function AttendancePage() {
   const [gpsLocation, setGpsLocation] = useState<GPSLocation | null>(null);
   const [, setGpsError] = useState<string | null>(null);
 
-  // Current time state
   const [currentTime, setCurrentTime] = useState('');
   const [currentDate, setCurrentDate] = useState('');
 
-  // Face recognition hooks
   const { data: registeredFaces } = useRegisteredFaces();
   const verifyFaceMutation = useVerifyFace();
   const { settings: faceSettings } = useFaceStore();
   const { user } = useAuthStore();
 
-  // Face detection hook
+  const filters: AttendanceFilters = {
+    status: statusFilter !== 'all' ? statusFilter as AttendanceStatus : undefined,
+    page,
+    per_page: pageSize,
+  };
+  const { data: attendanceData, isLoading: isLoadingAttendance } = useAttendance(filters);
+  const { data: statistics } = useAttendanceStatistics();
+  const checkInMutation = useCheckIn();
+  const checkOutMutation = useCheckOut();
+
   const {
     videoRef,
     canvasRef,
@@ -192,7 +130,6 @@ export default function AttendancePage() {
     onError: (err) => console.error('Face detection error:', err),
   });
 
-  // Update time every second
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
@@ -218,29 +155,22 @@ export default function AttendancePage() {
     return () => clearInterval(interval);
   }, []);
 
-  // NOTE: Face detection is now initialized on-demand when opening check dialog
-  // This improves initial page load performance
-
-  // Open dialog and start camera
   const openCheckDialog = async (mode: CheckInMode) => {
     setCheckMode(mode);
     setVerificationStatus('idle');
     setVerificationProgress(0);
     setIsDialogOpen(true);
 
-    // Initialize face detection on-demand (lazy load)
     if (!isInitialized) {
       await initialize();
     }
 
-    // Wait for dialog to open then start camera
     setTimeout(async () => {
       await startCamera();
       startDetection();
     }, 300);
   };
 
-  // Close dialog and stop camera
   const closeDialog = () => {
     stopDetection();
     stopCamera();
@@ -249,7 +179,6 @@ export default function AttendancePage() {
     setVerificationProgress(0);
   };
 
-  // Get GPS location
   const getGPSLocation = useCallback((): Promise<GPSLocation> => {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
@@ -285,7 +214,6 @@ export default function AttendancePage() {
     });
   }, []);
 
-  // Handle verification with real face recognition
   const handleVerification = async () => {
     if (detectionStatus !== 'detected' || !videoRef.current) return;
 
@@ -295,7 +223,6 @@ export default function AttendancePage() {
     setGpsError(null);
 
     try {
-      // Step 1: Get GPS location (parallel with face detection)
       setVerificationProgress(20);
       let location: GPSLocation | null = null;
       try {
@@ -304,10 +231,8 @@ export default function AttendancePage() {
       } catch (gpsErr) {
         console.warn('GPS error:', gpsErr);
         setGpsError(gpsErr instanceof Error ? gpsErr.message : 'Gagal mendapatkan lokasi');
-        // Continue without GPS - some systems may allow this
       }
 
-      // Step 2: Capture face descriptor
       setVerificationProgress(40);
       setVerificationStatus('verifying');
 
@@ -322,7 +247,6 @@ export default function AttendancePage() {
 
       setVerificationProgress(60);
 
-      // Step 3: Try local matching first for speed
       let matchedEmployee: VerifiedEmployee | null = null;
 
       if (registeredFaces && registeredFaces.length > 0) {
@@ -343,7 +267,6 @@ export default function AttendancePage() {
 
       setVerificationProgress(75);
 
-      // Step 4: Verify with backend (fallback or confirmation)
       if (!matchedEmployee) {
         const response = await verifyFaceMutation.mutateAsync({
           descriptor: faceData.descriptor,
@@ -367,34 +290,29 @@ export default function AttendancePage() {
         throw new Error('Wajah tidak dikenali dalam sistem');
       }
 
-      // Step 5: Submit attendance to backend
-      const attendanceData = {
-        employee_id: matchedEmployee.id,
-        face_descriptor: faceData.descriptor,
-        face_confidence: faceData.confidence,
-        location: location ? {
-          latitude: location.latitude,
-          longitude: location.longitude,
-          accuracy: location.accuracy,
-        } : undefined,
-        device_info: {
-          browser: navigator.userAgent,
-          platform: navigator.platform,
-        },
-      };
-
-      const endpoint = checkMode === 'check_in' ? '/attendance/check-in' : '/attendance/check-out';
-      await apiClient.post(endpoint, attendanceData);
+      if (checkMode === 'check_in') {
+        await checkInMutation.mutateAsync({
+          type: 'check_in',
+          latitude: location?.latitude,
+          longitude: location?.longitude,
+          face_image: faceData.descriptor.join(','),
+        });
+      } else {
+        await checkOutMutation.mutateAsync({
+          type: 'check_out',
+          latitude: location?.latitude,
+          longitude: location?.longitude,
+          face_image: faceData.descriptor.join(','),
+        });
+      }
 
       setVerificationProgress(100);
       setVerifiedEmployee(matchedEmployee);
       setVerificationStatus('success');
 
-      // Auto close after success
       setTimeout(() => {
         closeDialog();
       }, 3000);
-
     } catch (err) {
       console.error('Verification error:', err);
       setVerificationStatus('failed');
@@ -402,23 +320,24 @@ export default function AttendancePage() {
     }
   };
 
-  // Filter data
-  const filteredData = mockAttendance.filter((att) => {
-    const matchesSearch = att.employee_name.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || att.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const attendanceRecords = attendanceData?.data || [];
+  const filteredData = search
+    ? attendanceRecords.filter((att) =>
+        att.employee_name.toLowerCase().includes(search.toLowerCase())
+      )
+    : attendanceRecords;
+  const totalPages = attendanceData?.meta?.last_page || 1;
+  const totalItems = attendanceData?.meta?.total || 0;
 
-  // Define columns
   const columns: Column<Attendance>[] = [
     {
       key: 'employee_name',
       header: 'Karyawan',
       cell: (row) => (
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
-            <span className="text-xs font-medium">
-              {row.employee_name.split(' ').map((n) => n[0]).join('')}
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
+            <span className="text-xs font-medium text-primary">
+              {row.employee_name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
             </span>
           </div>
           <span className="font-medium">{row.employee_name}</span>
@@ -485,102 +404,135 @@ export default function AttendancePage() {
       header: 'Verifikasi',
       cell: (row) => (
         <ScanFace
-          className={`h-4 w-4 ${
-            row.face_verified ? 'text-success' : 'text-muted-foreground'
-          }`}
+          className={`h-4 w-4 ${row.face_verified ? 'text-success' : 'text-muted-foreground'}`}
         />
       ),
     },
   ];
 
-  // Stats
-  const stats = {
-    present: mockAttendance.filter((a) => a.status === 'present').length,
-    late: mockAttendance.filter((a) => a.status === 'late').length,
-    absent: mockAttendance.filter((a) => a.status === 'absent').length,
-    leave: mockAttendance.filter((a) => a.status === 'leave').length,
+  const stats = [
+    {
+      title: 'Hadir',
+      value: statistics?.present || 0,
+      icon: UserCheck,
+      color: 'success' as const,
+    },
+    {
+      title: 'Terlambat',
+      value: statistics?.late || 0,
+      icon: Clock,
+      color: 'warning' as const,
+    },
+    {
+      title: 'Tidak Hadir',
+      value: statistics?.absent || 0,
+      icon: XCircle,
+      color: 'destructive' as const,
+    },
+    {
+      title: 'Cuti',
+      value: statistics?.on_leave || 0,
+      icon: CalendarOff,
+      color: 'primary' as const,
+    },
+  ];
+
+  const colorClasses = {
+    primary: 'bg-primary/10 text-primary',
+    success: 'bg-success/10 text-success',
+    warning: 'bg-warning/10 text-warning',
+    destructive: 'bg-destructive/10 text-destructive',
   };
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-macos-2xl font-bold text-foreground">Absensi</h1>
-        <p className="text-macos-sm text-muted-foreground">
-          Kelola kehadiran karyawan
-        </p>
-      </div>
+    <div className="space-y-6 p-6">
+      {/* Hero Header */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background p-8">
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
 
-      {/* Check-in Widget & Stats */}
-      <div className="mb-6 grid gap-6 lg:grid-cols-3">
-        {/* Check-in Widget */}
-        <Card className="lg:col-span-1 overflow-hidden">
-          <CardHeader className="pb-2 bg-gradient-to-br from-primary/5 to-transparent">
-            <CardTitle className="flex items-center gap-2 text-macos-base">
-              <Clock className="h-5 w-5 text-primary" />
-              Absen Hari Ini
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-center py-2">
-              <p className="text-4xl font-bold text-foreground tabular-nums">{currentTime}</p>
-              <p className="text-sm text-muted-foreground mt-1">{currentDate}</p>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                className="w-full bg-emerald-600 hover:bg-emerald-700"
-                onClick={() => openCheckDialog('check_in')}
-              >
-                <LogIn className="mr-2 h-4 w-4" />
-                Check In
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => openCheckDialog('check_out')}
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Check Out
-              </Button>
-            </div>
-            <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground pt-2 border-t">
-              <div className="flex items-center gap-1">
-                <MapPin className="h-3 w-3 text-emerald-500" />
-                GPS Aktif
+        <div className="relative">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                <ClipboardList className="h-6 w-6 text-primary" />
               </div>
-              <div className="flex items-center gap-1">
-                <ScanFace className="h-3 w-3 text-blue-500" />
-                Face ID Ready
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">Absensi</h1>
+                <p className="text-sm text-muted-foreground">
+                  Kelola kehadiran karyawan
+                </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Stats - using StatsGrid component */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-macos-base">
-              <Calendar className="h-5 w-5 text-primary" />
-              Ringkasan Hari Ini
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <StatsGrid
-              stats={[
-                { id: 'present', title: 'Hadir', value: stats.present, icon: UserCheck, color: 'success' },
-                { id: 'late', title: 'Terlambat', value: stats.late, icon: Clock, color: 'warning' },
-                { id: 'absent', title: 'Tidak Hadir', value: stats.absent, icon: XCircle, color: 'destructive' },
-                { id: 'leave', title: 'Cuti', value: stats.leave, icon: CalendarOff, color: 'default' },
-              ]}
-              columns={4}
-              variant="compact"
-            />
-          </CardContent>
-        </Card>
+            <Button variant="outline" size="sm" className="bg-background/50 backdrop-blur-sm">
+              <Download className="mr-2 h-4 w-4" />
+              Export
+            </Button>
+          </div>
+
+          {/* Stats + Check-in Widget */}
+          <div className="mt-6 grid gap-4 lg:grid-cols-5">
+            {/* Check-in Widget */}
+            <Card className="bg-card/50 backdrop-blur-sm lg:col-span-1">
+              <CardContent className="p-4 space-y-3">
+                <div className="text-center">
+                  <p className="text-3xl font-bold tabular-nums">{currentTime}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{currentDate}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    size="sm"
+                    className="bg-success hover:bg-success/90"
+                    onClick={() => openCheckDialog('check_in')}
+                  >
+                    <LogIn className="mr-1 h-3 w-3" />
+                    In
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => openCheckDialog('check_out')}
+                  >
+                    <LogOut className="mr-1 h-3 w-3" />
+                    Out
+                  </Button>
+                </div>
+                <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground pt-2 border-t">
+                  <div className="flex items-center gap-1">
+                    <MapPin className="h-3 w-3 text-success" />
+                    GPS
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <ScanFace className="h-3 w-3 text-primary" />
+                    Face ID
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Stats */}
+            {stats.map((stat) => (
+              <Card key={stat.title} className="bg-card/50 backdrop-blur-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">{stat.title}</p>
+                      <p className="text-2xl font-bold">{stat.value}</p>
+                    </div>
+                    <div className={`rounded-lg p-2 ${colorClasses[stat.color]}`}>
+                      <stat.icon className="h-5 w-5" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Filters */}
-      <div className="mb-4 flex items-center gap-4">
+      <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -599,25 +551,28 @@ export default function AttendancePage() {
       </div>
 
       {/* Data Table */}
-      <div className="rounded-lg border border-border bg-card p-4">
-        <DataTable
-          columns={columns}
-          data={filteredData}
-          searchPlaceholder="Cari karyawan..."
-          searchValue={search}
-          onSearchChange={setSearch}
-          page={page}
-          pageSize={pageSize}
-          totalPages={Math.ceil(filteredData.length / pageSize)}
-          totalItems={filteredData.length}
-          onPageChange={setPage}
-          onPageSizeChange={(size) => {
-            setPageSize(size);
-            setPage(1);
-          }}
-          emptyMessage="Tidak ada data absensi"
-        />
-      </div>
+      <Card>
+        <CardContent className="p-4">
+          <DataTable
+            columns={columns}
+            data={filteredData}
+            searchPlaceholder="Cari karyawan..."
+            searchValue={search}
+            onSearchChange={setSearch}
+            page={page}
+            pageSize={pageSize}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+            emptyMessage="Tidak ada data absensi"
+            isLoading={isLoadingAttendance}
+          />
+        </CardContent>
+      </Card>
 
       {/* Face Verification Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={(open) => !open && closeDialog()}>
@@ -633,7 +588,6 @@ export default function AttendancePage() {
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Camera View */}
             <div className="relative aspect-video overflow-hidden rounded-lg bg-neutral-900">
               {cameraStatus === 'active' ? (
                 <>
@@ -649,7 +603,6 @@ export default function AttendancePage() {
                     className="absolute inset-0 h-full w-full"
                   />
 
-                  {/* Detection status overlays */}
                   {detectionStatus === 'no_face' && verificationStatus === 'idle' && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/50">
                       <div className="text-center">
@@ -661,7 +614,7 @@ export default function AttendancePage() {
 
                   {detectionStatus === 'detected' && verificationStatus === 'idle' && (
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-emerald-500 gap-1">
+                      <Badge className="bg-success border-0 gap-1">
                         <CheckCircle2 className="h-3 w-3" />
                         Wajah terdeteksi - {Math.round(confidence * 100)}%
                       </Badge>
@@ -680,18 +633,18 @@ export default function AttendancePage() {
                   )}
 
                   {verificationStatus === 'success' && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-emerald-500/30">
+                    <div className="absolute inset-0 flex items-center justify-center bg-success/30">
                       <div className="text-center">
-                        <CheckCircle2 className="mx-auto h-16 w-16 text-emerald-500" />
+                        <CheckCircle2 className="mx-auto h-16 w-16 text-success" />
                         <p className="mt-2 text-lg font-semibold text-white">Berhasil!</p>
                       </div>
                     </div>
                   )}
 
                   {verificationStatus === 'failed' && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-red-500/30">
+                    <div className="absolute inset-0 flex items-center justify-center bg-destructive/30">
                       <div className="text-center">
-                        <XCircle className="mx-auto h-16 w-16 text-red-500" />
+                        <XCircle className="mx-auto h-16 w-16 text-destructive" />
                         <p className="mt-2 text-lg font-semibold text-white">Gagal</p>
                       </div>
                     </div>
@@ -705,7 +658,6 @@ export default function AttendancePage() {
               )}
             </div>
 
-            {/* Error */}
             {error && (
               <Alert variant="destructive">
                 <XCircle className="h-4 w-4" />
@@ -714,7 +666,6 @@ export default function AttendancePage() {
               </Alert>
             )}
 
-            {/* Progress */}
             {verificationStatus !== 'idle' && verificationStatus !== 'success' && verificationStatus !== 'failed' && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
@@ -727,11 +678,10 @@ export default function AttendancePage() {
               </div>
             )}
 
-            {/* Success message */}
             {verificationStatus === 'success' && verifiedEmployee && (
-              <Alert className="border-emerald-500/50 bg-emerald-500/10">
-                <UserCheck className="h-4 w-4 text-emerald-500" />
-                <AlertTitle className="text-emerald-600">
+              <Alert className="border-success/50 bg-success/10">
+                <UserCheck className="h-4 w-4 text-success" />
+                <AlertTitle className="text-success">
                   {checkMode === 'check_in' ? 'Check In Berhasil!' : 'Check Out Berhasil!'}
                 </AlertTitle>
                 <AlertDescription className="space-y-1">
@@ -747,7 +697,6 @@ export default function AttendancePage() {
               </Alert>
             )}
 
-            {/* Failed message */}
             {verificationStatus === 'failed' && (
               <Alert variant="destructive">
                 <XCircle className="h-4 w-4" />
@@ -758,7 +707,6 @@ export default function AttendancePage() {
               </Alert>
             )}
 
-            {/* Actions */}
             <div className="flex gap-2">
               {verificationStatus === 'idle' && (
                 <Button

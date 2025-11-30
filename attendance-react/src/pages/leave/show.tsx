@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router';
+import { Link, useParams, useNavigate } from '@tanstack/react-router';
 import {
   ArrowLeft,
   Calendar,
@@ -9,6 +9,8 @@ import {
   XCircle,
   AlertCircle,
   MessageSquare,
+  RefreshCw,
+  Loader2,
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,63 +19,186 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  useLeaveRequest,
+  useLeaveBalanceByEmployee,
+  useApproveLeaveRequest,
+  useRejectLeaveRequest,
+  useCancelLeaveRequest,
+} from '@/hooks';
+import { leaveTypeLabels, leaveTypeColors } from '@/types/leave';
 
-// Mock leave request data
-const mockLeaveRequest = {
-  id: 1,
-  employee: {
-    name: 'Ahmad Fauzi',
-    position: 'Senior Developer',
-    department: 'IT & Development',
-    avatar: null,
-  },
-  type: 'annual',
-  type_label: 'Cuti Tahunan',
-  start_date: '2024-12-02',
-  end_date: '2024-12-06',
-  days: 5,
-  reason: 'Liburan keluarga ke Bali untuk merayakan ulang tahun pernikahan. Sudah direncanakan sejak 3 bulan lalu.',
-  status: 'pending',
-  created_at: '2024-11-25T10:30:00',
-  approver: null,
-  approved_at: null,
-  attachment: 'dokumen_pendukung.pdf',
-};
-
-const timeline = [
-  {
-    id: 1,
-    action: 'Pengajuan dibuat',
-    user: 'Ahmad Fauzi',
-    date: '2024-11-25T10:30:00',
-    type: 'created',
-  },
-  {
-    id: 2,
-    action: 'Menunggu persetujuan HR',
-    user: 'System',
-    date: '2024-11-25T10:30:00',
-    type: 'pending',
-  },
-];
-
-const leaveTypeColors: Record<string, string> = {
-  annual: 'bg-blue-100 text-blue-700',
-  sick: 'bg-red-100 text-red-700',
-  personal: 'bg-purple-100 text-purple-700',
-  maternity: 'bg-pink-100 text-pink-700',
-  unpaid: 'bg-gray-100 text-gray-700',
-};
+// Loading skeleton
+function ShowLoadingSkeleton() {
+  return (
+    <div className="p-6 max-w-4xl mx-auto">
+      <Skeleton className="h-4 w-48 mb-6" />
+      <div className="flex justify-between items-start mb-6">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-4 w-48" />
+        </div>
+        <div className="flex gap-2">
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+        </div>
+      </div>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2 space-y-6">
+          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+        <div className="space-y-6">
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-48 w-full" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const statusConfig = {
   pending: { label: 'Menunggu', color: 'bg-warning/10 text-warning', icon: AlertCircle },
   approved: { label: 'Disetujui', color: 'bg-success/10 text-success', icon: CheckCircle },
   rejected: { label: 'Ditolak', color: 'bg-destructive/10 text-destructive', icon: XCircle },
+  cancelled: { label: 'Dibatalkan', color: 'bg-muted text-muted-foreground', icon: XCircle },
 };
 
 export default function LeaveShowPage() {
-  const leave = mockLeaveRequest;
-  const status = statusConfig[leave.status as keyof typeof statusConfig];
+  const { id } = useParams({ strict: false }) as { id: string };
+  const navigate = useNavigate();
+
+  // Fetch leave request
+  const {
+    data: leave,
+    isLoading,
+    error,
+    refetch,
+  } = useLeaveRequest(id);
+
+  // Fetch employee leave balance
+  const { data: leaveBalance } = useLeaveBalanceByEmployee(leave?.employee_id || '');
+
+  // Mutations
+  const approveLeaveRequestMutation = useApproveLeaveRequest();
+  const rejectLeaveRequestMutation = useRejectLeaveRequest();
+  const cancelLeaveRequestMutation = useCancelLeaveRequest();
+
+  // Handle approve
+  const handleApprove = async () => {
+    try {
+      await approveLeaveRequestMutation.mutateAsync({ id });
+    } catch {
+      // Error handled in hook
+    }
+  };
+
+  // Handle reject
+  const handleReject = async () => {
+    try {
+      await rejectLeaveRequestMutation.mutateAsync({ id, reason: 'Ditolak oleh manager' });
+    } catch {
+      // Error handled in hook
+    }
+  };
+
+  // Handle cancel
+  const handleCancel = async () => {
+    try {
+      await cancelLeaveRequestMutation.mutateAsync(id);
+      navigate({ to: '/leave' });
+    } catch {
+      // Error handled in hook
+    }
+  };
+
+  // Show loading state
+  if (isLoading) {
+    return <ShowLoadingSkeleton />;
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            Gagal memuat data pengajuan cuti. {error.message}
+          </AlertDescription>
+        </Alert>
+        <Button onClick={() => refetch()} className="mt-4">
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Coba Lagi
+        </Button>
+      </div>
+    );
+  }
+
+  if (!leave) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Tidak Ditemukan</AlertTitle>
+          <AlertDescription>
+            Pengajuan cuti dengan ID {id} tidak ditemukan.
+          </AlertDescription>
+        </Alert>
+        <Button asChild className="mt-4">
+          <Link to="/leave">Kembali ke Daftar</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  const status = statusConfig[leave.status];
+  const balance = leaveBalance || {
+    annual_remaining: 0,
+    sick_remaining: 0,
+    special_remaining: 0,
+  };
+
+  // Timeline data
+  const timeline = [
+    {
+      id: 1,
+      action: 'Pengajuan dibuat',
+      user: leave.employee_name || 'Karyawan',
+      date: leave.created_at,
+      type: 'created',
+    },
+    ...(leave.status === 'pending'
+      ? [{
+          id: 2,
+          action: 'Menunggu persetujuan',
+          user: 'System',
+          date: leave.created_at,
+          type: 'pending',
+        }]
+      : []),
+    ...(leave.status === 'approved'
+      ? [{
+          id: 3,
+          action: 'Disetujui',
+          user: leave.approved_by_name || 'Manager',
+          date: leave.approved_at || '',
+          type: 'approved',
+        }]
+      : []),
+    ...(leave.status === 'rejected'
+      ? [{
+          id: 3,
+          action: `Ditolak: ${leave.rejection_reason}`,
+          user: leave.approved_by_name || 'Manager',
+          date: leave.approved_at || '',
+          type: 'rejected',
+        }]
+      : []),
+  ];
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -102,12 +227,28 @@ export default function LeaveShowPage() {
           </div>
           {leave.status === 'pending' && (
             <div className="flex items-center gap-2">
-              <Button variant="outline" className="text-destructive">
-                <XCircle className="h-4 w-4 mr-2" />
+              <Button
+                variant="outline"
+                className="text-destructive"
+                onClick={handleReject}
+                disabled={rejectLeaveRequestMutation.isPending}
+              >
+                {rejectLeaveRequestMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <XCircle className="h-4 w-4 mr-2" />
+                )}
                 Tolak
               </Button>
-              <Button>
-                <CheckCircle className="h-4 w-4 mr-2" />
+              <Button
+                onClick={handleApprove}
+                disabled={approveLeaveRequestMutation.isPending}
+              >
+                {approveLeaveRequestMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                )}
                 Setujui
               </Button>
             </div>
@@ -130,13 +271,12 @@ export default function LeaveShowPage() {
               <div className="flex items-center gap-4">
                 <Avatar className="h-16 w-16">
                   <AvatarFallback className="text-lg bg-primary/10 text-primary">
-                    {leave.employee.name.split(' ').map(n => n[0]).join('')}
+                    {leave.employee_name?.split(' ').map(n => n[0]).join('') || 'U'}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="text-lg font-semibold">{leave.employee.name}</h3>
-                  <p className="text-sm text-muted-foreground">{leave.employee.position}</p>
-                  <p className="text-sm text-muted-foreground">{leave.employee.department}</p>
+                  <h3 className="text-lg font-semibold">{leave.employee_name}</h3>
+                  <p className="text-sm text-muted-foreground">{leave.employee_department}</p>
                 </div>
               </div>
             </CardContent>
@@ -154,7 +294,9 @@ export default function LeaveShowPage() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="p-3 rounded-lg bg-muted text-center">
                   <p className="text-xs text-muted-foreground mb-1">Jenis Cuti</p>
-                  <Badge className={leaveTypeColors[leave.type]}>{leave.type_label}</Badge>
+                  <Badge style={{ backgroundColor: leaveTypeColors[leave.type], color: 'white' }}>
+                    {leaveTypeLabels[leave.type]}
+                  </Badge>
                 </div>
                 <div className="p-3 rounded-lg bg-muted text-center">
                   <p className="text-xs text-muted-foreground mb-1">Tanggal Mulai</p>
@@ -176,7 +318,7 @@ export default function LeaveShowPage() {
                 </div>
                 <div className="p-3 rounded-lg bg-primary/10 text-center">
                   <p className="text-xs text-muted-foreground mb-1">Total Hari</p>
-                  <p className="text-2xl font-bold text-primary">{leave.days}</p>
+                  <p className="text-2xl font-bold text-primary">{leave.total_days}</p>
                 </div>
               </div>
 
@@ -189,12 +331,14 @@ export default function LeaveShowPage() {
                 </p>
               </div>
 
-              {leave.attachment && (
+              {leave.attachment_url && (
                 <div>
                   <h4 className="text-sm font-medium mb-2">Lampiran</h4>
-                  <Button variant="outline" size="sm">
-                    <FileText className="h-4 w-4 mr-2" />
-                    {leave.attachment}
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={leave.attachment_url} target="_blank" rel="noopener noreferrer">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Lihat Lampiran
+                    </a>
                   </Button>
                 </div>
               )}
@@ -215,9 +359,23 @@ export default function LeaveShowPage() {
                   placeholder="Tambahkan catatan atau alasan penolakan..."
                   className="mb-3"
                 />
-                <Button variant="outline" size="sm">
-                  Kirim Komentar
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm">
+                    Kirim Komentar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive"
+                    onClick={handleCancel}
+                    disabled={cancelLeaveRequestMutation.isPending}
+                  >
+                    {cancelLeaveRequestMutation.isPending && (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    )}
+                    Batalkan Pengajuan
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -236,8 +394,10 @@ export default function LeaveShowPage() {
                 {leave.status === 'pending'
                   ? 'Menunggu persetujuan atasan'
                   : leave.status === 'approved'
-                  ? `Disetujui oleh ${leave.approver}`
-                  : `Ditolak oleh ${leave.approver}`}
+                  ? `Disetujui oleh ${leave.approved_by_name}`
+                  : leave.status === 'rejected'
+                  ? `Ditolak oleh ${leave.approved_by_name}`
+                  : 'Pengajuan dibatalkan'}
               </p>
             </CardContent>
           </Card>
@@ -256,7 +416,10 @@ export default function LeaveShowPage() {
                   <div key={item.id} className="flex gap-3">
                     <div className="flex flex-col items-center">
                       <div className={`w-3 h-3 rounded-full ${
-                        item.type === 'created' ? 'bg-primary' : 'bg-warning'
+                        item.type === 'created' ? 'bg-primary' :
+                        item.type === 'approved' ? 'bg-success' :
+                        item.type === 'rejected' ? 'bg-destructive' :
+                        'bg-warning'
                       }`} />
                       {index < timeline.length - 1 && (
                         <div className="w-px h-full bg-border mt-1" />
@@ -266,7 +429,7 @@ export default function LeaveShowPage() {
                       <p className="text-sm font-medium">{item.action}</p>
                       <p className="text-xs text-muted-foreground">{item.user}</p>
                       <p className="text-xs text-muted-foreground">
-                        {new Date(item.date).toLocaleString('id-ID')}
+                        {item.date && new Date(item.date).toLocaleString('id-ID')}
                       </p>
                     </div>
                   </div>
@@ -284,15 +447,15 @@ export default function LeaveShowPage() {
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Cuti Tahunan</span>
-                  <span className="font-semibold">7 hari</span>
+                  <span className="font-semibold">{balance.annual_remaining} hari</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Cuti Sakit</span>
-                  <span className="font-semibold">12 hari</span>
+                  <span className="font-semibold">{balance.sick_remaining} hari</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm">Cuti Personal</span>
-                  <span className="font-semibold">3 hari</span>
+                  <span className="text-sm">Cuti Khusus</span>
+                  <span className="font-semibold">{balance.special_remaining} hari</span>
                 </div>
               </div>
             </CardContent>

@@ -101,8 +101,8 @@ function LocationCard({
             <div
               className={`flex h-12 w-12 items-center justify-center rounded-xl ${
                 location.is_active
-                  ? 'bg-gradient-to-br from-blue-500 to-cyan-600'
-                  : 'bg-gray-400'
+                  ? 'bg-gradient-to-br from-primary to-primary/70'
+                  : 'bg-muted-foreground'
               }`}
             >
               <MapPin className="h-6 w-6 text-white" />
@@ -137,7 +137,7 @@ function LocationCard({
                 )}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600" onClick={onDelete}>
+              <DropdownMenuItem className="text-destructive" onClick={onDelete}>
                 <Trash2 className="mr-2 h-4 w-4" />
                 Hapus
               </DropdownMenuItem>
@@ -463,13 +463,13 @@ export default function LocationsPage() {
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-600 via-cyan-600 to-teal-600 p-6 text-white shadow-lg">
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary via-primary/80 to-success p-6 text-white shadow-lg">
         <div className="absolute inset-0 bg-grid-white/10" />
         <div className="relative">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold">Manajemen Lokasi</h1>
-              <p className="mt-1 text-blue-100">
+              <p className="mt-1 text-white/80">
                 Kelola lokasi untuk verifikasi absensi GPS
               </p>
             </div>
@@ -478,7 +478,7 @@ export default function LocationsPage() {
                 setEditingLocation(null);
                 setIsFormOpen(true);
               }}
-              className="bg-white text-blue-600 hover:bg-blue-50"
+              className="bg-white text-primary hover:bg-primary/10"
             >
               <Plus className="mr-2 h-4 w-4" />
               Tambah Lokasi
@@ -494,40 +494,40 @@ export default function LocationsPage() {
                     <Map className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm text-blue-100">Total Lokasi</p>
+                    <p className="text-sm text-white/80">Total Lokasi</p>
                     <p className="text-2xl font-bold">{stats.total_locations}</p>
                   </div>
                 </div>
               </div>
               <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
                 <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-green-500/20 p-2">
+                  <div className="rounded-lg bg-success/20 p-2">
                     <Power className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm text-blue-100">Aktif</p>
+                    <p className="text-sm text-white/80">Aktif</p>
                     <p className="text-2xl font-bold">{stats.active_locations}</p>
                   </div>
                 </div>
               </div>
               <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
                 <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-purple-500/20 p-2">
+                  <div className="rounded-lg bg-chart-5/20 p-2">
                     <Users className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm text-blue-100">Total Pegawai</p>
+                    <p className="text-sm text-white/80">Total Pegawai</p>
                     <p className="text-2xl font-bold">{stats.total_employees_assigned}</p>
                   </div>
                 </div>
               </div>
               <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
                 <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-yellow-500/20 p-2">
+                  <div className="rounded-lg bg-warning/20 p-2">
                     <Wifi className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm text-blue-100">Dengan WiFi</p>
+                    <p className="text-sm text-white/80">Dengan WiFi</p>
                     <p className="text-2xl font-bold">{stats.locations_with_wifi}</p>
                   </div>
                 </div>
@@ -635,7 +635,7 @@ export default function LocationsPage() {
             <AlertDialogDescription>
               Anda yakin ingin menghapus lokasi <strong>{deletingLocation?.name}</strong>?
               {deletingLocation?.employee_count && deletingLocation.employee_count > 0 && (
-                <span className="mt-2 block text-amber-500">
+                <span className="mt-2 block text-warning">
                   Perhatian: Lokasi ini memiliki {deletingLocation.employee_count} pegawai yang
                   terdaftar.
                 </span>
@@ -646,7 +646,7 @@ export default function LocationsPage() {
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90"
             >
               Hapus
             </AlertDialogAction>

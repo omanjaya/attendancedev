@@ -159,9 +159,9 @@ function CalendarView({ holidays, currentMonth, onMonthChange }: {
     days.push(
       <div
         key={day}
-        className={`min-h-[80px] border-t p-2 ${isToday ? 'bg-blue-50' : ''}`}
+        className={`min-h-[80px] border-t p-2 ${isToday ? 'bg-primary/5' : ''}`}
       >
-        <div className={`text-sm font-medium ${isToday ? 'text-blue-600' : ''}`}>
+        <div className={`text-sm font-medium ${isToday ? 'text-primary' : ''}`}>
           {day}
         </div>
         <div className="mt-1 space-y-1">
@@ -524,7 +524,7 @@ export default function HolidaysPage() {
               </div>
               <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
                 <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-green-500/20 p-2">
+                  <div className="rounded-lg bg-success/20 p-2">
                     <CalendarCheck className="h-5 w-5" />
                   </div>
                   <div>
@@ -535,7 +535,7 @@ export default function HolidaysPage() {
               </div>
               <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
                 <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-yellow-500/20 p-2">
+                  <div className="rounded-lg bg-warning/20 p-2">
                     <Repeat className="h-5 w-5" />
                   </div>
                   <div>
@@ -546,7 +546,7 @@ export default function HolidaysPage() {
               </div>
               <div className="rounded-lg bg-white/10 p-4 backdrop-blur-sm">
                 <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-purple-500/20 p-2">
+                  <div className="rounded-lg bg-chart-5/20 p-2">
                     <CalendarIcon className="h-5 w-5" />
                   </div>
                   <div>
@@ -736,7 +736,7 @@ export default function HolidaysPage() {
                                 )}
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                  className="text-red-600"
+                                  className="text-destructive"
                                   onClick={() => setDeletingHoliday(holiday)}
                                 >
                                   <Trash2 className="mr-2 h-4 w-4" />
@@ -790,7 +790,7 @@ export default function HolidaysPage() {
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90"
             >
               Hapus
             </AlertDialogAction>

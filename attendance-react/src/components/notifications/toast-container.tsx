@@ -10,17 +10,17 @@ const icons = {
 };
 
 const colors = {
-  success: 'bg-green-50 border-green-200 dark:bg-green-950/50 dark:border-green-800',
-  error: 'bg-red-50 border-red-200 dark:bg-red-950/50 dark:border-red-800',
-  warning: 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950/50 dark:border-yellow-800',
-  info: 'bg-blue-50 border-blue-200 dark:bg-blue-950/50 dark:border-blue-800',
+  success: 'bg-success/10 border-success/20',
+  error: 'bg-destructive/10 border-destructive/20',
+  warning: 'bg-warning/10 border-warning/20',
+  info: 'bg-primary/10 border-primary/20',
 };
 
 const iconColors = {
-  success: 'text-green-600',
-  error: 'text-red-600',
-  warning: 'text-yellow-600',
-  info: 'text-blue-600',
+  success: 'text-success',
+  error: 'text-destructive',
+  warning: 'text-warning',
+  info: 'text-primary',
 };
 
 function Toast({ toast }: { toast: ToastNotification }) {

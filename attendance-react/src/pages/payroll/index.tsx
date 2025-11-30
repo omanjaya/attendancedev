@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   DollarSign,
   Calculator,
@@ -54,7 +54,13 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { usePayroll } from '@/hooks/use-payroll';
+import {
+  usePayrollPeriods,
+  usePayrollEmployees,
+  useCalculatePayroll,
+  useApprovePayroll,
+  useMarkPayrollPaid,
+} from '@/hooks/use-payroll';
 import {
   payrollStatusLabels,
   payrollStatusColors,
@@ -147,20 +153,20 @@ function PayslipDialog({
           <div>
             <h4 className="font-medium mb-2">Ringkasan Kehadiran</h4>
             <div className="grid grid-cols-4 gap-2 text-center">
-              <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 p-2">
-                <p className="text-lg font-bold text-emerald-600">{employee.present_days}</p>
+              <div className="rounded-lg bg-success/10 p-2">
+                <p className="text-lg font-bold text-success">{employee.present_days}</p>
                 <p className="text-xs text-muted-foreground">Hadir</p>
               </div>
-              <div className="rounded-lg bg-red-50 dark:bg-red-900/20 p-2">
-                <p className="text-lg font-bold text-red-600">{employee.absent_days}</p>
+              <div className="rounded-lg bg-destructive/10 p-2">
+                <p className="text-lg font-bold text-destructive">{employee.absent_days}</p>
                 <p className="text-xs text-muted-foreground">Tidak Hadir</p>
               </div>
-              <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 p-2">
-                <p className="text-lg font-bold text-amber-600">{employee.late_days}</p>
+              <div className="rounded-lg bg-warning/10 p-2">
+                <p className="text-lg font-bold text-warning">{employee.late_days}</p>
                 <p className="text-xs text-muted-foreground">Terlambat</p>
               </div>
-              <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-2">
-                <p className="text-lg font-bold text-blue-600">{employee.overtime_hours}</p>
+              <div className="rounded-lg bg-primary/10 p-2">
+                <p className="text-lg font-bold text-primary">{employee.overtime_hours}</p>
                 <p className="text-xs text-muted-foreground">Jam Lembur</p>
               </div>
             </div>
@@ -170,7 +176,7 @@ function PayslipDialog({
           <div className="grid grid-cols-2 gap-6">
             {/* Earnings */}
             <div>
-              <h4 className="font-medium mb-2 text-emerald-600">Pendapatan</h4>
+              <h4 className="font-medium mb-2 text-success">Pendapatan</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Gaji Pokok</span>
@@ -200,14 +206,14 @@ function PayslipDialog({
                 )}
                 <div className="flex justify-between font-medium pt-2 border-t">
                   <span>Total Pendapatan</span>
-                  <span className="text-emerald-600">{formatCurrency(employee.gross_salary)}</span>
+                  <span className="text-success">{formatCurrency(employee.gross_salary)}</span>
                 </div>
               </div>
             </div>
 
             {/* Deductions */}
             <div>
-              <h4 className="font-medium mb-2 text-red-600">Potongan</h4>
+              <h4 className="font-medium mb-2 text-destructive">Potongan</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">PPh 21</span>
@@ -235,7 +241,7 @@ function PayslipDialog({
                 )}
                 <div className="flex justify-between font-medium pt-2 border-t">
                   <span>Total Potongan</span>
-                  <span className="text-red-600">{formatCurrency(employee.total_deductions)}</span>
+                  <span className="text-destructive">{formatCurrency(employee.total_deductions)}</span>
                 </div>
               </div>
             </div>
@@ -267,32 +273,34 @@ export default function PayrollPage() {
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>('');
   const [showPayslip, setShowPayslip] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<PayrollEmployee | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
+  // Fetch payroll periods
+  const currentYear = new Date().getFullYear();
   const {
-    isLoading,
-    error,
-    payrollPeriods,
-    payrollEmployees,
-    selectedPeriod,
-    fetchPayrollPeriods,
-    fetchPayrollEmployees,
-    calculatePayroll,
-    approvePayroll,
-    markAsPaid,
-    clearError,
-  } = usePayroll();
+    data: periodsResponse,
+    isLoading: isLoadingPeriods,
+  } = usePayrollPeriods({ year: currentYear });
+  const payrollPeriods = periodsResponse?.data ?? [];
 
-  // Load data
-  useEffect(() => {
-    fetchPayrollPeriods();
-  }, [fetchPayrollPeriods]);
+  // Fetch employees for selected period
+  const { data: employeesResponse } = usePayrollEmployees({
+    period_id: selectedPeriodId,
+  });
+  const payrollEmployees = employeesResponse?.data ?? [];
 
-  // Load employees when period changes
-  useEffect(() => {
-    if (selectedPeriodId) {
-      fetchPayrollEmployees(selectedPeriodId);
-    }
-  }, [selectedPeriodId, fetchPayrollEmployees]);
+  // Mutations
+  const calculatePayrollMutation = useCalculatePayroll();
+  const approvePayrollMutation = useApprovePayroll();
+  const markAsPaidMutation = useMarkPayrollPaid();
+
+  const isLoading = isLoadingPeriods;
+
+  // Get selected period
+  const selectedPeriod = payrollPeriods.find((p) => p.id === selectedPeriodId);
+
+  // Handle mutation errors
+  const clearError = () => setError(null);
 
   // Stats
   const stats = {
@@ -362,9 +370,9 @@ export default function PayrollPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs text-muted-foreground">Menunggu Approval</p>
-                    <p className="text-2xl font-bold text-amber-600">{stats.pending_approval}</p>
+                    <p className="text-2xl font-bold text-warning">{stats.pending_approval}</p>
                   </div>
-                  <Clock className="h-8 w-8 text-amber-500/30" />
+                  <Clock className="h-8 w-8 text-warning/30" />
                 </div>
               </CardContent>
             </Card>
@@ -374,11 +382,11 @@ export default function PayrollPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs text-muted-foreground">Dibayar Bulan Ini</p>
-                    <p className="text-xl font-bold text-emerald-600">
+                    <p className="text-xl font-bold text-success">
                       {formatCurrency(stats.total_paid_this_month)}
                     </p>
                   </div>
-                  <DollarSign className="h-8 w-8 text-emerald-500/30" />
+                  <DollarSign className="h-8 w-8 text-success/30" />
                 </div>
               </CardContent>
             </Card>
@@ -390,7 +398,7 @@ export default function PayrollPage() {
                     <p className="text-xs text-muted-foreground">Total Karyawan</p>
                     <p className="text-2xl font-bold">{stats.total_employees}</p>
                   </div>
-                  <Users className="h-8 w-8 text-blue-500/30" />
+                  <Users className="h-8 w-8 text-primary/30" />
                 </div>
               </CardContent>
             </Card>
@@ -490,22 +498,39 @@ export default function PayrollPage() {
                                   Lihat Detail
                                 </DropdownMenuItem>
                                 {period.status === 'draft' && (
-                                  <DropdownMenuItem onClick={() => calculatePayroll(period.id)}>
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      calculatePayrollMutation.mutate({
+                                        id: period.id,
+                                        data: { include_overtime: true, include_bonus: false },
+                                      })
+                                    }
+                                  >
                                     <Calculator className="mr-2 h-4 w-4" />
                                     Hitung Payroll
                                   </DropdownMenuItem>
                                 )}
                                 {period.status === 'calculated' && (
                                   <DropdownMenuItem
-                                    className="text-emerald-600"
-                                    onClick={() => approvePayroll(period.id)}
+                                    className="text-success"
+                                    onClick={() => approvePayrollMutation.mutate({ id: period.id })}
                                   >
                                     <CheckCircle2 className="mr-2 h-4 w-4" />
                                     Approve
                                   </DropdownMenuItem>
                                 )}
                                 {period.status === 'approved' && (
-                                  <DropdownMenuItem onClick={() => markAsPaid(period.id)}>
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      markAsPaidMutation.mutate({
+                                        id: period.id,
+                                        data: {
+                                          payment_date: new Date().toISOString().split('T')[0],
+                                          payment_method: 'bank_transfer',
+                                        },
+                                      })
+                                    }
+                                  >
                                     <CreditCard className="mr-2 h-4 w-4" />
                                     Tandai Dibayar
                                   </DropdownMenuItem>
@@ -529,13 +554,13 @@ export default function PayrollPage() {
                             </div>
                             <div>
                               <span className="text-muted-foreground">Total Potongan</span>
-                              <p className="font-medium text-red-600">
+                              <p className="font-medium text-destructive">
                                 -{formatCurrency(period.total_deductions)}
                               </p>
                             </div>
                             <div>
                               <span className="text-muted-foreground">Total Netto</span>
-                              <p className="font-medium text-emerald-600">
+                              <p className="font-medium text-success">
                                 {formatCurrency(period.total_net)}
                               </p>
                             </div>
@@ -628,10 +653,10 @@ export default function PayrollPage() {
                           <TableCell className="text-right">
                             {formatCurrency(employee.base_salary)}
                           </TableCell>
-                          <TableCell className="text-right text-emerald-600">
+                          <TableCell className="text-right text-success">
                             +{formatCurrency(employee.gross_salary - employee.base_salary)}
                           </TableCell>
-                          <TableCell className="text-right text-red-600">
+                          <TableCell className="text-right text-destructive">
                             -{formatCurrency(employee.total_deductions)}
                           </TableCell>
                           <TableCell className="text-right font-bold">

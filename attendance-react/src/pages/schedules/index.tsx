@@ -4,10 +4,11 @@ import {
   Layers,
   UserPlus,
   CalendarRange,
+  Download,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 
-// Import tab contents
 import { ScheduleListContent } from './tabs/ScheduleListContent';
 import { ScheduleBuilderContent } from './tabs/ScheduleBuilderContent';
 import { ScheduleAssignContent } from './tabs/ScheduleAssignContent';
@@ -17,18 +18,30 @@ export default function SchedulesPage() {
   const [activeTab, setActiveTab] = useState('list');
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-            <Calendar className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Manajemen Jadwal</h1>
-            <p className="text-sm text-muted-foreground">
-              Kelola jadwal kerja, penugasan, dan jadwal bulanan
-            </p>
+    <div className="space-y-6 p-6">
+      {/* Hero Header */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background p-8">
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
+
+        <div className="relative">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                <Calendar className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">Manajemen Jadwal</h1>
+                <p className="text-sm text-muted-foreground">
+                  Kelola jadwal kerja, penugasan, dan jadwal bulanan
+                </p>
+              </div>
+            </div>
+
+            <Button variant="outline" size="sm" className="bg-background/50 backdrop-blur-sm">
+              <Download className="mr-2 h-4 w-4" />
+              Export
+            </Button>
           </div>
         </div>
       </div>

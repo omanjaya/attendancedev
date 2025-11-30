@@ -7,6 +7,9 @@ import { Loader2, Eye, EyeOff, LogIn, Clock, Fingerprint, MapPin } from 'lucide-
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuthStore, useNotificationStore } from '@/stores';
 
 // Form validation schema
@@ -122,16 +125,14 @@ export default function LoginPage() {
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
                 {/* Error message */}
                 {error && (
-                  <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive border border-destructive/20">
-                    {error}
-                  </div>
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
                 )}
 
                 {/* Email field */}
                 <div className="space-y-2">
-                  <label htmlFor="email" className="text-sm font-medium text-foreground">
-                    Email
-                  </label>
+                  <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                     type="email"
@@ -147,9 +148,7 @@ export default function LoginPage() {
 
                 {/* Password field */}
                 <div className="space-y-2">
-                  <label htmlFor="password" className="text-sm font-medium text-foreground">
-                    Password
-                  </label>
+                  <Label htmlFor="password">Password</Label>
                   <div className="relative">
                     <Input
                       id="password"
@@ -174,15 +173,13 @@ export default function LoginPage() {
 
                 {/* Remember me & Forgot */}
                 <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-input text-primary focus:ring-primary/20"
-                      {...register('remember')}
-                    />
-                    <span className="text-sm text-muted-foreground">Ingat saya</span>
-                  </label>
-                  <a href="#" className="text-sm text-primary font-medium hover:underline">
+                  <div className="flex items-center gap-2">
+                    <Checkbox id="remember" {...register('remember')} />
+                    <Label htmlFor="remember" className="text-sm font-normal text-muted-foreground cursor-pointer">
+                      Ingat saya
+                    </Label>
+                  </div>
+                  <a href="/auth/forgot-password" className="text-sm text-primary font-medium hover:underline">
                     Lupa password?
                   </a>
                 </div>

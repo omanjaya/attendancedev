@@ -37,6 +37,7 @@ const LeaveApprovalsPage = lazy(() => import('@/pages/leave/approvals'));
 
 // Payroll pages
 const PayrollPage = lazy(() => import('@/pages/payroll'));
+const PayrollShowPage = lazy(() => import('@/pages/payroll/show'));
 const PayrollEditPage = lazy(() => import('@/pages/payroll/edit'));
 
 // Reports pages
@@ -266,9 +267,15 @@ const payrollRoute = createRoute({
   component: PayrollPage,
 });
 
+const payrollShowRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/payroll/$periodId/employee/$employeeId',
+  component: PayrollShowPage,
+});
+
 const payrollEditRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/payroll/$id/edit',
+  path: '/payroll/$periodId/employee/$employeeId/edit',
   component: PayrollEditPage,
 });
 
@@ -444,6 +451,7 @@ const routeTree = rootRoute.addChildren([
     leaveShowRoute,
     // Payroll
     payrollRoute,
+    payrollShowRoute,
     payrollEditRoute,
     // Reports
     reportsRoute,

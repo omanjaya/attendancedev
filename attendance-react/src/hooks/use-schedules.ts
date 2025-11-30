@@ -1,288 +1,310 @@
-import { useState, useCallback } from 'react';
-import type {
-  Schedule,
-  ScheduleConflict,
-  TimeSlot,
-  AcademicClass,
-  Subject,
-  AvailableTeacher,
-  ScheduleFormData,
-  ScheduleStatistics,
-  DayOfWeek,
-} from '@/types/schedule';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  getSchedules,
+  getSchedule,
+  getSchedulesByClass,
+  createSchedule,
+  updateSchedule,
+  deleteSchedule,
+  lockSchedule,
+  unlockSchedule,
+  getScheduleStatistics,
+  getScheduleConflicts,
+  getTimeSlots,
+  getSubjects,
+  getClasses,
+  getAvailableTeachers,
+  getMonthlySchedules,
+  getMonthlySchedule,
+  createMonthlySchedule,
+  publishMonthlySchedule,
+  deleteMonthlySchedule,
+  type ScheduleFilters,
+  type MonthlyScheduleFilters,
+} from '@/lib/api/schedules';
+import type { ScheduleFormData, DayOfWeek } from '@/types/schedule';
+import { useNotificationStore } from '@/stores';
 
-// Mock data for development
-const mockTimeSlots: TimeSlot[] = [
-  { id: '1', name: 'Jam 1', start_time: '07:00', end_time: '07:45' },
-  { id: '2', name: 'Jam 2', start_time: '07:45', end_time: '08:30' },
-  { id: '3', name: 'Jam 3', start_time: '08:30', end_time: '09:15' },
-  { id: '4', name: 'Istirahat', start_time: '09:15', end_time: '09:30', is_break: true },
-  { id: '5', name: 'Jam 4', start_time: '09:30', end_time: '10:15' },
-  { id: '6', name: 'Jam 5', start_time: '10:15', end_time: '11:00' },
-  { id: '7', name: 'Jam 6', start_time: '11:00', end_time: '11:45' },
-  { id: '8', name: 'Istirahat', start_time: '11:45', end_time: '12:30', is_break: true },
-  { id: '9', name: 'Jam 7', start_time: '12:30', end_time: '13:15' },
-  { id: '10', name: 'Jam 8', start_time: '13:15', end_time: '14:00' },
-];
-
-const mockClasses: AcademicClass[] = [
-  { id: '1', name: 'X-A', grade_level: '10', homeroom_teacher_name: 'Budi Santoso', student_count: 32 },
-  { id: '2', name: 'X-B', grade_level: '10', homeroom_teacher_name: 'Siti Rahayu', student_count: 30 },
-  { id: '3', name: 'XI-A', grade_level: '11', homeroom_teacher_name: 'Ahmad Yani', student_count: 28 },
-  { id: '4', name: 'XI-B', grade_level: '11', homeroom_teacher_name: 'Dewi Lestari', student_count: 31 },
-  { id: '5', name: 'XII-A', grade_level: '12', homeroom_teacher_name: 'Eko Prasetyo', student_count: 29 },
-];
-
-const mockSubjects: Subject[] = [
-  { id: '1', code: 'MTK', name: 'Matematika', category: 'Exact', weekly_hours: 5, color: '#3B82F6' },
-  { id: '2', code: 'BIN', name: 'Bahasa Indonesia', category: 'Language', weekly_hours: 4, color: '#10B981' },
-  { id: '3', code: 'BIG', name: 'Bahasa Inggris', category: 'Language', weekly_hours: 4, color: '#8B5CF6' },
-  { id: '4', code: 'FIS', name: 'Fisika', category: 'Exact', weekly_hours: 4, requires_lab: true, color: '#F59E0B' },
-  { id: '5', code: 'KIM', name: 'Kimia', category: 'Exact', weekly_hours: 3, requires_lab: true, color: '#EF4444' },
-  { id: '6', code: 'BIO', name: 'Biologi', category: 'Exact', weekly_hours: 3, requires_lab: true, color: '#06B6D4' },
-  { id: '7', code: 'SEJ', name: 'Sejarah', category: 'Social', weekly_hours: 2, color: '#84CC16' },
-  { id: '8', code: 'PKN', name: 'PKN', category: 'Social', weekly_hours: 2, color: '#EC4899' },
-];
-
-const mockTeachers: AvailableTeacher[] = [
-  { id: '1', name: 'Budi Santoso, S.Pd', nip: '198501012010011001', is_available: true, current_load: 20, max_load: 24 },
-  { id: '2', name: 'Siti Rahayu, M.Pd', nip: '198702032011012002', is_available: true, current_load: 18, max_load: 24 },
-  { id: '3', name: 'Ahmad Yani, S.Pd', nip: '199003052012011003', is_available: false, conflict_reason: 'Sudah mengajar di waktu ini', current_load: 22, max_load: 24 },
-  { id: '4', name: 'Dewi Lestari, M.Pd', nip: '198805152013012004', is_available: true, current_load: 16, max_load: 24 },
-];
-
-const generateMockSchedules = (classId: string): Schedule[] => {
-  const days: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-  const schedules: Schedule[] = [];
-
-  days.forEach((day) => {
-    // Generate 4-6 schedules per day
-    const numSchedules = Math.floor(Math.random() * 3) + 4;
-    const usedSlots = new Set<string>();
-
-    for (let i = 0; i < numSchedules; i++) {
-      let slotIndex: number;
-      do {
-        slotIndex = Math.floor(Math.random() * mockTimeSlots.filter(s => !s.is_break).length);
-      } while (usedSlots.has(String(slotIndex)));
-      usedSlots.add(String(slotIndex));
-
-      const slot = mockTimeSlots.filter(s => !s.is_break)[slotIndex];
-      const subject = mockSubjects[Math.floor(Math.random() * mockSubjects.length)];
-      const teacher = mockTeachers[Math.floor(Math.random() * mockTeachers.length)];
-
-      schedules.push({
-        id: `${classId}-${day}-${slot.id}`,
-        academic_class_id: classId,
-        subject_id: subject.id,
-        employee_id: teacher.id,
-        time_slot_id: slot.id,
-        day_of_week: day,
-        room: `R.${Math.floor(Math.random() * 20) + 1}`,
-        effective_from: '2024-01-01',
-        is_active: true,
-        is_locked: Math.random() > 0.8,
-        status: 'active',
-        created_at: '2024-01-01T00:00:00',
-        updated_at: '2024-01-01T00:00:00',
-        subject,
-        employee: {
-          id: teacher.id,
-          nip: teacher.nip,
-          name: teacher.name,
-        },
-        time_slot: slot,
-      });
-    }
-  });
-
-  return schedules;
+// Query keys
+export const scheduleKeys = {
+  all: ['schedules'] as const,
+  lists: () => [...scheduleKeys.all, 'list'] as const,
+  list: (filters: ScheduleFilters) => [...scheduleKeys.lists(), filters] as const,
+  details: () => [...scheduleKeys.all, 'detail'] as const,
+  detail: (id: string) => [...scheduleKeys.details(), id] as const,
+  byClass: (classId: string) => [...scheduleKeys.all, 'byClass', classId] as const,
+  statistics: () => [...scheduleKeys.all, 'statistics'] as const,
+  conflicts: (classId?: string) => [...scheduleKeys.all, 'conflicts', classId] as const,
+  timeSlots: () => [...scheduleKeys.all, 'timeSlots'] as const,
+  subjects: () => [...scheduleKeys.all, 'subjects'] as const,
+  classes: () => [...scheduleKeys.all, 'classes'] as const,
+  availableTeachers: (subjectId: string, dayOfWeek: DayOfWeek, timeSlotId: string) =>
+    [...scheduleKeys.all, 'availableTeachers', subjectId, dayOfWeek, timeSlotId] as const,
+  monthly: () => [...scheduleKeys.all, 'monthly'] as const,
+  monthlyList: (filters: MonthlyScheduleFilters) => [...scheduleKeys.monthly(), 'list', filters] as const,
+  monthlyDetail: (id: string) => [...scheduleKeys.monthly(), 'detail', id] as const,
 };
 
-export function useSchedules() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [conflicts, setConflicts] = useState<ScheduleConflict[]>([]);
-  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+// Get schedules list with pagination
+export function useSchedules(filters?: ScheduleFilters) {
+  return useQuery({
+    queryKey: scheduleKeys.list(filters || {}),
+    queryFn: () => getSchedules(filters),
+  });
+}
 
-  // Fetch schedule grid for a class
-  const fetchScheduleGrid = useCallback(async (classId: string) => {
-    setIsLoading(true);
-    setError(null);
+// Get single schedule by ID
+export function useSchedule(id: string) {
+  return useQuery({
+    queryKey: scheduleKeys.detail(id),
+    queryFn: () => getSchedule(id),
+    enabled: !!id,
+  });
+}
 
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
+// Get schedules by class (for schedule grid/builder)
+export function useSchedulesByClass(classId: string) {
+  return useQuery({
+    queryKey: scheduleKeys.byClass(classId),
+    queryFn: () => getSchedulesByClass(classId),
+    enabled: !!classId,
+  });
+}
 
-      const mockSchedules = generateMockSchedules(classId);
-      setSchedules(mockSchedules);
-      setSelectedClassId(classId);
+// Get schedule statistics
+export function useScheduleStatistics() {
+  return useQuery({
+    queryKey: scheduleKeys.statistics(),
+    queryFn: getScheduleStatistics,
+  });
+}
 
-      // Generate some mock conflicts
-      if (Math.random() > 0.7) {
-        setConflicts([
-          {
-            id: '1',
-            type: 'teacher_double_booking',
-            severity: 'high',
-            schedule_a_id: mockSchedules[0]?.id || '',
-            description: 'Guru Budi Santoso sudah mengajar di kelas lain pada waktu yang sama',
-            suggestion: 'Pindahkan jadwal ke slot waktu lain atau pilih guru pengganti',
-            is_resolved: false,
-            created_at: new Date().toISOString(),
-          },
-        ]);
-      } else {
-        setConflicts([]);
-      }
-    } catch (err) {
-      setError('Gagal memuat jadwal');
-      console.error('Error fetching schedule grid:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+// Get schedule conflicts
+export function useScheduleConflicts(classId?: string) {
+  return useQuery({
+    queryKey: scheduleKeys.conflicts(classId),
+    queryFn: () => getScheduleConflicts(classId),
+  });
+}
 
-  // Create schedule
-  const createSchedule = useCallback(async (data: ScheduleFormData) => {
-    setIsLoading(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+// Get time slots
+export function useTimeSlots() {
+  return useQuery({
+    queryKey: scheduleKeys.timeSlots(),
+    queryFn: getTimeSlots,
+    staleTime: 1000 * 60 * 30, // Cache for 30 minutes (rarely changes)
+  });
+}
 
-      const subject = mockSubjects.find((s) => s.id === data.subject_id);
-      const teacher = mockTeachers.find((t) => t.id === data.employee_id);
-      const timeSlot = mockTimeSlots.find((t) => t.id === data.time_slot_id);
+// Get subjects
+export function useSubjects() {
+  return useQuery({
+    queryKey: scheduleKeys.subjects(),
+    queryFn: getSubjects,
+    staleTime: 1000 * 60 * 30, // Cache for 30 minutes
+  });
+}
 
-      const newSchedule: Schedule = {
-        id: `new-${Date.now()}`,
-        academic_class_id: selectedClassId || '',
-        ...data,
-        is_active: true,
-        is_locked: false,
-        status: 'active',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        subject,
-        employee: teacher ? { id: teacher.id, nip: teacher.nip, name: teacher.name } : undefined,
-        time_slot: timeSlot,
-      };
+// Get classes
+export function useAcademicClasses() {
+  return useQuery({
+    queryKey: scheduleKeys.classes(),
+    queryFn: getClasses,
+    staleTime: 1000 * 60 * 30, // Cache for 30 minutes
+  });
+}
 
-      setSchedules((prev) => [...prev, newSchedule]);
-      return newSchedule;
-    } catch (err) {
-      setError('Gagal membuat jadwal');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedClassId]);
+// Get available teachers for a specific slot
+export function useAvailableTeachers(
+  subjectId: string,
+  dayOfWeek: DayOfWeek,
+  timeSlotId: string
+) {
+  return useQuery({
+    queryKey: scheduleKeys.availableTeachers(subjectId, dayOfWeek, timeSlotId),
+    queryFn: () => getAvailableTeachers(subjectId, dayOfWeek, timeSlotId),
+    enabled: !!subjectId && !!dayOfWeek && !!timeSlotId,
+  });
+}
 
-  // Update schedule
-  const updateSchedule = useCallback(async (id: string, data: Partial<ScheduleFormData>) => {
-    setIsLoading(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+// Create schedule mutation
+export function useCreateSchedule() {
+  const queryClient = useQueryClient();
+  const { success, error } = useNotificationStore();
 
-      setSchedules((prev) =>
-        prev.map((schedule) =>
-          schedule.id === id
-            ? { ...schedule, ...data, updated_at: new Date().toISOString() }
-            : schedule
-        )
-      );
-    } catch (err) {
-      setError('Gagal mengupdate jadwal');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Delete schedule
-  const deleteSchedule = useCallback(async (id: string) => {
-    setIsLoading(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      setSchedules((prev) => prev.filter((s) => s.id !== id));
-    } catch (err) {
-      setError('Gagal menghapus jadwal');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Toggle lock
-  const toggleLock = useCallback(async (id: string, reason?: string) => {
-    setIsLoading(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      setSchedules((prev) =>
-        prev.map((schedule) =>
-          schedule.id === id
-            ? {
-                ...schedule,
-                is_locked: !schedule.is_locked,
-                lock_reason: !schedule.is_locked ? reason : undefined,
-              }
-            : schedule
-        )
-      );
-    } catch (err) {
-      setError('Gagal mengubah status kunci');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Get available teachers
-  const getAvailableTeachers = useCallback(
-    async (_subjectId: string, _dayOfWeek: DayOfWeek, _timeSlotId: string) => {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      return mockTeachers;
+  return useMutation({
+    mutationFn: ({ classId, data }: { classId: string; data: ScheduleFormData }) =>
+      createSchedule(classId, data),
+    onSuccess: (_, { classId }) => {
+      queryClient.invalidateQueries({ queryKey: scheduleKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: scheduleKeys.byClass(classId) });
+      queryClient.invalidateQueries({ queryKey: scheduleKeys.statistics() });
+      queryClient.invalidateQueries({ queryKey: scheduleKeys.conflicts() });
+      success('Berhasil', 'Jadwal berhasil dibuat');
     },
-    []
-  );
+    onError: (err: Error) => {
+      error('Gagal', err.message || 'Gagal membuat jadwal');
+    },
+  });
+}
 
-  // Get statistics
-  const getStatistics = useCallback(async (): Promise<ScheduleStatistics> => {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    return {
-      total_schedules: schedules.length,
-      active_schedules: schedules.filter((s) => s.is_active).length,
-      locked_schedules: schedules.filter((s) => s.is_locked).length,
-      conflicts_count: conflicts.length,
-      classes_with_schedules: mockClasses.length,
-      teachers_assigned: new Set(schedules.map((s) => s.employee_id)).size,
-      average_weekly_hours: 22.5,
-    };
-  }, [schedules, conflicts]);
+// Update schedule mutation
+export function useUpdateSchedule() {
+  const queryClient = useQueryClient();
+  const { success, error } = useNotificationStore();
 
-  return {
-    // State
-    isLoading,
-    error,
-    schedules,
-    conflicts,
-    selectedClassId,
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<ScheduleFormData> }) =>
+      updateSchedule(id, data),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: scheduleKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: scheduleKeys.detail(result.id) });
+      if (result.academic_class_id) {
+        queryClient.invalidateQueries({ queryKey: scheduleKeys.byClass(result.academic_class_id) });
+      }
+      queryClient.invalidateQueries({ queryKey: scheduleKeys.conflicts() });
+      success('Berhasil', 'Jadwal berhasil diperbarui');
+    },
+    onError: (err: Error) => {
+      error('Gagal', err.message || 'Gagal memperbarui jadwal');
+    },
+  });
+}
 
-    // Data
-    timeSlots: mockTimeSlots,
-    classes: mockClasses,
-    subjects: mockSubjects,
+// Delete schedule mutation
+export function useDeleteSchedule() {
+  const queryClient = useQueryClient();
+  const { success, error } = useNotificationStore();
 
-    // Actions
-    fetchScheduleGrid,
-    createSchedule,
-    updateSchedule,
-    deleteSchedule,
-    toggleLock,
-    getAvailableTeachers,
-    getStatistics,
-    setSelectedClassId,
-    clearError: () => setError(null),
-  };
+  return useMutation({
+    mutationFn: (id: string) => deleteSchedule(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: scheduleKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: scheduleKeys.statistics() });
+      queryClient.invalidateQueries({ queryKey: scheduleKeys.conflicts() });
+      success('Berhasil', 'Jadwal berhasil dihapus');
+    },
+    onError: (err: Error) => {
+      error('Gagal', err.message || 'Gagal menghapus jadwal');
+    },
+  });
+}
+
+// Lock schedule mutation
+export function useLockSchedule() {
+  const queryClient = useQueryClient();
+  const { success, error } = useNotificationStore();
+
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) => lockSchedule(id, reason),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: scheduleKeys.detail(result.id) });
+      if (result.academic_class_id) {
+        queryClient.invalidateQueries({ queryKey: scheduleKeys.byClass(result.academic_class_id) });
+      }
+      queryClient.invalidateQueries({ queryKey: scheduleKeys.statistics() });
+      success('Berhasil', 'Jadwal berhasil dikunci');
+    },
+    onError: (err: Error) => {
+      error('Gagal', err.message || 'Gagal mengunci jadwal');
+    },
+  });
+}
+
+// Unlock schedule mutation
+export function useUnlockSchedule() {
+  const queryClient = useQueryClient();
+  const { success, error } = useNotificationStore();
+
+  return useMutation({
+    mutationFn: (id: string) => unlockSchedule(id),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: scheduleKeys.detail(result.id) });
+      if (result.academic_class_id) {
+        queryClient.invalidateQueries({ queryKey: scheduleKeys.byClass(result.academic_class_id) });
+      }
+      queryClient.invalidateQueries({ queryKey: scheduleKeys.statistics() });
+      success('Berhasil', 'Jadwal berhasil dibuka kuncinya');
+    },
+    onError: (err: Error) => {
+      error('Gagal', err.message || 'Gagal membuka kunci jadwal');
+    },
+  });
+}
+
+// Monthly Schedule hooks
+
+// Get monthly schedules list
+export function useMonthlySchedules(filters?: MonthlyScheduleFilters) {
+  return useQuery({
+    queryKey: scheduleKeys.monthlyList(filters || {}),
+    queryFn: () => getMonthlySchedules(filters),
+  });
+}
+
+// Get single monthly schedule
+export function useMonthlySchedule(id: string) {
+  return useQuery({
+    queryKey: scheduleKeys.monthlyDetail(id),
+    queryFn: () => getMonthlySchedule(id),
+    enabled: !!id,
+  });
+}
+
+// Create monthly schedule mutation
+export function useCreateMonthlySchedule() {
+  const queryClient = useQueryClient();
+  const { success, error } = useNotificationStore();
+
+  return useMutation({
+    mutationFn: (data: {
+      name: string;
+      academic_year: string;
+      semester: 1 | 2;
+      month: number;
+      year: number;
+    }) => createMonthlySchedule(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: scheduleKeys.monthly() });
+      success('Berhasil', 'Jadwal bulanan berhasil dibuat');
+    },
+    onError: (err: Error) => {
+      error('Gagal', err.message || 'Gagal membuat jadwal bulanan');
+    },
+  });
+}
+
+// Publish monthly schedule mutation
+export function usePublishMonthlySchedule() {
+  const queryClient = useQueryClient();
+  const { success, error } = useNotificationStore();
+
+  return useMutation({
+    mutationFn: (id: string) => publishMonthlySchedule(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: scheduleKeys.monthlyDetail(id) });
+      queryClient.invalidateQueries({ queryKey: scheduleKeys.monthly() });
+      success('Berhasil', 'Jadwal bulanan berhasil dipublikasikan');
+    },
+    onError: (err: Error) => {
+      error('Gagal', err.message || 'Gagal mempublikasikan jadwal bulanan');
+    },
+  });
+}
+
+// Delete monthly schedule mutation
+export function useDeleteMonthlySchedule() {
+  const queryClient = useQueryClient();
+  const { success, error } = useNotificationStore();
+
+  return useMutation({
+    mutationFn: (id: string) => deleteMonthlySchedule(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: scheduleKeys.monthly() });
+      success('Berhasil', 'Jadwal bulanan berhasil dihapus');
+    },
+    onError: (err: Error) => {
+      error('Gagal', err.message || 'Gagal menghapus jadwal bulanan');
+    },
+  });
 }

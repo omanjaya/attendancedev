@@ -40,10 +40,10 @@ const categoryIcons: Record<NotificationCategory, typeof Bell> = {
 };
 
 const typeColors = {
-  success: 'bg-green-100 text-green-600 dark:bg-green-900/30',
-  error: 'bg-red-100 text-red-600 dark:bg-red-900/30',
-  warning: 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30',
-  info: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30',
+  success: 'bg-success/10 text-success',
+  error: 'bg-destructive/10 text-destructive',
+  warning: 'bg-warning/10 text-warning',
+  info: 'bg-primary/10 text-primary',
 };
 
 function NotificationItem({
