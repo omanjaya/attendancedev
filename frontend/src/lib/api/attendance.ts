@@ -17,6 +17,7 @@ const ENDPOINTS = {
   today: '/attendance/today',
   statistics: '/attendance/statistics',
   trends: '/attendance/trends',
+  verifyLocation: '/locations/verify',
 } as const;
 
 // Get attendance records with pagination and filters
@@ -84,4 +85,36 @@ export async function updateAttendance(
 // Delete attendance record (admin only)
 export async function deleteAttendance(id: number): Promise<void> {
   await apiClient.delete(ENDPOINTS.detail(id));
+}
+
+// Location verification types
+export interface LocationVerificationRequest {
+  latitude: number;
+  longitude: number;
+  location_id?: number;
+}
+
+export interface LocationVerificationResponse {
+  verified: boolean;
+  message: string;
+  location: {
+    id: number;
+    name: string;
+    address: string;
+    latitude: number;
+    longitude: number;
+    radius_meters: number;
+  } | null;
+  distance: number;
+}
+
+// Verify location for attendance
+export async function verifyLocation(
+  data: LocationVerificationRequest
+): Promise<LocationVerificationResponse> {
+  const response = await apiClient.post<LocationVerificationResponse>(
+    ENDPOINTS.verifyLocation,
+    data
+  );
+  return response.data;
 }

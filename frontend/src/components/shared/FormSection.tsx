@@ -1,7 +1,14 @@
 import type { ReactNode } from 'react';
-import type { LucideIcon } from 'lucide-react';
+
+
+// Type for lucide icon components
+type IconType = React.ComponentType<{ className?: string }>;
+
+// Removed LucideIcon type import from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
 import { cn } from '@/lib/utils';
+
 
 interface FormSectionProps {
   /** Section title */
@@ -9,7 +16,7 @@ interface FormSectionProps {
   /** Section description */
   description?: string;
   /** Icon for the section */
-  icon?: LucideIcon;
+  icon?: IconType;
   /** Whether the section is optional */
   optional?: boolean;
   /** Form fields */
@@ -100,7 +107,7 @@ interface FormSidebarProps {
   description?: string;
   /** Feature list */
   features?: Array<{
-    icon?: LucideIcon;
+    icon?: IconType;
     title: string;
     description?: string;
   }>;

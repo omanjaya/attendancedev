@@ -46,4 +46,35 @@ class AuthController extends Controller
     {
         return response()->json($request->user()->load(['employee', 'roles', 'permissions']));
     }
+
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required',
+            'new_password' => 'required|min:8',
+            'new_password_confirmation' => 'required|same:new_password',
+        ]);
+
+        $user = $request->user();
+
+        // Verify current password
+        if (!Hash::check($request->current_password, $user->password)) {
+            throw ValidationException::withMessages([
+                'current_password' => ['Password saat ini tidak sesuai.'],
+            ]);
+        }
+
+        // Update password and reset force_password_change flag
+        $user->password = Hash::make($request->new_password);
+        $user->force_password_change = false;
+        $user->password_changed_at = now(); // Track when password was changed
+        $user->save();
+
+        // Revoke all tokens to force re-login
+        $user->tokens()->delete();
+
+        return response()->json([
+            'message' => 'Password berhasil diubah. Silakan login kembali.',
+        ]);
+    }
 }

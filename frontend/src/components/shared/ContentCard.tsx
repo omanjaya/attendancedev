@@ -1,14 +1,22 @@
 import type { ReactNode } from 'react';
-import type { LucideIcon } from 'lucide-react';
+
+
+// Type for lucide icon components
+type IconType = React.ComponentType<{ className?: string }>;
+
+// Removed LucideIcon type import from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+
 import { Skeleton } from '@/components/ui/skeleton';
+
 import { cn } from '@/lib/utils';
+
 
 interface ContentCardProps {
   /** Card title */
   title?: string;
   /** Title icon */
-  icon?: LucideIcon;
+  icon?: IconType;
   /** Optional description below title */
   description?: string;
   /** Actions to display in header (right side) */
@@ -92,7 +100,7 @@ interface StatCardProps {
   title: string;
   value: string | number;
   description?: string;
-  icon?: LucideIcon;
+  icon?: IconType;
   trend?: 'up' | 'down' | 'neutral';
   trendValue?: string;
   color?: 'primary' | 'success' | 'warning' | 'destructive' | 'info';

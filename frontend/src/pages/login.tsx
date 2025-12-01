@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { Loader2, Eye, EyeOff, LogIn, Clock, Fingerprint, MapPin } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { LoadingState } from '@/components/states';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -43,7 +44,18 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginForm) => {
     try {
       await login(data);
-      navigate({ to: '/dashboard' });
+
+      // Double check security: Force password change if EITHER condition is true
+      const user = useAuthStore.getState().user;
+      const mustChangePassword =
+        user?.force_password_change === true || // Admin forced password change
+        user?.password_changed_at === null;     // User never changed password
+
+      if (mustChangePassword) {
+        navigate({ to: '/auth/change-password' });
+      } else {
+        navigate({ to: '/dashboard' });
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Login gagal';
       showError('Login Gagal', message);

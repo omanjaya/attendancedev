@@ -1,10 +1,17 @@
-import type { LucideIcon } from 'lucide-react';
+
+// Type for lucide icon components
+type IconType = React.ComponentType<{ className?: string }>;
+
+// Removed LucideIcon type import from 'lucide-react';
 import { FileQuestion } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
+
 import { cn } from '@/lib/utils';
 
+
 interface EmptyStateProps {
-  icon?: LucideIcon;
+  icon?: IconType;
   title: string;
   description?: string;
   action?: {

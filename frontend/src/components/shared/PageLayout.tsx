@@ -1,6 +1,12 @@
 import type { ReactNode } from 'react';
-import type { LucideIcon } from 'lucide-react';
+
+
+// Type for lucide icon components
+type IconType = React.ComponentType<{ className?: string }>;
+
+// Removed LucideIcon type import from 'lucide-react';
 import { cn } from '@/lib/utils';
+
 
 interface PageLayoutProps {
   /** Page title */
@@ -8,7 +14,7 @@ interface PageLayoutProps {
   /** Optional description below title */
   description?: string;
   /** Optional icon before title */
-  icon?: LucideIcon;
+  icon?: IconType;
   /** Actions to display on the right side */
   actions?: ReactNode;
   /** Breadcrumb or back navigation */
@@ -37,8 +43,8 @@ const PageLayout = ({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
           {Icon && (
-            <div className="rounded-lg bg-primary/10 p-2.5">
-              <Icon className="h-5 w-5 text-primary" />
+            <div className="rounded-xl bg-gradient-to-br from-primary/10 to-emerald-500/10 p-3 shadow-sm ring-1 ring-inset ring-primary/10">
+              <Icon className="h-6 w-6 text-primary" />
             </div>
           )}
           <div>

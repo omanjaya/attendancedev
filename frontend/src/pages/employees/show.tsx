@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { LoadingState } from '@/components/states';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -51,7 +52,7 @@ const recentAttendance = [
 // Loading skeleton
 function ShowLoadingSkeleton() {
   return (
-    <section className="py-16">
+    <section className="py-8 sm:py-16">
       <div className="container">
         <Skeleton className="h-4 w-48 mb-8" />
         <div className="flex flex-col md:flex-row md:items-start gap-8 mb-16">
@@ -128,7 +129,7 @@ export default function EmployeeShowPage() {
   // Show error state
   if (error) {
     return (
-      <section className="py-16">
+      <section className="py-8 sm:py-16">
         <div className="container">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
@@ -148,7 +149,7 @@ export default function EmployeeShowPage() {
 
   if (!employee) {
     return (
-      <section className="py-16">
+      <section className="py-8 sm:py-16">
         <div className="container">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
@@ -174,7 +175,7 @@ export default function EmployeeShowPage() {
   ];
 
   return (
-    <section className="py-16">
+    <section className="py-8 sm:py-16">
       <div className="container">
         {/* Back Link */}
         <Link
@@ -358,7 +359,7 @@ export default function EmployeeShowPage() {
 
           <TabsContent value="attendance">
             <div className="border-border bg-background rounded-xl border shadow-sm overflow-hidden">
-              <div className="p-6 border-b">
+              <div className="p-4 sm:p-6 border-b">
                 <h3 className="text-lg font-semibold">Kehadiran Terbaru</h3>
               </div>
               <div className="overflow-x-auto">

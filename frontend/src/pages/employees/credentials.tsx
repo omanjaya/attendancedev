@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { LoadingState } from '@/components/states';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -190,7 +191,7 @@ export default function EmployeeCredentialsPage() {
   };
 
   return (
-    <section className="py-16">
+    <section className="py-8 sm:py-16">
       <div className="container">
         {/* Back Link */}
         <Link
@@ -244,7 +245,7 @@ export default function EmployeeCredentialsPage() {
           {/* Create Users Tab */}
           <TabsContent value="create-users">
             <div className="border-border bg-background rounded-xl border shadow-sm overflow-hidden">
-              <div className="p-6 border-b">
+              <div className="p-4 sm:p-6 border-b">
                 <h3 className="text-lg font-semibold">Karyawan Tanpa Akun User</h3>
                 <p className="text-sm text-muted-foreground">Pilih karyawan untuk dibuatkan akun user dan password</p>
               </div>
@@ -345,7 +346,7 @@ export default function EmployeeCredentialsPage() {
           {/* Reset Passwords Tab */}
           <TabsContent value="reset-passwords">
             <div className="border-border bg-background rounded-xl border shadow-sm overflow-hidden">
-              <div className="p-6 border-b">
+              <div className="p-4 sm:p-6 border-b">
                 <h3 className="text-lg font-semibold">Karyawan dengan Akun User</h3>
                 <p className="text-sm text-muted-foreground">Reset password untuk karyawan yang sudah memiliki akun</p>
               </div>

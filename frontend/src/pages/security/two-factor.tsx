@@ -66,7 +66,7 @@ export default function TwoFactorPage() {
   };
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-3xl mx-auto">
       {/* Header */}
       <div className="mb-6">
         <Link
@@ -85,7 +85,7 @@ export default function TwoFactorPage() {
       <div className="space-y-6">
         {/* Status Card */}
         <Card className={is2FAEnabled ? 'border-success' : 'border-warning'}>
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className={`p-3 rounded-full ${is2FAEnabled ? 'bg-success/10' : 'bg-warning/10'}`}>

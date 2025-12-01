@@ -18,6 +18,8 @@ import {
   ClipboardList,
   Download,
 } from 'lucide-react';
+import { useIsMobile } from '@/lib/utils/device';
+import { MobileAttendancePage } from './mobile';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +40,8 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { DataTable, PageHeader, StatsGrid, type Column, type StatItem } from '@/components/shared';
+import { LoadingState } from '@/components/states';
+import { ResponsiveDataView } from '@/components/mobile';
 import { useFaceDetection } from '@/hooks/use-face-detection';
 import { useRegisteredFaces, useVerifyFace } from '@/hooks/use-face-recognition-api';
 import { useFaceStore } from '@/stores';
@@ -46,22 +50,16 @@ import { findBestMatch } from '@/lib/api/face-recognition';
 import { useAuthStore } from '@/stores';
 import { useAttendance, useAttendanceStatistics, useCheckIn, useCheckOut } from '@/hooks';
 import type { Attendance, AttendanceStatus, AttendanceFilters } from '@/types';
+import { AttendanceBadge, StatusBadge } from '@/components/status';
 
 const getStatusBadge = (status: AttendanceStatus) => {
-  switch (status) {
-    case 'present':
-      return <Badge className="bg-success/10 text-success border-0">Hadir</Badge>;
-    case 'late':
-      return <Badge className="bg-warning/10 text-warning border-0">Terlambat</Badge>;
-    case 'absent':
-      return <Badge className="bg-destructive/10 text-destructive border-0">Tidak Hadir</Badge>;
-    case 'leave':
-      return <Badge variant="secondary">Cuti</Badge>;
-    case 'holiday':
-      return <Badge className="bg-primary/10 text-primary border-0">Libur</Badge>;
-    default:
-      return <Badge variant="secondary">{status}</Badge>;
-  }
+  // Map attendance status to badge component
+  if (status === 'present') return <AttendanceBadge status="present" />;
+  if (status === 'late') return <AttendanceBadge status="late" />;
+  if (status === 'absent') return <AttendanceBadge status="absent" />;
+  if (status === 'leave') return <AttendanceBadge status="leave" />;
+  if (status === 'holiday') return <StatusBadge label="Libur" variant="info" />;
+  return <StatusBadge label={status} variant="default" />;
 };
 
 type CheckInMode = 'check_in' | 'check_out';
@@ -79,7 +77,16 @@ interface GPSLocation {
   accuracy: number;
 }
 
+// Wrapper component to handle mobile vs desktop rendering
 export default function AttendancePage() {
+  const isMobile = useIsMobile();
+
+  // Render mobile or desktop version
+  return isMobile ? <MobileAttendancePage /> : <DesktopAttendancePage />;
+}
+
+// Desktop version (original implementation)
+function DesktopAttendancePage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
@@ -437,7 +444,7 @@ export default function AttendancePage() {
   ];
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 p-4 sm:space-y-6 sm:p-6">
       {/* Page Header */}
       <PageHeader
         title="Absensi"
@@ -452,9 +459,9 @@ export default function AttendancePage() {
       />
 
       {/* Stats + Check-in Widget */}
-      <div className="grid gap-4 lg:grid-cols-5">
+      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-5">
         {/* Check-in Widget */}
-        <Card className="lg:col-span-1">
+        <Card className="order-2 lg:order-1 lg:col-span-1">
           <CardContent className="p-4 space-y-3">
             <div className="text-center">
               <p className="text-3xl font-bold tabular-nums">{currentTime}</p>
@@ -492,7 +499,7 @@ export default function AttendancePage() {
         </Card>
 
         {/* Stats */}
-        <div className="lg:col-span-4">
+        <div className="order-1 lg:order-2 lg:col-span-4">
           <StatsGrid stats={stats} columns={4} variant="cards" />
         </div>
       </div>
@@ -516,26 +523,77 @@ export default function AttendancePage() {
         </div>
       </div>
 
-      {/* Data Table */}
+      {/* Data Table / Mobile Cards */}
       <Card>
         <CardContent className="p-4">
-          <DataTable
-            columns={columns}
-            data={filteredData}
-            searchPlaceholder="Cari karyawan..."
-            searchValue={search}
-            onSearchChange={setSearch}
-            page={page}
-            pageSize={pageSize}
-            totalPages={totalPages}
-            totalItems={totalItems}
-            onPageChange={setPage}
-            onPageSizeChange={(size) => {
-              setPageSize(size);
-              setPage(1);
-            }}
+          <ResponsiveDataView
+            items={filteredData}
+            renderCard={(attendance) => (
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                    <span className="text-sm font-medium text-primary">
+                      {(attendance.employee_name || '').split(' ').map((n) => n[0]).join('').slice(0, 2)}
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">{attendance.employee_name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(attendance.date).toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </p>
+                  </div>
+                  {getStatusBadge(attendance.status)}
+                </div>
+                <div className="grid grid-cols-2 gap-2 pl-[52px]">
+                  <div className="flex items-center gap-1 text-sm">
+                    <LogIn className="h-3 w-3 text-success" />
+                    <span>{attendance.check_in || '-'}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-sm">
+                    <LogOut className="h-3 w-3 text-primary" />
+                    <span>{attendance.check_out || '-'}</span>
+                  </div>
+                  {attendance.work_hours && (
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      <span>{attendance.work_hours.toFixed(1)} jam</span>
+                    </div>
+                  )}
+                  {attendance.face_verified && (
+                    <div className="flex items-center gap-1 text-sm text-success">
+                      <ScanFace className="h-3 w-3" />
+                      <span>Verified</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            desktopView={
+              <DataTable
+                columns={columns}
+                data={filteredData}
+                searchPlaceholder="Cari karyawan..."
+                searchValue={search}
+                onSearchChange={setSearch}
+                page={page}
+                pageSize={pageSize}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                onPageChange={setPage}
+                onPageSizeChange={(size) => {
+                  setPageSize(size);
+                  setPage(1);
+                }}
+                emptyMessage="Tidak ada data absensi"
+                isLoading={isLoadingAttendance}
+              />
+            }
+            loading={isLoadingAttendance}
             emptyMessage="Tidak ada data absensi"
-            isLoading={isLoadingAttendance}
           />
         </CardContent>
       </Card>

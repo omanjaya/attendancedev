@@ -1,7 +1,14 @@
 import type { ReactNode } from 'react';
-import type { LucideIcon } from 'lucide-react';
+
+
+// Type for lucide icon components
+type IconType = React.ComponentType<{ className?: string }>;
+
+// Removed LucideIcon type import from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+
 import { cn } from '@/lib/utils';
+
 
 interface PageHeaderProps {
   /** Page title */
@@ -11,7 +18,7 @@ interface PageHeaderProps {
   /** Optional badge text */
   badge?: string;
   /** Optional icon */
-  icon?: LucideIcon;
+  icon?: IconType;
   /** Actions to display on the right */
   actions?: ReactNode;
   /** Breadcrumb navigation */

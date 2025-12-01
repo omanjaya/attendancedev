@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Http;
 
 class FaceRecognitionController extends Controller
 {
@@ -409,6 +410,176 @@ class FaceRecognitionController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Statistics retrieval failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Extract face encoding using Python service (server-side processing)
+     *
+     * This endpoint uploads the image to the Python face recognition service
+     * which extracts the 128-d face descriptor using dlib.
+     */
+    public function extractEncodingServer(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'image' => 'required|string', // Base64 encoded image
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $serviceUrl = config('services.face_recognition.url', env('FACE_RECOGNITION_SERVICE_URL', 'http://127.0.0.1:5000'));
+            $timeout = config('services.face_recognition.timeout', env('FACE_RECOGNITION_SERVICE_TIMEOUT', 30));
+
+            // Forward request to Python service
+            $response = Http::timeout($timeout)
+                ->post("{$serviceUrl}/extract-encoding", [
+                    'image' => $request->image,
+                ]);
+
+            if (!$response->successful()) {
+                throw new \Exception('Python service request failed: ' . $response->body());
+            }
+
+            $result = $response->json();
+
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['message'] ?? 'Face encoding extraction failed',
+                ], 422);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Face encoding extracted successfully',
+                'data' => [
+                    'encoding' => $result['encoding'],
+                    'confidence' => $result['confidence'],
+                    'algorithm' => 'dlib',
+                    'model_version' => '19.24',
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Server-side face encoding extraction failed', [
+                'error' => $e->getMessage(),
+                'service_url' => $serviceUrl ?? 'not set',
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Server-side face encoding extraction failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Verify face using Python service (server-side processing)
+     *
+     * This endpoint uploads the image to the Python face recognition service
+     * which verifies it against all registered employee face encodings.
+     */
+    public function verifyFaceServer(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'image' => 'required|string', // Base64 encoded image
+            'tolerance' => 'nullable|numeric|min:0.3|max:0.9',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $serviceUrl = config('services.face_recognition.url', env('FACE_RECOGNITION_SERVICE_URL', 'http://127.0.0.1:5000'));
+            $timeout = config('services.face_recognition.timeout', env('FACE_RECOGNITION_SERVICE_TIMEOUT', 30));
+            $tolerance = $request->tolerance ?? config('services.face_recognition.tolerance', env('FACE_RECOGNITION_TOLERANCE', 0.6));
+
+            // Get all employees with face encodings
+            $employees = Employee::whereNotNull('face_descriptor')
+                ->whereNotNull('face_image_path')
+                ->select('id', 'employee_code', 'full_name', 'face_descriptor')
+                ->get();
+
+            if ($employees->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'matched' => false,
+                    'message' => 'No registered employees with face data found',
+                ], 404);
+            }
+
+            // Prepare known encodings for Python service
+            $knownEncodings = $employees->map(function ($employee) {
+                return [
+                    'employee_id' => $employee->id,
+                    'employee_code' => $employee->employee_code,
+                    'name' => $employee->full_name,
+                    'encoding' => json_decode($employee->face_descriptor, true),
+                ];
+            })->toArray();
+
+            // Forward request to Python service
+            $response = Http::timeout($timeout)
+                ->post("{$serviceUrl}/verify-face", [
+                    'image' => $request->image,
+                    'known_encodings' => $knownEncodings,
+                    'tolerance' => $tolerance,
+                ]);
+
+            if (!$response->successful()) {
+                throw new \Exception('Python service request failed: ' . $response->body());
+            }
+
+            $result = $response->json();
+
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'matched' => false,
+                    'message' => $result['message'] ?? 'Face verification failed',
+                ], 422);
+            }
+
+            // Return matched result
+            return response()->json([
+                'success' => true,
+                'matched' => $result['matched'],
+                'message' => $result['message'],
+                'data' => $result['matched'] ? [
+                    'employee' => $result['employee'],
+                    'distance' => $result['distance'],
+                    'similarity' => $result['similarity'],
+                    'confidence' => $result['confidence'],
+                    'tolerance_used' => $tolerance,
+                    'algorithm' => 'dlib',
+                ] : [
+                    'confidence' => $result['confidence'] ?? null,
+                    'tolerance_used' => $tolerance,
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Server-side face verification failed', [
+                'error' => $e->getMessage(),
+                'service_url' => $serviceUrl ?? 'not set',
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Server-side face verification failed: ' . $e->getMessage()
             ], 500);
         }
     }

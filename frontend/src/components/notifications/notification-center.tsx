@@ -61,21 +61,24 @@ function NotificationItem({
   return (
     <div
       className={cn(
-        'p-4 border-b last:border-b-0 transition-colors',
+        'p-4 border-b last:border-b-0 transition-colors hover:bg-muted/30',
         !notification.read && 'bg-primary/5'
       )}
     >
       <div className="flex items-start gap-3">
-        <div className={cn('p-2 rounded-lg', typeColors[notification.type])}>
+        <div className={cn('p-2 rounded-lg transition-all duration-300', typeColors[notification.type])}>
           <Icon className="h-4 w-4" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <p className={cn('text-sm', !notification.read && 'font-medium')}>
+            <p className={cn(
+              'text-sm',
+              !notification.read ? 'font-semibold text-foreground' : 'text-muted-foreground'
+            )}>
               {notification.title}
             </p>
             {!notification.read && (
-              <span className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
+              <span className="h-2 w-2 rounded-full bg-primary flex-shrink-0 animate-pulse shadow-sm shadow-primary/50" />
             )}
           </div>
           <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
@@ -90,7 +93,7 @@ function NotificationItem({
           {notification.action_url && (
             <a
               href={notification.action_url}
-              className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-2"
+              className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-2 transition-colors"
             >
               {notification.action_label || 'Lihat Detail'}
               <ExternalLink className="h-3 w-3" />
@@ -101,18 +104,18 @@ function NotificationItem({
           {!notification.read && (
             <button
               onClick={() => onMarkAsRead(notification.id)}
-              className="p-1.5 rounded hover:bg-muted transition-colors"
+              className="p-1.5 rounded hover:bg-success/10 text-muted-foreground hover:text-success transition-all duration-300 group"
               title="Tandai sudah dibaca"
             >
-              <Check className="h-4 w-4 text-muted-foreground" />
+              <Check className="h-4 w-4 transition-colors" />
             </button>
           )}
           <button
             onClick={() => onRemove(notification.id)}
-            className="p-1.5 rounded hover:bg-muted transition-colors"
+            className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all duration-300 group"
             title="Hapus notifikasi"
           >
-            <X className="h-4 w-4 text-muted-foreground" />
+            <X className="h-4 w-4 transition-colors" />
           </button>
         </div>
       </div>
@@ -177,12 +180,22 @@ export function NotificationCenter() {
   return (
     <Sheet open={isNotificationCenterOpen} onOpenChange={setNotificationCenterOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative hover:bg-primary/10 hover:text-primary transition-all duration-300 hover:scale-110 active:scale-95 rounded-xl group"
+        >
+          <Bell className={cn(
+            "h-5 w-5 transition-all duration-300",
+            unreadCount > 0 ? "animate-pulse text-primary" : "text-foreground"
+          )} />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center">
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </span>
+            <>
+              <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-gradient-to-br from-destructive to-destructive/80 text-destructive-foreground text-xs font-bold flex items-center justify-center shadow-lg shadow-destructive/30 ring-2 ring-background animate-pulse">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+              <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive animate-ping opacity-75" />
+            </>
           )}
         </Button>
       </SheetTrigger>
@@ -224,17 +237,18 @@ export function NotificationCenter() {
         <ScrollArea className="h-[calc(100vh-80px)]">
           {notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="p-4 rounded-full bg-muted mb-4">
+              <div className="p-4 rounded-full bg-muted/50 mb-4 transition-all duration-300 hover:bg-muted">
                 <BellOff className="h-8 w-8 text-muted-foreground" />
               </div>
-              <p className="text-muted-foreground">Tidak ada notifikasi</p>
+              <p className="text-foreground font-medium">Tidak ada notifikasi</p>
+              <p className="text-xs text-muted-foreground mt-1">Anda akan melihat notifikasi di sini</p>
             </div>
           ) : (
             <div>
               {groupedNotifications.map((group) => (
                 <div key={group.title}>
-                  <div className="sticky top-0 px-4 py-2 bg-muted/50 backdrop-blur-sm">
-                    <p className="text-xs font-medium text-muted-foreground">
+                  <div className="sticky top-0 px-4 py-2 bg-muted/80 backdrop-blur-md border-b border-border/50 z-10">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                       {group.title}
                     </p>
                   </div>

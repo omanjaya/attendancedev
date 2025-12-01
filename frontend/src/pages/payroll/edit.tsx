@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { LoadingState } from '@/components/states';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
@@ -128,7 +129,7 @@ export default function PayrollEditPage() {
 
   if (error || !payroll) {
     return (
-      <div className="p-6 max-w-4xl mx-auto">
+      <div className="p-4 sm:p-6 max-w-4xl mx-auto">
         <Link
           to="/payroll"
           className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
@@ -137,7 +138,7 @@ export default function PayrollEditPage() {
           Kembali ke daftar payroll
         </Link>
         <Card>
-          <CardContent className="p-6 text-center">
+          <CardContent className="p-4 sm:p-6 text-center">
             <p className="text-muted-foreground">
               {error?.message || 'Data payroll tidak ditemukan'}
             </p>
@@ -148,7 +149,7 @@ export default function PayrollEditPage() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-4xl mx-auto">
       {/* Header */}
       <div className="mb-6">
         <Link

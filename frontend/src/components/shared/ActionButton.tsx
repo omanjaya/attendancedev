@@ -1,8 +1,16 @@
-import type { LucideIcon } from 'lucide-react';
+
+// Type for lucide icon components
+type IconType = React.ComponentType<{ className?: string }>;
+
+// Removed LucideIcon type import from 'lucide-react';
 import type { VariantProps } from 'class-variance-authority';
+
 import { MoreVertical, ChevronDown } from 'lucide-react';
+
 import { Button, buttonVariants } from '@/components/ui/button';
+
 import {
+
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -11,13 +19,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
+
 type ButtonVariantProps = VariantProps<typeof buttonVariants>;
 
 interface ActionButtonProps extends React.ComponentProps<'button'>, ButtonVariantProps {
   /** Button label */
   label: string;
   /** Button icon */
-  icon?: LucideIcon;
+  icon?: IconType;
   /** Icon position */
   iconPosition?: 'left' | 'right';
   /** Loading state */
@@ -80,7 +89,7 @@ const ActionButton = ({
 // Action menu for multiple actions
 interface ActionMenuItem {
   label: string;
-  icon?: LucideIcon;
+  icon?: IconType;
   onClick: () => void;
   variant?: 'default' | 'destructive';
   separator?: boolean;

@@ -10,6 +10,8 @@ export interface User {
   avatar?: string;
   employee_id?: number;
   permissions: string[];
+  force_password_change?: boolean;
+  password_changed_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -72,5 +74,6 @@ export type Permission =
   | 'payroll.edit'
   | 'reports.view'
   | 'reports.export'
+  | 'view_attendance_reports'
   | 'settings.view'
   | 'settings.edit';

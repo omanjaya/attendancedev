@@ -158,3 +158,53 @@ Uses **shadcn/ui** (Tailwind CSS 4 + Radix UI):
 - CLI: `npx shadcn@latest add [component]` from `frontend/` directory
 - Tailwind 4 config: https://www.shadcnblocks.com/tailwind/globals.css
 - All components in `frontend/src/components/ui/`
+- 1. Masalah Izin Akses (Error 403 Forbidden)
+Masalah: User mita (role: pegawai) mencoba mengakses data dashboard, tetapi ditolak server. Penyebab: Role pegawai belum memiliki izin (permission) view_attendance_reports di database. Solusi:
+
+Saya mengedit file 
+RolesAndPermissionsSeeder.php
+ untuk menambahkan 'view_attendance_reports' ke dalam daftar izin untuk role guru dan pegawai.
+Menjalankan seeder ulang (php artisan db:seed ...) dan mereset cache permission (php artisan permission:cache-reset). Pelajaran:
+Selalu pastikan setiap Role memiliki izin yang tepat untuk mengakses fitur yang mereka butuhkan. Jika membuat fitur baru (seperti Dashboard untuk Pegawai), cek kembali 
+RolesAndPermissionsSeeder
+ apakah izinnya sudah diberikan.
+
+2. Endpoint API Tidak Ditemukan (Error 404 Not Found)
+Masalah: Frontend mencoba memanggil /api/v1/employees/with-face-data, tapi server membalas "Tidak Ditemukan". Penyebab: Route tersebut belum didaftarkan di 
+routes/api.php
+ dan method-nya belum ada di Controller. Solusi:
+
+Saya menambahkan method 
+withFaceData
+ di 
+EmployeeApiController.php
+.
+Saya mendaftarkan route baru di 
+routes/api.php
+: Route::get('/with-face-data', ...);. Pelajaran:
+Saat frontend memanggil API baru, pastikan backend sudah siap menerimanya. Cek file 
+routes/api.php
+ untuk memastikan URL-nya sudah terdaftar dan mengarah ke Controller yang benar.
+
+3. Salah Sambung Controller (Error 403/400 pada Cuti)
+Masalah: Halaman Cuti error saat mengambil saldo. Penyebab: Route /api/v1/leave/balance "salah sambung" ke Controller lama (
+LeaveBalanceController
+) yang mungkin untuk admin, bukan ke Controller API (Api\LeaveApiController) yang khusus untuk aplikasi mobile/frontend React. Solusi:
+
+Saya mengubah 
+routes/api.php
+ agar endpoint tersebut mengarah ke Api\LeaveApiController.
+Saya menyesuaikan format data yang dikirim backend agar sesuai dengan yang diharapkan frontend (TypeScript interface). Pelajaran:
+Pisahkan logika untuk Web (Admin Panel) dan API (Aplikasi Mobile/Frontend). Pastikan route API (
+api.php
+) selalu menggunakan Controller yang ada di folder App\Http\Controllers\Api.
+
+4. Format Data Tidak Cocok
+Masalah: Frontend mengharapkan data saldo cuti dalam format gabungan (total cuti tahunan, sakit, dll), tapi backend mengirim format mentah per baris database. Solusi:
+
+Saya menulis ulang logika di 
+LeaveApiController
+ untuk "merapikan" (agregasi) data dari database menjadi format JSON yang persis sama dengan yang diminta frontend. Pelajaran:
+Selalu cek tipe data di frontend (file 
+.ts
+ atau .tsx). Backend harus mengirim JSON dengan nama key dan struktur yang persis sama.

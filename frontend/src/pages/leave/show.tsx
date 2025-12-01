@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { LoadingState } from '@/components/states';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -33,7 +34,7 @@ import { leaveTypeLabels, leaveTypeColors } from '@/types/leave';
 // Loading skeleton
 function ShowLoadingSkeleton() {
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-4xl mx-auto">
       <Skeleton className="h-4 w-48 mb-6" />
       <div className="flex justify-between items-start mb-6">
         <div className="space-y-2">
@@ -122,7 +123,7 @@ export default function LeaveShowPage() {
   // Show error state
   if (error) {
     return (
-      <div className="p-6 max-w-4xl mx-auto">
+      <div className="p-4 sm:p-6 max-w-4xl mx-auto">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
@@ -140,7 +141,7 @@ export default function LeaveShowPage() {
 
   if (!leave) {
     return (
-      <div className="p-6 max-w-4xl mx-auto">
+      <div className="p-4 sm:p-6 max-w-4xl mx-auto">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Tidak Ditemukan</AlertTitle>
@@ -201,7 +202,7 @@ export default function LeaveShowPage() {
   ];
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-4xl mx-auto">
       {/* Header */}
       <div className="mb-6">
         <Link
@@ -385,7 +386,7 @@ export default function LeaveShowPage() {
         <div className="space-y-6">
           {/* Status Card */}
           <Card className={`border-2 ${leave.status === 'approved' ? 'border-success' : leave.status === 'rejected' ? 'border-destructive' : 'border-warning'}`}>
-            <CardContent className="p-6 text-center">
+            <CardContent className="p-4 sm:p-6 text-center">
               <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 ${status.color}`}>
                 <status.icon className="h-8 w-8" />
               </div>

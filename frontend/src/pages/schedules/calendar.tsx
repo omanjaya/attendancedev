@@ -138,7 +138,7 @@ export default function ScheduleCalendarPage() {
   const today = new Date().toISOString().split('T')[0];
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>

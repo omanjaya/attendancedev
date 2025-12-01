@@ -19,6 +19,8 @@ import {
   CalendarX,
   RefreshCw,
 } from 'lucide-react';
+import { useIsMobile } from '@/lib/utils/device';
+import { MobileLeaveRequestPage } from './mobile';
 import { EmptyState, PageHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -50,7 +52,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   useLeaveRequests,
   useLeaveBalance,
@@ -62,68 +63,18 @@ import {
 import type { LeaveFilters } from '@/lib/api/leave';
 import {
   leaveTypeLabels,
-  leaveStatusLabels,
   leaveTypeColors,
+  leaveStatusLabels,
   type LeaveType,
   type LeaveStatus,
   type LeaveRequestFormData,
 } from '@/types/leave';
+import { LeaveBadge } from '@/components/status';
+import { LoadingState, CardSkeleton, StatSkeleton } from '@/components/states';
 
-// Status badge component
+// Status badge wrapper
 function StatusBadge({ status }: { status: LeaveStatus }) {
-  const variants: Record<LeaveStatus, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; className: string }> = {
-    pending: { variant: 'secondary', className: 'bg-warning/10 text-warning' },
-    approved: { variant: 'default', className: 'bg-success/10 text-success' },
-    rejected: { variant: 'destructive', className: 'bg-destructive/10 text-destructive' },
-    cancelled: { variant: 'outline', className: 'bg-muted text-muted-foreground' },
-  };
-
-  const config = variants[status];
-
-  return (
-    <Badge variant={config.variant} className={config.className}>
-      {status === 'pending' && <Clock className="mr-1 h-3 w-3" />}
-      {status === 'approved' && <CheckCircle2 className="mr-1 h-3 w-3" />}
-      {status === 'rejected' && <XCircle className="mr-1 h-3 w-3" />}
-      {status === 'cancelled' && <AlertCircle className="mr-1 h-3 w-3" />}
-      {leaveStatusLabels[status]}
-    </Badge>
-  );
-}
-
-// Loading skeleton for stats
-function StatsLoadingSkeleton() {
-  return (
-    <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <div className="sm:col-span-2">
-        <Skeleton className="h-32 w-full" />
-      </div>
-      <Skeleton className="h-24 w-full" />
-      <Skeleton className="h-24 w-full" />
-    </div>
-  );
-}
-
-// Loading skeleton for requests
-function RequestsLoadingSkeleton() {
-  return (
-    <div className="space-y-4">
-      {[1, 2, 3].map((i) => (
-        <Card key={i}>
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between">
-              <div className="space-y-2">
-                <Skeleton className="h-5 w-32" />
-                <Skeleton className="h-4 w-48" />
-                <Skeleton className="h-4 w-64" />
-              </div>
-              <Skeleton className="h-8 w-24" />
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
+  return <LeaveBadge status={status} />;
 }
 
 // Leave request form dialog
@@ -279,7 +230,16 @@ function LeaveRequestDialog({
   );
 }
 
+// Wrapper component to handle mobile vs desktop rendering
 export default function LeavePage() {
+  const isMobile = useIsMobile();
+
+  // Render mobile or desktop version
+  return isMobile ? <MobileLeaveRequestPage /> : <DesktopLeavePage />;
+}
+
+// Desktop version (original implementation)
+function DesktopLeavePage() {
   const [activeTab, setActiveTab] = useState('requests');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -372,7 +332,7 @@ export default function LeavePage() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 p-4 sm:space-y-6 sm:p-6">
       {/* Page Header */}
       <PageHeader
         title="Cuti & Izin"
@@ -394,7 +354,13 @@ export default function LeavePage() {
 
       {/* Stats & Balance */}
       {isLoadingBalance ? (
-        <StatsLoadingSkeleton />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="sm:col-span-2">
+            <StatSkeleton />
+          </div>
+          <StatSkeleton />
+          <StatSkeleton />
+        </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {/* Leave Balance Card */}
@@ -542,7 +508,11 @@ export default function LeavePage() {
         {/* Requests Tab */}
         <TabsContent value="requests" className="mt-6">
           {isLoadingRequests ? (
-            <RequestsLoadingSkeleton />
+            <div className="space-y-4">
+              <CardSkeleton />
+              <CardSkeleton />
+              <CardSkeleton />
+            </div>
           ) : leaveRequests.length === 0 ? (
             <Card>
               <CardContent className="py-10">

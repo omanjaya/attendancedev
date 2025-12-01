@@ -83,3 +83,14 @@ temp_*.js
 /fix_*.php
 /clean_*.php
 /delete_*.php
+
+# Python
+/python-face-service/venv/
+/python-face-service/__pycache__/
+/python-face-service/*.pyc
+/python-face-service/.env
+*.py[cod]
+*$py.class
+
+# Temporary and test directories
+/tmp/

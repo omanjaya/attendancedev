@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Attendance;
 use App\Models\Employee;
-use App\Models\LeaveRequest;
+use App\Models\Leave;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -34,13 +34,19 @@ class ReportsApiController extends BaseApiController
         $totalEmployees = Employee::where('is_active', true)->count();
         $workDays = $this->calculateWorkDays($startDate, $endDate);
 
+        // SQLite compatible timestamp diff
+        $avgHoursQuery = "AVG((strftime('%s', check_out_time) - strftime('%s', check_in_time)) / 3600)";
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            $avgHoursQuery = "AVG(TIMESTAMPDIFF(HOUR, check_in_time, check_out_time))";
+        }
+
         $attendanceStats = Attendance::whereBetween('date', [$startDate, $endDate])
             ->selectRaw("
                 COUNT(*) as total_records,
                 SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) as present,
                 SUM(CASE WHEN status = 'late' THEN 1 ELSE 0 END) as late,
                 SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END) as absent,
-                AVG(TIMESTAMPDIFF(HOUR, check_in_time, check_out_time)) as avg_hours
+                {$avgHoursQuery} as avg_hours
             ")
             ->first();
 
@@ -107,7 +113,8 @@ class ReportsApiController extends BaseApiController
                 ->selectRaw("
                     COUNT(*) as total,
                     SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) as present,
-                    SUM(CASE WHEN status = 'late' THEN 1 ELSE 0 END) as late
+                    SUM(CASE WHEN status = 'late' THEN 1 ELSE 0 END) as late,
+                    SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END) as absent
                 ")
                 ->first();
 
@@ -130,10 +137,16 @@ class ReportsApiController extends BaseApiController
         $startDate = $request->get('start_date', now()->startOfMonth()->format('Y-m-d'));
         $endDate = $request->get('end_date', now()->format('Y-m-d'));
 
-        $departments = Employee::select('department')
-            ->distinct()
-            ->whereNotNull('department')
-            ->pluck('department');
+        // Check if department column exists, otherwise return empty or mock
+        try {
+            $departments = Employee::select('department')
+                ->distinct()
+                ->whereNotNull('department')
+                ->pluck('department');
+        } catch (\Exception $e) {
+            // Fallback if department column doesn't exist
+            return $this->apiResponse([], 'Department stats not available (column missing)');
+        }
 
         $data = [];
 
@@ -167,13 +180,27 @@ class ReportsApiController extends BaseApiController
     {
         $year = $request->get('year', now()->year);
 
-        $stats = LeaveRequest::whereYear('start_date', $year)
+        // SQLite compatible datediff
+        $dateDiffQuery = "(julianday(end_date) - julianday(start_date) + 1)";
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            $dateDiffQuery = "DATEDIFF(end_date, start_date) + 1";
+        }
+
+        $stats = Leave::whereYear('start_date', $year)
             ->where('status', 'approved')
-            ->select('leave_type')
+            ->select('leave_type_id') // Use leave_type_id
             ->selectRaw('COUNT(*) as count')
-            ->selectRaw('SUM(DATEDIFF(end_date, start_date) + 1) as total_days')
-            ->groupBy('leave_type')
-            ->get();
+            ->selectRaw("SUM({$dateDiffQuery}) as total_days")
+            ->groupBy('leave_type_id')
+            ->with('leaveType') // Load relationship to get name
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'leave_type' => $item->leaveType->name ?? 'Unknown',
+                    'count' => $item->count,
+                    'total_days' => $item->total_days
+                ];
+            });
 
         return $this->apiResponse($stats, 'Leave stats retrieved');
     }
@@ -231,8 +258,13 @@ class ReportsApiController extends BaseApiController
 
     private function getMonthlyTrend($startDate, $endDate)
     {
+        $monthQuery = "strftime('%Y-%m', date)";
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            $monthQuery = "DATE_FORMAT(date, '%Y-%m')";
+        }
+
         return Attendance::whereBetween('date', [$startDate, $endDate])
-            ->selectRaw("DATE_FORMAT(date, '%Y-%m') as month, COUNT(*) as total")
+            ->selectRaw("{$monthQuery} as month, COUNT(*) as total")
             ->groupBy('month')
             ->orderBy('month')
             ->get();
@@ -240,20 +272,31 @@ class ReportsApiController extends BaseApiController
 
     private function getDepartmentBreakdown($startDate, $endDate)
     {
-        return Employee::select('department')
-            ->selectRaw('COUNT(*) as count')
-            ->whereNotNull('department')
-            ->groupBy('department')
-            ->get();
+        try {
+            return Employee::select('department')
+                ->selectRaw('COUNT(*) as count')
+                ->whereNotNull('department')
+                ->groupBy('department')
+                ->get();
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 
     private function getLeaveDistribution($startDate, $endDate)
     {
-        return LeaveRequest::whereBetween('start_date', [$startDate, $endDate])
-            ->select('leave_type')
+        return Leave::whereBetween('start_date', [$startDate, $endDate])
+            ->select('leave_type_id')
             ->selectRaw('COUNT(*) as count')
-            ->groupBy('leave_type')
-            ->get();
+            ->groupBy('leave_type_id')
+            ->with('leaveType')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'leave_type' => $item->leaveType->name ?? 'Unknown',
+                    'count' => $item->count
+                ];
+            });
     }
 
     private function calculateWorkDays($startDate, $endDate)

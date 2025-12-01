@@ -25,6 +25,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { PageHeader, StatsGrid, type StatItem } from '@/components/shared';
+import { LoadingState } from '@/components/states';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -387,7 +388,7 @@ export default function SecurityPage() {
   ] : [];
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 p-4 sm:space-y-6 sm:p-6">
       {/* Page Header */}
       <PageHeader
         title="Keamanan"
@@ -528,9 +529,8 @@ export default function SecurityPage() {
                   {devices.map((device) => (
                     <div
                       key={device.id}
-                      className={`flex items-center justify-between rounded-lg border p-4 ${
-                        device.is_current ? 'border-success bg-success/5' : ''
-                      }`}
+                      className={`flex items-center justify-between rounded-lg border p-4 ${device.is_current ? 'border-success bg-success/5' : ''
+                        }`}
                     >
                       <div className="flex items-center gap-4">
                         <div className="rounded-lg bg-muted p-2">
@@ -624,9 +624,8 @@ export default function SecurityPage() {
                   {sessions.map((session) => (
                     <div
                       key={session.id}
-                      className={`flex items-center justify-between rounded-lg border p-4 ${
-                        session.is_current ? 'border-success bg-success/5' : ''
-                      }`}
+                      className={`flex items-center justify-between rounded-lg border p-4 ${session.is_current ? 'border-success bg-success/5' : ''
+                        }`}
                     >
                       <div className="flex items-center gap-4">
                         <div className="rounded-lg bg-muted p-2">

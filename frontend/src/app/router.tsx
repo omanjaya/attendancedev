@@ -1,6 +1,7 @@
 import { createRouter, createRootRoute, createRoute, redirect, Outlet } from '@tanstack/react-router';
 import { useAuthStore } from '@/stores';
 import { AppShell } from '@/components/layout';
+import { requirePermission } from '@/lib/guards/permission-guard';
 
 // Lazy load pages
 import { lazy } from 'react';
@@ -17,6 +18,8 @@ const EmployeeCredentialsPage = lazy(() => import('@/pages/employees/credentials
 
 // Attendance pages
 const AttendancePage = lazy(() => import('@/pages/attendance'));
+const VerifyLocationPage = lazy(() => import('@/pages/attendance/verify-location'));
+const VerifyFacePage = lazy(() => import('@/pages/attendance/verify-face'));
 const FaceRecognitionPage = lazy(() => import('@/pages/face-recognition'));
 const FaceRecognitionSettingsPage = lazy(() => import('@/pages/face-recognition/settings'));
 
@@ -74,6 +77,7 @@ const SettingsPage = lazy(() => import('@/pages/settings'));
 // Auth pages
 const VerifyEmailPage = lazy(() => import('@/pages/auth/verify-email'));
 const ConfirmPasswordPage = lazy(() => import('@/pages/auth/confirm-password'));
+const ChangePasswordPage = lazy(() => import('@/pages/auth/change-password'));
 
 // Error pages
 const NotFoundPage = lazy(() => import('@/pages/not-found'));
@@ -149,6 +153,18 @@ const attendanceRoute = createRoute({
   component: AttendancePage,
 });
 
+const verifyLocationRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/attendance/verify-location',
+  component: VerifyLocationPage,
+});
+
+const verifyFaceRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/attendance/verify-face',
+  component: VerifyFacePage,
+});
+
 const faceRecognitionRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/face-recognition',
@@ -161,34 +177,39 @@ const faceRecognitionSettingsRoute = createRoute({
   component: FaceRecognitionSettingsPage,
 });
 
-// Employee routes
+// Employee routes (Restricted to: super-admin, admin, kepala-sekolah)
 const employeesRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/employees',
+  beforeLoad: requirePermission('employees.view', ['super-admin', 'admin', 'kepala-sekolah']),
   component: EmployeesPage,
 });
 
 const employeeCreateRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/employees/create',
+  beforeLoad: requirePermission('employees.create', ['super-admin', 'admin']),
   component: EmployeeCreatePage,
 });
 
 const employeeCredentialsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/employees/credentials',
+  beforeLoad: requirePermission('employees.view', ['super-admin', 'admin', 'kepala-sekolah']),
   component: EmployeeCredentialsPage,
 });
 
 const employeeShowRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/employees/$id',
+  beforeLoad: requirePermission('employees.view', ['super-admin', 'admin', 'kepala-sekolah']),
   component: EmployeeShowPage,
 });
 
 const employeeEditRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/employees/$id/edit',
+  beforeLoad: requirePermission('employees.edit', ['super-admin', 'admin']),
   component: EmployeeEditPage,
 });
 
@@ -202,6 +223,7 @@ const schedulesRoute = createRoute({
 const scheduleCreateRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/schedules/create',
+  beforeLoad: requirePermission('schedules.create', ['super-admin', 'admin', 'kepala-sekolah']),
   component: ScheduleCreatePage,
 });
 
@@ -214,6 +236,7 @@ const scheduleShowRoute = createRoute({
 const scheduleEditRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/schedules/$id/edit',
+  beforeLoad: requirePermission('schedules.edit', ['super-admin', 'admin', 'kepala-sekolah']),
   component: ScheduleEditPage,
 });
 
@@ -257,6 +280,7 @@ const leaveShowRoute = createRoute({
 const leaveApprovalsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/leave/approvals',
+  beforeLoad: requirePermission('leave.approve', ['super-admin', 'admin', 'kepala-sekolah']),
   component: LeaveApprovalsPage,
 });
 
@@ -279,16 +303,18 @@ const payrollEditRoute = createRoute({
   component: PayrollEditPage,
 });
 
-// Reports routes
+// Reports routes (Restricted to: super-admin, admin, kepala-sekolah)
 const reportsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/reports',
+  beforeLoad: requirePermission('reports.view', ['super-admin', 'admin', 'kepala-sekolah']),
   component: ReportsPage,
 });
 
 const reportBuilderRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/reports/builder',
+  beforeLoad: requirePermission('reports.view', ['super-admin', 'admin', 'kepala-sekolah']),
   component: ReportBuilderPage,
 });
 
@@ -311,10 +337,11 @@ const twoFactorRoute = createRoute({
   component: TwoFactorPage,
 });
 
-// Settings route
+// Settings route (Restricted to: super-admin, admin)
 const settingsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/settings',
+  beforeLoad: requirePermission(undefined, ['super-admin', 'admin']),
   component: SettingsPage,
 });
 
@@ -331,72 +358,83 @@ const profileEditRoute = createRoute({
   component: ProfileEditPage,
 });
 
-// Admin - Users routes
+// Admin - Users routes (Restricted to: super-admin, admin)
 const usersRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/admin/users',
+  beforeLoad: requirePermission(undefined, ['super-admin', 'admin']),
   component: UsersPage,
 });
 
 const userCreateRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/admin/users/create',
+  beforeLoad: requirePermission(undefined, ['super-admin', 'admin']),
   component: UserCreatePage,
 });
 
 const userShowRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/admin/users/$id',
+  beforeLoad: requirePermission(undefined, ['super-admin', 'admin']),
   component: UserShowPage,
 });
 
 const userEditRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/admin/users/$id/edit',
+  beforeLoad: requirePermission(undefined, ['super-admin', 'admin']),
   component: UserEditPage,
 });
 
-// Admin - Locations routes
+// Admin - Locations routes (Restricted to: super-admin, admin)
 const locationsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/admin/locations',
+  beforeLoad: requirePermission(undefined, ['super-admin', 'admin']),
   component: LocationsPage,
 });
 
 const locationCreateRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/admin/locations/create',
+  beforeLoad: requirePermission(undefined, ['super-admin', 'admin']),
   component: LocationCreatePage,
 });
 
 const locationShowRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/admin/locations/$id',
+  beforeLoad: requirePermission(undefined, ['super-admin', 'admin']),
   component: LocationShowPage,
 });
 
 const locationEditRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/admin/locations/$id/edit',
+  beforeLoad: requirePermission(undefined, ['super-admin', 'admin']),
   component: LocationEditPage,
 });
 
-// Admin - Holidays routes
+// Admin - Holidays routes (Restricted to: super-admin, admin)
 const holidaysRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/admin/holidays',
+  beforeLoad: requirePermission(undefined, ['super-admin', 'admin']),
   component: HolidaysPage,
 });
 
 const holidayShowRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/admin/holidays/$id',
+  beforeLoad: requirePermission(undefined, ['super-admin', 'admin']),
   component: HolidayShowPage,
 });
 
 const holidayEditRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/admin/holidays/$id/edit',
+  beforeLoad: requirePermission(undefined, ['super-admin', 'admin']),
   component: HolidayEditPage,
 });
 
@@ -405,6 +443,13 @@ const verifyEmailRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/verify-email',
   component: VerifyEmailPage,
+});
+
+const changePasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/auth/change-password',
+  beforeLoad: requireAuth,
+  component: ChangePasswordPage,
 });
 
 const confirmPasswordRoute = createRoute({
@@ -425,9 +470,12 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
   verifyEmailRoute,
+  changePasswordRoute,
   authenticatedRoute.addChildren([
     dashboardRoute,
     attendanceRoute,
+    verifyLocationRoute,
+    verifyFaceRoute,
     faceRecognitionRoute,
     faceRecognitionSettingsRoute,
     // Employees

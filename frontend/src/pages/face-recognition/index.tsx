@@ -17,6 +17,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { PageHeader, StatsGrid, type StatItem } from '@/components/shared';
+import { LoadingState } from '@/components/states';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -154,7 +155,7 @@ export default function FaceRecognitionPage() {
   ];
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 p-4 sm:space-y-6 sm:p-6">
       {/* Page Header */}
       <PageHeader
         title="Face Recognition"

@@ -1,8 +1,16 @@
 import type { ReactNode } from 'react';
-import type { LucideIcon } from 'lucide-react';
+
+
+// Type for lucide icon components
+type IconType = React.ComponentType<{ className?: string }>;
+
+// Removed LucideIcon type import from 'lucide-react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+
 import { Card, CardContent } from '@/components/ui/card';
+
 import { cn } from '@/lib/utils';
+
 
 export interface StatItem {
   /** Stat label/title */
@@ -12,7 +20,7 @@ export interface StatItem {
   /** Optional description or subtitle */
   description?: string;
   /** Optional icon */
-  icon?: LucideIcon;
+  icon?: IconType;
   /** Trend direction */
   trend?: 'up' | 'down' | 'neutral';
   /** Trend value (e.g., "+12%", "-5%") */
@@ -110,43 +118,89 @@ const StatsGrid = ({
 
   // Default: cards variant
   return (
-    <div className={cn('grid gap-4', columnClasses[columns], className)}>
-      {stats.map((stat, index) => {
-        const Icon = stat.icon;
-        const color = stat.color || 'default';
+    <>
+      {/* Mobile: Horizontal Scroll */}
+      <div className={cn(
+        'flex gap-4 overflow-x-auto pb-2 sm:hidden',
+        'snap-x snap-mandatory hide-scrollbar',
+        className
+      )}>
+        {stats.map((stat, index) => {
+          const Icon = stat.icon;
+          const color = stat.color || 'default';
 
-        return (
-          <Card key={index}>
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-                  <p className="text-3xl font-bold tracking-tight">{stat.value}</p>
-                  {(stat.description || stat.trendValue) && (
-                    <div className="flex items-center gap-2 pt-1">
-                      {stat.trendValue && stat.trend && (
-                        <span className={cn('flex items-center gap-1 text-sm font-medium', trendStyles[stat.trend])}>
-                          <TrendIcon trend={stat.trend} />
-                          {stat.trendValue}
-                        </span>
-                      )}
-                      {stat.description && (
-                        <span className="text-sm text-muted-foreground">{stat.description}</span>
-                      )}
+          return (
+            <Card key={index} className="min-w-[280px] flex-shrink-0 snap-center">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
+                    <p className="text-3xl font-bold tracking-tight">{stat.value}</p>
+                    {(stat.description || stat.trendValue) && (
+                      <div className="flex items-center gap-2 pt-1">
+                        {stat.trendValue && stat.trend && (
+                          <span className={cn('flex items-center gap-1 text-sm font-medium', trendStyles[stat.trend])}>
+                            <TrendIcon trend={stat.trend} />
+                            {stat.trendValue}
+                          </span>
+                        )}
+                        {stat.description && (
+                          <span className="text-sm text-muted-foreground">{stat.description}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {Icon && (
+                    <div className={cn('rounded-lg p-2.5', colorStyles[color])}>
+                      <Icon className="h-5 w-5" />
                     </div>
                   )}
                 </div>
-                {Icon && (
-                  <div className={cn('rounded-lg p-2.5', colorStyles[color])}>
-                    <Icon className="h-5 w-5" />
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Desktop: Grid */}
+      <div className={cn('hidden gap-4 sm:grid', columnClasses[columns], className)}>
+        {stats.map((stat, index) => {
+          const Icon = stat.icon;
+          const color = stat.color || 'default';
+
+          return (
+            <Card key={index}>
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
+                    <p className="text-3xl font-bold tracking-tight">{stat.value}</p>
+                    {(stat.description || stat.trendValue) && (
+                      <div className="flex items-center gap-2 pt-1">
+                        {stat.trendValue && stat.trend && (
+                          <span className={cn('flex items-center gap-1 text-sm font-medium', trendStyles[stat.trend])}>
+                            <TrendIcon trend={stat.trend} />
+                            {stat.trendValue}
+                          </span>
+                        )}
+                        {stat.description && (
+                          <span className="text-sm text-muted-foreground">{stat.description}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
+                  {Icon && (
+                    <div className={cn('rounded-lg p-2.5', colorStyles[color])}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </>
   );
 };
 

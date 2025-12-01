@@ -246,6 +246,7 @@ class RolesAndPermissionsSeeder extends Seeder
             // Attendance
             'view_attendance_own',
             'manage_attendance_own',
+            'view_attendance_reports', // Added for dashboard access
 
             // Leave
             'view_leave_own',
@@ -274,6 +275,7 @@ class RolesAndPermissionsSeeder extends Seeder
             // Attendance
             'view_attendance_own',
             'manage_attendance_own',
+            'view_attendance_reports', // Added for dashboard access
 
             // Leave
             'view_leave_own',
@@ -294,7 +296,7 @@ class RolesAndPermissionsSeeder extends Seeder
         ]);
 
         $this->command->info('Roles and permissions seeded successfully with standardized naming!');
-        $this->command->info('Total permissions created: '.Permission::count());
-        $this->command->info('Total roles created: '.Role::count());
+        $this->command->info('Total permissions created: ' . Permission::count());
+        $this->command->info('Total roles created: ' . Role::count());
     }
 }

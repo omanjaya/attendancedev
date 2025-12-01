@@ -26,6 +26,7 @@ class User extends Authenticatable
         'email',
         'password',
         'phone',
+        'role',
         'is_active',
         'last_login_at',
         'last_login_ip',
@@ -74,6 +75,101 @@ class User extends Authenticatable
             'face_descriptor' => 'array',
             'face_registered_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Override toArray to include custom role and permissions format
+     */
+    public function toArray()
+    {
+        $array = parent::toArray();
+
+        // Add role as single string
+        $role = $this->roles->first();
+        if ($role) {
+            // Map database role names to frontend format
+            $roleMap = [
+                'Super Admin' => 'super-admin',
+                'Admin' => 'admin',
+                'Manager' => 'kepala-sekolah',
+                'Employee' => 'pegawai',
+                'Kepala Sekolah' => 'kepala-sekolah',
+                'Guru' => 'guru',
+                'Pegawai' => 'pegawai',
+            ];
+            $array['role'] = $roleMap[$role->name] ?? strtolower(str_replace(' ', '-', $role->name));
+        } else {
+            $array['role'] = 'pegawai';
+        }
+
+        // Add permissions in frontend format
+        $backendPermissions = $this->getAllPermissions()->pluck('name')->toArray();
+        $frontendPermissions = [];
+
+        // Create mapping from backend to frontend permission format
+        $permissionMapping = [
+            // Dashboard
+            'view_attendance' => 'dashboard.view',
+            'view_reports' => 'dashboard.view',
+
+            // Employees
+            'view_employees' => 'employees.view',
+            'create_employees' => 'employees.create',
+            'edit_employees' => 'employees.edit',
+            'delete_employees' => 'employees.delete',
+            'manage_employees' => 'employees.view',
+
+            // Attendance
+            'view_attendance_own' => 'attendance.view',
+            'view_attendance_all' => 'attendance.view',
+            'manage_attendance_own' => 'attendance.create',
+            'manage_attendance_all' => 'attendance.edit',
+            'view_attendance_reports' => 'attendance.view',
+
+            // Leave
+            'view_leave_own' => 'leave.view',
+            'view_leave_all' => 'leave.view',
+            'create_leave_requests' => 'leave.create',
+            'approve_leave' => 'leave.approve',
+            'view_leave_analytics' => 'leave.view',
+
+            // Schedules
+            'view_schedules' => 'schedules.view',
+            'create_schedules' => 'schedules.create',
+            'edit_schedules' => 'schedules.edit',
+            'manage_schedules' => 'schedules.view',
+
+            // Payroll
+            'view_payroll_own' => 'payroll.view',
+            'view_payroll_all' => 'payroll.view',
+            'create_payroll' => 'payroll.create',
+            'edit_payroll' => 'payroll.edit',
+            'approve_payroll' => 'payroll.view',
+            'view_payroll' => 'payroll.view',
+
+            // Reports
+            'view_reports' => 'reports.view',
+            'create_reports' => 'reports.export',
+            'export_analytics_data' => 'reports.export',
+
+            // Settings
+            'manage_system_settings' => 'settings.edit',
+            'manage_locations' => 'settings.view',
+            'manage_users' => 'settings.edit',
+        ];
+
+        foreach ($backendPermissions as $permission) {
+            if (isset($permissionMapping[$permission])) {
+                $frontendPermissions[] = $permissionMapping[$permission];
+            }
+        }
+
+        $array['permissions'] = array_values(array_unique($frontendPermissions));
+
+        // Remove the roles and permissions relationships from the array to avoid confusion
+        unset($array['roles']);
+
+        return $array;
     }
 
     /**

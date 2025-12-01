@@ -77,15 +77,22 @@ class EmployeeApiController extends BaseApiController
             'base_salary' => 'sometimes|numeric|min:0',
             'hire_date' => 'sometimes|date',
             'is_active' => 'boolean',
+            'password' => 'nullable|string|min:8', // Accept password from frontend
+            'role' => 'nullable|string|in:pegawai,guru,admin,kepala-sekolah', // Accept role
         ]);
 
         try {
             $employee = DB::transaction(function () use ($validated) {
-                // Create user first
+                // Create user first with provided or default password
+                $password = $validated['password'] ?? 'password123';
+                $role = $validated['role'] ?? 'pegawai';
+
                 $user = \App\Models\User::create([
                     'name' => $validated['full_name'],
                     'email' => $validated['email'],
-                    'password' => bcrypt('password123'), // Default password
+                    'password' => bcrypt($password),
+                    'role' => $role,
+                    'force_password_change' => true, // User must change password on first login
                 ]);
 
                 // Create employee
@@ -229,5 +236,29 @@ class EmployeeApiController extends BaseApiController
         } catch (\Exception $e) {
             return $this->errorResponse('Failed to delete employee: ' . $e->getMessage(), 500);
         }
+    }
+    /**
+     * Get employees with registered face data
+     */
+    public function withFaceData()
+    {
+        // Filter employees who have face descriptor in metadata
+        $employees = Employee::where('is_active', true)
+            ->get()
+            ->filter(function ($employee) {
+                return isset($employee->metadata['face_recognition']['descriptor']);
+            })
+            ->map(function ($employee) {
+                return [
+                    'id' => $employee->id,
+                    'name' => $employee->full_name,
+                    'employee_id' => $employee->employee_id,
+                    'photo_url' => $employee->photo_url,
+                    'face_descriptor' => $employee->metadata['face_recognition']['descriptor'] ?? null
+                ];
+            })
+            ->values();
+
+        return $this->apiResponse($employees, 'Employees with face data retrieved');
     }
 }

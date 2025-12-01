@@ -92,7 +92,7 @@ export default function LeaveApprovalsPage() {
   });
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
@@ -174,7 +174,7 @@ export default function LeaveApprovalsPage() {
       <div className="space-y-4">
         {filteredApprovals.map((approval) => (
           <Card key={approval.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                 {/* Employee Info */}
                 <div className="flex items-center gap-4 flex-1">

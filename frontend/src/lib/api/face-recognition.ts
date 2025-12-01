@@ -128,6 +128,9 @@ const ENDPOINTS = {
   statistics: '/face-recognition/statistics',
   // Additional endpoints for fetching all registered faces
   registeredFaces: '/employees/with-face-data',
+  // Server-side processing endpoints (Python service proxy)
+  extractEncodingServer: '/face-recognition/extract-encoding-server',
+  verifyServer: '/face-recognition/verify-server',
 } as const;
 
 /**
@@ -335,4 +338,106 @@ export function findBestMatch(
   }
 
   return { match: bestMatch, similarity: bestSimilarity };
+}
+
+/* ============================================================================
+ * Server-Side Processing (Python Service Proxy)
+ * ============================================================================
+ * These functions use full server-side face recognition processing via
+ * Python service (dlib-based). Images are uploaded as compressed base64.
+ */
+
+export interface ServerExtractEncodingRequest {
+  /** Base64 encoded image (with or without data URL prefix) */
+  image: string;
+}
+
+export interface ServerExtractEncodingResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    /** 128-d face encoding from dlib */
+    encoding: number[];
+    /** Confidence score (0-1) */
+    confidence: number;
+    /** Algorithm used */
+    algorithm: string;
+    /** Model version */
+    model_version: string;
+  };
+}
+
+export interface ServerVerifyFaceRequest {
+  /** Base64 encoded image (with or without data URL prefix) */
+  image: string;
+  /** Face matching tolerance (0.3-0.9, default: 0.6) */
+  tolerance?: number;
+}
+
+export interface ServerVerifyFaceResponse {
+  success: boolean;
+  matched: boolean;
+  message: string;
+  data?: {
+    /** Matched employee info (if matched) */
+    employee?: {
+      employee_id: number;
+      employee_code: string;
+      name: string;
+    };
+    /** Euclidean distance (lower = better match) */
+    distance?: number;
+    /** Similarity percentage (0-1) */
+    similarity?: number;
+    /** Detection confidence */
+    confidence: number;
+    /** Tolerance used for matching */
+    tolerance_used: number;
+    /** Algorithm used */
+    algorithm: string;
+  };
+}
+
+/**
+ * Extract face encoding using server-side processing (Python service)
+ *
+ * Uploads image to Laravel proxy which forwards to Python face recognition
+ * service. The service extracts a 128-d face descriptor using dlib.
+ *
+ * @param data - Request with base64 image
+ * @returns Extracted encoding and metadata
+ */
+export async function extractEncodingServer(
+  data: ServerExtractEncodingRequest
+): Promise<ServerExtractEncodingResponse> {
+  const response = await apiClient.post<ServerExtractEncodingResponse>(
+    ENDPOINTS.extractEncodingServer,
+    { image: data.image }
+  );
+  return response.data;
+}
+
+/**
+ * Verify face using server-side processing (Python service)
+ *
+ * Uploads image to Laravel proxy which forwards to Python face recognition
+ * service. The service:
+ * 1. Extracts face encoding from uploaded image
+ * 2. Compares against all registered employee encodings
+ * 3. Returns matched employee or no match
+ *
+ * @param data - Request with base64 image and optional tolerance
+ * @returns Verification result with matched employee (if found)
+ */
+export async function verifyFaceServer(
+  data: ServerVerifyFaceRequest
+): Promise<ServerVerifyFaceResponse> {
+  const response = await apiClient.post<ServerVerifyFaceResponse>(
+    ENDPOINTS.verifyServer,
+    {
+      image: data.image,
+      tolerance: data.tolerance || 0.6,
+    }
+  );
+  return response.data;
 }

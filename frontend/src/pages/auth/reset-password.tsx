@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { Loader2, Eye, EyeOff, KeyRound, CheckCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { LoadingState } from '@/components/states';
 import { Input } from '@/components/ui/input';
 import { useNotificationStore } from '@/stores';
 

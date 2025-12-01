@@ -1,13 +1,19 @@
-import type { LucideIcon } from 'lucide-react';
+
+// Type for lucide icon components
+type IconType = React.ComponentType<{ className?: string }>;
+
+// Removed LucideIcon type import from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+
 import { cn } from '@/lib/utils';
+
 
 interface StatItem {
   id: string;
   title: string;
   value: string | number;
   description?: string;
-  icon?: LucideIcon;
+  icon?: IconType;
   trend?: 'up' | 'down' | 'neutral';
   trendValue?: string;
   color?: 'default' | 'success' | 'warning' | 'destructive' | 'primary';

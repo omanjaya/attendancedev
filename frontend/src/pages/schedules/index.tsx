@@ -9,17 +9,28 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/shared';
+import { useIsMobile } from '@/lib/utils/device';
+import { MobileSchedulesPage } from './mobile';
 
 import { ScheduleListContent } from './tabs/ScheduleListContent';
 import { ScheduleBuilderContent } from './tabs/ScheduleBuilderContent';
 import { ScheduleAssignContent } from './tabs/ScheduleAssignContent';
 import { MonthlyScheduleContent } from './tabs/MonthlyScheduleContent';
 
+// Wrapper component to handle mobile vs desktop rendering
 export default function SchedulesPage() {
+  const isMobile = useIsMobile();
+
+  // Render mobile or desktop version
+  return isMobile ? <MobileSchedulesPage /> : <DesktopSchedulesPage />;
+}
+
+// Desktop version (original implementation)
+function DesktopSchedulesPage() {
   const [activeTab, setActiveTab] = useState('list');
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 p-4 sm:space-y-6 sm:p-6">
       {/* Page Header */}
       <PageHeader
         title="Manajemen Jadwal"

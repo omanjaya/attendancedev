@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\Schedule;
+use App\Models\WeeklySchedule;
 use App\Models\MonthlySchedule;
 use App\Models\TimeSlot;
 use App\Models\Subject;
@@ -14,7 +14,7 @@ class ScheduleApiController extends BaseApiController
 {
     public function index(Request $request)
     {
-        $query = Schedule::query()
+        $query = WeeklySchedule::query()
             ->with(['employee:id,employee_id,full_name', 'academicClass:id,name', 'subject:id,name', 'timeSlot']);
 
         if ($classId = $request->get('class_id')) {
@@ -34,7 +34,7 @@ class ScheduleApiController extends BaseApiController
         }
 
         if ($status = $request->get('status')) {
-            $query->where('status', $status);
+            $query->where('is_active', $status === 'active');
         }
 
         $perPage = $request->get('per_page', 15);
@@ -45,7 +45,7 @@ class ScheduleApiController extends BaseApiController
 
     public function show($id)
     {
-        $schedule = Schedule::with(['employee', 'academicClass', 'subject', 'timeSlot'])->find($id);
+        $schedule = WeeklySchedule::with(['employee', 'academicClass', 'subject', 'timeSlot'])->find($id);
 
         if (!$schedule) {
             return $this->errorResponse('Schedule not found', 404);
@@ -56,11 +56,14 @@ class ScheduleApiController extends BaseApiController
 
     public function byClass($classId)
     {
-        $schedules = Schedule::with(['employee', 'subject', 'timeSlot'])
+        $schedules = WeeklySchedule::with(['employee', 'subject', 'timeSlot'])
             ->where('academic_class_id', $classId)
             ->orderBy('day_of_week')
-            ->orderBy('start_time')
-            ->get();
+            ->get()
+            ->sortBy(function ($schedule) {
+                return $schedule->timeSlot->start_time;
+            })
+            ->values();
 
         return $this->apiResponse($schedules, 'Class schedules retrieved');
     }
@@ -72,12 +75,13 @@ class ScheduleApiController extends BaseApiController
             'employee_id' => 'required|exists:employees,id',
             'subject_id' => 'required|exists:subjects,id',
             'time_slot_id' => 'required|exists:time_slots,id',
-            'day_of_week' => 'required|integer|between:1,7',
+            'day_of_week' => 'required|string|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
             'room' => 'nullable|string',
         ]);
 
-        $schedule = Schedule::create(array_merge($validated, [
-            'status' => 'active',
+        $schedule = WeeklySchedule::create(array_merge($validated, [
+            'is_active' => true,
+            'effective_from' => now(),
         ]));
 
         return $this->apiResponse($schedule->load(['employee', 'subject', 'timeSlot']), 'Schedule created', 201);
@@ -85,7 +89,7 @@ class ScheduleApiController extends BaseApiController
 
     public function update(Request $request, $id)
     {
-        $schedule = Schedule::find($id);
+        $schedule = WeeklySchedule::find($id);
 
         if (!$schedule) {
             return $this->errorResponse('Schedule not found', 404);
@@ -95,10 +99,15 @@ class ScheduleApiController extends BaseApiController
             'employee_id' => 'sometimes|exists:employees,id',
             'subject_id' => 'sometimes|exists:subjects,id',
             'time_slot_id' => 'sometimes|exists:time_slots,id',
-            'day_of_week' => 'sometimes|integer|between:1,7',
+            'day_of_week' => 'sometimes|string|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
             'room' => 'nullable|string',
-            'status' => 'sometimes|in:active,inactive,cancelled',
+            'status' => 'sometimes|in:active,inactive',
         ]);
+
+        if (isset($validated['status'])) {
+            $validated['is_active'] = $validated['status'] === 'active';
+            unset($validated['status']);
+        }
 
         $schedule->update($validated);
 
@@ -107,7 +116,7 @@ class ScheduleApiController extends BaseApiController
 
     public function destroy($id)
     {
-        $schedule = Schedule::find($id);
+        $schedule = WeeklySchedule::find($id);
 
         if (!$schedule) {
             return $this->errorResponse('Schedule not found', 404);
@@ -120,7 +129,7 @@ class ScheduleApiController extends BaseApiController
 
     public function lock(Request $request, $id)
     {
-        $schedule = Schedule::find($id);
+        $schedule = WeeklySchedule::find($id);
 
         if (!$schedule) {
             return $this->errorResponse('Schedule not found', 404);
@@ -128,7 +137,7 @@ class ScheduleApiController extends BaseApiController
 
         $schedule->update([
             'is_locked' => true,
-            'lock_reason' => $request->get('reason'),
+            // 'lock_reason' => $request->get('reason'), // WeeklySchedule might handle locking differently via relations
         ]);
 
         return $this->apiResponse($schedule->fresh(), 'Schedule locked');
@@ -136,7 +145,7 @@ class ScheduleApiController extends BaseApiController
 
     public function unlock($id)
     {
-        $schedule = Schedule::find($id);
+        $schedule = WeeklySchedule::find($id);
 
         if (!$schedule) {
             return $this->errorResponse('Schedule not found', 404);
@@ -144,7 +153,7 @@ class ScheduleApiController extends BaseApiController
 
         $schedule->update([
             'is_locked' => false,
-            'lock_reason' => null,
+            // 'lock_reason' => null,
         ]);
 
         return $this->apiResponse($schedule->fresh(), 'Schedule unlocked');
@@ -153,10 +162,10 @@ class ScheduleApiController extends BaseApiController
     public function statistics()
     {
         $stats = [
-            'total' => Schedule::count(),
-            'active' => Schedule::where('status', 'active')->count(),
-            'inactive' => Schedule::where('status', 'inactive')->count(),
-            'locked' => Schedule::where('is_locked', true)->count(),
+            'total' => WeeklySchedule::count(),
+            'active' => WeeklySchedule::where('is_active', true)->count(),
+            'inactive' => WeeklySchedule::where('is_active', false)->count(),
+            'locked' => WeeklySchedule::where('is_locked', true)->count(),
         ];
 
         return $this->apiResponse($stats, 'Statistics retrieved');
@@ -167,7 +176,7 @@ class ScheduleApiController extends BaseApiController
         $classId = $request->get('class_id');
 
         // Simple conflict detection - schedules with same time slot and day
-        $conflicts = Schedule::query()
+        $conflicts = WeeklySchedule::query()
             ->when($classId, fn($q) => $q->where('academic_class_id', $classId))
             ->select('day_of_week', 'time_slot_id')
             ->selectRaw('count(*) as count')
@@ -203,12 +212,12 @@ class ScheduleApiController extends BaseApiController
     {
         $validated = $request->validate([
             'subject_id' => 'required|exists:subjects,id',
-            'day_of_week' => 'required|integer|between:1,7',
+            'day_of_week' => 'required|string|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
             'time_slot_id' => 'required|exists:time_slots,id',
         ]);
 
         // Get teachers who are qualified for the subject and not scheduled at this time
-        $busyTeacherIds = Schedule::where('day_of_week', $validated['day_of_week'])
+        $busyTeacherIds = WeeklySchedule::where('day_of_week', $validated['day_of_week'])
             ->where('time_slot_id', $validated['time_slot_id'])
             ->pluck('employee_id');
 

@@ -11,9 +11,13 @@ import {
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { LeaveBadge } from '@/components/status';
 import { Button } from '@/components/ui/button';
+import { LeaveBadge } from '@/components/status';
 import { Badge } from '@/components/ui/badge';
+import { LeaveBadge } from '@/components/status';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { LeaveBadge } from '@/components/status';
 
 // Mock leave data
 const mockLeaves: Record<string, Array<{
@@ -116,7 +120,7 @@ export default function LeaveCalendarPage() {
   const today = new Date().toISOString().split('T')[0];
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>

@@ -24,6 +24,7 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/auth/logout', [App\Http\Controllers\Api\AuthController::class, 'logout']);
         Route::get('/auth/me', [App\Http\Controllers\Api\AuthController::class, 'me']);
+        Route::post('/auth/change-password', [App\Http\Controllers\Api\AuthController::class, 'changePassword']);
         // User info
         Route::get('/user', function (Request $request) {
             return $request->user()->load(['employee', 'roles', 'permissions']);
@@ -35,9 +36,17 @@ Route::prefix('v1')->group(function () {
             Route::post('/', [App\Http\Controllers\Api\EmployeeApiController::class, 'store']);
             Route::get('/search', [App\Http\Controllers\Api\EmployeeApiController::class, 'search']);
             Route::get('/statistics', [App\Http\Controllers\Api\EmployeeApiController::class, 'statistics']);
+            Route::get('/with-face-data', [App\Http\Controllers\Api\EmployeeApiController::class, 'withFaceData']); // Added route
             Route::get('/{id}', [App\Http\Controllers\Api\EmployeeApiController::class, 'show']);
             Route::put('/{id}', [App\Http\Controllers\Api\EmployeeApiController::class, 'update']);
             Route::delete('/{id}', [App\Http\Controllers\Api\EmployeeApiController::class, 'destroy']);
+        });
+
+        // User account management endpoints (for admin creating user accounts)
+        Route::prefix('users')->group(function () {
+            Route::post('/create-account', [App\Http\Controllers\Api\UserApiController::class, 'createUserAccount']);
+            Route::get('/employee/{employeeId}', [App\Http\Controllers\Api\UserApiController::class, 'getUserByEmployeeId']);
+            Route::get('/check-employee/{employeeId}', [App\Http\Controllers\Api\UserApiController::class, 'checkEmployeeHasUser']);
         });
 
         // Attendance management endpoints (React frontend)
@@ -312,6 +321,16 @@ Route::prefix('v1')->group(function () {
                 App\Http\Controllers\Api\FaceRecognitionController::class,
                 'getStatistics',
             ])->middleware('permission:view_employees');
+
+            // Server-side processing endpoints (Python service proxy)
+            Route::post('/extract-encoding-server', [
+                App\Http\Controllers\Api\FaceRecognitionController::class,
+                'extractEncodingServer',
+            ])->middleware('permission:manage_employees');
+            Route::post('/verify-server', [
+                App\Http\Controllers\Api\FaceRecognitionController::class,
+                'verifyFaceServer',
+            ])->middleware('permission:manage_attendance_own');
         });
 
         // User management endpoints
@@ -349,8 +368,8 @@ Route::prefix('v1')->group(function () {
         // Leave management endpoints
         Route::prefix('leave')->group(function () {
             Route::get('/balance', [
-                App\Http\Controllers\LeaveBalanceController::class,
-                'getBalance',
+                App\Http\Controllers\Api\LeaveApiController::class,
+                'balance',
             ])->middleware('permission:view_leave_own');
             Route::post('/calculate-days', [
                 App\Http\Controllers\LeaveController::class,

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { LoadingState } from '@/components/states';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -239,7 +240,7 @@ export default function EmployeeEditPage() {
   }
 
   return (
-    <section className="relative py-16">
+    <section className="relative py-8 sm:py-16">
       {/* Background pattern - shadcnblocks style */}
       <div className="pointer-events-none absolute inset-x-0 -bottom-20 -top-20 bg-[radial-gradient(ellipse_35%_15%_at_40%_55%,hsl(var(--accent))_0%,transparent_100%)] opacity-50"></div>
       <div className="pointer-events-none absolute inset-x-0 -bottom-20 -top-20 bg-[radial-gradient(ellipse_35%_20%_at_60%_60%,hsl(var(--accent))_0%,transparent_100%)] opacity-30"></div>
