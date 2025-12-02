@@ -29,12 +29,13 @@ class AttendanceService implements AttendanceServiceInterface
         Employee $employee,
         array $locationData,
         ?array $faceData = null,
-        ?UploadedFile $photo = null
+        ?UploadedFile $photo = null,
+        bool $overwrite = false
     ): Attendance {
-        return DB::transaction(function () use ($employee, $locationData, $faceData, $photo) {
+        return DB::transaction(function () use ($employee, $locationData, $faceData, $photo, $overwrite) {
             // Check if already checked in today
             $existingAttendance = $this->getTodayAttendance($employee);
-            if ($existingAttendance && $existingAttendance->check_in_time) {
+            if ($existingAttendance && $existingAttendance->check_in_time && !$overwrite) {
                 throw new \Exception('Already checked in today');
             }
 

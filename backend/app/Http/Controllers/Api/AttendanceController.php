@@ -103,7 +103,8 @@ class AttendanceController extends Controller
                 $employee,
                 $request->location,
                 $faceData,
-                $request->file('photo')
+                $request->file('photo'),
+                $request->boolean('overwrite')
             );
 
             return response()->json([

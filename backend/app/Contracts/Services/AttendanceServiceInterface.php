@@ -16,7 +16,8 @@ interface AttendanceServiceInterface
         Employee $employee,
         array $locationData,
         ?array $faceData = null,
-        ?UploadedFile $photo = null
+        ?UploadedFile $photo = null,
+        bool $overwrite = false
     ): Attendance;
 
     /**
