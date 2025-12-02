@@ -16,7 +16,8 @@ class FaceRecognitionController extends Controller
 {
     public function __construct(
         private readonly FaceRecognitionService $faceRecognitionService
-    ) {}
+    ) {
+    }
 
     /**
      * Register face for an employee
@@ -25,7 +26,7 @@ class FaceRecognitionController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'employee_id' => 'required|exists:employees,id',
-            'descriptor' => 'required|array|size:128',
+            'descriptor' => 'required|array|min:128',  // Support 128-d (face-api.js) OR 512-d (DeepFace ArcFace)
             'descriptor.*' => 'required|numeric',
             'confidence' => 'required|numeric|min:0|max:1',
             'image' => 'nullable|image|max:2048',
@@ -42,9 +43,21 @@ class FaceRecognitionController extends Controller
             ], 422);
         }
 
+        // Authorization check
+        $user = $request->user();
+        $isOwnProfile = $user->employee && $user->employee->id == $request->employee_id;
+
+        if (!$isOwnProfile && !$user->can('manage_employees')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Forbidden. You do not have the required permission.',
+                'required_permission' => 'manage_employees'
+            ], 403);
+        }
+
         try {
             $employee = Employee::findOrFail($request->employee_id);
-            
+
             $metadata = [
                 'confidence' => $request->confidence,
                 'algorithm' => $request->algorithm ?? 'face-api.js',
@@ -140,7 +153,7 @@ class FaceRecognitionController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'employee_id' => 'required|exists:employees,id',
-            'descriptor' => 'required|array|size:128',
+            'descriptor' => 'required|array|min:128',  // Support 128-d (face-api.js) OR 512-d (DeepFace ArcFace)
             'descriptor.*' => 'required|numeric',
             'confidence' => 'required|numeric|min:0|max:1',
             'image' => 'nullable|image|max:2048',
@@ -157,9 +170,21 @@ class FaceRecognitionController extends Controller
             ], 422);
         }
 
+        // Authorization check
+        $user = $request->user();
+        $isOwnProfile = $user->employee && $user->employee->id == $request->employee_id;
+
+        if (!$isOwnProfile && !$user->can('manage_employees')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Forbidden. You do not have the required permission.',
+                'required_permission' => 'manage_employees'
+            ], 403);
+        }
+
         try {
             $employee = Employee::findOrFail($request->employee_id);
-            
+
             $metadata = [
                 'confidence' => $request->confidence,
                 'algorithm' => $request->algorithm ?? 'face-api.js',
@@ -209,9 +234,21 @@ class FaceRecognitionController extends Controller
             ], 422);
         }
 
+        // Authorization check
+        $user = $request->user();
+        $isOwnProfile = $user->employee && $user->employee->id == $request->employee_id;
+
+        if (!$isOwnProfile && !$user->can('manage_employees')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Forbidden. You do not have the required permission.',
+                'required_permission' => 'manage_employees'
+            ], 403);
+        }
+
         try {
             $employee = Employee::findOrFail($request->employee_id);
-            
+
             $result = $this->faceRecognitionService->deleteFaceData($employee);
 
             return response()->json([
@@ -250,9 +287,21 @@ class FaceRecognitionController extends Controller
             ], 422);
         }
 
+        // Authorization check
+        $user = $request->user();
+        $isOwnProfile = $user->employee && $user->employee->id == $request->employee_id;
+
+        if (!$isOwnProfile && !$user->can('view_employees')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Forbidden. You do not have the required permission.',
+                'required_permission' => 'view_employees'
+            ], 403);
+        }
+
         try {
             $employee = Employee::findOrFail($request->employee_id);
-            
+
             $faceData = $this->faceRecognitionService->getFaceData($employee);
 
             return response()->json([
@@ -306,7 +355,7 @@ class FaceRecognitionController extends Controller
 
         try {
             $threshold = $request->threshold ?? 0.6;
-            
+
             $results = $this->faceRecognitionService->batchVerify(
                 $request->faces,
                 $threshold
@@ -580,6 +629,287 @@ class FaceRecognitionController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Server-side face verification failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ========================================
+    // DeepFace Service Methods (ArcFace 512-d)
+    // ========================================
+
+    /**
+     * Health check for DeepFace service
+     *
+     * GET /api/v1/face/deepface/health
+     */
+    public function healthDeepFace(): JsonResponse
+    {
+        try {
+            $serviceUrl = env('DEEPFACE_SERVICE_URL', 'http://127.0.0.1:8001');
+            $response = Http::timeout(5)->get("{$serviceUrl}/health");
+
+            if ($response->successful()) {
+                return response()->json([
+                    'success' => true,
+                    'service' => 'DeepFace Face Recognition',
+                    'deepface_service' => $response->json(),
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'DeepFace service not responding',
+            ], 503);
+
+        } catch (\Exception $e) {
+            Log::error('DeepFace service health check failed', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'DeepFace service unavailable',
+                'error' => $e->getMessage(),
+            ], 503);
+        }
+    }
+
+    /**
+     * Extract 512-d face embedding using DeepFace (ArcFace model)
+     *
+     * POST /api/v1/face/deepface/extract-embedding
+     *
+     * Request: image file
+     * Response: 512-d embedding array + confidence + quality metrics
+     */
+    public function extractEmbeddingDeepFace(Request $request): JsonResponse
+    {
+        $request->validate([
+            'image' => 'required|file|mimes:jpg,jpeg,png|max:10240', // 10MB max
+        ]);
+
+        try {
+            $serviceUrl = env('DEEPFACE_SERVICE_URL', 'http://127.0.0.1:8001');
+            $image = $request->file('image');
+
+            // Forward to DeepFace service
+            $response = Http::timeout(120)
+                ->attach('image', file_get_contents($image->getRealPath()), $image->getClientOriginalName())
+                ->post("{$serviceUrl}/extract-embedding");
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                Log::info('DeepFace embedding extracted', [
+                    'dimension' => $data['dimension'] ?? null,
+                    'confidence' => $data['confidence'] ?? null,
+                    'model' => $data['model'] ?? 'ArcFace',
+                ]);
+
+                return response()->json($data);
+            }
+
+            $error = $response->json();
+            Log::warning('DeepFace embedding extraction failed', [
+                'status' => $response->status(),
+                'error' => $error,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $error['message'] ?? 'Failed to extract face embedding',
+                'error' => $error,
+            ], $response->status());
+
+        } catch (\Exception $e) {
+            Log::error('DeepFace embedding extraction error', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to process image',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Check liveness using DeepFace (anti-spoofing)
+     *
+     * POST /api/v1/face/deepface/check-liveness
+     *
+     * Request: image file
+     * Response: is_live boolean + confidence
+     */
+    public function checkLivenessDeepFace(Request $request): JsonResponse
+    {
+        $request->validate([
+            'image' => 'required|file|mimes:jpg,jpeg,png|max:10240',
+        ]);
+
+        try {
+            $serviceUrl = env('DEEPFACE_SERVICE_URL', 'http://127.0.0.1:8001');
+            $image = $request->file('image');
+
+            // Forward to DeepFace service
+            $response = Http::timeout(30)
+                ->attach('image', file_get_contents($image->getRealPath()), $image->getClientOriginalName())
+                ->post("{$serviceUrl}/check-liveness");
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                Log::info('DeepFace liveness check completed', [
+                    'is_live' => $data['is_live'] ?? null,
+                    'result' => $data['result'] ?? null,
+                ]);
+
+                return response()->json($data);
+            }
+
+            $error = $response->json();
+            Log::warning('DeepFace liveness check failed', [
+                'status' => $response->status(),
+                'error' => $error,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $error['message'] ?? 'Failed to check liveness',
+                'error' => $error,
+            ], $response->status());
+
+        } catch (\Exception $e) {
+            Log::error('DeepFace liveness check error', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to check liveness',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Verify face using DeepFace service (ArcFace 512-d embeddings)
+     *
+     * POST /api/v1/face/deepface/verify
+     *
+     * Request:
+     * - image: file
+     * - employee_id: optional - if provided, verifies against specific employee
+     *               if not provided, verifies against all registered employees
+     *
+     * Response:
+     * {
+     *   "success": true,
+     *   "matched": true,
+     *   "employee": {...},
+     *   "distance": 0.45,
+     *   "similarity": 0.55,
+     *   "confidence": 0.92,
+     *   "is_live": true
+     * }
+     */
+    public function verifyFaceDeepFace(Request $request): JsonResponse
+    {
+        $request->validate([
+            'image' => 'required|file|mimes:jpg,jpeg,png|max:10240',
+            'employee_id' => 'nullable|exists:employees,id',
+        ]);
+
+        try {
+            $serviceUrl = env('DEEPFACE_SERVICE_URL', 'http://127.0.0.1:8001');
+            $image = $request->file('image');
+
+            // Get employees with face embeddings (512-d) from metadata
+            $query = Employee::whereRaw('json_extract(metadata, "$.face_recognition.descriptor") IS NOT NULL')
+                ->select('id', 'employee_id', 'full_name', 'metadata');
+
+            // If specific employee ID provided, filter to that employee
+            if ($request->has('employee_id')) {
+                $query->where('id', $request->employee_id);
+            }
+
+            $employees = $query->get();
+
+            if ($employees->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'matched' => false,
+                    'message' => 'No registered employees with face data found',
+                ], 404);
+            }
+
+            // Prepare known faces with embeddings for DeepFace service
+            $knownFaces = $employees->map(function ($employee) {
+                $metadata = $employee->metadata;
+                // Check if face_recognition exists and has descriptor
+                if (!isset($metadata['face_recognition']['descriptor'])) {
+                    return null;
+                }
+
+                $embedding = $metadata['face_recognition']['descriptor'];
+
+                return [
+                    'employee_id' => $employee->id,
+                    'employee_code' => $employee->employee_id,
+                    'name' => $employee->full_name,
+                    'embedding' => $embedding,
+                ];
+            })->filter()->values()->toArray();
+
+            if (empty($knownFaces)) {
+                return response()->json([
+                    'success' => false,
+                    'matched' => false,
+                    'message' => 'No valid face embeddings found',
+                ], 404);
+            }
+            // Forward to DeepFace service
+            $response = Http::timeout(30)
+                ->attach('image', file_get_contents($image->getRealPath()), $image->getClientOriginalName())
+                ->post("{$serviceUrl}/verify-face", [
+                    'known_faces_json' => json_encode($knownFaces),
+                ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                Log::info('DeepFace verification completed', [
+                    'matched' => $data['matched'] ?? null,
+                    'employee_id' => $data['employee']['id'] ?? null,
+                    'distance' => $data['distance'] ?? null,
+                    'is_live' => $data['is_live'] ?? null,
+                ]);
+
+                return response()->json($data);
+            }
+
+            $error = $response->json();
+            Log::warning('DeepFace verification failed', [
+                'status' => $response->status(),
+                'error' => $error,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $error['message'] ?? 'Failed to verify face',
+                'error' => $error,
+            ], $response->status());
+
+        } catch (\Exception $e) {
+            Log::error('DeepFace verification error', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to verify face',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

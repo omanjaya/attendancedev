@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Repositories\Interfaces\EmployeeRepositoryInterface;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use App\Models\User;
 use OpenApi\Annotations as OA;
 
 /**
@@ -11,7 +13,9 @@ use OpenApi\Annotations as OA;
  */
 class SimpleEmployeeApiController extends BaseApiController
 {
-    public function __construct(protected EmployeeRepositoryInterface $employeeRepository) {}
+    public function __construct(protected EmployeeRepositoryInterface $employeeRepository)
+    {
+    }
 
     /**
      * @OA\Get(
@@ -107,6 +111,7 @@ class SimpleEmployeeApiController extends BaseApiController
         return $this->paginatedResponse($employees, 'Employees retrieved successfully');
     }
 
+
     /**
      * @OA\Post(
      *     path="/api/v1/employees",
@@ -196,12 +201,37 @@ class SimpleEmployeeApiController extends BaseApiController
             'employment_type' => 'required|in:permanent,contract,part_time,honorary',
             'salary_type' => 'required|in:monthly,hourly',
             'base_salary' => 'required|numeric|min:0',
-            'hire_date' => 'required|date',
+            'hire_date' => 'sometimes|date', // Changed from required to sometimes to handle join_date mapping
             'is_active' => 'boolean',
         ]);
 
         try {
-            $employee = $this->employeeRepository->create($validated);
+            $employee = DB::transaction(function () use ($validated, $request) {
+                // Create user first
+                $user = User::create([
+                    'name' => $validated['full_name'],
+                    'email' => $validated['email'],
+                    'password' => bcrypt('password123'),
+                    'force_password_change' => true,
+                ]);
+
+                $user->assignRole('pegawai');
+
+                // Add user_id to validated data
+                $validated['user_id'] = $user->id;
+
+                // Map join_date to hire_date if needed
+                if (!isset($validated['hire_date']) && $request->has('join_date')) {
+                    $validated['hire_date'] = $request->get('join_date');
+                }
+
+                // Default hire_date if still missing
+                if (!isset($validated['hire_date'])) {
+                    $validated['hire_date'] = now();
+                }
+
+                return $this->employeeRepository->create($validated);
+            });
 
             return $this->apiResponse(
                 $employee->load(['user', 'location']),
@@ -209,7 +239,7 @@ class SimpleEmployeeApiController extends BaseApiController
                 201,
             );
         } catch (\Exception $e) {
-            return $this->errorResponse('Failed to create employee: '.$e->getMessage(), 500);
+            return $this->errorResponse('Failed to create employee: ' . $e->getMessage(), 500);
         }
     }
 

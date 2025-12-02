@@ -106,7 +106,8 @@ export function useFaceDetection(options: UseFaceDetectionOptions = {}): UseFace
     }
 
     try {
-      const detected = await faceDetectionService.detectFaces(videoRef.current);
+      // Use fast detection for the preview loop
+      const detected = await faceDetectionService.detectFacesFast(videoRef.current);
       setDetections(detected);
 
       if (detected.length === 0) {

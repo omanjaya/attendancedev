@@ -39,12 +39,13 @@ export function MobileAttendancePage() {
         now.toLocaleTimeString('id-ID', {
           hour: '2-digit',
           minute: '2-digit',
+          second: '2-digit',
         })
       );
       setCurrentDate(
         now.toLocaleDateString('id-ID', {
           weekday: 'long',
-          day: 'numeric',
+          day: '2-digit',
           month: 'short',
           year: 'numeric',
         })
@@ -140,7 +141,7 @@ export function MobileAttendancePage() {
                   <p className="text-xs text-white/90 dark:text-white/80 line-clamp-1">
                     {todayAttendance?.check_in_time
                       ? `${formatTime(todayAttendance.check_in_time)}`
-                      : 'Absensi datang di hari kerja'}
+                      : 'Absensi wajib yang dipergunakan pada saat datang di hari kerja'}
                   </p>
                 </div>
                 {todayAttendance?.check_in_time ? (
@@ -165,7 +166,7 @@ export function MobileAttendancePage() {
                   <p className="text-xs text-white/90 dark:text-white/80 line-clamp-1">
                     {todayAttendance?.check_out_time
                       ? `${formatTime(todayAttendance.check_out_time)}`
-                      : 'Absensi pulang di hari kerja'}
+                      : 'Absensi wajib yang dipergunakan pada saat pulang di hari kerja'}
                   </p>
                 </div>
                 {todayAttendance?.check_out_time ? (
@@ -192,7 +193,7 @@ export function MobileAttendancePage() {
                   <div>
                     <h3 className="font-semibold text-foreground text-sm">Ubah Absen</h3>
                     <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                      Ajukan perubahan absen
+                      Ajukan perubahan absen karena alasan tertentu
                     </p>
                   </div>
                 </div>
@@ -210,7 +211,7 @@ export function MobileAttendancePage() {
                   <div>
                     <h3 className="font-semibold text-foreground text-sm">Cuti</h3>
                     <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                      Ajukan cuti
+                      Ajukan cuti karena alasan tertentu
                     </p>
                   </div>
                 </div>
@@ -227,6 +228,7 @@ export function MobileAttendancePage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-foreground text-xs leading-tight">Dinas/Diklat</h3>
+                    <p className="text-[10px] text-muted-foreground line-clamp-1">Ajukan Dinas/Diklat</p>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                 </div>
@@ -243,6 +245,7 @@ export function MobileAttendancePage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-foreground text-xs leading-tight">Jadwal Saya</h3>
+                    <p className="text-[10px] text-muted-foreground line-clamp-1">Lihat detail jadwal kehadiran rutin Anda disini</p>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                 </div>

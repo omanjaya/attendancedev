@@ -521,7 +521,7 @@ class MonthlyScheduleController extends Controller
 
         try {
             $results = $this->scheduleService->bulkAssignEmployees(
-                $monthlySchedule, 
+                $monthlySchedule,
                 $request->employee_ids
             );
 
@@ -529,10 +529,10 @@ class MonthlyScheduleController extends Controller
                 'success' => true,
                 'message' => 'Employees assigned successfully',
                 'data' => [
-                    'successful_assignments' => $results['success'],
-                    'failed_assignments' => $results['failed'],
-                    'errors' => $results['errors'],
-                    'total_assigned_employees' => $monthlySchedule->fresh()->getAssignedEmployeesCount()
+                    'assigned_count' => $results['success'],
+                    'replaced_count' => $results['replaced'] ?? 0,
+                    'total_employees' => $monthlySchedule->fresh()->getAssignedEmployeesCount(),
+                    'errors' => $results['errors']
                 ]
             ]);
         } catch (\Exception $e) {
@@ -555,8 +555,9 @@ class MonthlyScheduleController extends Controller
             ->pluck('employee_id');
 
         $availableEmployees = Employee::active()
+            ->with('location:id,name') // Eager load location
             ->whereNotIn('id', $assignedEmployeeIds)
-            ->select('id', 'full_name', 'employee_type', 'can_teach', 'can_substitute')
+            ->select('id', 'employee_id', 'full_name', 'employee_type', 'can_teach', 'can_substitute', 'location_id', 'metadata')
             ->get()
             ->groupBy('employee_type')
             ->map(function($employees, $type) {
@@ -567,6 +568,13 @@ class MonthlyScheduleController extends Controller
                         return [
                             'id' => $employee->id,
                             'name' => $employee->full_name,
+                            'employee_id' => $employee->employee_id ?? '',
+                            'department' => $employee->metadata['department'] ?? 'Belum Diatur',
+                            'position' => $employee->metadata['position'] ?? 'Belum Diatur',
+                            'location' => $employee->location ? [
+                                'id' => $employee->location->id,
+                                'name' => $employee->location->name
+                            ] : null,
                             'can_teach' => $employee->can_teach,
                             'can_substitute' => $employee->can_substitute
                         ];

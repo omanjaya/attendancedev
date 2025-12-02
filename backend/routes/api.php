@@ -8,6 +8,12 @@ use Illuminate\Support\Facades\Route;
 Route::get('/health', [HealthController::class, 'check'])->name('api.health');
 Route::get('/ping', [HealthController::class, 'ping'])->name('api.ping');
 
+// DeepFace service health check (no authentication required)
+Route::get('/v1/face/deepface/health', [
+    App\Http\Controllers\Api\FaceRecognitionController::class,
+    'healthDeepFace',
+])->name('api.deepface.health');
+
 // Time service endpoints (authenticated)
 use App\Http\Controllers\Api\TimeController;
 Route::middleware('auth')->group(function () {
@@ -25,6 +31,9 @@ Route::prefix('v1')->group(function () {
         Route::post('/auth/logout', [App\Http\Controllers\Api\AuthController::class, 'logout']);
         Route::get('/auth/me', [App\Http\Controllers\Api\AuthController::class, 'me']);
         Route::post('/auth/change-password', [App\Http\Controllers\Api\AuthController::class, 'changePassword']);
+        Route::post('/auth/avatar', [App\Http\Controllers\Api\AuthController::class, 'uploadAvatar']);
+        Route::delete('/auth/avatar', [App\Http\Controllers\Api\AuthController::class, 'deleteAvatar']);
+        Route::post('/auth/delete-account', [App\Http\Controllers\Api\AuthController::class, 'deleteAccount']);
         // User info
         Route::get('/user', function (Request $request) {
             return $request->user()->load(['employee', 'roles', 'permissions']);
@@ -88,7 +97,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/statistics', [App\Http\Controllers\Api\LeaveApiController::class, 'statistics']);
         });
 
-        // Schedule management endpoints
+        // Schedule management endpoints (Academic/Weekly Schedules)
         Route::prefix('schedules')->group(function () {
             Route::get('/', [App\Http\Controllers\Api\ScheduleApiController::class, 'index']);
             Route::post('/', [App\Http\Controllers\Api\ScheduleApiController::class, 'store']);
@@ -109,6 +118,36 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{id}', [App\Http\Controllers\Api\ScheduleApiController::class, 'destroy']);
             Route::post('/{id}/lock', [App\Http\Controllers\Api\ScheduleApiController::class, 'lock']);
             Route::post('/{id}/unlock', [App\Http\Controllers\Api\ScheduleApiController::class, 'unlock']);
+        });
+
+        // Monthly Attendance Schedule endpoints (NEW)
+        Route::prefix('monthly-schedules')->group(function () {
+            Route::get('/', [App\Http\Controllers\Api\MonthlyScheduleApiController::class, 'index']);
+            Route::post('/', [App\Http\Controllers\Api\MonthlyScheduleApiController::class, 'store']);
+            Route::get('/my-schedule', [App\Http\Controllers\Api\MonthlyScheduleApiController::class, 'mySchedule']); // For employees
+            Route::get('/{id}', [App\Http\Controllers\Api\MonthlyScheduleApiController::class, 'show']);
+            Route::put('/{id}', [App\Http\Controllers\Api\MonthlyScheduleApiController::class, 'update']);
+            Route::delete('/{id}', [App\Http\Controllers\Api\MonthlyScheduleApiController::class, 'destroy']);
+
+            // Assignment endpoints
+            Route::post('/{id}/assign', [App\Http\Controllers\Api\MonthlyScheduleApiController::class, 'assign']);
+            Route::post('/{id}/unassign', [App\Http\Controllers\Api\MonthlyScheduleApiController::class, 'unassign']);
+            Route::get('/{id}/employees', [App\Http\Controllers\Api\MonthlyScheduleApiController::class, 'getEmployees']);
+
+            // Helper endpoint
+            Route::post('/generate-working-days', [App\Http\Controllers\Api\MonthlyScheduleApiController::class, 'generateWorkingDays']);
+        });
+
+        // Holiday management endpoints (NEW)
+        Route::prefix('holidays')->group(function () {
+            Route::get('/', [App\Http\Controllers\Api\HolidayApiController::class, 'index']);
+            Route::post('/', [App\Http\Controllers\Api\HolidayApiController::class, 'store']);
+            Route::get('/by-month', [App\Http\Controllers\Api\HolidayApiController::class, 'getByMonth']);
+            Route::get('/statistics', [App\Http\Controllers\Api\HolidayApiController::class, 'statistics']);
+            Route::post('/bulk-import', [App\Http\Controllers\Api\HolidayApiController::class, 'bulkImport']);
+            Route::get('/{id}', [App\Http\Controllers\Api\HolidayApiController::class, 'show']);
+            Route::put('/{id}', [App\Http\Controllers\Api\HolidayApiController::class, 'update']);
+            Route::delete('/{id}', [App\Http\Controllers\Api\HolidayApiController::class, 'destroy']);
         });
 
         // Reports endpoints
@@ -141,6 +180,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/locations/statistics', [App\Http\Controllers\Api\AdminApiController::class, 'locationStatistics']);
             Route::put('/locations/{id}', [App\Http\Controllers\Api\AdminApiController::class, 'updateLocation']);
             Route::delete('/locations/{id}', [App\Http\Controllers\Api\AdminApiController::class, 'destroyLocation']);
+            Route::post('/locations/{id}/toggle-status', [App\Http\Controllers\Api\AdminApiController::class, 'toggleLocationStatus']);
 
             // Holidays
             Route::get('/holidays', [App\Http\Controllers\Api\AdminApiController::class, 'holidays']);
@@ -292,7 +332,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/register', [
                 App\Http\Controllers\Api\FaceRecognitionController::class,
                 'registerFace',
-            ])->middleware('permission:manage_employees');
+            ])->middleware('permission:manage_attendance_own');
             Route::post('/verify', [
                 App\Http\Controllers\Api\FaceRecognitionController::class,
                 'verifyFace',
@@ -300,15 +340,15 @@ Route::prefix('v1')->group(function () {
             Route::post('/update', [
                 App\Http\Controllers\Api\FaceRecognitionController::class,
                 'updateFaceData',
-            ])->middleware('permission:manage_employees');
+            ])->middleware('permission:manage_attendance_own');
             Route::post('/delete', [
                 App\Http\Controllers\Api\FaceRecognitionController::class,
                 'deleteFaceData',
-            ])->middleware('permission:manage_employees');
+            ])->middleware('permission:manage_attendance_own');
             Route::post('/get-data', [
                 App\Http\Controllers\Api\FaceRecognitionController::class,
                 'getFaceData',
-            ])->middleware('permission:view_employees');
+            ]);
             Route::post('/batch-verify', [
                 App\Http\Controllers\Api\FaceRecognitionController::class,
                 'batchVerify',
@@ -330,6 +370,33 @@ Route::prefix('v1')->group(function () {
             Route::post('/verify-server', [
                 App\Http\Controllers\Api\FaceRecognitionController::class,
                 'verifyFaceServer',
+            ])->middleware('permission:manage_attendance_own');
+        });
+
+        // DeepFace Service endpoints (ArcFace 512-d embeddings)
+        Route::prefix('face/deepface')->group(function () {
+            // Health check
+            Route::get('/health', [
+                App\Http\Controllers\Api\FaceRecognitionController::class,
+                'healthDeepFace',
+            ]);
+
+            // Extract 512-d embedding
+            Route::post('/extract-embedding', [
+                App\Http\Controllers\Api\FaceRecognitionController::class,
+                'extractEmbeddingDeepFace',
+            ])->middleware('permission:manage_attendance_own');
+
+            // Check liveness (anti-spoofing)
+            Route::post('/check-liveness', [
+                App\Http\Controllers\Api\FaceRecognitionController::class,
+                'checkLivenessDeepFace',
+            ])->middleware('permission:manage_attendance_own');
+
+            // Verify face with DeepFace
+            Route::post('/verify', [
+                App\Http\Controllers\Api\FaceRecognitionController::class,
+                'verifyFaceDeepFace',
             ])->middleware('permission:manage_attendance_own');
         });
 

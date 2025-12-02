@@ -1,53 +1,81 @@
 import { createRouter, createRootRoute, createRoute, redirect, Outlet } from '@tanstack/react-router';
 import { useAuthStore } from '@/stores';
 import { AppShell } from '@/components/layout';
-import { requirePermission } from '@/lib/guards/permission-guard';
+import { requireAdmin, requireEmployee, requireAuth as requireAuthGuard } from '@/lib/auth/guards';
+import { getDefaultRedirect } from '@/lib/auth';
 
 // Lazy load pages
 import { lazy } from 'react';
 
 const LoginPage = lazy(() => import('@/pages/login'));
-const DashboardPage = lazy(() => import('@/pages/dashboard'));
-
-// Employee pages
-const EmployeesPage = lazy(() => import('@/pages/employees'));
-const EmployeeCreatePage = lazy(() => import('@/pages/employees/create'));
-const EmployeeShowPage = lazy(() => import('@/pages/employees/show'));
-const EmployeeEditPage = lazy(() => import('@/pages/employees/edit'));
-const EmployeeCredentialsPage = lazy(() => import('@/pages/employees/credentials'));
-
-// Attendance pages
-const AttendancePage = lazy(() => import('@/pages/attendance'));
-const VerifyLocationPage = lazy(() => import('@/pages/attendance/verify-location'));
-const VerifyFacePage = lazy(() => import('@/pages/attendance/verify-face'));
-const FaceRecognitionPage = lazy(() => import('@/pages/face-recognition'));
-const FaceRecognitionSettingsPage = lazy(() => import('@/pages/face-recognition/settings'));
-
-// Schedule pages
-const SchedulesPage = lazy(() => import('@/pages/schedules'));
-const ScheduleCreatePage = lazy(() => import('@/pages/schedules/create'));
-const ScheduleShowPage = lazy(() => import('@/pages/schedules/show'));
-const ScheduleEditPage = lazy(() => import('@/pages/schedules/edit'));
-const ScheduleBuilderPage = lazy(() => import('@/pages/schedules/builder'));
-const ScheduleAssignPage = lazy(() => import('@/pages/schedules/assign'));
-const MonthlyScheduleIndexPage = lazy(() => import('@/pages/schedules/monthly'));
-const MonthlyScheduleCreatePage = lazy(() => import('@/pages/schedules/monthly/create'));
-
-// Leave pages
-const LeavePage = lazy(() => import('@/pages/leave'));
-const LeaveShowPage = lazy(() => import('@/pages/leave/show'));
-const LeaveApprovalsPage = lazy(() => import('@/pages/leave/approvals'));
-
-// Payroll pages
-const PayrollPage = lazy(() => import('@/pages/payroll'));
-const PayrollShowPage = lazy(() => import('@/pages/payroll/show'));
-const PayrollEditPage = lazy(() => import('@/pages/payroll/edit'));
-
-// Reports pages
-const ReportsPage = lazy(() => import('@/pages/reports'));
-const ReportBuilderPage = lazy(() => import('@/pages/reports/builder'));
 
 // Admin pages
+const AdminDashboard = lazy(() => import('@/pages/admin/dashboard/index'));
+const AdminAttendancePage = lazy(() => import('@/pages/admin/attendance'));
+
+// Employee pages
+const EmployeeDashboard = lazy(() => import('@/pages/employee/dashboard'));
+const EmployeeAttendancePage = lazy(() => import('@/pages/employee/attendance'));
+const EmployeeSchedulePage = lazy(() => import('@/pages/employee/schedule'));
+const EmployeeLeavePage = lazy(() => import('@/pages/employee/leave'));
+const EmployeePayrollPage = lazy(() => import('@/pages/employee/payroll'));
+const EmployeeReportsPage = lazy(() => import('@/pages/employee/reports'));
+
+// Shared pages
+const VerifyLocationPage = lazy(() => import('@/pages/shared/verify-location'));
+const VerifyFacePage = lazy(() => import('@/pages/shared/verify-face'));
+
+// Error pages
+const UnauthorizedPage = lazy(() => import('@/pages/unauthorized'));
+const NotFoundPage = lazy(() => import('@/pages/not-found'));
+
+// Admin - Employee Management (moved from /employees to /admin/employees)
+const EmployeesPage = lazy(() => import('@/pages/admin/employees'));
+const EmployeeCreatePage = lazy(() => import('@/pages/admin/employees/create'));
+const EmployeeShowPage = lazy(() => import('@/pages/admin/employees/show'));
+const EmployeeEditPage = lazy(() => import('@/pages/admin/employees/edit'));
+const EmployeeCredentialsPage = lazy(() => import('@/pages/admin/employees/credentials'));
+
+// Admin - Schedule Management
+const SchedulesPage = lazy(() => import('@/pages/admin/schedules'));
+const ScheduleCreatePage = lazy(() => import('@/pages/admin/schedules/create'));
+const ScheduleShowPage = lazy(() => import('@/pages/admin/schedules/show'));
+const ScheduleEditPage = lazy(() => import('@/pages/admin/schedules/edit'));
+const ScheduleBuilderPage = lazy(() => import('@/pages/admin/schedules/builder'));
+const ScheduleAssignPage = lazy(() => import('@/pages/admin/schedules/assign'));
+const ScheduleCalendarPage = lazy(() => import('@/pages/admin/schedules/calendar'));
+const MonthlyScheduleIndexPage = lazy(() => import('@/pages/admin/schedules/monthly'));
+const MonthlyScheduleCreatePage = lazy(() => import('@/pages/admin/schedules/monthly/create'));
+const MonthlyScheduleEditPage = lazy(() => import('@/pages/admin/schedules/monthly/edit'));
+
+// Admin - Leave Management
+const LeavePage = lazy(() => import('@/pages/admin/leave'));
+const LeaveShowPage = lazy(() => import('@/pages/admin/leave/show'));
+const LeaveApprovalsPage = lazy(() => import('@/pages/admin/leave/approvals'));
+const LeaveCalendarPage = lazy(() => import('@/pages/admin/leave/calendar'));
+const LeaveCreatePage = lazy(() => import('@/pages/admin/leave/create'));
+
+// Admin - Payroll Management
+const PayrollPage = lazy(() => import('@/pages/admin/payroll'));
+const PayrollShowPage = lazy(() => import('@/pages/admin/payroll/show'));
+const PayrollEditPage = lazy(() => import('@/pages/admin/payroll/edit'));
+
+// Admin - Reports
+const ReportsPage = lazy(() => import('@/pages/admin/reports'));
+const ReportBuilderPage = lazy(() => import('@/pages/admin/reports/builder'));
+
+// Admin - Face Recognition
+const FaceRecognitionPage = lazy(() => import('@/pages/admin/face-recognition'));
+const FaceRecognitionSettingsPage = lazy(() => import('@/pages/admin/face-recognition/settings'));
+
+// Admin - Settings & Security
+const SettingsPage = lazy(() => import('@/pages/admin/settings'));
+const SecurityPage = lazy(() => import('@/pages/admin/security'));
+const SecurityEventsPage = lazy(() => import('@/pages/admin/security/events'));
+const SecurityDevicesPage = lazy(() => import('@/pages/admin/security/devices'));
+const TwoFactorPage = lazy(() => import('@/pages/admin/security/two-factor'));
+
+// Admin - System Management
 const UsersPage = lazy(() => import('@/pages/admin/users'));
 const UserCreatePage = lazy(() => import('@/pages/admin/users/create'));
 const UserShowPage = lazy(() => import('@/pages/admin/users/show'));
@@ -61,26 +89,19 @@ const LocationEditPage = lazy(() => import('@/pages/admin/locations/edit'));
 const HolidaysPage = lazy(() => import('@/pages/admin/holidays'));
 const HolidayShowPage = lazy(() => import('@/pages/admin/holidays/show'));
 const HolidayEditPage = lazy(() => import('@/pages/admin/holidays/edit'));
+const HolidayCalendarPage = lazy(() => import('@/pages/admin/holidays/calendar'));
+const HolidayCreatePage = lazy(() => import('@/pages/admin/holidays/create'));
 
-// Security pages
-const SecurityPage = lazy(() => import('@/pages/security'));
-const SecurityEventsPage = lazy(() => import('@/pages/security/events'));
-const TwoFactorPage = lazy(() => import('@/pages/security/two-factor'));
-
-// Profile pages
-const ProfilePage = lazy(() => import('@/pages/profile'));
-const ProfileEditPage = lazy(() => import('@/pages/profile/edit'));
-
-// Settings
-const SettingsPage = lazy(() => import('@/pages/settings'));
+// Employee - Profile
+const ProfilePage = lazy(() => import('@/pages/employee/profile'));
+const ProfileEditPage = lazy(() => import('@/pages/employee/profile/edit'));
 
 // Auth pages
 const VerifyEmailPage = lazy(() => import('@/pages/auth/verify-email'));
 const ConfirmPasswordPage = lazy(() => import('@/pages/auth/confirm-password'));
 const ChangePasswordPage = lazy(() => import('@/pages/auth/change-password'));
-
-// Error pages
-const NotFoundPage = lazy(() => import('@/pages/not-found'));
+const ForgotPasswordPage = lazy(() => import('@/pages/auth/forgot-password'));
+const ResetPasswordPage = lazy(() => import('@/pages/auth/reset-password'));
 
 // Root layout component
 function RootLayout() {
@@ -94,17 +115,24 @@ function AuthenticatedLayout() {
 
 // Auth guard - redirect to login if not authenticated
 const requireAuth = () => {
-  const isAuthenticated = useAuthStore.getState().isAuthenticated;
+  const { isAuthenticated, user } = useAuthStore.getState();
   if (!isAuthenticated) {
     throw redirect({ to: '/login' });
   }
+  return {
+    auth: {
+      user,
+      isAuthenticated,
+    },
+  };
 };
 
-// Guest guard - redirect to dashboard if already authenticated
+// Guest guard - redirect to appropriate dashboard if already authenticated
 const requireGuest = () => {
-  const isAuthenticated = useAuthStore.getState().isAuthenticated;
-  if (isAuthenticated) {
-    throw redirect({ to: '/dashboard' });
+  const { isAuthenticated, user } = useAuthStore.getState();
+  if (isAuthenticated && user) {
+    const defaultPath = getDefaultRedirect(user);
+    throw redirect({ to: defaultPath });
   }
 };
 
@@ -121,13 +149,31 @@ const loginRoute = createRoute({
   component: LoginPage,
 });
 
-// Index route - redirect to dashboard or login
+const forgotPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/auth/forgot-password',
+  beforeLoad: requireGuest,
+  component: ForgotPasswordPage,
+});
+
+const resetPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/auth/reset-password',
+  beforeLoad: requireGuest,
+  component: ResetPasswordPage,
+});
+
+// Index route - redirect to appropriate dashboard based on role
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
   beforeLoad: () => {
-    const isAuthenticated = useAuthStore.getState().isAuthenticated;
-    throw redirect({ to: isAuthenticated ? '/dashboard' : '/login' });
+    const { isAuthenticated, user } = useAuthStore.getState();
+    if (!isAuthenticated) {
+      throw redirect({ to: '/login' });
+    }
+    const defaultPath = getDefaultRedirect(user);
+    throw redirect({ to: defaultPath });
   },
 });
 
@@ -139,306 +185,455 @@ const authenticatedRoute = createRoute({
   component: AuthenticatedLayout,
 });
 
-// Dashboard route (under authenticated layout)
-const dashboardRoute = createRoute({
-  getParentRoute: () => authenticatedRoute,
-  path: '/dashboard',
-  component: DashboardPage,
+// Unauthorized page
+const unauthorizedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/unauthorized',
+  component: UnauthorizedPage,
 });
 
-// Placeholder routes for navigation
-const attendanceRoute = createRoute({
+// ====================================
+// ADMIN ROUTES
+// ====================================
+
+// Admin Dashboard
+const adminDashboardRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/attendance',
-  component: AttendancePage,
+  path: '/admin/dashboard',
+  beforeLoad: requireAdmin,
+  component: AdminDashboard,
 });
 
-const verifyLocationRoute = createRoute({
+// Admin Attendance
+const adminAttendanceRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/attendance/verify-location',
-  component: VerifyLocationPage,
+  path: '/admin/attendance',
+  beforeLoad: requireAdmin,
+  component: AdminAttendancePage,
 });
 
-const verifyFaceRoute = createRoute({
+// Admin Employees
+const adminEmployeesRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/attendance/verify-face',
-  component: VerifyFacePage,
-});
-
-const faceRecognitionRoute = createRoute({
-  getParentRoute: () => authenticatedRoute,
-  path: '/face-recognition',
-  component: FaceRecognitionPage,
-});
-
-const faceRecognitionSettingsRoute = createRoute({
-  getParentRoute: () => authenticatedRoute,
-  path: '/face-recognition/settings',
-  component: FaceRecognitionSettingsPage,
-});
-
-// Employee routes (Restricted to: super-admin, admin, kepala-sekolah)
-const employeesRoute = createRoute({
-  getParentRoute: () => authenticatedRoute,
-  path: '/employees',
-  beforeLoad: requirePermission('employees.view', ['super-admin', 'admin', 'kepala-sekolah']),
+  path: '/admin/employees',
+  beforeLoad: requireAdmin,
   component: EmployeesPage,
 });
 
-const employeeCreateRoute = createRoute({
+const adminEmployeeCreateRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/employees/create',
-  beforeLoad: requirePermission('employees.create', ['super-admin', 'admin']),
+  path: '/admin/employees/create',
+  beforeLoad: requireAdmin,
   component: EmployeeCreatePage,
 });
 
-const employeeCredentialsRoute = createRoute({
+const adminEmployeeCredentialsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/employees/credentials',
-  beforeLoad: requirePermission('employees.view', ['super-admin', 'admin', 'kepala-sekolah']),
+  path: '/admin/employees/credentials',
+  beforeLoad: requireAdmin,
   component: EmployeeCredentialsPage,
 });
 
-const employeeShowRoute = createRoute({
+const adminEmployeeShowRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/employees/$id',
-  beforeLoad: requirePermission('employees.view', ['super-admin', 'admin', 'kepala-sekolah']),
+  path: '/admin/employees/$id',
+  beforeLoad: requireAdmin,
   component: EmployeeShowPage,
 });
 
-const employeeEditRoute = createRoute({
+const adminEmployeeEditRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/employees/$id/edit',
-  beforeLoad: requirePermission('employees.edit', ['super-admin', 'admin']),
+  path: '/admin/employees/$id/edit',
+  beforeLoad: requireAdmin,
   component: EmployeeEditPage,
 });
 
-// Schedule routes
-const schedulesRoute = createRoute({
+// Admin Schedules
+const adminSchedulesRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/schedules',
+  path: '/admin/schedules',
+  beforeLoad: requireAdmin,
   component: SchedulesPage,
 });
 
-const scheduleCreateRoute = createRoute({
+const adminScheduleCreateRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/schedules/create',
-  beforeLoad: requirePermission('schedules.create', ['super-admin', 'admin', 'kepala-sekolah']),
+  path: '/admin/schedules/create',
+  beforeLoad: requireAdmin,
   component: ScheduleCreatePage,
 });
 
-const scheduleShowRoute = createRoute({
+const adminScheduleBuilderRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/schedules/$id',
-  component: ScheduleShowPage,
-});
-
-const scheduleEditRoute = createRoute({
-  getParentRoute: () => authenticatedRoute,
-  path: '/schedules/$id/edit',
-  beforeLoad: requirePermission('schedules.edit', ['super-admin', 'admin', 'kepala-sekolah']),
-  component: ScheduleEditPage,
-});
-
-const scheduleBuilderRoute = createRoute({
-  getParentRoute: () => authenticatedRoute,
-  path: '/schedules/builder',
+  path: '/admin/schedules/builder',
+  beforeLoad: requireAdmin,
   component: ScheduleBuilderPage,
 });
 
-const scheduleAssignRoute = createRoute({
+const adminScheduleAssignRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/schedules/assign',
+  path: '/admin/schedules/assign',
+  beforeLoad: requireAdmin,
   component: ScheduleAssignPage,
 });
 
-const monthlyScheduleIndexRoute = createRoute({
+const adminScheduleCalendarRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/schedules/monthly',
+  path: '/admin/schedules/calendar',
+  beforeLoad: requireAdmin,
+  component: ScheduleCalendarPage,
+});
+
+const adminMonthlyScheduleIndexRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/admin/schedules/monthly',
+  beforeLoad: requireAdmin,
   component: MonthlyScheduleIndexPage,
 });
 
-const monthlyScheduleCreateRoute = createRoute({
+const adminMonthlyScheduleCreateRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/schedules/monthly/create',
+  path: '/admin/schedules/monthly/create',
+  beforeLoad: requireAdmin,
   component: MonthlyScheduleCreatePage,
 });
 
-// Leave routes
-const leaveRoute = createRoute({
+const adminMonthlyScheduleEditRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/leave',
+  path: '/admin/schedules/monthly/$id/edit',
+  beforeLoad: requireAdmin,
+  component: MonthlyScheduleEditPage,
+});
+
+const adminScheduleShowRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/admin/schedules/$id',
+  beforeLoad: requireAdmin,
+  component: ScheduleShowPage,
+});
+
+const adminScheduleEditRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/admin/schedules/$id/edit',
+  beforeLoad: requireAdmin,
+  component: ScheduleEditPage,
+});
+
+// Admin Leave
+const adminLeaveRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/admin/leave',
+  beforeLoad: requireAdmin,
   component: LeavePage,
 });
 
-const leaveShowRoute = createRoute({
+const adminLeaveCreateRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/leave/$id',
-  component: LeaveShowPage,
+  path: '/admin/leave/create',
+  beforeLoad: requireAdmin,
+  component: LeaveCreatePage,
 });
 
-const leaveApprovalsRoute = createRoute({
+const adminLeaveApprovalsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/leave/approvals',
-  beforeLoad: requirePermission('leave.approve', ['super-admin', 'admin', 'kepala-sekolah']),
+  path: '/admin/leave/approvals',
+  beforeLoad: requireAdmin,
   component: LeaveApprovalsPage,
 });
 
-// Payroll routes
-const payrollRoute = createRoute({
+const adminLeaveCalendarRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/payroll',
+  path: '/admin/leave/calendar',
+  beforeLoad: requireAdmin,
+  component: LeaveCalendarPage,
+});
+
+const adminLeaveShowRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/admin/leave/$id',
+  beforeLoad: requireAdmin,
+  component: LeaveShowPage,
+});
+
+// Admin Payroll
+const adminPayrollRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/admin/payroll',
+  beforeLoad: requireAdmin,
   component: PayrollPage,
 });
 
-const payrollShowRoute = createRoute({
+const adminPayrollShowRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/payroll/$periodId/employee/$employeeId',
+  path: '/admin/payroll/$periodId/employee/$employeeId',
+  beforeLoad: requireAdmin,
   component: PayrollShowPage,
 });
 
-const payrollEditRoute = createRoute({
+const adminPayrollEditRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/payroll/$periodId/employee/$employeeId/edit',
+  path: '/admin/payroll/$periodId/employee/$employeeId/edit',
+  beforeLoad: requireAdmin,
   component: PayrollEditPage,
 });
 
-// Reports routes (Restricted to: super-admin, admin, kepala-sekolah)
-const reportsRoute = createRoute({
+// Admin Reports
+const adminReportsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/reports',
-  beforeLoad: requirePermission('reports.view', ['super-admin', 'admin', 'kepala-sekolah']),
+  path: '/admin/reports',
+  beforeLoad: requireAdmin,
   component: ReportsPage,
 });
 
-const reportBuilderRoute = createRoute({
+const adminReportBuilderRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/reports/builder',
-  beforeLoad: requirePermission('reports.view', ['super-admin', 'admin', 'kepala-sekolah']),
+  path: '/admin/reports/builder',
+  beforeLoad: requireAdmin,
   component: ReportBuilderPage,
 });
 
-// Security routes
-const securityRoute = createRoute({
+// Admin Face Recognition
+const adminFaceRecognitionRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/security',
-  component: SecurityPage,
+  path: '/admin/face-recognition',
+  beforeLoad: requireAdmin,
+  component: FaceRecognitionPage,
 });
 
-const securityEventsRoute = createRoute({
+const adminFaceRecognitionSettingsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/security/events',
-  component: SecurityEventsPage,
+  path: '/admin/face-recognition/settings',
+  beforeLoad: requireAdmin,
+  component: FaceRecognitionSettingsPage,
 });
 
-const twoFactorRoute = createRoute({
+// Admin Settings
+const adminSettingsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/security/two-factor',
-  component: TwoFactorPage,
-});
-
-// Settings route (Restricted to: super-admin, admin)
-const settingsRoute = createRoute({
-  getParentRoute: () => authenticatedRoute,
-  path: '/settings',
-  beforeLoad: requirePermission(undefined, ['super-admin', 'admin']),
+  path: '/admin/settings',
+  beforeLoad: requireAdmin,
   component: SettingsPage,
 });
 
-// Profile routes
-const profileRoute = createRoute({
+// Admin Security
+const adminSecurityRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/profile',
-  component: ProfilePage,
+  path: '/admin/security',
+  beforeLoad: requireAdmin,
+  component: SecurityPage,
 });
 
-const profileEditRoute = createRoute({
+const adminSecurityEventsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/profile/edit',
-  component: ProfileEditPage,
+  path: '/admin/security/events',
+  beforeLoad: requireAdmin,
+  component: SecurityEventsPage,
 });
 
-// Admin - Users routes (Restricted to: super-admin, admin)
-const usersRoute = createRoute({
+const adminSecurityDevicesRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/admin/security/devices',
+  beforeLoad: requireAdmin,
+  component: SecurityDevicesPage,
+});
+
+const adminTwoFactorRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/admin/security/two-factor',
+  beforeLoad: requireAdmin,
+  component: TwoFactorPage,
+});
+
+// Admin Users
+const adminUsersRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/admin/users',
-  beforeLoad: requirePermission(undefined, ['super-admin', 'admin']),
+  beforeLoad: requireAdmin,
   component: UsersPage,
 });
 
-const userCreateRoute = createRoute({
+const adminUserCreateRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/admin/users/create',
-  beforeLoad: requirePermission(undefined, ['super-admin', 'admin']),
+  beforeLoad: requireAdmin,
   component: UserCreatePage,
 });
 
-const userShowRoute = createRoute({
+const adminUserShowRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/admin/users/$id',
-  beforeLoad: requirePermission(undefined, ['super-admin', 'admin']),
+  beforeLoad: requireAdmin,
   component: UserShowPage,
 });
 
-const userEditRoute = createRoute({
+const adminUserEditRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/admin/users/$id/edit',
-  beforeLoad: requirePermission(undefined, ['super-admin', 'admin']),
+  beforeLoad: requireAdmin,
   component: UserEditPage,
 });
 
-// Admin - Locations routes (Restricted to: super-admin, admin)
-const locationsRoute = createRoute({
+// Admin Locations
+const adminLocationsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/admin/locations',
-  beforeLoad: requirePermission(undefined, ['super-admin', 'admin']),
+  beforeLoad: requireAdmin,
   component: LocationsPage,
 });
 
-const locationCreateRoute = createRoute({
+const adminLocationCreateRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/admin/locations/create',
-  beforeLoad: requirePermission(undefined, ['super-admin', 'admin']),
+  beforeLoad: requireAdmin,
   component: LocationCreatePage,
 });
 
-const locationShowRoute = createRoute({
+const adminLocationShowRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/admin/locations/$id',
-  beforeLoad: requirePermission(undefined, ['super-admin', 'admin']),
+  beforeLoad: requireAdmin,
   component: LocationShowPage,
 });
 
-const locationEditRoute = createRoute({
+const adminLocationEditRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/admin/locations/$id/edit',
-  beforeLoad: requirePermission(undefined, ['super-admin', 'admin']),
+  beforeLoad: requireAdmin,
   component: LocationEditPage,
 });
 
-// Admin - Holidays routes (Restricted to: super-admin, admin)
-const holidaysRoute = createRoute({
+// Admin Holidays
+const adminHolidaysRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/admin/holidays',
-  beforeLoad: requirePermission(undefined, ['super-admin', 'admin']),
+  beforeLoad: requireAdmin,
   component: HolidaysPage,
 });
 
-const holidayShowRoute = createRoute({
+const adminHolidayCreateRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/admin/holidays/create',
+  beforeLoad: requireAdmin,
+  component: HolidayCreatePage,
+});
+
+const adminHolidayCalendarRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/admin/holidays/calendar',
+  beforeLoad: requireAdmin,
+  component: HolidayCalendarPage,
+});
+
+const adminHolidayShowRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/admin/holidays/$id',
-  beforeLoad: requirePermission(undefined, ['super-admin', 'admin']),
+  beforeLoad: requireAdmin,
   component: HolidayShowPage,
 });
 
-const holidayEditRoute = createRoute({
+const adminHolidayEditRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/admin/holidays/$id/edit',
-  beforeLoad: requirePermission(undefined, ['super-admin', 'admin']),
+  beforeLoad: requireAdmin,
   component: HolidayEditPage,
 });
 
-// Auth routes (semi-public)
+// ====================================
+// EMPLOYEE ROUTES
+// ====================================
+
+// Employee Dashboard
+const employeeDashboardRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/employee/dashboard',
+  beforeLoad: requireEmployee,
+  component: EmployeeDashboard,
+});
+
+// Employee Attendance
+const employeeAttendanceRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/employee/attendance',
+  beforeLoad: requireEmployee,
+  component: EmployeeAttendancePage,
+});
+
+// Employee Schedule
+const employeeScheduleRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/employee/schedule',
+  beforeLoad: requireEmployee,
+  component: EmployeeSchedulePage,
+});
+
+// Employee Leave
+const employeeLeaveRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/employee/leave',
+  beforeLoad: requireEmployee,
+  component: EmployeeLeavePage,
+});
+
+const employeeLeaveCreateRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/employee/leave/create',
+  beforeLoad: requireEmployee,
+  component: EmployeeLeavePage, // Reuse same page, form is built-in
+});
+
+// Employee Payroll
+const employeePayrollRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/employee/payroll',
+  beforeLoad: requireEmployee,
+  component: EmployeePayrollPage,
+});
+
+// Employee Reports
+const employeeReportsRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/employee/reports',
+  beforeLoad: requireEmployee,
+  component: EmployeeReportsPage,
+});
+
+// Employee Profile
+const employeeProfileRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/employee/profile',
+  beforeLoad: requireEmployee,
+  component: ProfilePage,
+});
+
+const employeeProfileEditRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/employee/profile/edit',
+  beforeLoad: requireEmployee,
+  component: ProfileEditPage,
+});
+
+// ====================================
+// SHARED ROUTES (Both admin and employee)
+// ====================================
+
+const sharedVerifyLocationRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/shared/verify-location',
+  beforeLoad: requireAuthGuard,
+  component: VerifyLocationPage,
+});
+
+const sharedVerifyFaceRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/shared/verify-face',
+  beforeLoad: requireAuthGuard,
+  component: VerifyFacePage,
+});
+
+// ====================================
+// AUTH & OTHER ROUTES
+// ====================================
+
 const verifyEmailRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/verify-email',
@@ -446,9 +641,8 @@ const verifyEmailRoute = createRoute({
 });
 
 const changePasswordRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/auth/change-password',
-  beforeLoad: requireAuth,
   component: ChangePasswordPage,
 });
 
@@ -469,65 +663,75 @@ const notFoundRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
+  forgotPasswordRoute,
+  resetPasswordRoute,
   verifyEmailRoute,
-  changePasswordRoute,
+  unauthorizedRoute,
   authenticatedRoute.addChildren([
-    dashboardRoute,
-    attendanceRoute,
-    verifyLocationRoute,
-    verifyFaceRoute,
-    faceRecognitionRoute,
-    faceRecognitionSettingsRoute,
-    // Employees
-    employeesRoute,
-    employeeCreateRoute,
-    employeeCredentialsRoute,
-    employeeShowRoute,
-    employeeEditRoute,
-    // Schedules
-    schedulesRoute,
-    scheduleCreateRoute,
-    scheduleBuilderRoute,
-    scheduleAssignRoute,
-    monthlyScheduleIndexRoute,
-    monthlyScheduleCreateRoute,
-    scheduleShowRoute,
-    scheduleEditRoute,
-    // Leave
-    leaveRoute,
-    leaveApprovalsRoute,
-    leaveShowRoute,
-    // Payroll
-    payrollRoute,
-    payrollShowRoute,
-    payrollEditRoute,
-    // Reports
-    reportsRoute,
-    reportBuilderRoute,
-    // Security
-    securityRoute,
-    securityEventsRoute,
-    twoFactorRoute,
-    // Profile
-    profileRoute,
-    profileEditRoute,
-    // Settings
-    settingsRoute,
+    // Admin routes
+    adminDashboardRoute,
+    adminAttendanceRoute,
+    adminEmployeesRoute,
+    adminEmployeeCreateRoute,
+    adminEmployeeCredentialsRoute,
+    adminEmployeeShowRoute,
+    adminEmployeeEditRoute,
+    adminSchedulesRoute,
+    adminScheduleCreateRoute,
+    adminScheduleBuilderRoute,
+    adminScheduleAssignRoute,
+    adminScheduleCalendarRoute,
+    adminMonthlyScheduleIndexRoute,
+    adminMonthlyScheduleCreateRoute,
+    adminMonthlyScheduleEditRoute,
+    adminScheduleShowRoute,
+    adminScheduleEditRoute,
+    adminLeaveRoute,
+    adminLeaveCreateRoute,
+    adminLeaveApprovalsRoute,
+    adminLeaveCalendarRoute,
+    adminLeaveShowRoute,
+    adminPayrollRoute,
+    adminPayrollShowRoute,
+    adminPayrollEditRoute,
+    adminReportsRoute,
+    adminReportBuilderRoute,
+    adminFaceRecognitionRoute,
+    adminFaceRecognitionSettingsRoute,
+    adminSettingsRoute,
+    adminSecurityRoute,
+    adminSecurityEventsRoute,
+    adminSecurityDevicesRoute,
+    adminTwoFactorRoute,
+    adminUsersRoute,
+    adminUserCreateRoute,
+    adminUserShowRoute,
+    adminUserEditRoute,
+    adminLocationsRoute,
+    adminLocationCreateRoute,
+    adminLocationShowRoute,
+    adminLocationEditRoute,
+    adminHolidaysRoute,
+    adminHolidayCreateRoute,
+    adminHolidayCalendarRoute,
+    adminHolidayShowRoute,
+    adminHolidayEditRoute,
+    // Employee routes
+    employeeDashboardRoute,
+    employeeAttendanceRoute,
+    employeeScheduleRoute,
+    employeeLeaveRoute,
+    employeeLeaveCreateRoute,
+    employeePayrollRoute,
+    employeeReportsRoute,
+    employeeProfileRoute,
+    employeeProfileEditRoute,
+    // Shared routes
+    sharedVerifyLocationRoute,
+    sharedVerifyFaceRoute,
+    // Auth routes
+    changePasswordRoute,
     confirmPasswordRoute,
-    // Admin - Users
-    usersRoute,
-    userCreateRoute,
-    userShowRoute,
-    userEditRoute,
-    // Admin - Locations
-    locationsRoute,
-    locationCreateRoute,
-    locationShowRoute,
-    locationEditRoute,
-    // Admin - Holidays
-    holidaysRoute,
-    holidayShowRoute,
-    holidayEditRoute,
   ]),
   notFoundRoute,
 ]);

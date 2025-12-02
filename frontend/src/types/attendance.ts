@@ -10,8 +10,10 @@ export interface Attendance {
   employee_id: number;
   employee_name: string;
   date: string;
-  check_in?: string;
-  check_out?: string;
+  check_in_time?: string;
+  check_out_time?: string;
+  check_in?: string; // Keep for backward compatibility if needed
+  check_out?: string; // Keep for backward compatibility if needed
   status: AttendanceStatus;
   late_minutes?: number;
   early_leave_minutes?: number;
@@ -30,12 +32,9 @@ export interface Attendance {
 
 // Today's attendance for dashboard
 export interface TodayAttendance {
-  id?: number;
-  check_in?: string;
-  check_out?: string;
-  status: AttendanceStatus;
-  can_check_in: boolean;
-  can_check_out: boolean;
+  attendance?: Attendance;
+  has_checked_in: boolean;
+  has_checked_out: boolean;
 }
 
 // Attendance filters
@@ -50,12 +49,21 @@ export interface AttendanceFilters {
 }
 
 // Check-in/out request
+// Check-in/out request
 export interface CheckRequest {
-  type: CheckType;
+  employee_id?: number;
+  action?: 'check_in' | 'check_out';
+  location?: {
+    latitude: number;
+    longitude: number;
+  };
+  type?: CheckType;
   latitude?: number;
   longitude?: number;
   face_image?: string;
   notes?: string;
+  face_confidence?: number;
+  metadata?: any;
 }
 
 // Attendance statistics

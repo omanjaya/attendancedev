@@ -56,8 +56,7 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
         array $descriptor,
         ?UploadedFile $image = null,
         array $metadata = []
-    ): array
-    {
+    ): array {
         return DB::transaction(function () use ($employee, $descriptor, $image, $metadata) {
             // Validate face descriptor
             $this->validateDescriptor($descriptor);
@@ -106,7 +105,7 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
                 'employee_id' => $employee->id,
                 'confidence' => $faceRecognitionData['confidence'],
                 'quality_score' => $faceRecognitionData['quality_score'],
-                'image_stored' => ! is_null($imagePath),
+                'image_stored' => !is_null($imagePath),
             ];
         });
     }
@@ -124,12 +123,12 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
             'descriptor' => $descriptor,
             'confidence' => 0.95 // Default confidence
         ];
-        
+
         $options = [
             'threshold' => $threshold,
             'target_employee' => $employee
         ];
-        
+
         return $this->verifyFaceInternal($faceData, $options);
     }
 
@@ -145,7 +144,7 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
             // Check liveness if required
             if ($options['require_liveness'] ?? true) {
                 $livenessResult = $this->checkLivenessInternal($faceData);
-                if (! $livenessResult['is_live']) {
+                if (!$livenessResult['is_live']) {
                     return [
                         'success' => false,
                         'message' => 'Liveness check failed',
@@ -154,21 +153,42 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
                 }
             }
 
-            // Get all registered faces from cache or database
-            $registeredFaces = $this->getRegisteredFaces();
-
             // Determine threshold
             $threshold = $options['threshold'] ?? self::FACE_SIMILARITY_THRESHOLD;
 
-            // Find best match
-            $match = $this->findBestMatch($faceData['descriptor'], $registeredFaces);
+            // 1:1 Verification (Target Employee Provided)
+            if (isset($options['target_employee']) && $options['target_employee'] instanceof Employee) {
+                $targetEmployee = $options['target_employee'];
+                $storedFaceData = $this->getFaceData($targetEmployee);
+
+                if (!$storedFaceData || !isset($storedFaceData['descriptor'])) {
+                     return [
+                        'success' => false,
+                        'message' => 'Employee has no registered face data',
+                        'confidence' => 0,
+                        'timestamp' => now()->toISOString(),
+                    ];
+                }
+
+                $similarity = $this->calculateSimilarity($faceData['descriptor'], $storedFaceData['descriptor']);
+
+                $match = [
+                    'employee_id' => $targetEmployee->id,
+                    'similarity' => $similarity
+                ];
+
+            } else {
+                // 1:N Identification (Search all faces)
+                $registeredFaces = $this->getRegisteredFaces();
+                $match = $this->findBestMatch($faceData['descriptor'], $registeredFaces);
+            }
 
             if ($match && $match['similarity'] >= $threshold) {
                 $employee = $this->employeeRepository->find($match['employee_id']);
 
                 // Verify additional constraints
                 $constraints = $this->verifyConstraints($employee, $options);
-                if (! $constraints['valid']) {
+                if (!$constraints['valid']) {
                     return [
                         'success' => false,
                         'message' => $constraints['message'],
@@ -188,12 +208,12 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
                 return [
                     'success' => true,
                     'employee' => [
-                        'id' => $employee->id,
-                        'name' => $employee->full_name,
-                        'employee_id' => $employee->employee_id,
-                        'employee_type' => $employee->employee_type,
-                        'department' => $employee->location->name ?? null,
-                    ],
+                            'id' => $employee->id,
+                            'name' => $employee->full_name,
+                            'employee_id' => $employee->employee_id,
+                            'employee_type' => $employee->employee_type,
+                            'department' => $employee->location->name ?? null,
+                        ],
                     'confidence' => $match['similarity'],
                     'liveness_score' => $livenessResult['score'] ?? null,
                     'quality_score' => $this->calculateQualityScore($faceData),
@@ -238,7 +258,7 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
             'model_version' => $metadata['model_version'] ?? '1.0',
             'device_info' => $metadata['device_info'] ?? null,
         ];
-        
+
         $result = $this->updateFaceInternal($employee->id, $faceData);
         return $result['success'] ?? false;
     }
@@ -364,7 +384,7 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
             // Get recognition accuracy from recent logs (with error handling)
             $successCount = 0;
             $totalAttempts = 0;
-            
+
             try {
                 if (Schema::hasTable('face_recognition_logs')) {
                     $recentLogs = DB::table('face_recognition_logs')
@@ -524,7 +544,7 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
             return $employees->map(function ($employee) {
                 $faceData = $employee->metadata['face_recognition'] ?? null;
 
-                if (! $faceData || ! isset($faceData['descriptor'])) {
+                if (!$faceData || !isset($faceData['descriptor'])) {
                     return null;
                 }
 
@@ -543,7 +563,7 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
     protected function verifyConstraints(Employee $employee, array $options): array
     {
         // Check if employee is active
-        if (! $employee->is_active) {
+        if (!$employee->is_active) {
             return [
                 'valid' => false,
                 'message' => 'Employee is not active',
@@ -553,7 +573,7 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
         // Check location constraints
         if (isset($options['location']) && $employee->location) {
             $locationValid = $this->verifyLocation($options['location'], $employee->location);
-            if (! $locationValid) {
+            if (!$locationValid) {
                 return [
                     'valid' => false,
                     'message' => 'Location verification failed',
@@ -564,7 +584,7 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
         // Check time constraints
         if (isset($options['enforce_schedule']) && $options['enforce_schedule']) {
             $scheduleValid = $this->verifySchedule($employee);
-            if (! $scheduleValid) {
+            if (!$scheduleValid) {
                 return [
                     'valid' => false,
                     'message' => 'Outside of scheduled hours',
@@ -580,7 +600,7 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
      */
     protected function verifyLocation(array $currentLocation, $employeeLocation): bool
     {
-        if (! isset($currentLocation['latitude']) || ! isset($currentLocation['longitude'])) {
+        if (!isset($currentLocation['latitude']) || !isset($currentLocation['longitude'])) {
             return false;
         }
 
@@ -612,7 +632,7 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
         );
 
         $path = $image->storeAs(
-            'face-images/'.$employeeId,
+            'face-images/' . $employeeId,
             $filename,
             'private'
         );
@@ -635,7 +655,7 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
      */
     protected function backupFaceData(Employee $employee): void
     {
-        if (! isset($employee->metadata['face_recognition'])) {
+        if (!isset($employee->metadata['face_recognition'])) {
             return;
         }
 
@@ -712,18 +732,26 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
         $required = ['descriptor', 'confidence'];
 
         foreach ($required as $field) {
-            if (! isset($faceData[$field])) {
+            if (!isset($faceData[$field])) {
                 throw new \InvalidArgumentException("Missing required field: {$field}");
             }
         }
 
-        if (! is_array($faceData['descriptor']) || count($faceData['descriptor']) !== 128) {
-            throw new \InvalidArgumentException('Invalid descriptor format');
+        if (!is_array($faceData['descriptor']) || count($faceData['descriptor']) < 128) {
+            throw new \InvalidArgumentException('Invalid descriptor format. Must be at least 128-d array.');
+        }
+
+        // Support both 128-d (face-api.js) and 512-d (DeepFace ArcFace)
+        $descriptorLength = count($faceData['descriptor']);
+        if ($descriptorLength !== 128 && $descriptorLength !== 512) {
+            throw new \InvalidArgumentException(
+                "Unsupported descriptor dimension: {$descriptorLength}. Must be 128-d or 512-d."
+            );
         }
 
         if ($faceData['confidence'] < self::MIN_CONFIDENCE_SCORE) {
             throw new \InvalidArgumentException(
-                "Confidence score too low: {$faceData['confidence']}. Minimum required: ".self::MIN_CONFIDENCE_SCORE
+                "Confidence score too low: {$faceData['confidence']}. Minimum required: " . self::MIN_CONFIDENCE_SCORE
             );
         }
     }
@@ -903,7 +931,7 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
 
         // Check for facial expressions
         if (isset($faceData['expressions'])) {
-            $hasExpressions = count(array_filter($faceData['expressions'], fn ($val) => $val > 0.5)) > 0;
+            $hasExpressions = count(array_filter($faceData['expressions'], fn($val) => $val > 0.5)) > 0;
             $livenessScore *= $hasExpressions ? 1.0 : 0.9;
         }
 
@@ -916,11 +944,11 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
             'is_live' => $livenessScore >= self::ANTI_SPOOFING_THRESHOLD,
             'score' => $livenessScore,
             'checks_performed' => [
-                'blink' => isset($faceData['blink_detected']),
-                'movement' => isset($faceData['head_movement']),
-                'expressions' => isset($faceData['expressions']),
-                'texture' => isset($faceData['texture_score']),
-            ],
+                    'blink' => isset($faceData['blink_detected']),
+                    'movement' => isset($faceData['head_movement']),
+                    'expressions' => isset($faceData['expressions']),
+                    'texture' => isset($faceData['texture_score']),
+                ],
         ];
     }
 }

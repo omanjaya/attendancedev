@@ -1,6 +1,7 @@
 import { redirect } from '@tanstack/react-router';
 import { useAuthStore } from '@/stores';
 import type { Permission, UserRole } from '@/types/auth';
+import { getDefaultRedirect } from '@/lib/auth/guards';
 
 /**
  * Route-level permission guard
@@ -24,7 +25,7 @@ export const requirePermission = (permission?: Permission, roles?: UserRole[]) =
     if (roles && roles.length > 0) {
       if (!roles.includes(user.role)) {
         console.warn(`[Permission Guard] Access denied. Required roles: ${roles.join(', ')}, User role: ${user.role}`);
-        throw redirect({ to: '/dashboard', search: { error: 'unauthorized' } });
+        throw redirect({ to: getDefaultRedirect(user), search: { error: 'unauthorized' } });
       }
     }
 
@@ -33,7 +34,7 @@ export const requirePermission = (permission?: Permission, roles?: UserRole[]) =
       const userPermissions = user.permissions || [];
       if (!userPermissions.includes(permission)) {
         console.warn(`[Permission Guard] Access denied. Required permission: ${permission}, User permissions:`, userPermissions);
-        throw redirect({ to: '/dashboard', search: { error: 'unauthorized' } });
+        throw redirect({ to: getDefaultRedirect(user), search: { error: 'unauthorized' } });
       }
     }
   };

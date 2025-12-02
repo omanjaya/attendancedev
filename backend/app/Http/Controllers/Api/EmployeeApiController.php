@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Resources\EmployeeResource;
 use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,14 +29,14 @@ class EmployeeApiController extends BaseApiController
             });
         }
 
-        // Apply department filter
+        // Apply department filter (search in metadata JSON)
         if ($department = $request->get('department')) {
-            $query->where('department', $department);
+            $query->whereJsonContains('metadata->department', $department);
         }
 
-        // Apply position filter
+        // Apply position filter (search in metadata JSON)
         if ($position = $request->get('position')) {
-            $query->where('position', $position);
+            $query->whereJsonContains('metadata->position', $position);
         }
 
         // Apply employment type filter
@@ -57,7 +58,21 @@ class EmployeeApiController extends BaseApiController
         $perPage = $request->get('per_page', 15);
         $employees = $query->paginate($perPage);
 
-        return $this->paginatedResponse($employees, 'Employees retrieved successfully');
+        // Transform using EmployeeResource
+        return response()->json([
+            'success' => true,
+            'message' => 'Employees retrieved successfully',
+            'data' => EmployeeResource::collection($employees->items()),
+            'meta' => [
+                'current_page' => $employees->currentPage(),
+                'last_page' => $employees->lastPage(),
+                'per_page' => $employees->perPage(),
+                'total' => $employees->total(),
+                'from' => $employees->firstItem(),
+                'to' => $employees->lastItem(),
+            ],
+            'timestamp' => now()->toISOString(),
+        ]);
     }
 
     /**
@@ -82,21 +97,33 @@ class EmployeeApiController extends BaseApiController
         ]);
 
         try {
-            $employee = DB::transaction(function () use ($validated) {
+            $employee = DB::transaction(function () use ($validated, $request) {
                 // Create user first with provided or default password
                 $password = $validated['password'] ?? 'password123';
                 $role = $validated['role'] ?? 'pegawai';
 
+                // Create user (exclude role from attributes as it's not a column)
                 $user = \App\Models\User::create([
                     'name' => $validated['full_name'],
                     'email' => $validated['email'],
-                    'password' => bcrypt($password),
-                    'role' => $role,
-                    'force_password_change' => true, // User must change password on first login
+                    'password' => \Hash::make($password), // Use Hash facade for consistency
+                    'force_password_change' => false, // Disable force password change for easier onboarding
                 ]);
 
-                // Create employee
-                return Employee::create([
+                // Assign role using Spatie
+                $user->assignRole($role);
+
+                // Prepare metadata for department and position
+                $metadata = [];
+                if (isset($validated['department'])) {
+                    $metadata['department'] = $validated['department'];
+                }
+                if (isset($validated['position'])) {
+                    $metadata['position'] = $validated['position'];
+                }
+
+                // Prepare employee data
+                $employeeData = [
                     'user_id' => $user->id,
                     'employee_id' => $validated['employee_code'] ?? 'EMP' . str_pad(Employee::count() + 1, 4, '0', STR_PAD_LEFT),
                     'full_name' => $validated['full_name'],
@@ -104,9 +131,13 @@ class EmployeeApiController extends BaseApiController
                     'employee_type' => $validated['employment_type'] ?? 'staff',
                     'salary_type' => $validated['salary_type'] ?? 'monthly',
                     'salary_amount' => $validated['base_salary'] ?? 0,
-                    'hire_date' => $validated['hire_date'] ?? now(),
+                    'hire_date' => $validated['hire_date'] ?? ($request->get('join_date') ?? now()),
                     'is_active' => $validated['is_active'] ?? true,
-                ]);
+                    'metadata' => $metadata, // Store department and position in metadata
+                ];
+
+                // Create employee
+                return Employee::create($employeeData);
             });
 
             return $this->apiResponse(

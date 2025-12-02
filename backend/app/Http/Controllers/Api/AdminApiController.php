@@ -170,7 +170,8 @@ class AdminApiController extends BaseApiController
             'address' => 'nullable|string',
             'latitude' => 'required|numeric',
             'longitude' => 'required|numeric',
-            'radius' => 'required|integer|min:1',
+            'radius_meters' => 'required|integer|min:1',
+            'wifi_ssid' => 'nullable|string',
         ]);
 
         $location = Location::create(array_merge($validated, ['is_active' => true]));
@@ -191,7 +192,8 @@ class AdminApiController extends BaseApiController
             'address' => 'nullable|string',
             'latitude' => 'sometimes|numeric',
             'longitude' => 'sometimes|numeric',
-            'radius' => 'sometimes|integer|min:1',
+            'radius_meters' => 'sometimes|integer|min:1',
+            'wifi_ssid' => 'nullable|string',
             'is_active' => 'sometimes|boolean',
         ]);
 
@@ -211,6 +213,19 @@ class AdminApiController extends BaseApiController
         $location->delete();
 
         return $this->apiResponse(null, 'Location deleted');
+    }
+
+    public function toggleLocationStatus($id)
+    {
+        $location = Location::find($id);
+
+        if (!$location) {
+            return $this->errorResponse('Location not found', 404);
+        }
+
+        $location->update(['is_active' => !$location->is_active]);
+
+        return $this->apiResponse($location->fresh(), 'Location status toggled');
     }
 
     // Holidays

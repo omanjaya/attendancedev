@@ -16,6 +16,7 @@ import {
     ChevronLeft,
     Filter,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useNavigate } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -71,6 +72,7 @@ import {
     type LocationFormData,
 } from '@/types/location';
 import { cn } from '@/lib/utils';
+import { LocationMapPicker } from '@/components/maps/LocationMapPicker';
 
 // Type badge component
 function TypeBadge({ type }: { type?: LocationType }) {
@@ -201,6 +203,22 @@ function LocationFormDialog({
                             className="min-h-[80px]"
                         />
                     </div>
+                    <div className="space-y-2">
+                        <Label>Pilih Lokasi di Map</Label>
+                        <LocationMapPicker
+                            latitude={formData.latitude}
+                            longitude={formData.longitude}
+                            onLocationChange={(lat, lng, address) => {
+                                setFormData((prev) => ({
+                                    ...prev,
+                                    latitude: lat,
+                                    longitude: lng,
+                                    ...(address && !prev.address ? { address } : {}),
+                                }));
+                            }}
+                            height="300px"
+                        />
+                    </div>
                     <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-2">
                             <Label htmlFor="latitude">Latitude</Label>
@@ -209,9 +227,10 @@ function LocationFormDialog({
                                 type="number"
                                 step="0.000001"
                                 value={formData.latitude}
-                                onChange={(e) =>
-                                    setFormData((prev) => ({ ...prev, latitude: parseFloat(e.target.value) }))
-                                }
+                                onChange={(e) => {
+                                    const val = parseFloat(e.target.value);
+                                    setFormData((prev) => ({ ...prev, latitude: isNaN(val) ? 0 : val }));
+                                }}
                                 required
                             />
                         </div>
@@ -222,9 +241,10 @@ function LocationFormDialog({
                                 type="number"
                                 step="0.000001"
                                 value={formData.longitude}
-                                onChange={(e) =>
-                                    setFormData((prev) => ({ ...prev, longitude: parseFloat(e.target.value) }))
-                                }
+                                onChange={(e) => {
+                                    const val = parseFloat(e.target.value);
+                                    setFormData((prev) => ({ ...prev, longitude: isNaN(val) ? 0 : val }));
+                                }}
                                 required
                             />
                         </div>
@@ -235,9 +255,10 @@ function LocationFormDialog({
                             id="radius"
                             type="number"
                             value={formData.radius_meters}
-                            onChange={(e) =>
-                                setFormData((prev) => ({ ...prev, radius_meters: parseInt(e.target.value) }))
-                            }
+                            onChange={(e) => {
+                                const val = parseInt(e.target.value);
+                                setFormData((prev) => ({ ...prev, radius_meters: isNaN(val) ? 0 : val }));
+                            }}
                             required
                         />
                     </div>
@@ -312,20 +333,48 @@ export function MobileLocationsPage() {
     }, [statusFilter]);
 
     const handleCreate = async (data: LocationFormData) => {
-        await createLocation(data);
+        if (data.radius_meters <= 0) {
+            toast.error('Radius harus lebih dari 0 meter');
+            return;
+        }
+        try {
+            await createLocation(data);
+            toast.success('Lokasi berhasil dibuat');
+            setIsFormOpen(false); // Close form on success
+        } catch (error: any) {
+            console.error('Create location error:', error);
+            toast.error(error.message || 'Gagal membuat lokasi');
+        }
     };
 
     const handleUpdate = async (data: LocationFormData) => {
+        if (data.radius_meters <= 0) {
+            toast.error('Radius harus lebih dari 0 meter');
+            return;
+        }
         if (editingLocation) {
-            await updateLocation(editingLocation.id, data);
-            setEditingLocation(null);
+            try {
+                await updateLocation(editingLocation.id, data);
+                toast.success('Lokasi berhasil diperbarui');
+                setEditingLocation(null);
+                setIsFormOpen(false); // Close form on success
+            } catch (error: any) {
+                console.error('Update location error:', error);
+                toast.error(error.message || 'Gagal memperbarui lokasi');
+            }
         }
     };
 
     const handleDelete = async () => {
         if (deletingLocation) {
-            await deleteLocation(deletingLocation.id);
-            setDeletingLocation(null);
+            try {
+                await deleteLocation(deletingLocation.id);
+                toast.success('Lokasi berhasil dihapus');
+                setDeletingLocation(null);
+            } catch (error: any) {
+                console.error('Delete location error:', error);
+                toast.error(error.message || 'Gagal menghapus lokasi');
+            }
         }
     };
 
@@ -338,7 +387,7 @@ export function MobileLocationsPage() {
                 <div className="bg-card/80 dark:bg-card/60 backdrop-blur-md rounded-3xl p-1.5 shadow-xl border border-border/40 dark:border-border/30">
                     <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3 rounded-[20px] flex items-center gap-3 shadow-lg">
                         <button
-                            onClick={() => navigate({ to: '/' })}
+                            onClick={() => navigate({ to: '/admin/dashboard' })}
                             className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
                         >
                             <ChevronLeft className="h-5 w-5 text-white" />

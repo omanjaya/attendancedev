@@ -46,11 +46,13 @@ return new class extends Migration
         });
 
         // Add performance indexes to payrolls table
-        Schema::table('payrolls', function (Blueprint $table) {
-            $table->index('period', 'idx_payrolls_period');
-            $table->index(['employee_id', 'period'], 'idx_payrolls_employee_period');
-            $table->index('status', 'idx_payrolls_status');
-        });
+        // Note: payrolls table doesn't have a 'period' column, it uses 'payroll_period_start' and 'payroll_period_end'
+        // The necessary indexes are already created in the create_payrolls_table migration
+        // Schema::table('payrolls', function (Blueprint $table) {
+        //     $table->index('period', 'idx_payrolls_period');
+        //     $table->index(['employee_id', 'period'], 'idx_payrolls_employee_period');
+        //     $table->index('status', 'idx_payrolls_status');
+        // });
 
         // Add performance indexes to user_devices table
         Schema::table('user_devices', function (Blueprint $table) {
@@ -103,11 +105,12 @@ return new class extends Migration
         });
 
         // Remove indexes from payrolls table
-        Schema::table('payrolls', function (Blueprint $table) {
-            $table->dropIndex('idx_payrolls_period');
-            $table->dropIndex('idx_payrolls_employee_period');
-            $table->dropIndex('idx_payrolls_status');
-        });
+        // Note: these indexes were never created due to non-existent 'period' column
+        // Schema::table('payrolls', function (Blueprint $table) {
+        //     $table->dropIndex('idx_payrolls_period');
+        //     $table->dropIndex('idx_payrolls_employee_period');
+        //     $table->dropIndex('idx_payrolls_status');
+        // });
 
         // Remove indexes from user_devices table
         Schema::table('user_devices', function (Blueprint $table) {

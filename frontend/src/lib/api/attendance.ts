@@ -12,8 +12,8 @@ import type {
 const ENDPOINTS = {
   list: '/attendance',
   detail: (id: number) => `/attendance/${id}`,
-  checkIn: '/attendance/check-in',
-  checkOut: '/attendance/check-out',
+  checkIn: '/attendance-face/check-in',
+  checkOut: '/attendance-face/check-out',
   today: '/attendance/today',
   statistics: '/attendance/statistics',
   trends: '/attendance/trends',
@@ -44,22 +44,22 @@ export async function getTodayAttendance(): Promise<TodayAttendance> {
 
 // Check in
 export async function checkIn(data: CheckRequest): Promise<Attendance> {
-  const response = await apiClient.post<{ data: Attendance }>(ENDPOINTS.checkIn, data);
-  return response.data.data;
+  const response = await apiClient.post<{ data: { attendance: Attendance } }>(ENDPOINTS.checkIn, data);
+  return response.data.data.attendance;
 }
 
 // Check out
 export async function checkOut(data: CheckRequest): Promise<Attendance> {
-  const response = await apiClient.post<{ data: Attendance }>(ENDPOINTS.checkOut, data);
-  return response.data.data;
+  const response = await apiClient.post<{ data: { attendance: Attendance } }>(ENDPOINTS.checkOut, data);
+  return response.data.data.attendance;
 }
 
 // Get attendance statistics
 export async function getAttendanceStatistics(date?: string): Promise<AttendanceStatistics> {
-  const response = await apiClient.get<{ data: AttendanceStatistics }>(ENDPOINTS.statistics, {
+  const response = await apiClient.get<{ statistics: AttendanceStatistics }>(ENDPOINTS.statistics, {
     params: { date },
   });
-  return response.data.data;
+  return response.data.statistics;
 }
 
 // Get attendance trends

@@ -1,7 +1,7 @@
 // Report Types
 
 export type ReportType = 'attendance' | 'payroll' | 'leave' | 'performance';
-export type ReportFormat = 'pdf' | 'excel' | 'csv';
+export type ReportFormat = 'pdf' | 'excel';
 
 // Dashboard/Summary Statistics
 export interface ReportSummary {
@@ -51,18 +51,22 @@ export interface ReportData {
 
 // Report Generation Request
 export interface GenerateReportRequest {
-  report_type: ReportType;
+  type: ReportType; // Changed from report_type to match backend
   format: ReportFormat;
   start_date: string;
   end_date: string;
-  department_id?: string;
-  columns: string[];
+  filters?: {
+    department_id?: string;
+    columns?: string[];
+    [key: string]: any;
+  };
 }
 
 // Saved Report Template
 export interface ReportTemplate {
   id: string;
   name: string;
+  description?: string;
   report_type: ReportType;
   columns: string[];
   filters: {
@@ -89,6 +93,8 @@ export interface GeneratedReport {
 export interface ReportFilters {
   year?: number;
   month?: number;
+  start_date?: string;
+  end_date?: string;
   department_id?: string;
   employee_id?: string;
 }

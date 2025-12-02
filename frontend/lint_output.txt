@@ -1,0 +1,808 @@
+
+> @attendance/frontend@1.0.0 lint
+> eslint .
+
+
+/home/omanjaya/Project/attendancedev/frontend/e2e/flows/monitoring.spec.ts
+  54:13  error  'initialText' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/app/router.tsx
+  105:10  error  Fast refresh only works when a file only exports components. Move your component(s) to a separate file  react-refresh/only-export-components
+  110:10  error  Fast refresh only works when a file only exports components. Move your component(s) to a separate file  react-refresh/only-export-components
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/dashboard/MobileDashboard.tsx
+   13:5   error  'Briefcase' is defined but never used     @typescript-eslint/no-unused-vars
+   15:5   error  'Award' is defined but never used         @typescript-eslint/no-unused-vars
+   19:10  error  'Card' is defined but never used          @typescript-eslint/no-unused-vars
+  325:68  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/dev/RoleSwitcher.tsx
+  108:11  error  'Icon' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+  111:22  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/dev/RoleSwitcher.tsx:111:22
+  109 |
+  110 |     setUser({
+> 111 |       id: Math.floor(Math.random() * 1000), // Random ID
+      |                      ^^^^^^^^^^^^^ Cannot call impure function
+  112 |       name: mockUser.name,
+  113 |       email: mockUser.email,
+  114 |       role: role,  react-hooks/purity
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/face-recognition/FaceEnrollmentFromPhoto.tsx
+   56:16  error  'err' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+  126:23  error  Error: Cannot access variable before it is declared
+
+`calculateQualityScore` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/face-recognition/FaceEnrollmentFromPhoto.tsx:126:23
+  124 |
+  125 |       // Calculate quality score
+> 126 |       const quality = calculateQualityScore(confidence, box, imageRef.current!);
+      |                       ^^^^^^^^^^^^^^^^^^^^^ `calculateQualityScore` accessed before it is declared
+  127 |       setQualityScore(quality);
+  128 |
+  129 |       if (confidence < 0.7) {
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/face-recognition/FaceEnrollmentFromPhoto.tsx:157:3
+  155 |
+  156 |   // Calculate quality score based on multiple factors
+> 157 |   const calculateQualityScore = (
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 158 |     confidence: number,
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 159 |     box: { x: number; y: number; width: number; height: number },
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 186 |     return Math.round(score * 100);
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 187 |   };
+      | ^^^^^ `calculateQualityScore` is declared here
+  188 |
+  189 |   // Draw detection overlay on canvas
+  190 |   const drawDetectionOverlay = (                                                                                                                      react-hooks/immutability
+  147:7   error  Error: Cannot access variable before it is declared
+
+`drawDetectionOverlay` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/face-recognition/FaceEnrollmentFromPhoto.tsx:147:7
+  145 |
+  146 |       // Draw detection on canvas
+> 147 |       drawDetectionOverlay(box, confidence);
+      |       ^^^^^^^^^^^^^^^^^^^^ `drawDetectionOverlay` accessed before it is declared
+  148 |       setState('detected');
+  149 |     } catch (err) {
+  150 |       console.error('Face detection error:', err);
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/face-recognition/FaceEnrollmentFromPhoto.tsx:190:3
+  188 |
+  189 |   // Draw detection overlay on canvas
+> 190 |   const drawDetectionOverlay = (
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 191 |     box: { x: number; y: number; width: number; height: number },
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 192 |     confidence: number
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 273 |     ctx.fillText(confidenceText, scaledBox.x + 10, scaledBox.y - 12);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 274 |   };
+      | ^^^^^ `drawDetectionOverlay` is declared here
+  275 |
+  276 |   // Save face data to backend
+  277 |   const handleSave = async () => {  react-hooks/immutability
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/face-recognition/FaceEnrollmentWizard.tsx
+  122:6  warning  React Hook useEffect has a missing dependency: 'startDetectionLoop'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  217:6  warning  React Hook useCallback has a missing dependency: 'saveFaceData'. Either include it or remove the dependency array      react-hooks/exhaustive-deps
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/face-recognition/FaceIdentificationPanel.tsx
+   74:9   warning  The 'registeredFaces' conditional could make the dependencies of useCallback Hook (at line 255) change on every render. To fix this, wrap the initialization of 'registeredFaces' in its own useMemo() Hook                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        react-hooks/exhaustive-deps
+   98:11  error    Error: Cannot access variable before it is declared
+
+`startDetectionLoop` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/face-recognition/FaceIdentificationPanel.tsx:98:11
+   96 |         setState('ready');
+   97 |         if (autoStart) {
+>  98 |           startDetectionLoop();
+      |           ^^^^^^^^^^^^^^^^^^ `startDetectionLoop` accessed before it is declared
+   99 |         }
+  100 |       } catch (err) {
+  101 |         console.error('Initialization error:', err);
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/face-recognition/FaceIdentificationPanel.tsx:124:3
+  122 |
+  123 |   // Detection loop for face tracking
+> 124 |   const startDetectionLoop = useCallback(() => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 125 |     const detect = async () => {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 126 |       if (!videoRef.current || !canvasRef.current) {
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 152 |     detect();
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 153 |   }, []);
+      | ^^^^^^^^^^ `startDetectionLoop` is declared here
+  154 |
+  155 |   // Identify face
+  156 |   const identifyFace = useCallback(async () => {  react-hooks/immutability
+  117:39  warning  The ref value 'scanIntervalRef.current' will likely have changed by the time this effect cleanup function runs. If this ref points to a node rendered by React, copy 'scanIntervalRef.current' to a variable inside the effect, and use that variable in the cleanup function                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-hooks/exhaustive-deps
+  121:6   warning  React Hook useEffect has a missing dependency: 'startDetectionLoop'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              react-hooks/exhaustive-deps
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/face-recognition/LivenessChallenge.tsx
+  257:13  error    Error: Cannot access variable before it is declared
+
+`handleChallengeSuccess` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/face-recognition/LivenessChallenge.tsx:257:13
+  255 |
+  256 |           if (challengeCompleted) {
+> 257 |             handleChallengeSuccess();
+      |             ^^^^^^^^^^^^^^^^^^^^^^ `handleChallengeSuccess` accessed before it is declared
+  258 |             return;
+  259 |           }
+  260 |         }
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/face-recognition/LivenessChallenge.tsx:272:3
+  270 |
+  271 |   // Handle successful challenge
+> 272 |   const handleChallengeSuccess = useCallback(() => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 273 |     stopTimer();
+      | ^^^^^^^^^^^^^^^^
+> 274 |     if (animationFrameRef.current) {
+      …
+      | ^^^^^^^^^^^^^^^^
+> 301 |     }, 1500);
+      | ^^^^^^^^^^^^^^^^
+> 302 |   }, [currentChallengeIndex, selectedChallenges.length, livenessScores, stopTimer, onSuccess]);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `handleChallengeSuccess` is declared here
+  303 |
+  304 |   // Handle challenge timeout
+  305 |   useEffect(() => {  react-hooks/immutability
+  269:6   warning  React Hook useCallback has a missing dependency: 'handleChallengeSuccess'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       react-hooks/exhaustive-deps
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/features/employees/employee-form-dialog.tsx
+  170:26  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/features/employees/employee-form-dialog.tsx:170:26
+  168 |                 <Label htmlFor="gender">Jenis Kelamin</Label>
+  169 |                 <Select
+> 170 |                   value={watch('gender')}
+      |                          ^^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  171 |                   onValueChange={(value) => setValue('gender', value as 'male' | 'female')}
+  172 |                 >
+  173 |                   <SelectTrigger>  react-hooks/incompatible-library
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/layout/bottom-nav.tsx
+  2:73  error  'Wallet' is defined but never used              @typescript-eslint/no-unused-vars
+  5:10  error  'getDefaultRedirect' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/shared/StatsGrid.tsx
+  1:15  error  'ReactNode' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/ui/badge.tsx
+  46:17  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/ui/button.tsx
+  60:18  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/ui/form.tsx
+  159:3  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/ui/navigation-menu.tsx
+  167:3  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/ui/sidebar.tsx
+  612:26  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/ui/sidebar.tsx:612:26
+  610 |   // Random width between 50 to 90%.
+  611 |   const width = React.useMemo(() => {
+> 612 |     return `${Math.floor(Math.random() * 40) + 50}%`
+      |                          ^^^^^^^^^^^^^ Cannot call impure function
+  613 |   }, [])
+  614 |
+  615 |   return (  react-hooks/purity
+  726:3   error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       react-refresh/only-export-components
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/ui/toggle.tsx
+  47:18  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/home/omanjaya/Project/attendancedev/frontend/src/components/ui/user-avatar.tsx
+  4:10  error  'StatusIndicator' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/config/navigation.ts
+  12:3  error  'BarChart3' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/hooks/use-face-detection.ts
+  100:6  warning  React Hook useCallback has a missing dependency: 'stopDetection'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/home/omanjaya/Project/attendancedev/frontend/src/hooks/use-security.ts
+  288:14  error  'err' is defined but never used  @typescript-eslint/no-unused-vars
+  333:14  error  'err' is defined but never used  @typescript-eslint/no-unused-vars
+  393:14  error  'err' is defined but never used  @typescript-eslint/no-unused-vars
+  406:14  error  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/employees/create.tsx
+  147:23  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/employees/create.tsx:147:23
+  145 |   });
+  146 |
+> 147 |   const watchGender = watch('gender');
+      |                       ^^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  148 |   const watchEmploymentType = watch('employment_type');
+  149 |   const watchRole = watch('role');
+  150 |  react-hooks/incompatible-library
+  172:11  error    'nip' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/employees/credentials.tsx
+  17:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/employees/desktop.tsx
+  7:5  error  'FileText' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/employees/edit.tsx
+   22:10  error  'LoadingState' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+  157:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/employees/edit.tsx:157:7
+  155 |         address: employee.address || '',
+  156 |       });
+> 157 |       setIsActive(employee.status === 'active');
+      |       ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  158 |     }
+  159 |   }, [employee, reset]);
+  160 |  react-hooks/set-state-in-effect
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/employees/mobile.tsx
+   9:5  error  'Mail' is defined but never used                 @typescript-eslint/no-unused-vars
+  11:5  error  'MoreVertical' is defined but never used         @typescript-eslint/no-unused-vars
+  21:5  error  'DropdownMenu' is defined but never used         @typescript-eslint/no-unused-vars
+  22:5  error  'DropdownMenuContent' is defined but never used  @typescript-eslint/no-unused-vars
+  23:5  error  'DropdownMenuItem' is defined but never used     @typescript-eslint/no-unused-vars
+  24:5  error  'DropdownMenuTrigger' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/employees/show.tsx
+  24:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/face-recognition/index.tsx
+  20:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/holidays/create.tsx
+  18:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/holidays/desktop.tsx
+  260:13  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/holidays/desktop.tsx:260:13
+  258 |     useEffect(() => {
+  259 |         if (holiday) {
+> 260 |             setFormData({
+      |             ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  261 |                 name: holiday.name,
+  262 |                 description: holiday.description || '',
+  263 |                 date: holiday.date,                          react-hooks/set-state-in-effect
+  434:9   error    Error: Cannot access variable before it is declared
+
+`loadStats` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/holidays/desktop.tsx:434:9
+  432 |     useEffect(() => {
+  433 |         fetchHolidays({ year: yearFilter });
+> 434 |         loadStats();
+      |         ^^^^^^^^^ `loadStats` accessed before it is declared
+  435 |     }, [fetchHolidays, yearFilter]);
+  436 |
+  437 |     const loadStats = async () => {
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/holidays/desktop.tsx:437:5
+  435 |     }, [fetchHolidays, yearFilter]);
+  436 |
+> 437 |     const loadStats = async () => {
+      |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 438 |         const statistics = await getStatistics();
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 439 |         setStats(statistics);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 440 |     };
+      | ^^^^^^^ `loadStats` is declared here
+  441 |
+  442 |     const handleSearch = () => {
+  443 |         fetchHolidays({  react-hooks/immutability
+  435:8   warning  React Hook useEffect has a missing dependency: 'loadStats'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    react-hooks/exhaustive-deps
+  452:8   warning  React Hook useEffect has a missing dependency: 'handleSearch'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 react-hooks/exhaustive-deps
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/holidays/edit.tsx
+  18:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/holidays/mobile.tsx
+  143:13  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/holidays/mobile.tsx:143:13
+  141 |     useEffect(() => {
+  142 |         if (holiday) {
+> 143 |             setFormData({
+      |             ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  144 |                 name: holiday.name,
+  145 |                 description: holiday.description || '',
+  146 |                 date: holiday.date,  react-hooks/set-state-in-effect
+  320:8   warning  React Hook useEffect has a missing dependency: 'handleSearch'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        react-hooks/exhaustive-deps
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/leave/calendar.tsx
+  14:10  error  'LeaveBadge' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/leave/create.tsx
+  16:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/leave/desktop.tsx
+  71:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/leave/mobile.tsx
+   6:3   error  'Clock' is defined but never used                @typescript-eslint/no-unused-vars
+   7:3   error  'Filter' is defined but never used               @typescript-eslint/no-unused-vars
+   9:3   error  'MoreHorizontal' is defined but never used       @typescript-eslint/no-unused-vars
+  10:3   error  'User' is defined but never used                 @typescript-eslint/no-unused-vars
+  11:3   error  'Building' is defined but never used             @typescript-eslint/no-unused-vars
+  17:3   error  'DropdownMenu' is defined but never used         @typescript-eslint/no-unused-vars
+  18:3   error  'DropdownMenuContent' is defined but never used  @typescript-eslint/no-unused-vars
+  19:3   error  'DropdownMenuItem' is defined but never used     @typescript-eslint/no-unused-vars
+  20:3   error  'DropdownMenuTrigger' is defined but never used  @typescript-eslint/no-unused-vars
+  29:3   error  'leaveTypeColors' is defined but never used      @typescript-eslint/no-unused-vars
+  34:10  error  'cn' is defined but never used                   @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/leave/show.tsx
+  17:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/locations/create.tsx
+  16:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/locations/desktop.tsx
+  220:13  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/locations/desktop.tsx:220:13
+  218 |     useEffect(() => {
+  219 |         if (location) {
+> 220 |             setFormData({
+      |             ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  221 |                 name: location.name,
+  222 |                 address: location.address,
+  223 |                 latitude: location.latitude,  react-hooks/set-state-in-effect
+  423:9   error    Error: Cannot access variable before it is declared
+
+`loadStats` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/locations/desktop.tsx:423:9
+  421 |     useEffect(() => {
+  422 |         fetchLocations();
+> 423 |         loadStats();
+      |         ^^^^^^^^^ `loadStats` accessed before it is declared
+  424 |     }, [fetchLocations]);
+  425 |
+  426 |     const loadStats = async () => {
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/locations/desktop.tsx:426:5
+  424 |     }, [fetchLocations]);
+  425 |
+> 426 |     const loadStats = async () => {
+      |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 427 |         const statistics = await getStatistics();
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 428 |         setStats(statistics);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 429 |     };
+      | ^^^^^^^ `loadStats` is declared here
+  430 |
+  431 |     const handleSearch = () => {
+  432 |         fetchLocations({               react-hooks/immutability
+  424:8   warning  React Hook useEffect has a missing dependency: 'loadStats'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-hooks/exhaustive-deps
+  440:8   warning  React Hook useEffect has a missing dependency: 'handleSearch'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        react-hooks/exhaustive-deps
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/locations/edit.tsx
+  16:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/locations/mobile.tsx
+  121:13  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/locations/mobile.tsx:121:13
+  119 |     useEffect(() => {
+  120 |         if (location) {
+> 121 |             setFormData({
+      |             ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  122 |                 name: location.name,
+  123 |                 address: location.address,
+  124 |                 latitude: location.latitude,  react-hooks/set-state-in-effect
+  312:8   warning  React Hook useEffect has a missing dependency: 'handleSearch'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       react-hooks/exhaustive-deps
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/payroll/desktop-show.tsx
+  23:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  25:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/payroll/desktop.tsx
+  3:5  error  'Calendar' is defined but never used  @typescript-eslint/no-unused-vars
+  6:5  error  'Filter' is defined but never used    @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/payroll/edit.tsx
+  16:10  error    'LoadingState' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+  67:25  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/payroll/edit.tsx:67:25
+  65 |   });
+  66 |
+> 67 |   const watchedValues = watch();
+     |                         ^^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  68 |
+  69 |   const calculateTotals = () => {
+  70 |     if (!payroll) return { earnings: 0, deductions: 0, net: 0 };  react-hooks/incompatible-library
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/payroll/mobile-show.tsx
+   6:5   error  'Calendar' is defined but never used             @typescript-eslint/no-unused-vars
+  10:5   error  'Building' is defined but never used             @typescript-eslint/no-unused-vars
+  11:5   error  'User' is defined but never used                 @typescript-eslint/no-unused-vars
+  12:5   error  'MoreVertical' is defined but never used         @typescript-eslint/no-unused-vars
+  18:10  error  'cn' is defined but never used                   @typescript-eslint/no-unused-vars
+  19:31  error  'payrollStatusColors' is defined but never used  @typescript-eslint/no-unused-vars
+  22:14  error  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+  24:12  error  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/payroll/mobile.tsx
+   7:5   error  'Filter' is defined but never used                   @typescript-eslint/no-unused-vars
+  11:5   error  'Download' is defined but never used                 @typescript-eslint/no-unused-vars
+  61:11  error  'formatCurrency' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/reports/tabs/ReportBuilderContent.tsx
+  17:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/schedules/assign.tsx
+  16:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/schedules/builder.tsx
+  19:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/schedules/create.tsx
+  17:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/schedules/edit.tsx
+  17:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/schedules/mobile.tsx
+  225:6   warning  React Hook useMemo has a missing dependency: 'getAttendanceStatus'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       react-hooks/exhaustive-deps
+  225:7   error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. This dependency may be mutated later, which could cause the value to change unexpectedly.
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/schedules/mobile.tsx:225:7
+  223 |
+  224 |     return daysList;
+> 225 |   }, [year, month, attendanceData]);
+      |       ^^^^ This dependency may be modified later
+  226 |
+  227 |   const getStatusIcon = (status: string) => {
+  228 |     const iconClasses = "h-2 w-2 text-white";  react-hooks/preserve-manual-memoization
+  513:89  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-explicit-any
+  524:46  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-explicit-any
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/schedules/monthly/create.tsx
+  16:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/schedules/tabs/ScheduleAssignContent.tsx
+  14:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/schedules/tabs/ScheduleBuilderContent.tsx
+  18:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/schedules/tabs/ScheduleListContent.tsx
+  22:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/security/index.tsx
+   28:10  error    'LoadingState' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+  285:5   error    Error: Cannot access variable before it is declared
+
+`loadData` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/security/index.tsx:285:5
+  283 |
+  284 |   useEffect(() => {
+> 285 |     loadData();
+      |     ^^^^^^^^ `loadData` accessed before it is declared
+  286 |   }, []);
+  287 |
+  288 |   const loadData = async () => {
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/security/index.tsx:288:3
+  286 |   }, []);
+  287 |
+> 288 |   const loadData = async () => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 289 |     const [overviewData] = await Promise.all([
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 290 |       getOverview(),
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 291 |       fetchDevices(),
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 292 |       fetchSessions(),
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 293 |       fetchAuditLogs({ limit: 20 }),
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 294 |       fetchAlerts(),
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 295 |     ]);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 296 |     setOverview(overviewData);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 297 |   };
+      | ^^^^^ `loadData` is declared here
+  298 |
+  299 |   const handleStart2FA = async () => {
+  300 |     const setup = await initiate2FA();  react-hooks/immutability
+  286:6   warning  React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             react-hooks/exhaustive-deps
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/settings/mobile.tsx
+   8:5   error  'BellOff' is defined but never used       @typescript-eslint/no-unused-vars
+  26:5   error  'ChevronRight' is defined but never used  @typescript-eslint/no-unused-vars
+  29:10  error  'Button' is defined but never used        @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/users/create.tsx
+  19:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/users/desktop.tsx
+  146:13  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/users/desktop.tsx:146:13
+  144 |     useEffect(() => {
+  145 |         if (user) {
+> 146 |             setFormData({
+      |             ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  147 |                 name: user.name,
+  148 |                 email: user.email,
+  149 |                 phone: user.phone || '',  react-hooks/set-state-in-effect
+  310:9   error    Error: Cannot access variable before it is declared
+
+`loadStats` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/users/desktop.tsx:310:9
+  308 |     useEffect(() => {
+  309 |         fetchUsers();
+> 310 |         loadStats();
+      |         ^^^^^^^^^ `loadStats` accessed before it is declared
+  311 |     }, [fetchUsers]);
+  312 |
+  313 |     const loadStats = async () => {
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/users/desktop.tsx:313:5
+  311 |     }, [fetchUsers]);
+  312 |
+> 313 |     const loadStats = async () => {
+      |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 314 |         const statistics = await getStatistics();
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 315 |         setStats(statistics);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 316 |     };
+      | ^^^^^^^ `loadStats` is declared here
+  317 |
+  318 |     const handleSearch = () => {
+  319 |         fetchUsers({               react-hooks/immutability
+  311:8   warning  React Hook useEffect has a missing dependency: 'loadStats'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   react-hooks/exhaustive-deps
+  328:8   warning  React Hook useEffect has a missing dependency: 'handleSearch'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                react-hooks/exhaustive-deps
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/users/edit.tsx
+  16:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/users/mobile.tsx
+  115:13  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/admin/users/mobile.tsx:115:13
+  113 |     useEffect(() => {
+  114 |         if (user) {
+> 115 |             setFormData({
+      |             ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  116 |                 name: user.name,
+  117 |                 email: user.email,
+  118 |                 phone: user.phone || '',  react-hooks/set-state-in-effect
+  287:8   warning  React Hook useEffect has a missing dependency: 'handleSearch'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               react-hooks/exhaustive-deps
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/attendance/index.tsx
+  43:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/attendance/mobile.tsx
+  19:10  error  'cn' is defined but never used                @typescript-eslint/no-unused-vars
+  28:34  error  'refetch' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/auth/change-password.tsx
+  61:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/auth/confirm-password.tsx
+   9:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+  35:27  error  '_data' is defined but never used         @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/auth/forgot-password.tsx
+  9:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/auth/register.tsx
+   9:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+  40:27  error  '_data' is defined but never used         @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/auth/reset-password.tsx
+  9:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/auth/verify-email.tsx
+  6:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/employee/attendance/desktop.tsx
+  21:33  error  'isLoading' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/employee/attendance/mobile.tsx
+  2:10  error  'useNavigate' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/employee/dashboard/desktop.tsx
+  66:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  75:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/employee/profile/edit.tsx
+  21:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+  96:35  error  '_data' is defined but never used         @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/employee/profile/mobile.tsx
+   7:5   error  'Mail' is defined but never used                   @typescript-eslint/no-unused-vars
+   8:5   error  'Phone' is defined but never used                  @typescript-eslint/no-unused-vars
+   9:5   error  'Building2' is defined but never used              @typescript-eslint/no-unused-vars
+  10:5   error  'Briefcase' is defined but never used              @typescript-eslint/no-unused-vars
+  17:5   error  'Trash2' is defined but never used                 @typescript-eslint/no-unused-vars
+  47:5   error  'DrawerTrigger' is defined but never used          @typescript-eslint/no-unused-vars
+  71:11  error  'deleteAvatar' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/employee/schedule/mobile.tsx
+  5:5  error  'Clock' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/login.tsx
+  9:10  error  'LoadingState' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/shared/verify-face.tsx
+   47:5   error    Error: Cannot access variable before it is declared
+
+`startCamera` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/shared/verify-face.tsx:47:5
+  45 |   // Start camera on mount
+  46 |   useEffect(() => {
+> 47 |     startCamera();
+     |     ^^^^^^^^^^^ `startCamera` accessed before it is declared
+  48 |     return () => {
+  49 |       // Cleanup camera stream
+  50 |       if (streamRef.current) {
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/shared/verify-face.tsx:67:3
+   65 |   }, [faceState.status, isAutoCapturing]);
+   66 |
+>  67 |   const startCamera = async () => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  68 |     try {
+      | ^^^^^^^^^
+>  69 |       const stream = await navigator.mediaDevices.getUserMedia({
+      …
+      | ^^^^^^^^^
+> 100 |     }
+      | ^^^^^^^^^
+> 101 |   };
+      | ^^^^^ `startCamera` is declared here
+  102 |
+  103 |   const handleCapture = async () => {
+  104 |     if (!videoRef.current || faceState.status !== 'ready') return;                                                                                                                                                                                                                          react-hooks/immutability
+   60:9   error    Error: Cannot access variable before it is declared
+
+`handleCapture` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/shared/verify-face.tsx:60:9
+  58 |     if (faceState.status === 'ready' && !isAutoCapturing) {
+  59 |       const timer = setTimeout(() => {
+> 60 |         handleCapture();
+     |         ^^^^^^^^^^^^^ `handleCapture` accessed before it is declared
+  61 |       }, 2000); // Auto-capture after 2 seconds
+  62 |
+  63 |       return () => clearTimeout(timer);
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/shared/verify-face.tsx:103:3
+  101 |   };
+  102 |
+> 103 |   const handleCapture = async () => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 104 |     if (!videoRef.current || faceState.status !== 'ready') return;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 105 |
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 169 |     }
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 170 |   };
+      | ^^^^^ `handleCapture` is declared here
+  171 |
+  172 |   const handleConfirm = async () => {
+  173 |     if (faceState.status !== 'verified' || !latitude || !longitude) return;  react-hooks/immutability
+   65:6   warning  React Hook useEffect has a missing dependency: 'handleCapture'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  react-hooks/exhaustive-deps
+  161:21  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+  211:21  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/shared/verify-location.tsx
+  43:10  error    'error' is defined but never used                                                                                                                           @typescript-eslint/no-unused-vars
+  72:6   warning  React Hook useEffect has missing dependencies: 'handleVerifyLocation', 'verification', and 'verifying'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  84:21  error    Unexpected any. Specify a different type                                                                                                                    @typescript-eslint/no-explicit-any
+
+/home/omanjaya/Project/attendancedev/frontend/src/pages/unauthorized.tsx
+  15:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/omanjaya/Project/attendancedev/frontend/src/stores/auth-store.ts
+  50:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/omanjaya/Project/attendancedev/frontend/src/test/setup.ts
+  39:104  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  51:122  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/omanjaya/Project/attendancedev/frontend/src/test/test-utils.tsx
+  46:11  error  'queryClient' is assigned a value but never used                @typescript-eslint/no-unused-vars
+  57:1   error  This rule can't verify that `export *` only exports components  react-refresh/only-export-components
+
+✖ 167 problems (144 errors, 23 warnings)
+
+npm error Lifecycle script `lint` failed with error:
+npm error code 1
+npm error path /home/omanjaya/Project/attendancedev/frontend
+npm error workspace @attendance/frontend@1.0.0
+npm error location /home/omanjaya/Project/attendancedev/frontend
+npm error command failed
+npm error command sh -c eslint .

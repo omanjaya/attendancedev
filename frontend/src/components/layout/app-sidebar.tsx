@@ -23,20 +23,18 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { LogOut, User, Settings, ChevronUp, Clock } from 'lucide-react';
 import { useAuthStore } from '@/stores';
-import { navigation, filterNavigation } from '@/config/navigation';
+import { getNavigationByRole } from '@/config/navigation';
+import { getDefaultRedirect } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 
 export function AppSidebar() {
   const location = useLocation();
   const { user, logout } = useAuthStore();
 
-  // Filter navigation based on user permissions
-  // Handle case where old localStorage data might not have permissions
-  const userPermissions = user?.permissions || [];
-  const userRole = user?.role || 'pegawai';
-  const filteredNav = user
-    ? filterNavigation(navigation, userPermissions, userRole)
-    : navigation; // Show all navigation if no user (will be redirected by auth guard anyway)
+  // Get role-based navigation
+  const rawUserRole = user?.role || 'employee';
+  const userRole = rawUserRole.toLowerCase().replace(/_/g, '-').replace(/ /g, '-');
+  const navigation = getNavigationByRole(userRole);
 
   const handleLogout = async () => {
     await logout();
@@ -62,7 +60,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild className="hover:bg-primary/10 transition-all duration-300 hover:scale-[1.02] group">
-              <Link to="/dashboard">
+              <Link to={getDefaultRedirect(user)}>
                 <div className="flex aspect-square size-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary via-emerald-500 to-emerald-600 text-primary-foreground shadow-lg shadow-primary/30 group-hover:shadow-xl group-hover:shadow-primary/40 transition-all duration-300">
                   <Clock className="size-5 group-hover:rotate-12 transition-transform duration-300" />
                 </div>
@@ -82,7 +80,7 @@ export function AppSidebar() {
 
       {/* Navigation Content */}
       <SidebarContent className="px-2 py-2">
-        {filteredNav.map((group) => (
+        {navigation.map((group) => (
           <SidebarGroup key={group.title} className="py-3">
             <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 px-4 mb-3 flex items-center gap-2">
               <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border/40 to-transparent" />
@@ -187,17 +185,19 @@ export function AppSidebar() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-border/50" />
                 <DropdownMenuItem asChild className="focus:bg-primary/10 focus:text-primary cursor-pointer">
-                  <Link to="/profile">
+                  <Link to={userRole === 'admin' || userRole === 'super-admin' || userRole === 'kepala-sekolah' ? '/admin/dashboard' : '/employee/profile'}>
                     <User className="mr-2 h-4 w-4" />
                     Profil
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild className="focus:bg-primary/10 focus:text-primary cursor-pointer">
-                  <Link to="/settings">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Pengaturan
-                  </Link>
-                </DropdownMenuItem>
+                {(userRole === 'admin' || userRole === 'super-admin' || userRole === 'kepala-sekolah') && (
+                  <DropdownMenuItem asChild className="focus:bg-primary/10 focus:text-primary cursor-pointer">
+                    <Link to="/admin/settings">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Pengaturan
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator className="bg-border/50" />
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />

@@ -29,17 +29,17 @@ class LocationController extends Controller
             })
             ->addColumn('coordinates', function ($location) {
                 if ($location->latitude && $location->longitude) {
-                    return number_format($location->latitude, 6).
-                      ', '.
-                      number_format($location->longitude, 6);
+                    return number_format($location->latitude, 6) .
+                        ', ' .
+                        number_format($location->longitude, 6);
                 }
 
                 return '<span class="text-muted">Not set</span>';
             })
             ->addColumn('status', function ($location) {
                 return $location->is_active
-                  ? '<span class="badge bg-green">Active</span>'
-                  : '<span class="badge bg-red">Inactive</span>';
+                    ? '<span class="badge bg-green">Active</span>'
+                    : '<span class="badge bg-red">Inactive</span>';
             })
             ->addColumn('verification_methods', function ($location) {
                 $methods = [];
@@ -51,25 +51,25 @@ class LocationController extends Controller
                 }
 
                 return count($methods) > 0
-                  ? implode(' ', $methods)
-                  : '<span class="text-muted">None</span>';
+                    ? implode(' ', $methods)
+                    : '<span class="text-muted">None</span>';
             })
             ->addColumn('actions', function ($location) {
                 return '
                     <div class="btn-list">
-                        <a href="'.
-                  route('locations.show', $location).
-                  '" class="btn btn-sm btn-info">
+                        <a href="' .
+                    route('locations.show', $location) .
+                    '" class="btn btn-sm btn-info">
                             View
                         </a>
-                        <a href="'.
-                  route('locations.edit', $location).
-                  '" class="btn btn-sm btn-primary">
+                        <a href="' .
+                    route('locations.edit', $location) .
+                    '" class="btn btn-sm btn-primary">
                             Edit
                         </a>
-                        <button class="btn btn-sm btn-danger delete-location" data-id="'.
-                  $location->id.
-                  '">
+                        <button class="btn btn-sm btn-danger delete-location" data-id="' .
+                    $location->id .
+                    '">
                             Delete
                         </button>
                     </div>
@@ -119,7 +119,7 @@ class LocationController extends Controller
         } catch (\Exception $e) {
             return back()
                 ->withInput()
-                ->with('error', 'Failed to create location: '.$e->getMessage());
+                ->with('error', 'Failed to create location: ' . $e->getMessage());
         }
     }
 
@@ -147,7 +147,7 @@ class LocationController extends Controller
     public function update(Request $request, Location $location)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:locations,name,'.$location->id,
+            'name' => 'required|string|max:255|unique:locations,name,' . $location->id,
             'address' => 'nullable|string|max:500',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
@@ -173,7 +173,7 @@ class LocationController extends Controller
         } catch (\Exception $e) {
             return back()
                 ->withInput()
-                ->with('error', 'Failed to update location: '.$e->getMessage());
+                ->with('error', 'Failed to update location: ' . $e->getMessage());
         }
     }
 
@@ -204,7 +204,7 @@ class LocationController extends Controller
             return response()->json(
                 [
                     'success' => false,
-                    'message' => 'Failed to delete location: '.$e->getMessage(),
+                    'message' => 'Failed to delete location: ' . $e->getMessage(),
                 ],
                 500,
             );
@@ -235,14 +235,14 @@ class LocationController extends Controller
             'location_id' => 'nullable|exists:locations,id',
         ]);
 
-        if ($validated['location_id']) {
+        if (isset($validated['location_id']) && $validated['location_id']) {
             $location = Location::find($validated['location_id']);
         } else {
             // Find the nearest location
             $location = $this->findNearestLocation($validated['latitude'], $validated['longitude']);
         }
 
-        if (! $location || ! $location->latitude || ! $location->longitude) {
+        if (!$location || !$location->latitude || !$location->longitude) {
             return response()->json([
                 'verified' => false,
                 'message' => 'No GPS-enabled location found.',
@@ -269,8 +269,8 @@ class LocationController extends Controller
                 'address' => $location->address,
             ],
             'message' => $verified
-              ? 'Location verified successfully.'
-              : "You are {$distance}m away. Must be within {$location->radius_meters}m.",
+                ? 'Location verified successfully.'
+                : "You are {$distance}m away. Must be within {$location->radius_meters}m.",
         ]);
     }
 
@@ -304,8 +304,8 @@ class LocationController extends Controller
         $lonDelta = deg2rad($lon2 - $lon1);
 
         $a =
-          sin($latDelta / 2) * sin($latDelta / 2) +
-          cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($lonDelta / 2) * sin($lonDelta / 2);
+            sin($latDelta / 2) * sin($latDelta / 2) +
+            cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($lonDelta / 2) * sin($lonDelta / 2);
 
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
 

@@ -8,7 +8,8 @@ import { Lock, Loader2, Eye, EyeOff, Shield, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LoadingState } from '@/components/states';
 import { Input } from '@/components/ui/input';
-import { useNotificationStore } from '@/stores';
+import { useNotificationStore, useAuthStore } from '@/stores';
+import { getDefaultRedirect } from '@/lib/auth';
 
 const confirmSchema = z.object({
   password: z.string().min(1, 'Masukkan password'),
@@ -19,6 +20,7 @@ type ConfirmForm = z.infer<typeof confirmSchema>;
 export default function ConfirmPasswordPage() {
   const navigate = useNavigate();
   const { error: showError } = useNotificationStore();
+  const { user } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -35,7 +37,7 @@ export default function ConfirmPasswordPage() {
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
       // Navigate to the protected action
-      navigate({ to: '/dashboard' });
+      navigate({ to: getDefaultRedirect(user) });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Password tidak valid';
       showError('Konfirmasi Gagal', message);

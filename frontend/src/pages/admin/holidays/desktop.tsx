@@ -429,15 +429,15 @@ export function DesktopHolidaysPage() {
     const [stats, setStats] = useState<HolidayStatistics | null>(null);
     const [currentMonth, setCurrentMonth] = useState(new Date());
 
-    useEffect(() => {
-        fetchHolidays({ year: yearFilter });
-        loadStats();
-    }, [fetchHolidays, yearFilter]);
-
     const loadStats = async () => {
         const statistics = await getStatistics();
         setStats(statistics);
     };
+
+    useEffect(() => {
+        fetchHolidays({ year: yearFilter });
+        loadStats();
+    }, [fetchHolidays, yearFilter]);
 
     const handleSearch = () => {
         fetchHolidays({

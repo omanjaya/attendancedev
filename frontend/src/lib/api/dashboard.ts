@@ -3,7 +3,36 @@ import type { DashboardData, ActivityItem } from '@/types';
 
 const ENDPOINTS = {
   dashboard: '/reports/dashboard',
+  employeeStats: '/employees/statistics',
+  attendanceStats: '/attendance/statistics',
+  leaveStats: '/leave/statistics',
+  scheduleStats: '/schedules/statistics',
+  payrollStats: '/payroll/statistics',
 } as const;
+
+// Get comprehensive dashboard statistics from multiple endpoints
+export async function getDashboardStatistics() {
+  try {
+    const [employees, attendance, leave, schedules, payroll] = await Promise.all([
+      apiClient.get(ENDPOINTS.employeeStats).catch(() => ({ data: { data: null } })),
+      apiClient.get(ENDPOINTS.attendanceStats).catch(() => ({ data: { data: null } })),
+      apiClient.get(ENDPOINTS.leaveStats).catch(() => ({ data: { data: null } })),
+      apiClient.get(ENDPOINTS.scheduleStats).catch(() => ({ data: { data: null } })),
+      apiClient.get(ENDPOINTS.payrollStats).catch(() => ({ data: { data: null } })),
+    ]);
+
+    return {
+      employees: employees.data.data,
+      attendance: attendance.data.data,
+      leave: leave.data.data,
+      schedules: schedules.data.data,
+      payroll: payroll.data.data,
+    };
+  } catch (error) {
+    console.error('Failed to fetch dashboard statistics:', error);
+    throw error;
+  }
+}
 
 // Get dashboard data
 export async function getDashboardData(): Promise<DashboardData> {

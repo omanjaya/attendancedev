@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Attendance;
 use App\Models\Employee;
+use App\Models\MonthlySchedule;
+use App\Models\EmployeeMonthlySchedule;
 use App\Repositories\AttendanceRepository;
 use App\Repositories\EmployeeRepository;
 use App\Traits\ApiResponseTrait;
@@ -80,7 +82,7 @@ class AttendanceController extends Controller
             // Get employee from authenticated user
             $user = auth()->user();
             $employee = $user->employee;
-            
+
             if (!$employee) {
                 // Auto-create employee record for admin users
                 if ($user->hasRole('super_admin') || $user->hasRole('admin')) {
@@ -104,7 +106,31 @@ class AttendanceController extends Controller
             $todayAttendance = $this->attendanceRepository->getTodayAttendance($employee->id);
 
             if ($todayAttendance && $todayAttendance->check_in_time) {
-                return $this->errorResponse('Already checked in today at '.$todayAttendance->formatted_check_in);
+                return $this->errorResponse('Anda sudah melakukan absen datang hari ini pada ' . $todayAttendance->formatted_check_in);
+            }
+
+            // ===== PHASE 1: Validate Working Day =====
+            $workingDayValidation = $this->validateWorkingDay($employee);
+
+            if (!$workingDayValidation['valid']) {
+                return $this->errorResponse($workingDayValidation['message'], 400);
+            }
+
+            $schedule = $workingDayValidation['schedule'];
+
+            // ===== PHASE 2: Validate Time Window (if schedule exists) =====
+            $isLate = false;
+            $timeWindowMessage = null;
+
+            if ($schedule) {
+                $timeValidation = $this->validateCheckInWindow($schedule);
+
+                if (!$timeValidation['valid']) {
+                    return $this->errorResponse($timeValidation['message'], 400);
+                }
+
+                $isLate = $timeValidation['is_late'];
+                $timeWindowMessage = $timeValidation['message'];
             }
 
             // Verify location if provided
@@ -120,6 +146,17 @@ class AttendanceController extends Controller
             // Create or update attendance record
             $attendance = $this->attendanceRepository->getOrCreateToday($employee->id);
 
+            // Prepare metadata with schedule information
+            $attendanceMetadata = array_merge($attendance->metadata ?? [], $validated['metadata'] ?? []);
+
+            if ($schedule) {
+                $attendanceMetadata['monthly_schedule_id'] = $schedule->id;
+                $attendanceMetadata['schedule_name'] = $schedule->name;
+                $attendanceMetadata['expected_start_time'] = $schedule->default_start_time;
+                $attendanceMetadata['expected_end_time'] = $schedule->default_end_time;
+                $attendanceMetadata['is_late'] = $isLate;
+            }
+
             $attendance->update([
                 'check_in_time' => now('Asia/Makassar'),
                 'check_in_confidence' => $validated['face_confidence'],
@@ -127,21 +164,40 @@ class AttendanceController extends Controller
                 'check_in_longitude' => $validated['longitude'] ?? null,
                 'location_verified' => $locationVerified,
                 'check_in_notes' => $validated['notes'] ?? null,
-                'metadata' => array_merge($attendance->metadata ?? [], $validated['metadata'] ?? []),
+                'metadata' => $attendanceMetadata,
             ]);
 
             DB::commit();
 
-            return $this->successResponse([
+            // Prepare response data
+            $responseData = [
                 'attendance_id' => $attendance->id,
                 'check_in_time' => $attendance->check_in_time->format('Y-m-d H:i:s'),
                 'location_verified' => $locationVerified,
                 'confidence' => $validated['face_confidence'],
-            ], 'Check-in successful');
+            ];
+
+            // Add schedule info if available
+            if ($schedule) {
+                $responseData['schedule'] = [
+                    'name' => $schedule->name,
+                    'expected_start' => $schedule->default_start_time,
+                    'expected_end' => $schedule->default_end_time,
+                    'is_late' => $isLate,
+                ];
+            }
+
+            // Determine success message
+            $message = 'Check-in successful';
+            if ($timeWindowMessage) {
+                $message .= '. ' . $timeWindowMessage;
+            }
+
+            return $this->successResponse($responseData, $message);
         } catch (\Exception $e) {
             DB::rollBack();
 
-            return $this->serverErrorResponse('Check-in failed: '.$e->getMessage());
+            return $this->serverErrorResponse('Check-in failed: ' . $e->getMessage());
         }
     }
 
@@ -164,7 +220,7 @@ class AttendanceController extends Controller
             // Get employee from authenticated user
             $user = auth()->user();
             $employee = $user->employee;
-            
+
             if (!$employee) {
                 // Auto-create employee record for admin users
                 if ($user->hasRole('super_admin') || $user->hasRole('admin')) {
@@ -187,11 +243,11 @@ class AttendanceController extends Controller
             // Get today's attendance
             $attendance = $this->attendanceRepository->getTodayAttendance($employee->id);
 
-            if (! $attendance || ! $attendance->check_in_time) {
+            if (!$attendance || !$attendance->check_in_time) {
                 return response()->json(
                     [
                         'success' => false,
-                        'message' => 'No check-in record found for today. Please check in first.',
+                        'message' => 'Anda belum melakukan absen datang hari ini. Silakan absen datang terlebih dahulu.',
                     ],
                     400,
                 );
@@ -201,10 +257,34 @@ class AttendanceController extends Controller
                 return response()->json(
                     [
                         'success' => false,
-                        'message' => 'Already checked out today at '.$attendance->formatted_check_out,
+                        'message' => 'Anda sudah melakukan absen pulang hari ini pada ' . $attendance->formatted_check_out,
                     ],
                     400,
                 );
+            }
+
+            // ===== PHASE 1: Validate Working Day =====
+            $workingDayValidation = $this->validateWorkingDay($employee);
+
+            if (!$workingDayValidation['valid']) {
+                return $this->errorResponse($workingDayValidation['message'], 400);
+            }
+
+            $schedule = $workingDayValidation['schedule'];
+
+            // ===== PHASE 2: Validate Time Window (if schedule exists) =====
+            $isEarly = false;
+            $timeWindowMessage = null;
+
+            if ($schedule) {
+                $timeValidation = $this->validateCheckOutWindow($schedule);
+
+                if (!$timeValidation['valid']) {
+                    return $this->errorResponse($timeValidation['message'], 400);
+                }
+
+                $isEarly = $timeValidation['is_early'];
+                $timeWindowMessage = $timeValidation['message'];
             }
 
             // Verify location if provided
@@ -218,6 +298,13 @@ class AttendanceController extends Controller
                 $locationVerified = $locationVerified && $currentLocationVerified;
             }
 
+            // Prepare metadata with schedule information
+            $attendanceMetadata = array_merge($attendance->metadata ?? [], $validated['metadata'] ?? []);
+
+            if ($schedule) {
+                $attendanceMetadata['is_early'] = $isEarly;
+            }
+
             // Update attendance record
             $attendance->update([
                 'check_out_time' => now('Asia/Makassar'),
@@ -226,7 +313,7 @@ class AttendanceController extends Controller
                 'check_out_longitude' => $validated['longitude'] ?? null,
                 'location_verified' => $locationVerified,
                 'check_out_notes' => $validated['notes'] ?? null,
-                'metadata' => array_merge($attendance->metadata ?? [], $validated['metadata'] ?? []),
+                'metadata' => $attendanceMetadata,
             ]);
 
             // Calculate total hours and update status
@@ -235,18 +322,37 @@ class AttendanceController extends Controller
 
             DB::commit();
 
+            // Prepare response data
+            $responseData = [
+                'attendance_id' => $attendance->id,
+                'check_out_time' => $attendance->check_out_time->format('Y-m-d H:i:s'),
+                'total_hours' => $attendance->total_hours,
+                'working_hours_formatted' => $attendance->working_hours_formatted,
+                'status' => $attendance->status,
+                'location_verified' => $locationVerified,
+                'confidence' => $validated['face_confidence'],
+            ];
+
+            // Add schedule info if available
+            if ($schedule) {
+                $responseData['schedule'] = [
+                    'name' => $schedule->name,
+                    'expected_start' => $schedule->default_start_time,
+                    'expected_end' => $schedule->default_end_time,
+                    'is_early' => $isEarly,
+                ];
+            }
+
+            // Determine success message
+            $message = 'Check-out successful';
+            if ($timeWindowMessage) {
+                $message .= '. ' . $timeWindowMessage;
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => 'Check-out successful',
-                'data' => [
-                    'attendance_id' => $attendance->id,
-                    'check_out_time' => $attendance->check_out_time->format('Y-m-d H:i:s'),
-                    'total_hours' => $attendance->total_hours,
-                    'working_hours_formatted' => $attendance->working_hours_formatted,
-                    'status' => $attendance->status,
-                    'location_verified' => $locationVerified,
-                    'confidence' => $validated['face_confidence'],
-                ],
+                'message' => $message,
+                'data' => $responseData,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -254,7 +360,7 @@ class AttendanceController extends Controller
             return response()->json(
                 [
                     'success' => false,
-                    'message' => 'Check-out failed: '.$e->getMessage(),
+                    'message' => 'Check-out failed: ' . $e->getMessage(),
                 ],
                 500,
             );
@@ -269,7 +375,7 @@ class AttendanceController extends Controller
         try {
             $employeeId = $request->input('employee_id') ?? auth()->user()->employee?->id;
 
-            if (! $employeeId) {
+            if (!$employeeId) {
                 return response()->json(
                     [
                         'success' => false,
@@ -282,7 +388,7 @@ class AttendanceController extends Controller
             $attendance = $this->attendanceRepository->getTodayAttendance($employeeId);
             $employee = Employee::with('user')->find($employeeId);
 
-            if (! $attendance) {
+            if (!$attendance) {
                 return response()->json([
                     'success' => true,
                     'data' => [
@@ -318,15 +424,15 @@ class AttendanceController extends Controller
                     'working_hours_formatted' => $attendance->working_hours_formatted,
                     'attendance_status' => $attendance->status,
                     'location_verified' => $attendance->location_verified,
-                    'can_check_in' => ! $attendance->check_in_time,
-                    'can_check_out' => $attendance->check_in_time && ! $attendance->check_out_time,
+                    'can_check_in' => !$attendance->check_in_time,
+                    'can_check_out' => $attendance->check_in_time && !$attendance->check_out_time,
                 ],
             ]);
         } catch (\Exception $e) {
             return response()->json(
                 [
                     'success' => false,
-                    'message' => 'Failed to get status: '.$e->getMessage(),
+                    'message' => 'Failed to get status: ' . $e->getMessage(),
                 ],
                 500,
             );
@@ -342,7 +448,7 @@ class AttendanceController extends Controller
 
         // Apply role-based filtering FIRST
         $user = auth()->user();
-        if (! $user->hasRole(['superadmin', 'admin'])) {
+        if (!$user->hasRole(['superadmin', 'admin'])) {
             if ($user->hasRole('kepala_sekolah')) {
                 // Principal can see attendance for their school location
                 $userLocationId = $user->employee?->location_id;
@@ -397,26 +503,26 @@ class AttendanceController extends Controller
                 return $attendance->formatted_check_out ?? '-';
             })
             ->addColumn('status_badge', function ($attendance) {
-                return '<span class="badge bg-'.
-                  $attendance->status_color.
-                  '">'.
-                  ucfirst(str_replace('_', ' ', $attendance->status)).
-                  '</span>';
+                return '<span class="badge bg-' .
+                    $attendance->status_color .
+                    '">' .
+                    ucfirst(str_replace('_', ' ', $attendance->status)) .
+                    '</span>';
             })
             ->addColumn('actions', function ($attendance) {
                 $actions = '<div class="btn-list">';
 
                 if (auth()->user()->can('manage_attendance_all')) {
                     $actions .=
-                      '<button class="btn btn-sm btn-outline-primary view-details" data-id="'.
-                      $attendance->id.
-                      '">View</button>';
+                        '<button class="btn btn-sm btn-outline-primary view-details" data-id="' .
+                        $attendance->id .
+                        '">View</button>';
 
                     if ($attendance->status === 'incomplete') {
                         $actions .=
-                          '<button class="btn btn-sm btn-outline-success manual-checkout" data-id="'.
-                          $attendance->id.
-                          '">Complete</button>';
+                            '<button class="btn btn-sm btn-outline-success manual-checkout" data-id="' .
+                            $attendance->id .
+                            '">Complete</button>';
                     }
                 }
 
@@ -437,39 +543,47 @@ class AttendanceController extends Controller
             $startDate = $request->input('start_date', today()->startOfMonth()->format('Y-m-d'));
             $endDate = $request->input('end_date', today()->format('Y-m-d'));
 
-            $attendances = $this->attendanceRepository->getAttendanceForDateRange($startDate, $endDate);
+            $query = DB::table('attendances')
+                ->whereBetween('date', [$startDate, $endDate])
+                ->whereNull('deleted_at');
 
-            // Apply role-based filtering to statistics
+            // Apply role-based filtering
             $user = auth()->user();
-            if (! $user->hasRole(['superadmin', 'admin'])) {
+            if (!$user->hasRole(['superadmin', 'admin'])) {
                 if ($user->hasRole('kepala_sekolah')) {
-                    // Principal can see statistics for their school location
                     $userLocationId = $user->employee?->location_id;
                     if ($userLocationId) {
-                        $attendances = $attendances->whereHas('employee', function ($q) use ($userLocationId) {
-                            $q->where('location_id', $userLocationId);
-                        });
+                        // Join with employees table to filter by location
+                        $query->join('employees', 'attendances.employee_id', '=', 'employees.id')
+                            ->where('employees.location_id', $userLocationId);
                     } else {
-                        // If no location assigned, see no data
-                        $attendances = $attendances->whereRaw('1 = 0');
+                        $query->whereRaw('1 = 0');
                     }
                 } elseif ($user->hasRole(['guru', 'teacher', 'pegawai', 'staff'])) {
-                    // Teachers and staff can only see their own statistics
-                    $attendances = $attendances->where('employee_id', $user->employee?->id ?? 0);
+                    $query->where('attendances.employee_id', $user->employee?->id ?? 0);
                 } else {
-                    // Unknown roles get no access
-                    $attendances = $attendances->whereRaw('1 = 0');
+                    $query->whereRaw('1 = 0');
                 }
             }
 
+            $stats = $query->selectRaw('
+                COUNT(*) as total_records,
+                SUM(CASE WHEN status = "present" THEN 1 ELSE 0 END) as present_count,
+                SUM(CASE WHEN status = "late" THEN 1 ELSE 0 END) as late_count,
+                SUM(CASE WHEN status = "absent" THEN 1 ELSE 0 END) as absent_count,
+                SUM(CASE WHEN status = "incomplete" THEN 1 ELSE 0 END) as incomplete_count,
+                AVG(total_hours) as average_hours,
+                SUM(total_hours) as total_hours
+            ')->first();
+
             $statistics = [
-                'total_records' => $attendances->count(),
-                'present_count' => $attendances->where('status', 'present')->count(),
-                'late_count' => $attendances->where('status', 'late')->count(),
-                'absent_count' => $attendances->where('status', 'absent')->count(),
-                'incomplete_count' => $attendances->where('status', 'incomplete')->count(),
-                'average_hours' => round($attendances->avg('total_hours') ?? 0, 2),
-                'total_hours' => round($attendances->sum('total_hours') ?? 0, 2),
+                'total_records' => $stats->total_records,
+                'present_count' => $stats->present_count,
+                'late_count' => $stats->late_count,
+                'absent_count' => $stats->absent_count,
+                'incomplete_count' => $stats->incomplete_count,
+                'average_hours' => round($stats->average_hours ?? 0, 2),
+                'total_hours' => round($stats->total_hours ?? 0, 2),
             ];
 
             return response()->json([
@@ -480,7 +594,7 @@ class AttendanceController extends Controller
             return response()->json(
                 [
                     'success' => false,
-                    'message' => 'Failed to get statistics: '.$e->getMessage(),
+                    'message' => 'Failed to get statistics: ' . $e->getMessage(),
                 ],
                 500,
             );
@@ -533,7 +647,7 @@ class AttendanceController extends Controller
             return response()->json(
                 [
                     'success' => false,
-                    'message' => 'Manual check-out failed: '.$e->getMessage(),
+                    'message' => 'Manual check-out failed: ' . $e->getMessage(),
                 ],
                 500,
             );
@@ -546,13 +660,296 @@ class AttendanceController extends Controller
     private function verifyEmployeeLocation($employee, $latitude, $longitude)
     {
         // Basic location verification - can be enhanced with proper geofencing
-        if (! $employee->location) {
+        if (!$employee->location) {
             return true; // No location restriction
         }
 
         // For now, return true - implement proper geofencing logic
         // You could use the Haversine formula to calculate distance
         return true;
+    }
+
+    /**
+     * Get employee's active monthly schedule for a specific date
+     *
+     * @param Employee $employee
+     * @param Carbon|null $date
+     * @return MonthlySchedule|null
+     */
+    private function getEmployeeScheduleForDate(Employee $employee, ?Carbon $date = null): ?MonthlySchedule
+    {
+        $date = $date ?? now('Asia/Makassar');
+        $month = $date->month;
+        $year = $date->year;
+
+        // Get the assigned schedule for this employee in specified month/year
+        $employeeSchedule = EmployeeMonthlySchedule::where('employee_id', $employee->id)
+            ->whereHas('monthlySchedule', function ($query) use ($month, $year) {
+                $query->where('month', $month)
+                      ->where('year', $year)
+                      ->where('is_active', true);
+            })
+            ->with('monthlySchedule')
+            ->first();
+
+        return $employeeSchedule?->monthlySchedule;
+    }
+
+    /**
+     * Check if user can bypass schedule validation
+     *
+     * @param User|null $user
+     * @param Employee $employee
+     * @param string $reason
+     * @return bool
+     */
+    private function canBypassValidation(?User $user, Employee $employee, string $reason = 'general'): bool
+    {
+        // Check maintenance mode
+        if (config('attendance.maintenance_mode', false)) {
+            if (config('attendance.log_bypass', true)) {
+                \Log::warning('Attendance validation bypassed: MAINTENANCE MODE', [
+                    'employee_id' => $employee->id,
+                    'reason' => 'maintenance_mode',
+                ]);
+            }
+            return true;
+        }
+
+        // Check if strict mode is disabled globally
+        if (!config('attendance.strict_mode', true)) {
+            if (config('attendance.log_bypass', true)) {
+                \Log::info('Attendance validation bypassed: STRICT MODE DISABLED', [
+                    'employee_id' => $employee->id,
+                    'reason' => 'strict_mode_disabled',
+                ]);
+            }
+            return true;
+        }
+
+        // Check user role bypass
+        if ($user) {
+            $bypassRoles = config('attendance.bypass_roles', ['super_admin']);
+            if ($user->hasAnyRole($bypassRoles)) {
+                if (config('attendance.log_bypass', true)) {
+                    \Log::info('Attendance validation bypassed: ROLE PRIVILEGE', [
+                        'user_id' => $user->id,
+                        'user_email' => $user->email,
+                        'user_roles' => $user->roles->pluck('name')->toArray(),
+                        'employee_id' => $employee->id,
+                        'reason' => $reason,
+                        'timestamp' => now()->toISOString(),
+                    ]);
+                }
+                return true;
+            }
+        }
+
+        // Check employee metadata bypass flag
+        if ($employee->metadata && isset($employee->metadata['bypass_schedule_validation'])) {
+            if ($employee->metadata['bypass_schedule_validation'] === true) {
+                if (config('attendance.log_bypass', true)) {
+                    \Log::info('Attendance validation bypassed: EMPLOYEE FLAG', [
+                        'employee_id' => $employee->id,
+                        'reason' => 'employee_metadata_flag',
+                    ]);
+                }
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Validate if current date is a working day according to employee's schedule
+     *
+     * @param Employee $employee
+     * @param Carbon|null $date
+     * @return array ['valid' => bool, 'message' => string|null, 'schedule' => MonthlySchedule|null]
+     */
+    private function validateWorkingDay(Employee $employee, ?Carbon $date = null): array
+    {
+        $date = $date ?? now('Asia/Makassar');
+        $dateStr = $date->toDateString(); // Format: "2025-02-01"
+
+        // ===== CHECK BYPASS CONDITIONS =====
+        $user = auth()->user();
+        if ($this->canBypassValidation($user, $employee, 'working_day_validation')) {
+            return [
+                'valid' => true,
+                'message' => null,
+                'schedule' => null,
+                'bypass' => true,
+            ];
+        }
+
+        // ===== WORKING DAY VALIDATION (if not bypassed) =====
+
+        // Check if working day validation is enabled
+        if (!config('attendance.validate_working_days', true)) {
+            return [
+                'valid' => true,
+                'message' => null,
+                'schedule' => null,
+            ];
+        }
+
+        // Get employee's schedule
+        $schedule = $this->getEmployeeScheduleForDate($employee, $date);
+
+        // If no schedule assigned, REJECT attendance (strict mode for regular employees)
+        if (!$schedule) {
+            return [
+                'valid' => false,
+                'message' => 'Anda belum memiliki jadwal kerja untuk bulan ini. Silakan hubungi admin untuk pengaturan jadwal.',
+                'schedule' => null,
+            ];
+        }
+
+        // Check if today is in the working_days array
+        $workingDays = $schedule->working_days ?? [];
+        $isWorkingDay = in_array($dateStr, $workingDays);
+
+        if (!$isWorkingDay) {
+            return [
+                'valid' => false,
+                'message' => 'Hari ini bukan hari kerja menurut jadwal Anda. Silakan hubungi admin jika terjadi kesalahan.',
+                'schedule' => $schedule,
+            ];
+        }
+
+        return [
+            'valid' => true,
+            'message' => null,
+            'schedule' => $schedule,
+        ];
+    }
+
+    /**
+     * Validate if current time is within check-in window
+     *
+     * @param MonthlySchedule|null $schedule
+     * @param Carbon|null $time
+     * @return array ['valid' => bool, 'message' => string|null, 'is_late' => bool]
+     */
+    private function validateCheckInWindow(?MonthlySchedule $schedule, ?Carbon $time = null): array
+    {
+        // Check if time window validation is enabled
+        if (!config('attendance.validate_time_windows', true)) {
+            return [
+                'valid' => true,
+                'message' => null,
+                'is_late' => false,
+            ];
+        }
+
+        // ===== BYPASS FOR ADMIN ROLES (No schedule = admin bypass) =====
+        if (!$schedule) {
+            return [
+                'valid' => true,
+                'message' => null,
+                'is_late' => false,
+                'bypass' => true,
+            ];
+        }
+
+        $time = $time ?? now('Asia/Makassar');
+        $currentTime = $time->format('H:i:s');
+
+        // Parse schedule times
+        $checkinStart = Carbon::createFromFormat('H:i', $schedule->checkin_start_time)->format('H:i:s');
+        $checkinEnd = Carbon::createFromFormat('H:i', $schedule->checkin_end_time)->format('H:i:s');
+        $workStart = Carbon::createFromFormat('H:i', $schedule->default_start_time)->format('H:i:s');
+
+        // Check if within allowed window
+        if ($currentTime < $checkinStart) {
+            return [
+                'valid' => false,
+                'message' => "Check-in hanya diperbolehkan mulai pukul {$schedule->checkin_start_time}. Saat ini terlalu awal.",
+                'is_late' => false,
+            ];
+        }
+
+        if ($currentTime > $checkinEnd) {
+            return [
+                'valid' => false,
+                'message' => "Window check-in telah berakhir pada pukul {$schedule->checkin_end_time}. Silakan hubungi admin.",
+                'is_late' => true,
+            ];
+        }
+
+        // Check if late (after work start time)
+        $isLate = $currentTime > $workStart;
+
+        return [
+            'valid' => true,
+            'message' => $isLate ? "Anda terlambat. Jam kerja dimulai pada {$schedule->default_start_time}." : null,
+            'is_late' => $isLate,
+        ];
+    }
+
+    /**
+     * Validate if current time is within check-out window
+     *
+     * @param MonthlySchedule|null $schedule
+     * @param Carbon|null $time
+     * @return array ['valid' => bool, 'message' => string|null, 'is_early' => bool]
+     */
+    private function validateCheckOutWindow(?MonthlySchedule $schedule, ?Carbon $time = null): array
+    {
+        // Check if time window validation is enabled
+        if (!config('attendance.validate_time_windows', true)) {
+            return [
+                'valid' => true,
+                'message' => null,
+                'is_early' => false,
+            ];
+        }
+
+        // ===== BYPASS FOR ADMIN ROLES (No schedule = admin bypass) =====
+        if (!$schedule) {
+            return [
+                'valid' => true,
+                'message' => null,
+                'is_early' => false,
+                'bypass' => true,
+            ];
+        }
+
+        $time = $time ?? now('Asia/Makassar');
+        $currentTime = $time->format('H:i:s');
+
+        // Parse schedule times
+        $checkoutStart = Carbon::createFromFormat('H:i', $schedule->checkout_start_time)->format('H:i:s');
+        $checkoutEnd = Carbon::createFromFormat('H:i', $schedule->checkout_end_time)->format('H:i:s');
+        $workEnd = Carbon::createFromFormat('H:i', $schedule->default_end_time)->format('H:i:s');
+
+        // Check if within allowed window
+        if ($currentTime < $checkoutStart) {
+            return [
+                'valid' => false,
+                'message' => "Check-out hanya diperbolehkan mulai pukul {$schedule->checkout_start_time}. Saat ini terlalu awal.",
+                'is_early' => true,
+            ];
+        }
+
+        if ($currentTime > $checkoutEnd) {
+            return [
+                'valid' => false,
+                'message' => "Window check-out telah berakhir pada pukul {$schedule->checkout_end_time}. Silakan hubungi admin.",
+                'is_early' => false,
+            ];
+        }
+
+        // Check if early (before work end time)
+        $isEarly = $currentTime < $workEnd;
+
+        return [
+            'valid' => true,
+            'message' => $isEarly ? "Anda pulang lebih awal. Jam kerja berakhir pada {$schedule->default_end_time}." : null,
+            'is_early' => $isEarly,
+        ];
     }
 
     /**
@@ -589,7 +986,7 @@ class AttendanceController extends Controller
             return response()->json(
                 [
                     'success' => false,
-                    'message' => 'Failed to get attendance details: '.$e->getMessage(),
+                    'message' => 'Failed to get attendance details: ' . $e->getMessage(),
                 ],
                 500,
             );
@@ -652,17 +1049,17 @@ class AttendanceController extends Controller
                     ucfirst(str_replace('_', ' ', $attendance->status)),
                     $attendance->location_verified ? 'Yes' : 'No',
                     $attendance->check_in_confidence
-                      ? round($attendance->check_in_confidence * 100, 1).'%'
-                      : '',
+                    ? round($attendance->check_in_confidence * 100, 1) . '%'
+                    : '',
                     $attendance->check_out_confidence
-                      ? round($attendance->check_out_confidence * 100, 1).'%'
-                      : '',
-                    trim(($attendance->check_in_notes ?? '').' '.($attendance->check_out_notes ?? '')),
+                    ? round($attendance->check_out_confidence * 100, 1) . '%'
+                    : '',
+                    trim(($attendance->check_in_notes ?? '') . ' ' . ($attendance->check_out_notes ?? '')),
                 ];
             }
 
             // Generate filename
-            $filename = 'attendance_export_'.now()->format('Y-m-d_H-i-s').'.csv';
+            $filename = 'attendance_export_' . now()->format('Y-m-d_H-i-s') . '.csv';
 
             // Create response
             $response = response()->streamDownload(
@@ -678,7 +1075,7 @@ class AttendanceController extends Controller
                 $filename,
                 [
                     'Content-Type' => 'text/csv',
-                    'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+                    'Content-Disposition' => 'attachment; filename="' . $filename . '"',
                 ],
             );
 
@@ -687,7 +1084,7 @@ class AttendanceController extends Controller
             return response()->json(
                 [
                     'success' => false,
-                    'message' => 'Export failed: '.$e->getMessage(),
+                    'message' => 'Export failed: ' . $e->getMessage(),
                 ],
                 500,
             );
@@ -760,15 +1157,15 @@ class AttendanceController extends Controller
 
             $import = new AttendanceImport($options);
             Excel::import($import, $file);
-            
+
             $results = $import->getResults();
 
             $message = "Import completed! {$results['success']} records imported successfully.";
-            
+
             if ($results['skipped'] > 0) {
                 $message .= " {$results['skipped']} records skipped.";
             }
-            
+
             if (count($results['errors']) > 0) {
                 $message .= " " . count($results['errors']) . " errors occurred.";
             }
@@ -793,17 +1190,17 @@ class AttendanceController extends Controller
             }
 
             return redirect()->back()->with('success', $message);
-            
+
         } catch (\Exception $e) {
             $errorMessage = 'Import failed: ' . $e->getMessage();
-            
+
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
                     'message' => $errorMessage
                 ], 500);
             }
-            
+
             return redirect()->back()->with('error', $errorMessage);
         }
     }
@@ -825,7 +1222,7 @@ class AttendanceController extends Controller
             }
 
             $today = now('Asia/Makassar');
-            
+
             // Simple fallback schedule for now
             $schedule = [
                 'period_name' => 'Jadwal Kerja Umum',
@@ -868,7 +1265,7 @@ class AttendanceController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('Get today schedule error: '.$e->getMessage());
+            \Log::error('Get today schedule error: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -886,7 +1283,7 @@ class AttendanceController extends Controller
             $user = $request->user();
             $employee = $user->employee;
 
-            if (! $employee) {
+            if (!$employee) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Employee profile not found',
@@ -896,7 +1293,7 @@ class AttendanceController extends Controller
             // Get today's attendance record (use WITA timezone)
             $today = now('Asia/Makassar')->startOfDay();
             $todayDate = $today->format('Y-m-d');
-            
+
             $attendance = Attendance::where('employee_id', $employee->id)
                 ->whereDate('date', $todayDate)
                 ->first();
@@ -909,7 +1306,7 @@ class AttendanceController extends Controller
             $canCheckOut = false;
 
             if ($attendance) {
-                if ($attendance->check_in_time && ! $attendance->check_out_time) {
+                if ($attendance->check_in_time && !$attendance->check_out_time) {
                     $status = 'Working';
                     $badge = 'Working';
                     $nextAction = 'Check Out';
@@ -942,7 +1339,7 @@ class AttendanceController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('Get current status error: '.$e->getMessage());
+            \Log::error('Get current status error: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,

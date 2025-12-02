@@ -10,26 +10,27 @@ import type { User } from '@/types/auth';
  * Check if user has a specific role
  */
 export function hasRole(user: User | null, roleName: string): boolean {
-  if (!user || !user.roles) return false;
-  return user.roles.some((role) => role.name === roleName);
+  if (!user || !user.role) return false;
+  // Handle both kebab-case (frontend) and Title Case/snake_case (backend)
+  const normalizedUserRole = user.role.toLowerCase().replace(/_/g, '-').replace(/ /g, '-');
+  const normalizedRoleName = roleName.toLowerCase().replace(/_/g, '-').replace(/ /g, '-');
+  return normalizedUserRole === normalizedRoleName;
 }
 
 /**
  * Check if user has any of the specified roles
  */
 export function hasAnyRole(user: User | null, roleNames: string[]): boolean {
-  if (!user || !user.roles) return false;
-  return user.roles.some((role) => roleNames.includes(role.name));
+  if (!user || !user.role) return false;
+  return roleNames.some((role) => hasRole(user, role));
 }
 
 /**
  * Check if user has all of the specified roles
  */
 export function hasAllRoles(user: User | null, roleNames: string[]): boolean {
-  if (!user || !user.roles) return false;
-  return roleNames.every((roleName) =>
-    user.roles!.some((role) => role.name === roleName)
-  );
+  if (!user || !user.role) return false;
+  return roleNames.every((role) => hasRole(user, role));
 }
 
 /**
@@ -38,16 +39,9 @@ export function hasAllRoles(user: User | null, roleNames: string[]): boolean {
 export function hasPermission(user: User | null, permissionName: string): boolean {
   if (!user) return false;
 
-  // Check direct permissions
-  if (user.permissions?.some((p) => p.name === permissionName)) {
+  // Check direct permissions (array of strings)
+  if (user.permissions?.includes(permissionName)) {
     return true;
-  }
-
-  // Check permissions through roles
-  if (user.roles) {
-    return user.roles.some((role) =>
-      role.permissions?.some((p) => p.name === permissionName)
-    );
   }
 
   return false;
@@ -71,7 +65,7 @@ export interface RouteContext {
   };
 }
 
-export function requireAuth(context: RouteContext) {
+export function requireAuth({ context }: { context: RouteContext }) {
   const { user, isAuthenticated } = context.auth;
 
   if (!isAuthenticated || !user) {
@@ -89,7 +83,7 @@ export function requireAuth(context: RouteContext) {
  * Redirects to /employee/dashboard if not admin
  * Redirects to /login if not authenticated
  */
-export function requireAdmin(context: RouteContext) {
+export function requireAdmin({ context }: { context: RouteContext }) {
   const { user, isAuthenticated } = context.auth;
 
   // First check authentication
@@ -102,8 +96,8 @@ export function requireAdmin(context: RouteContext) {
     });
   }
 
-  // Then check admin role
-  if (!hasRole(user, 'admin')) {
+  // Then check admin role (allow super-admin, admin, and kepala-sekolah)
+  if (!hasAnyRole(user, ['admin', 'super-admin', 'kepala-sekolah'])) {
     throw redirect({
       to: '/employee/dashboard',
     });
@@ -115,7 +109,7 @@ export function requireAdmin(context: RouteContext) {
  * Redirects to /admin/dashboard if admin
  * Redirects to /login if not authenticated
  */
-export function requireEmployee(context: RouteContext) {
+export function requireEmployee({ context }: { context: RouteContext }) {
   const { user, isAuthenticated } = context.auth;
 
   // First check authentication
@@ -129,7 +123,7 @@ export function requireEmployee(context: RouteContext) {
   }
 
   // Redirect admin users to admin area
-  if (hasRole(user, 'admin')) {
+  if (hasAnyRole(user, ['admin', 'super-admin', 'kepala-sekolah'])) {
     throw redirect({
       to: '/admin/dashboard',
     });
@@ -142,7 +136,7 @@ export function requireEmployee(context: RouteContext) {
  * Redirects to /login if not authenticated
  */
 export function requirePermission(permissionName: string) {
-  return (context: RouteContext) => {
+  return ({ context }: { context: RouteContext }) => {
     const { user, isAuthenticated } = context.auth;
 
     // First check authentication
@@ -173,7 +167,7 @@ export function requireGuest(context: RouteContext) {
 
   if (isAuthenticated && user) {
     // Redirect to appropriate dashboard based on role
-    if (hasRole(user, 'admin')) {
+    if (hasAnyRole(user, ['admin', 'super-admin', 'kepala-sekolah'])) {
       throw redirect({ to: '/admin/dashboard' });
     } else {
       throw redirect({ to: '/employee/dashboard' });
@@ -187,7 +181,7 @@ export function requireGuest(context: RouteContext) {
 export function getDefaultRedirect(user: User | null): string {
   if (!user) return '/login';
 
-  if (hasRole(user, 'admin')) {
+  if (hasAnyRole(user, ['admin', 'super-admin', 'kepala-sekolah'])) {
     return '/admin/dashboard';
   }
 

@@ -15,6 +15,7 @@ import {
     PowerOff,
     Map,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { PageHeader, StatsGrid, type StatItem } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -64,6 +65,7 @@ import {
     type LocationFormData,
     type LocationStatistics,
 } from '@/types/location';
+import { LocationMapPicker } from '@/components/maps/LocationMapPicker';
 
 // Type badge component
 function TypeBadge({ type }: { type?: LocationType }) {
@@ -306,6 +308,23 @@ function LocationFormDialog({
                             />
                         </div>
 
+                        <div className="grid gap-2">
+                            <Label>Pilih Lokasi di Map</Label>
+                            <LocationMapPicker
+                                latitude={formData.latitude}
+                                longitude={formData.longitude}
+                                onLocationChange={(lat, lng, address) => {
+                                    setFormData((prev) => ({
+                                        ...prev,
+                                        latitude: lat,
+                                        longitude: lng,
+                                        ...(address && !prev.address ? { address } : {}),
+                                    }));
+                                }}
+                                height="350px"
+                            />
+                        </div>
+
                         <div className="grid grid-cols-2 gap-4">
                             <div className="grid gap-2">
                                 <Label htmlFor="latitude">Latitude</Label>
@@ -314,9 +333,10 @@ function LocationFormDialog({
                                     type="number"
                                     step="0.000001"
                                     value={formData.latitude}
-                                    onChange={(e) =>
-                                        setFormData((prev) => ({ ...prev, latitude: parseFloat(e.target.value) }))
-                                    }
+                                    onChange={(e) => {
+                                        const val = parseFloat(e.target.value);
+                                        setFormData((prev) => ({ ...prev, latitude: isNaN(val) ? 0 : val }));
+                                    }}
                                     required
                                 />
                             </div>
@@ -327,9 +347,10 @@ function LocationFormDialog({
                                     type="number"
                                     step="0.000001"
                                     value={formData.longitude}
-                                    onChange={(e) =>
-                                        setFormData((prev) => ({ ...prev, longitude: parseFloat(e.target.value) }))
-                                    }
+                                    onChange={(e) => {
+                                        const val = parseFloat(e.target.value);
+                                        setFormData((prev) => ({ ...prev, longitude: isNaN(val) ? 0 : val }));
+                                    }}
                                     required
                                 />
                             </div>
@@ -342,9 +363,10 @@ function LocationFormDialog({
                                     id="radius"
                                     type="number"
                                     value={formData.radius_meters}
-                                    onChange={(e) =>
-                                        setFormData((prev) => ({ ...prev, radius_meters: parseInt(e.target.value) }))
-                                    }
+                                    onChange={(e) => {
+                                        const val = parseInt(e.target.value);
+                                        setFormData((prev) => ({ ...prev, radius_meters: isNaN(val) ? 0 : val }));
+                                    }}
                                     required
                                 />
                             </div>
@@ -418,15 +440,15 @@ export function DesktopLocationsPage() {
     const [deletingLocation, setDeletingLocation] = useState<Location | null>(null);
     const [stats, setStats] = useState<LocationStatistics | null>(null);
 
-    useEffect(() => {
-        fetchLocations();
-        loadStats();
-    }, [fetchLocations]);
-
     const loadStats = async () => {
         const statistics = await getStatistics();
         setStats(statistics);
     };
+
+    useEffect(() => {
+        fetchLocations();
+        loadStats();
+    }, [fetchLocations]);
 
     const handleSearch = () => {
         fetchLocations({
@@ -440,23 +462,52 @@ export function DesktopLocationsPage() {
     }, [statusFilter]);
 
     const handleCreate = async (data: LocationFormData) => {
-        await createLocation(data);
-        loadStats();
+        if (data.radius_meters <= 0) {
+            toast.error('Radius harus lebih dari 0 meter');
+            return;
+        }
+        try {
+            await createLocation(data);
+            toast.success('Lokasi berhasil dibuat');
+            loadStats();
+        } catch (error: any) {
+            // Error is already handled/thrown by hook, but we catch it here to prevent uncaught promise
+            // and maybe show a specific toast if the hook didn't (though hook sets error state)
+            console.error('Create location error:', error);
+            // The hook sets 'error' state, but we can also toast here
+            toast.error(error.message || 'Gagal membuat lokasi');
+        }
     };
 
     const handleUpdate = async (data: LocationFormData) => {
+        if (data.radius_meters <= 0) {
+            toast.error('Radius harus lebih dari 0 meter');
+            return;
+        }
         if (editingLocation) {
-            await updateLocation(editingLocation.id, data);
-            setEditingLocation(null);
-            loadStats();
+            try {
+                await updateLocation(editingLocation.id, data);
+                toast.success('Lokasi berhasil diperbarui');
+                setEditingLocation(null);
+                loadStats();
+            } catch (error: any) {
+                console.error('Update location error:', error);
+                toast.error(error.message || 'Gagal memperbarui lokasi');
+            }
         }
     };
 
     const handleDelete = async () => {
         if (deletingLocation) {
-            await deleteLocation(deletingLocation.id);
-            setDeletingLocation(null);
-            loadStats();
+            try {
+                await deleteLocation(deletingLocation.id);
+                toast.success('Lokasi berhasil dihapus');
+                setDeletingLocation(null);
+                loadStats();
+            } catch (error: any) {
+                console.error('Delete location error:', error);
+                toast.error(error.message || 'Gagal menghapus lokasi');
+            }
         }
     };
 

@@ -23,6 +23,12 @@ class MonthlySchedule extends Model
         'end_date',
         'default_start_time',
         'default_end_time',
+        'checkin_start_time',
+        'checkin_end_time',
+        'checkout_start_time',
+        'checkout_end_time',
+        'working_days',
+        'total_working_days',
         'working_hours_per_day',
         'working_hours_template',
         'location_id',
@@ -38,7 +44,13 @@ class MonthlySchedule extends Model
         'end_date' => 'date',
         'default_start_time' => 'datetime:H:i',
         'default_end_time' => 'datetime:H:i',
+        'checkin_start_time' => 'datetime:H:i',
+        'checkin_end_time' => 'datetime:H:i',
+        'checkout_start_time' => 'datetime:H:i',
+        'checkout_end_time' => 'datetime:H:i',
+        'working_days' => 'array',
         'working_hours_per_day' => 'array',
+        'total_working_days' => 'integer',
         'is_active' => 'boolean',
         'metadata' => 'array',
         'month' => 'integer',
@@ -73,13 +85,13 @@ class MonthlySchedule extends Model
     {
         $now = Carbon::now();
         return $query->where('start_date', '<=', $now)
-                    ->where('end_date', '>=', $now);
+            ->where('end_date', '>=', $now);
     }
 
     /**
      * Relationships
      */
-    
+
     public function location(): BelongsTo
     {
         return $this->belongsTo(Location::class);
@@ -120,7 +132,7 @@ class MonthlySchedule extends Model
     /**
      * Accessors & Mutators
      */
-    
+
     public function getMonthNameAttribute(): string
     {
         return Carbon::createFromDate($this->year, $this->month, 1)->format('F');
@@ -140,39 +152,39 @@ class MonthlySchedule extends Model
     {
         $start = Carbon::createFromFormat('H:i', $this->default_start_time->format('H:i'));
         $end = Carbon::createFromFormat('H:i', $this->default_end_time->format('H:i'));
-        
+
         return $start->diffInHours($end);
     }
 
     /**
      * Business Logic Methods
      */
-    
+
     public function generateDailySchedules(): int
     {
         $generated = 0;
         $current = $this->start_date->copy();
-        
+
         while ($current->lte($this->end_date)) {
             // Only generate for weekdays by default (can be overridden in metadata)
             $workDays = $this->metadata['work_days'] ?? ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-            
+
             if (in_array(strtolower($current->format('l')), $workDays)) {
                 // We'll generate employee schedules when employees are assigned
                 // This method is for validation and preparation
                 $generated++;
             }
-            
+
             $current->addDay();
         }
-        
+
         return $generated;
     }
 
     public function assignEmployee(Employee $employee): bool
     {
         $assignments = 0;
-        
+
         // Ensure dates are Carbon instances
         if (!$this->start_date || !$this->end_date) {
             \Log::error('MonthlySchedule missing dates', [
@@ -182,54 +194,102 @@ class MonthlySchedule extends Model
             ]);
             return false;
         }
-        
+
         $startDate = $this->start_date instanceof Carbon ? $this->start_date : Carbon::parse($this->start_date);
         $endDate = $this->end_date instanceof Carbon ? $this->end_date : Carbon::parse($this->end_date);
         $current = $startDate->copy();
-        
+
+        // Use working_days array if available (this is the source of truth for this schedule)
+        // working_days contains array of date strings (Y-m-d)
+        $workingDaysList = $this->working_days ?? [];
+        $hasWorkingDaysList = !empty($workingDaysList) && is_array($workingDaysList);
+
+        \Log::info("Starting assignment loop. Start: {$startDate->toDateString()}, End: {$endDate->toDateString()}");
+        \Log::info("Has working days list: " . ($hasWorkingDaysList ? 'Yes' : 'No'));
+        if ($hasWorkingDaysList) {
+            \Log::info("Working days count: " . count($workingDaysList));
+            \Log::info("First few working days: " . implode(', ', array_slice($workingDaysList, 0, 3)));
+        }
+
         while ($current->lte($endDate)) {
-            $workDays = $this->metadata['work_days'] ?? ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-            
-            if (in_array(strtolower($current->format('l')), $workDays)) {
-                // Check if employee already has schedule for this date
-                $existing = EmployeeMonthlySchedule::where('employee_id', $employee->id)
-                    ->where('effective_date', $current)
-                    ->first();
-                
-                if (!$existing) {
-                    // Calculate scheduled hours from start and end time
-                    $startTime = Carbon::parse($this->default_start_time);
-                    $endTime = Carbon::parse($this->default_end_time);
-                    $scheduledHours = $endTime->diffInHours($startTime);
-                    
-                    try {
-                        EmployeeMonthlySchedule::create([
-                        'monthly_schedule_id' => $this->id,
-                        'employee_id' => $employee->id,
-                        'effective_date' => $current->toDateString(),
-                        'start_time' => $this->default_start_time,
-                        'end_time' => $this->default_end_time,
-                        'location_id' => $this->location_id,
-                        'scheduled_hours' => $scheduledHours,
-                        'is_weekend' => $current->isWeekend(),
-                        'assigned_by' => auth()->id(),
-                    ]);
-                    
-                    $assignments++;
-                    } catch (\Exception $e) {
-                        \Log::error('Failed to create employee schedule', [
-                            'employee_id' => $employee->id,
-                            'schedule_id' => $this->id,
-                            'date' => $current->toDateString(),
-                            'error' => $e->getMessage()
-                        ]);
-                    }
+            $isWorkingDay = false;
+            $currentDateStr = $current->format('Y-m-d');
+
+            if ($hasWorkingDaysList) {
+                // Check if current date is in working_days array
+                if (in_array($currentDateStr, $workingDaysList)) {
+                    $isWorkingDay = true;
+                }
+            } else {
+                // Fallback to metadata pattern
+                $workDays = $this->metadata['work_days'] ?? ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+                if (in_array(strtolower($current->format('l')), $workDays)) {
+                    $isWorkingDay = true;
                 }
             }
-            
+
+            // \Log::info("Checking date: {$currentDateStr}, Is Working Day: " . ($isWorkingDay ? 'Yes' : 'No'));
+
+            if ($isWorkingDay) {
+                // Calculate scheduled hours from start and end time
+                $startTime = Carbon::parse($this->default_start_time);
+                $endTime = Carbon::parse($this->default_end_time);
+                // Ensure positive duration
+                $scheduledHours = $startTime->diffInHours($endTime, true);
+
+                try {
+                    // Manually handle find-restore-update to ensure reliability with soft deletes and unique constraints
+                    $existingSchedule = EmployeeMonthlySchedule::withTrashed()
+                        ->where('employee_id', $employee->id)
+                        ->where('effective_date', 'like', $current->toDateString() . '%')
+                        ->first();
+
+                    if ($existingSchedule) {
+                        // If it exists (active or soft-deleted), update it
+                        if ($existingSchedule->trashed()) {
+                            $existingSchedule->restore();
+                        }
+
+                        $existingSchedule->update([
+                            'monthly_schedule_id' => $this->id,
+                            'start_time' => $this->default_start_time,
+                            'end_time' => $this->default_end_time,
+                            'location_id' => $this->location_id,
+                            'scheduled_hours' => $scheduledHours,
+                            'is_weekend' => $current->isWeekend(),
+                            'assigned_by' => auth()->id(),
+                            'status' => 'active', // Reset status to active
+                            'override_metadata' => [], // Reset overrides
+                        ]);
+                    } else {
+                        // If it doesn't exist, create it
+                        EmployeeMonthlySchedule::create([
+                            'employee_id' => $employee->id,
+                            'effective_date' => $current->toDateString(),
+                            'monthly_schedule_id' => $this->id,
+                            'start_time' => $this->default_start_time,
+                            'end_time' => $this->default_end_time,
+                            'location_id' => $this->location_id,
+                            'scheduled_hours' => $scheduledHours,
+                            'is_weekend' => $current->isWeekend(),
+                            'assigned_by' => auth()->id(),
+                        ]);
+                    }
+
+                    $assignments++;
+                } catch (\Exception $e) {
+                    \Log::error('Failed to create/update employee schedule', [
+                        'employee_id' => $employee->id,
+                        'schedule_id' => $this->id,
+                        'date' => $current->toDateString(),
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+
             $current->addDay();
         }
-        
+
         return $assignments > 0;
     }
 
@@ -240,11 +300,11 @@ class MonthlySchedule extends Model
             'failed' => 0,
             'errors' => []
         ];
-        
+
         foreach ($employeeIds as $employeeId) {
             try {
                 $employee = Employee::findOrFail($employeeId);
-                
+
                 if ($this->assignEmployee($employee)) {
                     $results['success']++;
                 } else {
@@ -256,7 +316,7 @@ class MonthlySchedule extends Model
                 $results['errors'][] = "Failed to assign employee {$employeeId}: " . $e->getMessage();
             }
         }
-        
+
         return $results;
     }
 
@@ -270,14 +330,14 @@ class MonthlySchedule extends Model
     public function getHolidayConflicts(): array
     {
         $holidays = NationalHoliday::whereBetween('holiday_date', [$this->start_date, $this->end_date])
-            ->where(function($query) {
+            ->where(function ($query) {
                 $query->whereNull('location_id')
                     ->orWhere('location_id', $this->location_id);
             })
             ->where('is_active', true)
             ->get();
-        
-        return $holidays->map(function($holiday) {
+
+        return $holidays->map(function ($holiday) {
             return [
                 'date' => $holiday->holiday_date,
                 'name' => $holiday->name,
@@ -293,13 +353,13 @@ class MonthlySchedule extends Model
     {
         $overridden = 0;
         $holidays = NationalHoliday::whereBetween('holiday_date', [$this->start_date, $this->end_date])
-            ->where(function($query) {
+            ->where(function ($query) {
                 $query->whereNull('location_id')
                     ->orWhere('location_id', $this->location_id);
             })
             ->where('is_active', true)
             ->get();
-        
+
         foreach ($holidays as $holiday) {
             $affected = $this->employeeSchedules()
                 ->where('effective_date', $holiday->holiday_date)
@@ -315,17 +375,17 @@ class MonthlySchedule extends Model
                         'override_by' => auth()->id()
                     ])
                 ]);
-            
+
             $overridden += $affected;
         }
-        
+
         return $overridden;
     }
 
     /**
      * Validation Rules
      */
-    
+
     public static function validationRules(): array
     {
         return [

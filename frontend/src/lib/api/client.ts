@@ -1,7 +1,14 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 
 // API base URL from environment or default to localhost
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+// Using relative path to leverage Vite proxy in development
+const API_URL = '/api/v1';
+// const envApiUrl = import.meta.env.VITE_API_URL;
+// const API_URL = envApiUrl
+//   ? (envApiUrl.endsWith('/api/v1') ? envApiUrl : `${envApiUrl}/api/v1`)
+//   : 'http://localhost:8000/api/v1';
+
+console.log('DEBUG: API_URL computed as:', API_URL);
 
 // Create axios instance
 export const apiClient = axios.create({

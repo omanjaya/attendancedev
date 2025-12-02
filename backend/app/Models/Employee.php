@@ -210,6 +210,11 @@ class Employee extends Model
             ->first();
     }
 
+    public function getTodaySchedule()
+    {
+        return $this->getScheduleForDate(now());
+    }
+
     public function getTeachingScheduleForDate($date): ?TeachingSchedule
     {
         if ($this->employee_type !== 'guru_honorer') {
@@ -346,4 +351,5 @@ class Employee extends Model
             'is_overloaded' => $totalHours > $maxHours
         ];
     }
+
 }

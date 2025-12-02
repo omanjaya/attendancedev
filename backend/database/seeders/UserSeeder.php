@@ -75,7 +75,7 @@ class UserSeeder extends Seeder
                 'approve_leave',
                 'view_reports',
             ],
-            'Employee' => ['view_own_attendance', 'manage_own_attendance', 'view_schedules'],
+            'Employee' => ['view_attendance_own', 'manage_attendance_own', 'view_schedules'],
         ];
 
         foreach ($roles as $roleName => $permissions) {
@@ -325,7 +325,7 @@ class UserSeeder extends Seeder
         foreach ($sampleUsers as $userData) {
             // Create user first
             $user = User::create([
-                'name' => $userData['first_name'].' '.$userData['last_name'],
+                'name' => $userData['first_name'] . ' ' . $userData['last_name'],
                 'email' => $userData['email'],
                 'password' => Hash::make($userData['password']),
                 'email_verified_at' => now(),
@@ -336,8 +336,8 @@ class UserSeeder extends Seeder
             $employee = Employee::create([
                 'user_id' => $user->id,
                 'employee_id' => $userData['employee_id'],
-                'full_name' => $userData['first_name'].' '.$userData['last_name'],
-                'phone' => '+62812-'.rand(1000, 9999).'-'.rand(1000, 9999),
+                'full_name' => $userData['first_name'] . ' ' . $userData['last_name'],
+                'phone' => '+62812-' . rand(1000, 9999) . '-' . rand(1000, 9999),
                 'hire_date' => now()->subMonths(rand(1, 60))->format('Y-m-d'),
                 'employee_type' => $userData['employee_type'],
                 'salary_type' => $userData['employee_type'] === 'honorary' ? 'hourly' : 'monthly',
@@ -348,13 +348,13 @@ class UserSeeder extends Seeder
                     'position' => $userData['position'],
                     'department' => $userData['department'],
                     'date_of_birth' => now()->subYears(rand(25, 50))->format('Y-m-d'),
-                    'address' => 'Jl. Sample No. '.rand(1, 100).', Jakarta',
+                    'address' => 'Jl. Sample No. ' . rand(1, 100) . ', Jakarta',
                     'emergency_contact_name' => 'Emergency Contact',
-                    'emergency_contact_phone' => '+62812-'.rand(1000, 9999).'-'.rand(1000, 9999),
+                    'emergency_contact_phone' => '+62812-' . rand(1000, 9999) . '-' . rand(1000, 9999),
                     'blood_type' => collect(['A', 'B', 'AB', 'O'])->random(),
                     'religion' => collect(['Islam', 'Kristen', 'Hindu', 'Buddha'])->random(),
                     'marital_status' => collect(['single', 'married', 'divorced'])->random(),
-                    'education' => collect(['S1', 'S2', 'S3', 'D3'])->random().' '.$userData['department'],
+                    'education' => collect(['S1', 'S2', 'S3', 'D3'])->random() . ' ' . $userData['department'],
                 ],
             ]);
 

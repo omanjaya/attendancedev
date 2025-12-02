@@ -17,6 +17,8 @@ export interface ReportsFilters extends ReportFilters {
   per_page?: number;
 }
 
+console.log('Loading reports.ts API module...');
+
 const ENDPOINTS = {
   data: '/reports/data',
   summary: '/reports/summary',
@@ -32,9 +34,13 @@ const ENDPOINTS = {
   download: (id: string) => `/reports/generated/${id}/download`,
 } as const;
 
+console.log('DEBUG: ENDPOINTS object:', ENDPOINTS);
+console.log('DEBUG: apiClient.defaults.baseURL:', apiClient.defaults.baseURL);
+
 // Get full report data (all charts)
 export async function getReportData(filters?: ReportFilters): Promise<ReportData> {
-  const response = await apiClient.get<{ data: ReportData }>(ENDPOINTS.data, {
+  console.log('Calling getReportData with hardcoded path...');
+  const response = await apiClient.get<{ data: ReportData }>('/reports/data', {
     params: filters,
   });
   return response.data.data;
@@ -42,7 +48,8 @@ export async function getReportData(filters?: ReportFilters): Promise<ReportData
 
 // Get report summary statistics
 export async function getReportSummary(filters?: ReportFilters): Promise<ReportSummary> {
-  const response = await apiClient.get<{ data: ReportSummary }>(ENDPOINTS.summary, {
+  console.log('Calling getReportSummary with hardcoded path...');
+  const response = await apiClient.get<{ data: ReportSummary }>('/reports/summary', {
     params: filters,
   });
   return response.data.data;
@@ -140,4 +147,38 @@ export async function updateReportTemplate(
 // Delete a report template
 export async function deleteReportTemplate(id: string): Promise<void> {
   await apiClient.delete(ENDPOINTS.templateDetail(id));
+}
+
+// Helper to wait for report completion
+export async function waitForReportCompletion(
+  reportId: string,
+  maxAttempts = 30, // Wait up to 60 seconds
+  interval = 2000
+): Promise<GeneratedReport> {
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const report = await getGeneratedReport(reportId);
+
+      if (report.status === 'completed') {
+        return report;
+      }
+
+      if (report.status === 'failed') {
+        throw new Error(report.error_message || 'Report generation failed');
+      }
+
+      // If pending or processing, wait and try again
+      await new Promise((resolve) => setTimeout(resolve, interval));
+    } catch (error) {
+      // If it's the custom error, rethrow it
+      if (error instanceof Error && (error.message.includes('Report generation failed') || error.message.includes('timed out'))) {
+        throw error;
+      }
+      // Ignore network errors during polling and try again
+      console.warn(`Polling attempt ${i + 1} failed:`, error);
+      await new Promise((resolve) => setTimeout(resolve, interval));
+    }
+  }
+
+  throw new Error('Report generation timed out. Please check the history tab later.');
 }

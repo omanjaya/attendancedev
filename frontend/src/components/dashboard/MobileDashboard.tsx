@@ -223,13 +223,13 @@ export function MobileDashboard() {
                             icon={Clock}
                             label="Absen"
                             color="text-emerald-500"
-                            onClick={() => navigate({ to: '/attendance' })}
+                            onClick={() => navigate({ to: (isAdmin || isManager) ? '/admin/attendance' : '/employee/attendance' })}
                         />
                         <MenuButton
                             icon={CalendarOff}
                             label="Cuti"
                             color="text-orange-500"
-                            onClick={() => navigate({ to: '/leave' })}
+                            onClick={() => navigate({ to: (isAdmin || isManager) ? '/admin/leave' : '/employee/leave' })}
                         />
                         {(isAdmin || isManager) && (
                             <>
@@ -237,19 +237,19 @@ export function MobileDashboard() {
                                     icon={Users}
                                     label="Karyawan"
                                     color="text-blue-500"
-                                    onClick={() => navigate({ to: '/employees' })}
+                                    onClick={() => navigate({ to: '/admin/employees' })}
                                 />
                                 <MenuButton
                                     icon={Calendar}
                                     label="Jadwal"
                                     color="text-purple-500"
-                                    onClick={() => navigate({ to: '/schedules' })}
+                                    onClick={() => navigate({ to: '/admin/schedules' })}
                                 />
                                 <MenuButton
                                     icon={FileText}
                                     label="Laporan"
                                     color="text-indigo-500"
-                                    onClick={() => navigate({ to: '/reports' })}
+                                    onClick={() => navigate({ to: '/admin/reports' })}
                                 />
                             </>
                         )}
@@ -259,13 +259,13 @@ export function MobileDashboard() {
                                     icon={Calendar}
                                     label="Jadwal"
                                     color="text-purple-500"
-                                    onClick={() => navigate({ to: '/schedules' })}
+                                    onClick={() => navigate({ to: '/employee/schedule' })}
                                 />
                                 <MenuButton
                                     icon={DollarSign}
                                     label="Gaji"
                                     color="text-green-500"
-                                    onClick={() => navigate({ to: '/payroll' })}
+                                    onClick={() => navigate({ to: '/employee/payroll' })}
                                 />
                             </>
                         )}
@@ -273,7 +273,7 @@ export function MobileDashboard() {
                             icon={Target}
                             label="Profil"
                             color="text-gray-500"
-                            onClick={() => navigate({ to: '/profile' })}
+                            onClick={() => navigate({ to: '/employee/profile' })}
                         />
                     </div>
                 </div>

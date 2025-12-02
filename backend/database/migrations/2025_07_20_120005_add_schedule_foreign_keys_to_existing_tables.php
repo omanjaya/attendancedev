@@ -201,8 +201,7 @@ return new class extends Migration
                     ms.name as schedule_name,
                     ms.month,
                     ms.year,
-                    e.first_name,
-                    e.last_name,
+                    e.full_name,
                     e.employee_type,
                     l.name as location_name,
                     CASE 
@@ -242,8 +241,7 @@ return new class extends Migration
                     ts.effective_until,
                     ts.override_attendance,
                     s.name as subject_name,
-                    e.first_name,
-                    e.last_name,
+                    e.full_name,
                     e.employee_type,
                     CASE 
                         WHEN e.employee_type = "guru_honorer" AND ts.override_attendance = 1 

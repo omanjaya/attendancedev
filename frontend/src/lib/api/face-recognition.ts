@@ -145,7 +145,7 @@ export async function registerFace(
       employee_id: data.employee_id,
       descriptor: data.descriptor,
       confidence: data.confidence,
-      algorithm: data.algorithm || 'face-api.js',
+      algorithm: data.algorithm || 'deepface-arcface',
       model_version: data.model_version || '1.0',
       image: data.image,
       device_info: data.device_info || {
@@ -341,10 +341,165 @@ export function findBestMatch(
 }
 
 /* ============================================================================
- * Server-Side Processing (Python Service Proxy)
+ * DeepFace Service (ArcFace 512-d) - NEW PREFERRED METHOD
  * ============================================================================
- * These functions use full server-side face recognition processing via
- * Python service (dlib-based). Images are uploaded as compressed base64.
+ * Uses Python DeepFace service with ArcFace model for 99.82% accuracy
+ * Supports 512-d embeddings, liveness detection, and quality checks
+ */
+
+export interface DeepFaceExtractEmbeddingResponse {
+  success: boolean;
+  message?: string;
+  embedding?: number[];
+  dimension?: number;
+  confidence?: number;
+  quality?: {
+    quality_ok: boolean;
+    blur_score: number;
+    brightness: number;
+    issues: string[];
+  };
+  model?: string;
+}
+
+export interface DeepFaceCheckLivenessResponse {
+  success: boolean;
+  message?: string;
+  is_live?: boolean;
+  result?: string;
+  confidence?: number;
+}
+
+export interface DeepFaceVerifyResponse {
+  success: boolean;
+  message?: string;
+  matched?: boolean;
+  employee?: {
+    employee_id: string;
+    employee_code: string;
+    name: string;
+  };
+  confidence?: number;
+  distance?: number;
+  similarity?: number;
+  liveness_passed?: boolean;
+  quality?: {
+    quality_ok: boolean;
+    blur_score: number;
+    brightness: number;
+    issues: string[];
+  };
+}
+
+/**
+ * Extract 512-d face embedding using DeepFace ArcFace model
+ *
+ * Uploads image to Laravel proxy which forwards to Python DeepFace service.
+ * The service extracts a 512-d face embedding using ArcFace (99.82% accuracy).
+ *
+ * @param imageFile - Image file to process
+ * @returns 512-d embedding with quality metrics
+ */
+export async function extractEmbeddingDeepFace(
+  imageFile: File
+): Promise<DeepFaceExtractEmbeddingResponse> {
+  const formData = new FormData();
+  formData.append('image', imageFile);
+
+  const response = await apiClient.post<DeepFaceExtractEmbeddingResponse>(
+    '/face/deepface/extract-embedding',
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }
+  );
+  return response.data;
+}
+
+/**
+ * Check liveness (anti-spoofing) using DeepFace
+ *
+ * Performs liveness detection to prevent spoofing attacks using photos,
+ * videos, or masks.
+ *
+ * @param imageFile - Image file to check
+ * @returns Liveness check result
+ */
+export async function checkLivenessDeepFace(
+  imageFile: File
+): Promise<DeepFaceCheckLivenessResponse> {
+  const formData = new FormData();
+  formData.append('image', imageFile);
+
+  const response = await apiClient.post<DeepFaceCheckLivenessResponse>(
+    '/face/deepface/check-liveness',
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }
+  );
+  return response.data;
+}
+
+/**
+ * Verify face using DeepFace with liveness detection
+ *
+ * Uploads image to Laravel proxy which forwards to Python DeepFace service.
+ * The service:
+ * 1. Checks liveness (anti-spoofing)
+ * 2. Extracts 512-d embedding using ArcFace
+ * 3. Matches against all registered employee embeddings
+ * 4. Returns matched employee with confidence
+ *
+ * @param imageFile - Image file to verify
+ * @param employeeId - Optional employee ID for 1:1 verification
+ * @returns Verification result with matched employee (if found)
+ */
+export async function verifyFaceDeepFace(
+  imageFile: File,
+  employeeId?: string
+): Promise<DeepFaceVerifyResponse> {
+  const formData = new FormData();
+  formData.append('image', imageFile);
+  if (employeeId) {
+    formData.append('employee_id', employeeId);
+  }
+
+  const response = await apiClient.post<DeepFaceVerifyResponse>(
+    '/face/deepface/verify',
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }
+  );
+  return response.data;
+}
+
+/**
+ * Check DeepFace service health
+ *
+ * @returns Health status of DeepFace service
+ */
+export async function checkDeepFaceHealth(): Promise<{
+  success: boolean;
+  service?: string;
+  deepface_service?: any;
+}> {
+  const response = await apiClient.get('/face/deepface/health');
+  return response.data;
+}
+
+/* ============================================================================
+ * Server-Side Processing (Python Service Proxy) - DEPRECATED
+ * ============================================================================
+ * These functions use old dlib-based processing with 128-d embeddings.
+ * DEPRECATED: Use DeepFace functions above for better accuracy (99.82%)
  */
 
 export interface ServerExtractEncodingRequest {
@@ -401,6 +556,8 @@ export interface ServerVerifyFaceResponse {
 /**
  * Extract face encoding using server-side processing (Python service)
  *
+ * @deprecated Use extractEmbeddingDeepFace instead for better accuracy
+ *
  * Uploads image to Laravel proxy which forwards to Python face recognition
  * service. The service extracts a 128-d face descriptor using dlib.
  *
@@ -419,6 +576,8 @@ export async function extractEncodingServer(
 
 /**
  * Verify face using server-side processing (Python service)
+ *
+ * @deprecated Use verifyFaceDeepFace instead for better accuracy
  *
  * Uploads image to Laravel proxy which forwards to Python face recognition
  * service. The service:

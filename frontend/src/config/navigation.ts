@@ -7,6 +7,10 @@ import {
   Wallet,
   FileText,
   Settings,
+  Plane,
+  UserCircle,
+  BarChart3,
+  MapPin,
   type LucideIcon,
 } from 'lucide-react';
 import type { UserRole, Permission } from '@/types/auth';
@@ -26,24 +30,22 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-// Simplified navigation - features consolidated into pages with tabs
-export const navigation: NavGroup[] = [
+// Admin Navigation
+export const adminNavigation: NavGroup[] = [
   {
     title: 'Menu Utama',
     items: [
       {
         title: 'Dashboard',
-        href: '/dashboard',
+        href: '/admin/dashboard',
         icon: LayoutDashboard,
-        permission: 'dashboard.view',
-        description: 'Ringkasan & statistik',
+        description: 'Ringkasan & statistik perusahaan',
       },
       {
         title: 'Absensi',
-        href: '/attendance',
+        href: '/admin/attendance',
         icon: Clock,
-        permission: 'attendance.view',
-        description: 'Kehadiran & Face Recognition',
+        description: 'Kelola absensi karyawan',
       },
     ],
   },
@@ -52,39 +54,38 @@ export const navigation: NavGroup[] = [
     items: [
       {
         title: 'Karyawan',
-        href: '/employees',
+        href: '/admin/employees',
         icon: Users,
-        permission: 'employees.view',
-        roles: ['super-admin', 'admin', 'kepala-sekolah'],
         description: 'Data karyawan & kredensial',
       },
       {
+        title: 'Lokasi',
+        href: '/admin/locations',
+        icon: MapPin,
+        description: 'Lokasi kerja & GPS verification',
+      },
+      {
         title: 'Jadwal',
-        href: '/schedules',
+        href: '/admin/schedules',
         icon: Calendar,
-        permission: 'schedules.view',
         description: 'Jadwal kerja & penugasan',
       },
       {
         title: 'Cuti',
-        href: '/leave',
+        href: '/admin/leave',
         icon: CalendarDays,
-        permission: 'leave.view',
         description: 'Pengajuan & persetujuan cuti',
       },
       {
         title: 'Penggajian',
-        href: '/payroll',
+        href: '/admin/payroll',
         icon: Wallet,
-        permission: 'payroll.view',
         description: 'Slip gaji & kalkulasi',
       },
       {
         title: 'Laporan',
-        href: '/reports',
+        href: '/admin/reports',
         icon: FileText,
-        permission: 'view_attendance_reports',
-        roles: ['super-admin', 'admin', 'kepala-sekolah', 'pegawai', 'guru'],
         description: 'Laporan & report builder',
       },
     ],
@@ -94,30 +95,107 @@ export const navigation: NavGroup[] = [
     items: [
       {
         title: 'Pengaturan',
-        href: '/settings',
+        href: '/admin/settings',
         icon: Settings,
-        roles: ['super-admin', 'admin'],
         description: 'Lokasi, libur, users & keamanan',
       },
     ],
   },
 ];
 
-// Filter navigation based on user permissions and roles
+// Employee Navigation
+export const employeeNavigation: NavGroup[] = [
+  {
+    title: 'Menu Utama',
+    items: [
+      {
+        title: 'Dashboard',
+        href: '/employee/dashboard',
+        icon: LayoutDashboard,
+        description: 'Dashboard pribadi',
+      },
+      {
+        title: 'Absensi',
+        href: '/employee/attendance',
+        icon: Clock,
+        description: 'Riwayat kehadiran',
+      },
+      {
+        title: 'Laporan',
+        href: '/employee/reports',
+        icon: BarChart3,
+        description: 'Laporan kehadiran',
+      },
+    ],
+  },
+  {
+    title: 'Pribadi',
+    items: [
+      {
+        title: 'Jadwal Saya',
+        href: '/employee/schedule',
+        icon: Calendar,
+        description: 'Jadwal kerja Anda',
+      },
+      {
+        title: 'Cuti Saya',
+        href: '/employee/leave',
+        icon: Plane,
+        description: 'Pengajuan cuti',
+      },
+      {
+        title: 'Slip Gaji',
+        href: '/employee/payroll',
+        icon: Wallet,
+        description: 'Riwayat gaji',
+      },
+      {
+        title: 'Profil',
+        href: '/employee/profile',
+        icon: UserCircle,
+        description: 'Profil pribadi',
+      },
+    ],
+  },
+];
+
+// Get navigation based on user role
+export function getNavigationByRole(userRole: string | undefined): NavGroup[] {
+  if (!userRole) return employeeNavigation;
+
+  const normalizedRole = userRole.toLowerCase().replace(/_/g, '-').replace(/ /g, '-');
+
+  // Handle admin roles (super-admin, admin, kepala-sekolah)
+  if (['admin', 'super-admin', 'kepala-sekolah'].includes(normalizedRole)) {
+    return adminNavigation;
+  }
+
+  // Handle employee roles (pegawai, guru)
+  if (['pegawai', 'guru', 'employee'].includes(normalizedRole)) {
+    return employeeNavigation;
+  }
+
+  // Default to employee navigation for unknown roles
+  return employeeNavigation;
+}
+
+// Filter navigation based on user permissions and roles (legacy function)
 export function filterNavigation(
   nav: NavGroup[],
   userPermissions: string[],
   userRole: UserRole
 ): NavGroup[] {
+  const normalizedRole = userRole.toLowerCase().replace(/_/g, '-').replace(/ /g, '-') as UserRole;
+
   return nav
     .map((group) => ({
       ...group,
       items: group.items.filter((item) => {
         // Super admin sees everything
-        if (userRole === 'super-admin') return true;
+        if (normalizedRole === 'super-admin') return true;
 
         // Check role restriction
-        if (item.roles && !item.roles.includes(userRole)) return false;
+        if (item.roles && !item.roles.includes(normalizedRole)) return false;
 
         // Check permission
         if (item.permission && !userPermissions.includes(item.permission)) return false;

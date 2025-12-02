@@ -3,13 +3,13 @@ import type { User, LoginCredentials, RegisterData, ApiResponse } from '@/types/
 
 // Auth API endpoints
 const AUTH_ENDPOINTS = {
-  login: '/auth/login',
-  logout: '/auth/logout',
-  register: '/auth/register',
-  user: '/auth/user',
-  forgotPassword: '/auth/forgot-password',
-  resetPassword: '/auth/reset-password',
-  refresh: '/auth/refresh',
+  login: 'auth/login',
+  logout: 'auth/logout',
+  register: 'auth/register',
+  user: 'auth/user',
+  forgotPassword: 'auth/forgot-password',
+  resetPassword: 'auth/reset-password',
+  refresh: 'auth/refresh',
 } as const;
 
 export interface LoginResponse {

@@ -1,3 +1,5 @@
+import type { Employee } from './employee';
+
 // User roles
 export type UserRole = 'super-admin' | 'admin' | 'kepala-sekolah' | 'guru' | 'pegawai';
 
@@ -9,6 +11,7 @@ export interface User {
   role: UserRole;
   avatar?: string;
   employee_id?: number;
+  employee?: Employee;
   permissions: string[];
   force_password_change?: boolean;
   password_changed_at?: string | null;

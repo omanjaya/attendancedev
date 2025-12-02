@@ -193,3 +193,213 @@ export async function publishMonthlySchedule(id: string): Promise<MonthlySchedul
 export async function deleteMonthlySchedule(id: string): Promise<void> {
   await apiClient.delete(ENDPOINTS.monthlyDetail(id));
 }
+
+// ====================================
+// Monthly Attendance Schedules (New V1 API)
+// ====================================
+
+const V1_ENDPOINTS = {
+  monthlySchedules: '/monthly-schedules',
+  monthlyScheduleDetail: (id: string) => `/monthly-schedules/${id}`,
+  monthlyScheduleAssign: (id: string) => `/monthly-schedules/${id}/assign`,
+  monthlyScheduleUnassign: (id: string) => `/monthly-schedules/${id}/unassign`,
+  monthlyScheduleEmployees: (id: string) => `/monthly-schedules/${id}/employees`,
+  generateWorkingDays: '/monthly-schedules/generate-working-days',
+} as const;
+
+export interface MonthlyAttendanceScheduleFormData {
+  name: string;
+  month: number; // 1-12
+  year: number;
+  location_id: string;
+  default_start_time: string; // HH:mm format
+  default_end_time: string; // HH:mm format
+  checkin_start_time: string; // HH:mm format
+  checkin_end_time: string; // HH:mm format
+  checkout_start_time: string; // HH:mm format
+  checkout_end_time: string; // HH:mm format
+  working_days: string[]; // Array of ISO date strings ["2025-02-01", "2025-02-02"]
+  description?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface MonthlyAttendanceSchedule {
+  id: string;
+  name: string;
+  month: number;
+  year: number;
+  start_date: string;
+  end_date: string;
+  location_id: string;
+  location?: {
+    id: string;
+    name: string;
+  };
+  default_start_time: string;
+  default_end_time: string;
+  checkin_start_time: string;
+  checkin_end_time: string;
+  checkout_start_time: string;
+  checkout_end_time: string;
+  working_days: string[];
+  total_working_days: number;
+  is_active: boolean;
+  description?: string;
+  metadata?: Record<string, any>;
+  created_by?: string;
+  updated_by?: string;
+  creator?: {
+    id: string;
+    name: string;
+  };
+  assigned_employees_count?: number;
+  holiday_conflicts?: any[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GenerateWorkingDaysParams {
+  month: number;
+  year: number;
+  working_day_pattern: string[]; // ["monday", "tuesday", "wednesday", "thursday", "friday"]
+}
+
+export interface GenerateWorkingDaysResponse {
+  working_days: string[];
+  total_working_days: number;
+  total_holidays: number;
+  holidays: string[];
+}
+
+export interface AssignScheduleParams {
+  employee_ids: string[];
+}
+
+export interface AssignScheduleResponse {
+  assigned_count: number;
+  replaced_count: number;
+  total_employees: number;
+  errors: string[];
+}
+
+// Get monthly attendance schedules with filters
+export async function getMonthlyAttendanceSchedules(filters?: {
+  month?: number;
+  year?: number;
+  location_id?: string;
+  is_active?: boolean;
+  per_page?: number;
+}): Promise<PaginatedResponse<MonthlyAttendanceSchedule>> {
+  const response = await apiClient.get<PaginatedResponse<MonthlyAttendanceSchedule>>(
+    V1_ENDPOINTS.monthlySchedules,
+    { params: filters }
+  );
+  return response.data;
+}
+
+// Get single monthly attendance schedule
+export async function getMonthlyAttendanceSchedule(
+  id: string
+): Promise<MonthlyAttendanceSchedule> {
+  const response = await apiClient.get<{ success: boolean; data: MonthlyAttendanceSchedule }>(
+    V1_ENDPOINTS.monthlyScheduleDetail(id)
+  );
+  return response.data.data;
+}
+
+// Create monthly attendance schedule
+export async function createMonthlyAttendanceSchedule(
+  data: MonthlyAttendanceScheduleFormData
+): Promise<MonthlyAttendanceSchedule> {
+  const response = await apiClient.post<{ success: boolean; data: MonthlyAttendanceSchedule }>(
+    V1_ENDPOINTS.monthlySchedules,
+    data
+  );
+  return response.data.data;
+}
+
+// Update monthly attendance schedule
+export async function updateMonthlyAttendanceSchedule(
+  id: string,
+  data: Partial<MonthlyAttendanceScheduleFormData>
+): Promise<MonthlyAttendanceSchedule> {
+  const response = await apiClient.put<{ success: boolean; data: MonthlyAttendanceSchedule }>(
+    V1_ENDPOINTS.monthlyScheduleDetail(id),
+    data
+  );
+  return response.data.data;
+}
+
+// Delete monthly attendance schedule
+export async function deleteMonthlyAttendanceSchedule(id: string): Promise<void> {
+  await apiClient.delete(V1_ENDPOINTS.monthlyScheduleDetail(id));
+}
+
+// Assign employees to schedule (with auto-replace)
+export async function assignEmployeesToSchedule(
+  id: string,
+  params: AssignScheduleParams
+): Promise<AssignScheduleResponse> {
+  const response = await apiClient.post<{ success: boolean; data: AssignScheduleResponse }>(
+    V1_ENDPOINTS.monthlyScheduleAssign(id),
+    params
+  );
+  return response.data.data;
+}
+
+// Unassign employee from schedule
+export async function unassignEmployeeFromSchedule(
+  id: string,
+  employeeId: string
+): Promise<void> {
+  await apiClient.post(V1_ENDPOINTS.monthlyScheduleUnassign(id), {
+    employee_id: employeeId,
+  });
+}
+
+// Get employees assigned to schedule
+export async function getScheduleEmployees(id: string): Promise<any[]> {
+  const response = await apiClient.get<{ success: boolean; data: any[] }>(
+    V1_ENDPOINTS.monthlyScheduleEmployees(id)
+  );
+  return response.data.data;
+}
+
+// Generate working days helper
+export async function generateWorkingDays(
+  params: GenerateWorkingDaysParams
+): Promise<GenerateWorkingDaysResponse> {
+  const response = await apiClient.post<{ success: boolean; data: GenerateWorkingDaysResponse }>(
+    V1_ENDPOINTS.generateWorkingDays,
+    params
+  );
+  return response.data.data;
+}
+
+// Get employee's own schedule (for employee role)
+export async function getMySchedule(params?: {
+  month?: number;
+  year?: number;
+}): Promise<{
+  schedule: MonthlyAttendanceSchedule | null;
+  assigned_at?: string;
+  employee?: {
+    id: string;
+    full_name: string;
+    position: string;
+  };
+}> {
+  const response = await apiClient.get<{
+    success: boolean;
+    data: {
+      schedule: MonthlyAttendanceSchedule | null;
+      assigned_at?: string;
+      employee?: {
+        id: string;
+        full_name: string;
+        position: string;
+      };
+    };
+  }>(`${V1_ENDPOINTS.monthlySchedules}/my-schedule`, { params });
+  return response.data.data;
+}

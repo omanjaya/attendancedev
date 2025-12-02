@@ -7,7 +7,13 @@ import path from 'path'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
+    host: '0.0.0.0', // Allow access from network
     port: 5173,
+    allowedHosts: [
+      'snuffiest-nydia-egregious.ngrok-free.dev',
+      '.ngrok-free.dev',
+      '.ngrok.io',
+    ],
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
@@ -42,3 +48,4 @@ export default defineConfig({
     },
   },
 })
+// Force restart 2

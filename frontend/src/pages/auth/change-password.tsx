@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuthStore, useNotificationStore } from '@/stores';
 import apiClient from '@/lib/api/client';
+import { getDefaultRedirect } from '@/lib/auth';
 
 // Form validation schema
 const changePasswordSchema = z.object({
@@ -71,7 +72,7 @@ export default function ChangePasswordPage() {
       await logout();
       navigate({ to: '/login' });
     } else {
-      navigate({ to: '/dashboard' });
+      navigate({ to: getDefaultRedirect(user) });
     }
   };
 

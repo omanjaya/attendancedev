@@ -34,7 +34,7 @@ class AttendanceService implements AttendanceServiceInterface
         return DB::transaction(function () use ($employee, $locationData, $faceData, $photo) {
             // Check if already checked in today
             $existingAttendance = $this->getTodayAttendance($employee);
-            if ($existingAttendance && $existingAttendance->check_in) {
+            if ($existingAttendance && $existingAttendance->check_in_time) {
                 throw new \Exception('Already checked in today');
             }
 
@@ -63,6 +63,12 @@ class AttendanceService implements AttendanceServiceInterface
             $attendanceTime = $this->timeService->getAttendanceTime();
             $currentTime = $attendanceTime['timestamp'];
             
+            // Prepare metadata
+            $metadata = [];
+            if ($photoPath) {
+                $metadata['check_in_photo'] = $photoPath;
+            }
+
             // Create or update attendance record
             $attendance = Attendance::updateOrCreate(
                 [
@@ -70,12 +76,13 @@ class AttendanceService implements AttendanceServiceInterface
                     'date' => $this->timeService->today(),
                 ],
                 [
-                    'check_in' => $currentTime,
-                    'check_in_location' => $locationData,
-                    'check_in_photo' => $photoPath,
-                    'check_in_face_confidence' => $faceData['confidence'] ?? null,
+                    'check_in_time' => $currentTime,
+                    'check_in_latitude' => $locationData['latitude'] ?? null,
+                    'check_in_longitude' => $locationData['longitude'] ?? null,
+                    'check_in_confidence' => $faceData['confidence'] ?? null,
                     'status' => $this->determineStatus($currentTime, 'check_in', $employee),
-                    'time_verification' => $attendanceTime['verification'], // Store time verification data
+                    'time_verification' => $attendanceTime['verification'],
+                    'metadata' => $metadata,
                 ]
             );
 
@@ -105,11 +112,11 @@ class AttendanceService implements AttendanceServiceInterface
         return DB::transaction(function () use ($employee, $locationData, $faceData, $photo) {
             $attendance = $this->getTodayAttendance($employee);
             
-            if (!$attendance || !$attendance->check_in) {
+            if (!$attendance || !$attendance->check_in_time) {
                 throw new \Exception('No check-in found for today');
             }
 
-            if ($attendance->check_out) {
+            if ($attendance->check_out_time) {
                 throw new \Exception('Already checked out today');
             }
 
@@ -122,9 +129,11 @@ class AttendanceService implements AttendanceServiceInterface
 
             // Verify face if provided
             if ($faceData && config('attendance.require_face_verification')) {
-                $verification = $this->faceService->verifyFace($faceData['descriptor'], $employee);
-                if (!$verification['success']) {
-                    throw new \Exception('Face verification failed');
+                if (!empty($faceData['descriptor'])) {
+                    $verification = $this->faceService->verifyFace($faceData['descriptor'], $employee);
+                    if (!$verification['success']) {
+                        throw new \Exception('Face verification failed');
+                    }
                 }
             }
 
@@ -138,15 +147,32 @@ class AttendanceService implements AttendanceServiceInterface
             $attendanceTime = $this->timeService->getAttendanceTime();
             $currentTime = $attendanceTime['timestamp'];
             
+            // Set check-out time first for calculations
+            $attendance->check_out_time = $currentTime;
+            
+            // Calculate working hours
+            $totalHours = $this->calculateWorkingHours($attendance);
+            $attendance->total_hours = $totalHours;
+
+            // Calculate overtime
+            $overtimeHours = $this->calculateOvertimeHours($attendance, $employee);
+            
+            // Prepare metadata
+            $metadata = $attendance->metadata ?? [];
+            if ($photoPath) {
+                $metadata['check_out_photo'] = $photoPath;
+            }
+            $metadata['overtime_hours'] = $overtimeHours;
+
             // Update attendance record
             $attendance->update([
-                'check_out' => $currentTime,
-                'check_out_location' => $locationData,
-                'check_out_photo' => $photoPath,
-                'check_out_face_confidence' => $faceData['confidence'] ?? null,
-                'working_hours' => $this->calculateWorkingHours($attendance, $currentTime),
-                'overtime_hours' => $this->calculateOvertimeHours($attendance, $employee, $currentTime),
-                'time_verification' => $attendanceTime['verification'], // Store time verification data
+                'check_out_time' => $currentTime,
+                'check_out_latitude' => $locationData['latitude'] ?? null,
+                'check_out_longitude' => $locationData['longitude'] ?? null,
+                'check_out_confidence' => $faceData['confidence'] ?? null,
+                'total_hours' => $totalHours,
+                'time_verification' => $attendanceTime['verification'],
+                'metadata' => $metadata,
             ]);
 
             // Send notification
@@ -308,12 +334,12 @@ class AttendanceService implements AttendanceServiceInterface
      */
     public function calculateWorkingHours(Attendance $attendance): float
     {
-        if (!$attendance->check_in || !$attendance->check_out) {
+        if (!$attendance->check_in_time || !$attendance->check_out_time) {
             return 0;
         }
 
-        $checkIn = Carbon::parse($attendance->check_in);
-        $checkOut = Carbon::parse($attendance->check_out);
+        $checkIn = Carbon::parse($attendance->check_in_time);
+        $checkOut = Carbon::parse($attendance->check_out_time);
 
         // Subtract break time if configured
         $workingMinutes = $checkOut->diffInMinutes($checkIn);
@@ -379,7 +405,7 @@ class AttendanceService implements AttendanceServiceInterface
      */
     private function calculateOvertimeHours(Attendance $attendance, Employee $employee): float
     {
-        if (!$attendance->check_out) {
+        if (!$attendance->check_out_time) {
             return 0;
         }
 
@@ -391,7 +417,7 @@ class AttendanceService implements AttendanceServiceInterface
         $scheduledHours = Carbon::parse($schedule->start_time)
             ->diffInHours(Carbon::parse($schedule->end_time));
 
-        $overtime = max(0, $attendance->working_hours - $scheduledHours);
+        $overtime = max(0, $attendance->total_hours - $scheduledHours);
 
         return round($overtime, 2);
     }

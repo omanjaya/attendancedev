@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -44,15 +45,18 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        return response()->json($request->user()->load(['employee', 'roles', 'permissions']));
+        return response()->json([
+            'success' => true,
+            'data' => $request->user()->load(['employee', 'roles', 'permissions']),
+        ]);
     }
 
     public function changePassword(Request $request)
     {
         $request->validate([
             'current_password' => 'required',
-            'new_password' => 'required|min:8',
-            'new_password_confirmation' => 'required|same:new_password',
+            'password' => 'required|min:8',
+            'password_confirmation' => 'required|same:password',
         ]);
 
         $user = $request->user();
@@ -65,7 +69,7 @@ class AuthController extends Controller
         }
 
         // Update password and reset force_password_change flag
-        $user->password = Hash::make($request->new_password);
+        $user->password = Hash::make($request->password);
         $user->force_password_change = false;
         $user->password_changed_at = now(); // Track when password was changed
         $user->save();
@@ -74,7 +78,85 @@ class AuthController extends Controller
         $user->tokens()->delete();
 
         return response()->json([
+            'success' => true,
             'message' => 'Password berhasil diubah. Silakan login kembali.',
+        ]);
+    }
+
+    public function uploadAvatar(Request $request)
+    {
+        $request->validate([
+            'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        $user = $request->user();
+
+        // Delete old avatar if exists
+        if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+            Storage::disk('public')->delete($user->avatar);
+        }
+
+        // Store new avatar
+        $path = $request->file('avatar')->store('avatars', 'public');
+        $user->avatar = $path;
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Avatar berhasil diupload',
+            'data' => [
+                'avatar_url' => Storage::url($path),
+            ],
+        ]);
+    }
+
+    public function deleteAvatar(Request $request)
+    {
+        $user = $request->user();
+
+        // Delete avatar file if exists
+        if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+            Storage::disk('public')->delete($user->avatar);
+        }
+
+        $user->avatar = null;
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Avatar berhasil dihapus',
+        ]);
+    }
+
+    public function deleteAccount(Request $request)
+    {
+        $request->validate([
+            'password' => 'required',
+        ]);
+
+        $user = $request->user();
+
+        // Verify password
+        if (!Hash::check($request->password, $user->password)) {
+            throw ValidationException::withMessages([
+                'password' => ['Password tidak valid.'],
+            ]);
+        }
+
+        // Delete avatar if exists
+        if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+            Storage::disk('public')->delete($user->avatar);
+        }
+
+        // Delete all tokens
+        $user->tokens()->delete();
+
+        // Soft delete user (or force delete if needed)
+        $user->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Akun berhasil dihapus',
         ]);
     }
 }

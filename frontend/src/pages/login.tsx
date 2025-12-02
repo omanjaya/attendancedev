@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuthStore, useNotificationStore } from '@/stores';
+import { getDefaultRedirect } from '@/lib/auth/guards';
 
 // Form validation schema
 const loginSchema = z.object({
@@ -54,7 +55,7 @@ export default function LoginPage() {
       if (mustChangePassword) {
         navigate({ to: '/auth/change-password' });
       } else {
-        navigate({ to: '/dashboard' });
+        navigate({ to: getDefaultRedirect(user) });
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Login gagal';

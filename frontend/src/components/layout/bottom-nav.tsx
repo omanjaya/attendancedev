@@ -1,50 +1,56 @@
 import { Link, useLocation } from '@tanstack/react-router';
-import { Home, Clock, Users, Calendar, MoreHorizontal, FileText } from 'lucide-react';
+import { Home, Clock, Users, Calendar, MoreHorizontal, FileText, Plane, Wallet, UserCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores';
+import { getDefaultRedirect } from '@/lib/auth';
 
 interface NavItem {
   icon: typeof Home;
   label: string;
   href: string;
-  roles?: string[];
 }
 
-const navItems: NavItem[] = [
+// Admin bottom navigation
+const adminNavItems: NavItem[] = [
   {
     icon: Home,
     label: 'Home',
-    href: '/dashboard',
-    roles: ['super-admin', 'admin', 'kepala-sekolah'],
+    href: '/admin/dashboard',
   },
   {
     icon: Clock,
     label: 'Absensi',
-    href: '/attendance',
-  },
-  {
-    icon: FileText,
-    label: 'Laporan',
-    href: '/reports',
-    roles: ['pegawai', 'guru'],
-  },
-  {
-    icon: Calendar,
-    label: 'Jadwal',
-    href: '/schedules',
-    roles: ['super-admin', 'admin', 'kepala-sekolah'],
+    href: '/admin/attendance',
   },
   {
     icon: Users,
     label: 'Karyawan',
-    href: '/employees',
-    roles: ['super-admin', 'admin', 'kepala-sekolah'],
+    href: '/admin/employees',
+  },
+  {
+    icon: FileText,
+    label: 'Laporan',
+    href: '/admin/reports',
   },
   {
     icon: MoreHorizontal,
     label: 'Lainnya',
-    href: '/settings',
-    roles: ['super-admin', 'admin', 'kepala-sekolah'],
+    href: '/admin/settings',
+  },
+];
+
+// Employee bottom navigation - Only Absensi and Laporan
+// Other menu items (Home, Jadwal, Cuti, Profil) are available in sidebar
+const employeeNavItems: NavItem[] = [
+  {
+    icon: Clock,
+    label: 'Absensi',
+    href: '/employee/attendance',
+  },
+  {
+    icon: FileText,
+    label: 'Laporan',
+    href: '/employee/reports',
   },
 ];
 
@@ -52,20 +58,19 @@ export function BottomNav() {
   const location = useLocation();
   const { user } = useAuthStore();
 
-  const filteredItems = navItems.filter((item) => {
-    // If no role restriction, show to everyone
-    if (!item.roles) return true;
+  // Get role-based navigation items
+  const userRole = user?.role || 'employee';
+  const navItems =
+    userRole === 'admin' || userRole === 'super-admin' || userRole === 'kepala-sekolah'
+      ? adminNavItems
+      : employeeNavItems;
 
-    // Check if user has required role
-    return user?.role && item.roles.includes(user.role);
-  });
-
-  if (filteredItems.length === 0) return null;
+  if (!user) return null;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden">
       <div className="flex h-16 items-center justify-around px-2">
-        {filteredItems.map((item) => {
+        {navItems.map((item) => {
           const Icon = item.icon;
           const isActive =
             location.pathname === item.href ||

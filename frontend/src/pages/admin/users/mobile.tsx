@@ -318,7 +318,7 @@ export function MobileUsersPage() {
                 <div className="bg-card/80 dark:bg-card/60 backdrop-blur-md rounded-3xl p-1.5 shadow-xl border border-border/40 dark:border-border/30">
                     <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-3 rounded-[20px] flex items-center gap-3 shadow-lg">
                         <button
-                            onClick={() => navigate({ to: '/' })}
+                            onClick={() => navigate({ to: '/admin/dashboard' })}
                             className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
                         >
                             <ChevronLeft className="h-5 w-5 text-white" />

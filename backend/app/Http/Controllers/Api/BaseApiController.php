@@ -140,7 +140,7 @@ class BaseApiController extends Controller
             'success' => true,
             'message' => $message,
             'data' => $paginator->items(),
-            'pagination' => [
+            'meta' => [
                 'current_page' => $paginator->currentPage(),
                 'last_page' => $paginator->lastPage(),
                 'per_page' => $paginator->perPage(),

@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores';
 import { useNotificationStore } from '@/stores';
 import type { Permission, UserRole } from '@/types/auth';
 import { Shield, AlertTriangle } from 'lucide-react';
+import { getDefaultRedirect } from '@/lib/auth';
 
 interface ProtectedPageProps {
   children: React.ReactNode;
@@ -45,7 +46,7 @@ export function ProtectedPage({
           'Akses Ditolak',
           `Halaman ini hanya dapat diakses oleh: ${roles.join(', ')}`
         );
-        navigate({ to: '/dashboard' });
+        navigate({ to: getDefaultRedirect(user) });
         return;
       }
     }
@@ -58,7 +59,7 @@ export function ProtectedPage({
           'Akses Ditolak',
           'Anda tidak memiliki permission untuk mengakses halaman ini'
         );
-        navigate({ to: '/dashboard' });
+        navigate({ to: getDefaultRedirect(user) });
         return;
       }
     }
@@ -96,6 +97,7 @@ export function ProtectedPage({
  */
 function UnauthorizedFallback() {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center p-6">
@@ -125,7 +127,7 @@ function UnauthorizedFallback() {
         </div>
 
         <button
-          onClick={() => navigate({ to: '/dashboard' })}
+          onClick={() => navigate({ to: getDefaultRedirect(user) })}
           className="inline-flex items-center justify-center rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
         >
           Kembali ke Dashboard
