@@ -413,4 +413,13 @@ async def list_models():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001, log_level="info")
+    import argparse
+
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='DeepFace Recognition Service')
+    parser.add_argument('--port', type=int, default=8001, help='Port to run service on (default: 8001)')
+    parser.add_argument('--host', type=str, default="0.0.0.0", help='Host to bind to (default: 0.0.0.0)')
+    args = parser.parse_args()
+
+    logger.info(f"Starting DeepFace service on {args.host}:{args.port}")
+    uvicorn.run(app, host=args.host, port=args.port, log_level="info")

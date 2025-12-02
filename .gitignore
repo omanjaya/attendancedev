@@ -94,3 +94,4 @@ temp_*.js
 
 # Temporary and test directories
 /tmp/
+load-testing/venv/

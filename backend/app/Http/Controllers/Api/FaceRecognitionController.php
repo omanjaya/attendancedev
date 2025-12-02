@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\FaceRecognitionRequest;
 use App\Services\FaceRecognitionService;
+use App\Services\DeepFaceLoadBalancer;
 use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -15,7 +16,8 @@ use Illuminate\Support\Facades\Http;
 class FaceRecognitionController extends Controller
 {
     public function __construct(
-        private readonly FaceRecognitionService $faceRecognitionService
+        private readonly FaceRecognitionService $faceRecognitionService,
+        private readonly DeepFaceLoadBalancer $deepFaceLoadBalancer
     ) {
     }
 
@@ -645,33 +647,111 @@ class FaceRecognitionController extends Controller
     public function healthDeepFace(): JsonResponse
     {
         try {
-            $serviceUrl = env('DEEPFACE_SERVICE_URL', 'http://127.0.0.1:8001');
-            $response = Http::timeout(5)->get("{$serviceUrl}/health");
+            // Use load balancer to get cluster status
+            $clusterStatus = $this->deepFaceLoadBalancer->getClusterStatus();
 
-            if ($response->successful()) {
-                return response()->json([
-                    'success' => true,
-                    'service' => 'DeepFace Face Recognition',
-                    'deepface_service' => $response->json(),
-                ]);
-            }
+            $healthyCount = $clusterStatus['healthy_instances'];
+            $totalCount = $clusterStatus['total_instances'];
 
             return response()->json([
-                'success' => false,
-                'message' => 'DeepFace service not responding',
-            ], 503);
+                'success' => true,
+                'service' => 'DeepFace Face Recognition Cluster',
+                'status' => $healthyCount > 0 ? 'operational' : 'down',
+                'healthy_instances' => $healthyCount,
+                'total_instances' => $totalCount,
+                'cluster_health_percentage' => ($healthyCount / max($totalCount, 1)) * 100,
+            ]);
 
         } catch (\Exception $e) {
-            Log::error('DeepFace service health check failed', [
+            Log::error('DeepFace cluster health check failed', [
                 'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'DeepFace service unavailable',
+                'message' => 'DeepFace cluster unavailable',
                 'error' => $e->getMessage(),
             ], 503);
         }
+    }
+
+    /**
+     * Get detailed DeepFace cluster status
+     *
+     * GET /api/v1/face/deepface/cluster-status
+     */
+    public function clusterStatusDeepFace(): JsonResponse
+    {
+        try {
+            $clusterStatus = $this->deepFaceLoadBalancer->getClusterStatus();
+
+            return response()->json([
+                'success' => true,
+                'cluster' => $clusterStatus,
+                'recommendation' => $this->getClusterRecommendation($clusterStatus),
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get cluster status', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve cluster status',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get cluster recommendations based on health status
+     */
+    private function getClusterRecommendation(array $status): array
+    {
+        $healthy = $status['healthy_instances'];
+        $total = $status['total_instances'];
+        $percentage = ($healthy / max($total, 1)) * 100;
+
+        $recommendations = [];
+
+        if ($percentage < 50) {
+            $recommendations[] = '⚠️ CRITICAL: Less than 50% of instances healthy - immediate action required!';
+            $recommendations[] = 'Check logs: tail -f python-services/face-recognition/logs/*.log';
+            $recommendations[] = 'Restart unhealthy instances: cd python-services/face-recognition && ./start-cluster.sh';
+        } elseif ($percentage < 75) {
+            $recommendations[] = '⚠️ WARNING: Less than 75% of instances healthy';
+            $recommendations[] = 'Consider restarting unhealthy instances';
+        } elseif ($percentage === 100.0) {
+            $recommendations[] = '✅ All instances healthy - cluster operating optimally';
+        } else {
+            $recommendations[] = '✅ Cluster healthy but some instances down';
+            $recommendations[] = 'Monitor for recurring failures';
+        }
+
+        // Check response times
+        $avgResponseTime = 0;
+        $responseCount = 0;
+        foreach ($status['instances'] as $instance) {
+            if (isset($instance['response_time']) && $instance['healthy']) {
+                $avgResponseTime += $instance['response_time'];
+                $responseCount++;
+            }
+        }
+
+        if ($responseCount > 0) {
+            $avgResponseTime /= $responseCount;
+            if ($avgResponseTime > 3.0) {
+                $recommendations[] = "⚠️ High average response time: {$avgResponseTime}s (target: <2s)";
+                $recommendations[] = 'Consider adding more instances or using GPU acceleration';
+            }
+        }
+
+        return [
+            'health_percentage' => round($percentage, 1),
+            'status' => $percentage >= 75 ? 'healthy' : ($percentage >= 50 ? 'degraded' : 'critical'),
+            'recommendations' => $recommendations,
+        ];
     }
 
     /**
@@ -689,37 +769,18 @@ class FaceRecognitionController extends Controller
         ]);
 
         try {
-            $serviceUrl = env('DEEPFACE_SERVICE_URL', 'http://127.0.0.1:8001');
             $image = $request->file('image');
 
-            // Forward to DeepFace service
-            $response = Http::timeout(120)
-                ->attach('image', file_get_contents($image->getRealPath()), $image->getClientOriginalName())
-                ->post("{$serviceUrl}/extract-embedding");
+            // Use load balancer to extract embedding (with automatic failover)
+            $data = $this->deepFaceLoadBalancer->extractEmbedding($image);
 
-            if ($response->successful()) {
-                $data = $response->json();
-
-                Log::info('DeepFace embedding extracted', [
-                    'dimension' => $data['dimension'] ?? null,
-                    'confidence' => $data['confidence'] ?? null,
-                    'model' => $data['model'] ?? 'ArcFace',
-                ]);
-
-                return response()->json($data);
-            }
-
-            $error = $response->json();
-            Log::warning('DeepFace embedding extraction failed', [
-                'status' => $response->status(),
-                'error' => $error,
+            Log::info('DeepFace embedding extracted (load balanced)', [
+                'dimension' => $data['dimension'] ?? null,
+                'confidence' => $data['confidence'] ?? null,
+                'model' => $data['model'] ?? 'ArcFace',
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => $error['message'] ?? 'Failed to extract face embedding',
-                'error' => $error,
-            ], $response->status());
+            return response()->json($data);
 
         } catch (\Exception $e) {
             Log::error('DeepFace embedding extraction error', [
@@ -728,7 +789,7 @@ class FaceRecognitionController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to process image',
+                'message' => 'Failed to process image: ' . $e->getMessage(),
                 'error' => $e->getMessage(),
             ], 500);
         }
@@ -749,36 +810,17 @@ class FaceRecognitionController extends Controller
         ]);
 
         try {
-            $serviceUrl = env('DEEPFACE_SERVICE_URL', 'http://127.0.0.1:8001');
             $image = $request->file('image');
 
-            // Forward to DeepFace service
-            $response = Http::timeout(30)
-                ->attach('image', file_get_contents($image->getRealPath()), $image->getClientOriginalName())
-                ->post("{$serviceUrl}/check-liveness");
+            // Use load balancer for liveness check (with automatic failover)
+            $data = $this->deepFaceLoadBalancer->checkLiveness($image);
 
-            if ($response->successful()) {
-                $data = $response->json();
-
-                Log::info('DeepFace liveness check completed', [
-                    'is_live' => $data['is_live'] ?? null,
-                    'result' => $data['result'] ?? null,
-                ]);
-
-                return response()->json($data);
-            }
-
-            $error = $response->json();
-            Log::warning('DeepFace liveness check failed', [
-                'status' => $response->status(),
-                'error' => $error,
+            Log::info('DeepFace liveness check completed (load balanced)', [
+                'is_live' => $data['is_live'] ?? null,
+                'result' => $data['result'] ?? null,
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => $error['message'] ?? 'Failed to check liveness',
-                'error' => $error,
-            ], $response->status());
+            return response()->json($data);
 
         } catch (\Exception $e) {
             Log::error('DeepFace liveness check error', [
@@ -787,7 +829,7 @@ class FaceRecognitionController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to check liveness',
+                'message' => 'Failed to check liveness: ' . $e->getMessage(),
                 'error' => $e->getMessage(),
             ], 500);
         }

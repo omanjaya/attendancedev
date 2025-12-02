@@ -14,6 +14,12 @@ Route::get('/v1/face/deepface/health', [
     'healthDeepFace',
 ])->name('api.deepface.health');
 
+// DeepFace cluster status (detailed health info)
+Route::get('/v1/face/deepface/cluster-status', [
+    App\Http\Controllers\Api\FaceRecognitionController::class,
+    'clusterStatusDeepFace',
+])->name('api.deepface.cluster-status');
+
 // Time service endpoints (authenticated)
 use App\Http\Controllers\Api\TimeController;
 Route::middleware('auth')->group(function () {
