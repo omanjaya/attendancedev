@@ -346,6 +346,7 @@ export function MobileProfilePage() {
                         <button
                             onClick={() => navigate({ to: '/employee/dashboard' })}
                             className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
+                            aria-label="Kembali ke Dashboard"
                         >
                             <ChevronLeft className="h-5 w-5 text-white" />
                         </button>
@@ -369,6 +370,7 @@ export function MobileProfilePage() {
                         <button
                             onClick={() => fileInputRef.current?.click()}
                             className="absolute bottom-0 right-0 p-2 bg-primary text-primary-foreground rounded-full shadow-md hover:bg-primary/90 transition-colors"
+                            aria-label="Ubah Foto Profil"
                         >
                             <Camera className="h-4 w-4" />
                         </button>
@@ -378,6 +380,8 @@ export function MobileProfilePage() {
                             className="hidden"
                             accept="image/*"
                             onChange={handleAvatarUpload}
+                            title="Ubah Foto Profil"
+                            aria-label="Ubah Foto Profil"
                         />
                     </div>
 
@@ -474,6 +478,7 @@ export function MobileProfilePage() {
                                         setIsDeleteFaceOpen(true);
                                     }}
                                     className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
+                                    aria-label="Hapus Data Wajah"
                                 >
                                     <Trash2 className="h-4 w-4 text-red-500" />
                                 </button>
@@ -721,7 +726,7 @@ export function MobileProfilePage() {
                         </DrawerDescription>
                     </DrawerHeader>
 
-                    <div className="p-4 space-y-4">
+                    <div className="p-4 space-y-4 flex-1 overflow-y-auto">
                         {/* Camera Preview */}
                         <div className="relative w-full aspect-[4/3] bg-black rounded-xl overflow-hidden">
                             <video
@@ -812,9 +817,8 @@ export function MobileProfilePage() {
                                 </AlertDescription>
                             </Alert>
                         )}
-                    </div>
 
-                    <DrawerFooter>
+                        {/* Action Buttons - Moved here for better visibility */}
                         {enrollmentStep === 'ready' && (
                             <Button
                                 onClick={handleCaptureNow}
@@ -835,6 +839,9 @@ export function MobileProfilePage() {
                                 Coba Lagi
                             </Button>
                         )}
+                    </div>
+
+                    <DrawerFooter>
                         <DrawerClose asChild>
                             <Button
                                 variant="outline"

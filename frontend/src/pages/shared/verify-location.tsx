@@ -16,7 +16,7 @@ interface LocationState {
 export function VerifyLocationPage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const search = useSearch({ strict: false }) as { type?: 'check-in' | 'check-out' };
+  const search = useSearch({ strict: false }) as { type?: 'check-in' | 'check-out'; overwrite?: boolean };
   const type = search.type || 'check-in';
 
   const [locationState, setLocationState] = useState<LocationState>({
@@ -102,6 +102,7 @@ export function VerifyLocationPage() {
         type,
         latitude: locationState.latitude,
         longitude: locationState.longitude,
+        overwrite: search.overwrite,
       },
     });
   };
@@ -119,6 +120,7 @@ export function VerifyLocationPage() {
           <button
             onClick={handleCancel}
             className="p-2 hover:bg-muted rounded-lg transition-colors"
+            aria-label="Batalkan"
           >
             <XCircle className="h-5 w-5" />
           </button>

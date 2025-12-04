@@ -78,6 +78,14 @@ export async function toggleLocationStatus(id: string): Promise<Location> {
   return response.data.data;
 }
 
+// Assign employees to location
+export async function assignEmployees(locationId: string, employeeIds: string[]): Promise<void> {
+  await apiClient.post(
+    `/admin/locations/${locationId}/assign-employees`,
+    { employee_ids: employeeIds }
+  );
+}
+
 // Verify location (GPS)
 export async function verifyLocation(params: {
   latitude: number;

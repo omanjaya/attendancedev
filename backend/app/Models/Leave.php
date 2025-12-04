@@ -23,6 +23,8 @@ class Leave extends Model
         'approved_by',
         'approved_at',
         'approval_notes',
+        'rejected_by',
+        'rejected_at',
         'rejection_reason',
         'is_emergency',
         'attachments',
@@ -34,6 +36,7 @@ class Leave extends Model
         'end_date' => 'date',
         'days_requested' => 'decimal:2',
         'approved_at' => 'datetime',
+        'rejected_at' => 'datetime',
         'is_emergency' => 'boolean',
         'attachments' => 'array',
         'metadata' => 'array',
@@ -72,6 +75,14 @@ class Leave extends Model
     public function approver()
     {
         return $this->belongsTo(Employee::class, 'approved_by');
+    }
+
+    /**
+     * Get the employee who rejected this leave.
+     */
+    public function rejector()
+    {
+        return $this->belongsTo(Employee::class, 'rejected_by');
     }
 
     /**

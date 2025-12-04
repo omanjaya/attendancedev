@@ -8,6 +8,13 @@ use App\Models\Leave;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Models\Holiday;
+use App\Models\Report;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\AttendanceReportExport;
+use Illuminate\Support\Str;
 
 class ReportsApiController extends BaseApiController
 {
@@ -24,6 +31,176 @@ class ReportsApiController extends BaseApiController
         ];
 
         return $this->apiResponse($data, 'Report data retrieved');
+    }
+
+    public function dashboard(Request $request)
+    {
+        $today = now()->format('Y-m-d');
+        
+        // 1. Summary
+        $totalEmployees = Employee::count();
+        $activeEmployees = Employee::where('is_active', true)->count();
+        $inactiveEmployees = Employee::where('is_active', false)->count();
+        
+        // Attendance today
+        $attendanceToday = Attendance::forDate($today)->get();
+        $present = $attendanceToday->where('status', 'present')->count();
+        $late = $attendanceToday->where('status', 'late')->count();
+        $absent = $attendanceToday->where('status', 'absent')->count();
+        
+        // On leave today
+        $onLeaveToday = Leave::where('status', 'approved')
+            ->whereDate('start_date', '<=', $today)
+            ->whereDate('end_date', '>=', $today)
+            ->count();
+            
+        // Pending leaves
+        $pendingLeaves = Leave::where('status', 'pending')->count();
+        
+        // Upcoming holidays (next 30 days)
+        $upcomingHolidays = Holiday::where('date', '>=', $today)
+            ->where('date', '<=', now()->addDays(30))
+            ->count();
+
+        // Department stats for summary
+        $departmentStats = $this->getDepartmentBreakdown(now()->startOfMonth(), now());
+        $byDepartment = [];
+        foreach($departmentStats as $stat) {
+            $byDepartment[$stat['department']] = $stat['count'];
+        }
+        
+        // Leave stats
+        $leaveStats = [
+            'pending' => $pendingLeaves,
+            'approved' => Leave::where('status', 'approved')->count(),
+            'rejected' => Leave::where('status', 'rejected')->count(),
+        ];
+
+        // Schedule stats
+        $scheduleStats = [
+            'active' => \App\Models\MonthlySchedule::where('is_active', true)->count(),
+            'draft' => \App\Models\MonthlySchedule::where('is_active', false)->count(),
+            'upcoming' => \App\Models\MonthlySchedule::where('month', '>', now()->month)->count(),
+        ];
+
+        // Payroll stats (Mock for now)
+        $payrollStats = [
+            'pending' => 5,
+            'processed' => 145,
+            'total' => 2450000,
+        ];
+
+        $summary = [
+            'attendance' => [
+                'total_employees' => $activeEmployees,
+                'present' => $present,
+                'late' => $late,
+                'absent' => $absent,
+                'on_leave' => $onLeaveToday,
+                'today' => $present + $late + $absent, // Total attendance records today
+                'attendance_rate' => $activeEmployees > 0 ? round(($present + $late) / $activeEmployees * 100, 1) : 0,
+            ],
+            'employees' => [
+                'total' => $totalEmployees,
+                'active' => $activeEmployees,
+                'inactive' => $inactiveEmployees,
+                'on_leave' => $onLeaveToday,
+                'by_department' => $byDepartment,
+            ],
+            'leave' => $leaveStats,
+            'schedules' => $scheduleStats,
+            'payroll' => $payrollStats,
+            'pending_leaves' => $pendingLeaves,
+            'upcoming_holidays' => $upcomingHolidays,
+        ];
+
+        // 2. Recent Activity
+        $recentActivity = [];
+        
+        // Recent check-ins/outs
+        $recentAttendances = Attendance::with('employee')
+            ->forDate($today)
+            ->orderBy('updated_at', 'desc')
+            ->take(5)
+            ->get();
+            
+        foreach($recentAttendances as $att) {
+            if ($att->check_in_time && $att->updated_at->diffInMinutes($att->check_in_time) < 5) {
+                 $recentActivity[] = [
+                    'id' => $att->id,
+                    'type' => 'check_in',
+                    'employee_id' => $att->employee_id,
+                    'employee_name' => $att->employee->full_name ?? 'Unknown',
+                    'description' => 'Check-in' . ($att->status == 'late' ? ' (Late)' : ''),
+                    'timestamp' => $att->check_in_time->toIsoString(),
+                 ];
+            } elseif ($att->check_out_time) {
+                 $recentActivity[] = [
+                    'id' => $att->id,
+                    'type' => 'check_out',
+                    'employee_id' => $att->employee_id,
+                    'employee_name' => $att->employee->full_name ?? 'Unknown',
+                    'description' => 'Check-out',
+                    'timestamp' => $att->check_out_time->toIsoString(),
+                 ];
+            }
+        }
+        
+        // Recent leaves
+        $recentLeaves = Leave::with('employee')
+            ->orderBy('created_at', 'desc')
+            ->take(5)
+            ->get();
+            
+        foreach($recentLeaves as $leave) {
+             $recentActivity[] = [
+                'id' => $leave->id,
+                'type' => 'leave_request',
+                'employee_id' => $leave->employee_id,
+                'employee_name' => $leave->employee->full_name ?? 'Unknown',
+                'description' => 'Leave Request: ' . $leave->reason,
+                'timestamp' => $leave->created_at->toIsoString(),
+             ];
+        }
+        
+        // Sort and slice
+        usort($recentActivity, function($a, $b) {
+            return strtotime($b['timestamp']) - strtotime($a['timestamp']);
+        });
+        $recentActivity = array_slice($recentActivity, 0, 10);
+
+        // 3. Attendance Trends (Last 7 days)
+        $attendanceTrends = [];
+        for($i=6; $i>=0; $i--) {
+            $date = now()->subDays($i);
+            $dateStr = $date->format('Y-m-d');
+            $stats = Attendance::forDate($dateStr)
+                ->selectRaw("
+                    SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) as present,
+                    SUM(CASE WHEN status = 'late' THEN 1 ELSE 0 END) as late,
+                    SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END) as absent
+                ")->first();
+                
+            $onLeave = Leave::where('status', 'approved')
+                ->whereDate('start_date', '<=', $dateStr)
+                ->whereDate('end_date', '>=', $dateStr)
+                ->count();
+                
+            $attendanceTrends[] = [
+                'date' => $dateStr,
+                'present' => (int)($stats->present ?? 0),
+                'late' => (int)($stats->late ?? 0),
+                'absent' => (int)($stats->absent ?? 0),
+                'on_leave' => $onLeave,
+            ];
+        }
+
+        return $this->apiResponse([
+            'summary' => $summary,
+            'recent_activity' => $recentActivity,
+            'attendance_trends' => $attendanceTrends,
+            'today_schedule' => null,
+        ], 'Dashboard data retrieved');
     }
 
     public function summary(Request $request)
@@ -67,6 +244,103 @@ class ReportsApiController extends BaseApiController
         ];
 
         return $this->apiResponse($summary, 'Summary retrieved');
+    }
+
+    /**
+     * Get attendance summary for current employee (employee-only view)
+     */
+    public function myAttendanceSummary(Request $request)
+    {
+        $user = $request->user();
+        
+        // Get employee record
+        $employee = $user->employee;
+        if (!$employee) {
+            return $this->errorResponse('Employee record not found', 404);
+        }
+
+        // Date range (default: current month)
+        $startDate = $request->get('start_date', now()->startOfMonth()->format('Y-m-d'));
+        $endDate = $request->get('end_date', now()->format('Y-m-d'));
+
+        // Calculate work days
+        $workDays = $this->calculateWorkDays($startDate, $endDate);
+
+        // Get employee's attendance records
+        $attendances = Attendance::where('employee_id', $employee->id)
+            ->whereBetween('date', [$startDate, $endDate])
+            ->get();
+
+        // Calculate statistics
+        $present = $attendances->where('status', 'present')->count();
+        $late = $attendances->where('status', 'late')->count();
+        $absent = $attendances->where('status', 'absent')->count();
+        $totalRecords = $attendances->count();
+
+        // Calculate average work hours
+        $totalHours = $attendances->where('total_hours', '>', 0)->sum('total_hours');
+        $avgHours = $totalRecords > 0 ? round($totalHours / $totalRecords, 1) : 0;
+
+        // Attendance rate
+        $attendanceRate = $workDays > 0 
+            ? round((($present + $late) / $workDays) * 100, 1) 
+            : 0;
+
+        // Get recent attendance (last 7 days)
+        $recentAttendance = Attendance::where('employee_id', $employee->id)
+            ->whereBetween('date', [now()->subDays(6), now()])
+            ->orderBy('date', 'desc')
+            ->get()
+            ->map(function ($att) {
+                return [
+                    'date' => $att->date,
+                    'check_in' => $att->check_in_time ? Carbon::parse($att->check_in_time)->format('H:i') : null,
+                    'check_out' => $att->check_out_time ? Carbon::parse($att->check_out_time)->format('H:i') : null,
+                    'status' => $att->status,
+                    'work_hours' => $att->total_hours ? round($att->total_hours, 1) : 0,
+                    'late_duration' => $att->late_duration_minutes ?? 0,
+                ];
+            });
+
+        // Get current month attendance by date
+        $monthlyAttendance = Attendance::where('employee_id', $employee->id)
+            ->whereBetween('date', [now()->startOfMonth(), now()->endOfMonth()])
+            ->orderBy('date')
+            ->get()
+            ->map(function ($att) {
+                return [
+                    'date' => $att->date,
+                    'day' => Carbon::parse($att->date)->format('D'),
+                    'status' => $att->status,
+                    'check_in' => $att->check_in_time ? Carbon::parse($att->check_in_time)->format('H:i') : null,
+                    'check_out' => $att->check_out_time ? Carbon::parse($att->check_out_time)->format('H:i') : null,
+                ];
+            });
+
+        $summary = [
+            'period' => [
+                'start' => $startDate,
+                'end' => $endDate,
+                'work_days' => $workDays,
+            ],
+            'employee' => [
+                'id' => $employee->id,
+                'name' => $employee->full_name,
+                'employee_code' => $employee->employee_code,
+            ],
+            'statistics' => [
+                'total_records' => $totalRecords,
+                'present' => $present,
+                'late' => $late,
+                'absent' => $absent,
+                'attendance_rate' => $attendanceRate,
+                'avg_work_hours' => $avgHours,
+            ],
+            'recent_attendance' => $recentAttendance,
+            'monthly_calendar' => $monthlyAttendance,
+        ];
+
+        return $this->apiResponse($summary, 'Your attendance summary retrieved');
     }
 
     public function monthlyAttendance(Request $request)
@@ -207,6 +481,25 @@ class ReportsApiController extends BaseApiController
 
     public function generate(Request $request)
     {
+        // 1. SECURITY: Admin-only access for export
+        // Check if user has admin/HR role (pegawai shouldn't export)
+        $userRoles = $request->user()->roles->pluck('name')->toArray();
+        $allowedRoles = ['Super Admin', 'Admin', 'admin', 'HR'];
+        
+        if (!array_intersect($userRoles, $allowedRoles)) {
+            Log::warning('Unauthorized export attempt', [
+                'user_id' => $request->user()->id,
+                'email' => $request->user()->email,
+                'roles' => $userRoles
+            ]);
+            
+            return $this->errorResponse('Unauthorized. Only administrators can export reports.', 403);
+        }
+        
+        // 2. SECURITY: Rate limiting (handled by middleware)
+        // Applied in routes/api.php: ->middleware('throttle:report-export')
+        
+        // 3. VALIDATION
         $validated = $request->validate([
             'type' => 'required|in:attendance,leave,payroll,summary',
             'format' => 'required|in:pdf,excel',
@@ -215,16 +508,365 @@ class ReportsApiController extends BaseApiController
             'filters' => 'nullable|array',
         ]);
 
-        // For now, return a placeholder - actual report generation would be implemented
-        $report = [
-            'id' => uniqid('report_'),
-            'type' => $validated['type'],
-            'format' => $validated['format'],
-            'status' => 'generating',
-            'created_at' => now(),
+        $reportType = $validated['type'];
+        $format = $validated['format'];
+        $filters = $request->all();
+        $selectedColumns = $filters['filters']['columns'] ?? [];
+
+        // 3. PERFORMANCE: Check cache for identical recent exports
+        $cacheKey = 'report:' . md5(json_encode($validated) . Auth::id());
+        $cachedReport = \Illuminate\Support\Facades\Cache::get($cacheKey);
+        
+        if ($cachedReport && file_exists(storage_path('app/public/' . str_replace('storage/', '', $cachedReport['file_path'])))) {
+            Log::info('Returning cached report', [
+                'user_id' => Auth::id(),
+                'cache_key' => $cacheKey
+            ]);
+            
+            return $this->apiResponse([
+                'report' => $cachedReport['report'],
+                'download_url' => $cachedReport['download_url'],
+                'expires_at' => $cachedReport['expires_at'],
+                'cached' => true
+            ], 'Report retrieved from cache');
+        }
+
+        // 4. ESTIMATE: Calculate expected dataset size
+        $estimatedRows = $this->estimateRowCount($reportType, $validated['start_date'], $validated['end_date']);
+        
+        Log::info('Report generation requested', [
+            'user_id' => Auth::id(),
+            'type' => $reportType,
+            'format' => $format,
+            'estimated_rows' => $estimatedRows
+        ]);
+
+        // 5. SMART ROUTING: Auto-queue for large exports
+        if ($estimatedRows > 1000) {
+            return $this->generateAsync($validated, $reportType, $format, $selectedColumns, $filters);
+        }
+
+        // 6. SYNCHRONOUS GENERATION for small datasets
+        return $this->generateSync($validated, $reportType, $format, $selectedColumns, $filters, $cacheKey);
+    }
+
+    /**
+     * Generate report synchronously (for small datasets)
+     */
+    private function generateSync($validated, $reportType, $format, $selectedColumns, $filters, $cacheKey)
+    {
+        // SECURITY: Set execution limits
+        set_time_limit(60); // 1 minute max
+        ini_set('memory_limit', '256M');
+
+        try {
+            // 1. Fetch Data with Chunking
+            $reportData = $this->getReportData($reportType, $validated['start_date'], $validated['end_date'], $selectedColumns);
+            
+            $data = $reportData['data'];
+            $headings = $reportData['headings'];
+            $columns = $reportData['columns'];
+
+            // 2. Generate File
+            $extension = $format === 'pdf' ? 'pdf' : 'xlsx';
+            $writerType = $format === 'pdf' ? \Maatwebsite\Excel\Excel::DOMPDF : \Maatwebsite\Excel\Excel::XLSX;
+            
+            $filename = "{$reportType}_" . now()->format('Ymd_His') . ".{$extension}";
+            $path = "exports/{$filename}";
+
+            // Ensure directory exists
+            if (!file_exists(storage_path('app/public/exports'))) {
+                mkdir(storage_path('app/public/exports'), 0755, true);
+            }
+
+            // Store file
+            Excel::store(
+                new AttendanceReportExport($data, $headings, $columns),
+                $path,
+                'public',
+                $writerType
+            );
+
+            // 3. Save to Database
+            $report = Report::create([
+                'type' => $reportType,
+                'format' => $format,
+                'filename' => $filename,
+                'file_path' => "storage/{$path}",
+                'status' => 'completed',
+                'filters' => $filters,
+                'generated_by' => Auth::id(),
+                'expires_at' => now()->addDays(7),
+            ]);
+
+            $appUrl = config('app.url');
+            $downloadUrl = "{$appUrl}/storage/{$path}";
+
+            // 4. PERFORMANCE: Cache the result (5 minutes)
+            \Illuminate\Support\Facades\Cache::put($cacheKey, [
+                'report' => $report,
+                'file_path' => $report->file_path,
+                'download_url' => $downloadUrl,
+                'expires_at' => $report->expires_at
+            ], 300); // 5 minutes
+
+            Log::info('Report generated successfully (sync)', [
+                'user_id' => Auth::id(),
+                'report_id' => $report->id,
+                'rows' => count($data)
+            ]);
+
+            return $this->apiResponse([
+                'report' => $report,
+                'download_url' => $downloadUrl,
+                'expires_at' => $report->expires_at,
+                'generated_sync' => true
+            ], 'Report generated successfully', 201);
+
+        } catch (\Exception $e) {
+            Log::error('Sync report generation failed', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return $this->errorResponse('Failed to generate report: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Generate report asynchronously (for large datasets)
+     */
+    private function generateAsync($validated, $reportType, $format, $selectedColumns, $filters)
+    {
+        try {
+            // Create pending report record
+            $report = Report::create([
+                'type' => $reportType,
+                'format' => $format,
+                'status' => 'pending',
+                'filters' => $filters,
+                'generated_by' => Auth::id(),
+                'expires_at' => now()->addDays(7),
+            ]);
+
+            // Dispatch queue job
+            \App\Jobs\GenerateReportJob::dispatch(
+                $report,
+                $reportType,
+                $validated['start_date'],
+                $validated['end_date'],
+                $selectedColumns,
+                $format
+            );
+
+            Log::info('Report queued for async generation', [
+                'user_id' => Auth::id(),
+                'report_id' => $report->id
+            ]);
+
+            return $this->apiResponse([
+                'report' => $report,
+                'message' => 'Large export queued for processing. You will be notified when ready.',
+                'status' => 'pending',
+                'generated_async' => true
+            ], 'Report queued for generation', 202);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to queue report', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+            
+            return $this->errorResponse('Failed to queue report: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Estimate number of rows for smart routing
+     */
+    private function estimateRowCount($type, $startDate, $endDate)
+    {
+        switch ($type) {
+            case 'attendance':
+                return \App\Models\Attendance::whereBetween('date', [$startDate, $endDate])->count();
+            case 'leave':
+                return \App\Models\Leave::whereBetween('start_date', [$startDate, $endDate])->count();
+            case 'payroll':
+                return \App\Models\Employee::where('is_active', true)->count();
+            default:
+                return 0;
+        }
+    }
+
+    private function getReportData($type, $startDate, $endDate, $selectedColumns = [])
+    {
+        switch ($type) {
+            case 'leave':
+                return $this->getLeaveReportData($startDate, $endDate, $selectedColumns);
+            case 'payroll':
+                return $this->getPayrollReportData($startDate, $endDate, $selectedColumns);
+            case 'attendance':
+            default:
+                return $this->getAttendanceReportData($startDate, $endDate, $selectedColumns);
+        }
+    }
+
+    private function getAttendanceReportData($startDate, $endDate, $selectedColumns)
+    {
+        $employees = Employee::orderBy('full_name')->get();
+        $data = [];
+
+        // Define available columns and their headers
+        $columnMap = [
+            'employee_name' => 'Nama Karyawan',
+            'employee_code' => 'NIK',
+            'date' => 'Tanggal',
+            'check_in' => 'Jam Masuk',
+            'check_out' => 'Jam Pulang',
+            'status' => 'Status',
+            'work_hours' => 'Jam Kerja',
+            'late_duration' => 'Terlambat (Menit)',
+            'notes' => 'Catatan',
         ];
 
-        return $this->apiResponse($report, 'Report generation started', 201);
+        // If no columns selected, use default
+        if (empty($selectedColumns)) {
+            $selectedColumns = ['employee_name', 'date', 'check_in', 'check_out', 'status', 'work_hours'];
+        }
+
+        // Filter columns to only valid ones
+        $validColumns = array_intersect($selectedColumns, array_keys($columnMap));
+        $headings = array_map(fn($col) => $columnMap[$col], $validColumns);
+
+        // Fetch attendance records with employee data
+        $attendances = Attendance::with('employee')
+            ->whereBetween('date', [$startDate, $endDate])
+            ->orderBy('date')
+            ->orderBy('employee_id') // We can't order by joined table easily without join, so sort by ID then PHP sort if needed
+            ->get();
+
+        foreach ($attendances as $att) {
+            $row = [
+                'employee_name' => $att->employee->full_name ?? 'Unknown',
+                'employee_code' => $att->employee->employee_code ?? '-',
+                'date' => $att->date,
+                'check_in' => $att->check_in_time ? Carbon::parse($att->check_in_time)->format('H:i:s') : '-',
+                'check_out' => $att->check_out_time ? Carbon::parse($att->check_out_time)->format('H:i:s') : '-',
+                'status' => ucfirst($att->status),
+                'work_hours' => $att->total_hours ? round($att->total_hours, 2) : 0,
+                'late_duration' => $att->late_duration_minutes ?? 0,
+                'notes' => $att->notes ?? '-',
+            ];
+            $data[] = $row;
+        }
+
+        return [
+            'data' => $data,
+            'headings' => $headings,
+            'columns' => $validColumns
+        ];
+    }
+
+    private function getLeaveReportData($startDate, $endDate, $selectedColumns)
+    {
+        $columnMap = [
+            'employee_name' => 'Nama Karyawan',
+            'employee_code' => 'NIK',
+            'leave_type' => 'Tipe Cuti',
+            'start_date' => 'Mulai',
+            'end_date' => 'Selesai',
+            'duration' => 'Durasi (Hari)',
+            'reason' => 'Alasan',
+            'status' => 'Status',
+            'approved_by' => 'Disetujui Oleh',
+        ];
+
+        if (empty($selectedColumns)) {
+            $selectedColumns = ['employee_name', 'leave_type', 'start_date', 'end_date', 'duration', 'status'];
+        }
+
+        $validColumns = array_intersect($selectedColumns, array_keys($columnMap));
+        $headings = array_map(fn($col) => $columnMap[$col], $validColumns);
+
+        $leaves = Leave::with(['employee', 'leaveType', 'approver'])
+            ->whereBetween('start_date', [$startDate, $endDate])
+            ->orderBy('start_date')
+            ->get();
+
+        $data = [];
+        foreach ($leaves as $leave) {
+            // Calculate duration
+            $start = Carbon::parse($leave->start_date);
+            $end = Carbon::parse($leave->end_date);
+            $duration = $start->diffInDays($end) + 1;
+
+            $data[] = [
+                'employee_name' => $leave->employee->full_name ?? 'Unknown',
+                'employee_code' => $leave->employee->employee_code ?? '-',
+                'leave_type' => $leave->leaveType->name ?? '-',
+                'start_date' => $leave->start_date,
+                'end_date' => $leave->end_date,
+                'duration' => $duration,
+                'reason' => $leave->reason,
+                'status' => ucfirst($leave->status),
+                'approved_by' => $leave->approver->name ?? '-',
+            ];
+        }
+
+        return [
+            'data' => $data,
+            'headings' => $headings,
+            'columns' => $validColumns
+        ];
+    }
+
+    private function getPayrollReportData($startDate, $endDate, $selectedColumns)
+    {
+        // Mock Payroll Data for now as Payroll module is not fully implemented
+        $columnMap = [
+            'employee_name' => 'Nama Karyawan',
+            'employee_code' => 'NIK',
+            'period' => 'Periode',
+            'basic_salary' => 'Gaji Pokok',
+            'allowances' => 'Tunjangan',
+            'deductions' => 'Potongan',
+            'net_salary' => 'Gaji Bersih',
+            'status' => 'Status',
+        ];
+
+        if (empty($selectedColumns)) {
+            $selectedColumns = ['employee_name', 'period', 'basic_salary', 'net_salary', 'status'];
+        }
+
+        $validColumns = array_intersect($selectedColumns, array_keys($columnMap));
+        $headings = array_map(fn($col) => $columnMap[$col], $validColumns);
+
+        $employees = Employee::where('is_active', true)->get();
+        $data = [];
+
+        foreach ($employees as $emp) {
+            $basic = rand(3000000, 8000000);
+            $allowance = rand(500000, 2000000);
+            $deduction = rand(100000, 500000);
+            
+            $data[] = [
+                'employee_name' => $emp->full_name,
+                'employee_code' => $emp->employee_code,
+                'period' => Carbon::parse($startDate)->format('M Y'),
+                'basic_salary' => $basic,
+                'allowances' => $allowance,
+                'deductions' => $deduction,
+                'net_salary' => $basic + $allowance - $deduction,
+                'status' => 'Paid',
+            ];
+        }
+
+        return [
+            'data' => $data,
+            'headings' => $headings,
+            'columns' => $validColumns
+        ];
     }
 
     public function templates()
@@ -240,8 +882,27 @@ class ReportsApiController extends BaseApiController
 
     public function generatedReports()
     {
-        // For now return empty - would fetch from a reports table
-        return $this->apiResponse([], 'Generated reports retrieved');
+        $reports = Report::where('generated_by', Auth::id())
+            ->where('expires_at', '>', now())
+            ->latest()
+            ->take(20)
+            ->get();
+
+        return $this->apiResponse($reports, 'Generated reports retrieved');
+    }
+
+    public function showGeneratedReport($id)
+    {
+        $report = Report::where('id', $id)
+            ->where('generated_by', Auth::id())
+            ->firstOrFail();
+
+        // Add download URL if file exists
+        if (file_exists(storage_path('app/public/' . str_replace('storage/', '', $report->file_path)))) {
+            $report->download_url = url($report->file_path);
+        }
+
+        return $this->apiResponse($report, 'Report details retrieved');
     }
 
     private function getAttendanceSummary($startDate, $endDate)

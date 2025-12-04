@@ -14,6 +14,8 @@ import {
   type UpdateFaceRequest,
   type LivenessCheckRequest,
   type FaceDataResponse,
+  verifyFaceDeepFace,
+  type DeepFaceVerifyResponse,
 } from '@/lib/api/face-recognition';
 import { useNotificationStore } from '@/stores';
 
@@ -100,6 +102,22 @@ export function useVerifyFace() {
     mutationFn: (data: VerifyFaceRequest) => verifyFace(data),
     onError: (err: Error) => {
       error('Verifikasi Gagal', err.message || 'Gagal memverifikasi wajah');
+    },
+  });
+}
+
+
+/**
+ * Hook to verify a face using DeepFace (ArcFace 512-d)
+ */
+export function useVerifyFaceDeepFace() {
+  const { error } = useNotificationStore();
+
+  return useMutation({
+    mutationFn: ({ image, employeeId }: { image: File; employeeId?: string }) =>
+      verifyFaceDeepFace(image, employeeId),
+    onError: (err: Error) => {
+      error('Verifikasi Gagal', err.message || 'Gagal memverifikasi wajah dengan DeepFace');
     },
   });
 }

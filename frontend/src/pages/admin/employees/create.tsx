@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -44,6 +44,7 @@ import {
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCreateEmployee } from '@/hooks';
+import { useLocations } from '@/hooks/use-locations';
 import { useNotificationStore } from '@/stores';
 
 // Quick mode schema - minimal required fields
@@ -53,6 +54,7 @@ const quickEmployeeSchema = z.object({
   department_id: z.string().min(1, 'Pilih departemen'),
   position: z.string().min(2, 'Posisi minimal 2 karakter'),
   role: z.enum(['pegawai', 'guru', 'admin', 'kepala-sekolah'], { message: 'Pilih role' }),
+  location_id: z.string().min(1, 'Pilih lokasi'),
 });
 
 // Full mode schema - all fields
@@ -120,15 +122,21 @@ export default function EmployeeCreatePage() {
   const navigate = useNavigate();
   const { success } = useNotificationStore();
   const [isFullMode, setIsFullMode] = useState(false);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [generatedPassword, setGeneratedPassword] = useState<string>('');
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [createdEmployeeData, setCreatedEmployeeData] = useState<{ name: string; email: string } | null>(null);
   const [passwordCopied, setPasswordCopied] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Use create employee mutation
   const createEmployeeMutation = useCreateEmployee();
+
+  // Fetch locations for dropdown
+  const { locations, fetchLocations } = useLocations();
+
+  // Load locations on mount
+  useEffect(() => {
+    fetchLocations({ is_active: true });
+  }, [fetchLocations]);
 
   const {
     register,
@@ -147,18 +155,6 @@ export default function EmployeeCreatePage() {
   const watchGender = watch('gender');
   const watchEmploymentType = watch('employment_type');
   const watchRole = watch('role');
-
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => setPhotoPreview(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
 
   const onSubmit = async (data: QuickEmployeeForm | FullEmployeeForm) => {
     // Map form data to API format
@@ -183,6 +179,7 @@ export default function EmployeeCreatePage() {
       is_active: true,
       password: password, // Send auto-generated password
       role: data.role, // Use selected role from form
+      location_id: data.location_id, // Send location assignment
     };
 
     try {
@@ -346,51 +343,6 @@ Password harus diganti saat login pertama kali.`;
                   </div>
                 </div>
 
-                {/* Photo Upload - Only in Full Mode */}
-                {isFullMode && (
-                  <div className="border-border bg-background w-full space-y-4 rounded-xl border px-6 py-6 shadow-sm">
-                    <div className="flex items-center gap-4">
-                      <Avatar className="h-16 w-16">
-                        <AvatarImage src={photoPreview || ''} />
-                        <AvatarFallback className="bg-muted">
-                          <User className="h-6 w-6 text-muted-foreground" />
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="space-y-1">
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept="image/*"
-                          onChange={handlePhotoChange}
-                          className="hidden"
-                        />
-                        <div className="flex gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => fileInputRef.current?.click()}
-                          >
-                            <Upload className="h-4 w-4 mr-2" />
-                            Upload
-                          </Button>
-                          {photoPreview && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setPhotoPreview(null)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">JPG, PNG. Max 2MB</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {/* Essential Info - Always Visible */}
                 <div className="border-border bg-background w-full space-y-6 rounded-xl border px-6 py-8 shadow-sm">
                   <div className="flex items-center gap-2 mb-4">
@@ -543,6 +495,29 @@ Password harus diganti saat login pertama kali.`;
                       <Input id="position" placeholder="Contoh: Staff IT" {...register('position')} />
                       {errors.position && <p className="text-xs text-destructive mt-1">{errors.position.message}</p>}
                     </div>
+                  </div>
+
+                  {/* Location - Always Required */}
+                  <div>
+                    <div className="mb-2.5 text-sm font-medium">
+                      <label htmlFor="location">Lokasi *</label>
+                    </div>
+                    <Select onValueChange={(v) => setValue('location_id', v)}>
+                      <SelectTrigger id="location">
+                        <SelectValue placeholder="Pilih lokasi" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {locations.map((location) => (
+                          <SelectItem key={location.id} value={location.id}>
+                            {location.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.location_id && <p className="text-xs text-destructive mt-1">{errors.location_id.message}</p>}
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Lokasi akan digunakan untuk validasi GPS saat check-in
+                    </p>
                   </div>
 
                   {/* Employment Type & Join Date - Full Mode Only */}

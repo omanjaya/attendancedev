@@ -1,4 +1,5 @@
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate, useParams } from '@tanstack/react-router';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
   MapPin,
@@ -14,7 +15,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { LoadingState } from '@/components/states';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,38 +27,50 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-
-// Mock location data
-const mockLocation = {
-  id: 1,
-  name: 'Kantor Pusat Jakarta',
-  address: 'Jl. Sudirman No. 123, Karet Semanggi, Setiabudi, Jakarta Selatan 12930',
-  latitude: '-6.2088',
-  longitude: '106.8456',
-  radius: 100,
-  is_active: true,
-  employee_count: 45,
-  today_checkins: 42,
-  created_at: '2024-01-15',
-  updated_at: '2024-11-20',
-};
-
-const assignedEmployees = [
-  { id: 1, name: 'Ahmad Fauzi', department: 'IT' },
-  { id: 2, name: 'Siti Aminah', department: 'HR' },
-  { id: 3, name: 'Budi Santoso', department: 'Finance' },
-  { id: 4, name: 'Dewi Lestari', department: 'Marketing' },
-  { id: 5, name: 'Rizki Pratama', department: 'IT' },
-];
-
-const recentCheckins = [
-  { name: 'Ahmad Fauzi', time: '08:00', type: 'check_in' },
-  { name: 'Siti Aminah', time: '08:05', type: 'check_in' },
-  { name: 'Budi Santoso', time: '08:10', type: 'check_in' },
-];
+import { useNotificationStore } from '@/stores';
+import { getLocation, deleteLocation } from '@/lib/api/locations';
 
 export default function LocationShowPage() {
-  const location = mockLocation;
+  const { id } = useParams({ strict: false }) as { id: string };
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { success, error: showError } = useNotificationStore();
+
+  // Fetch location data
+  const { data: location, isLoading } = useQuery({
+    queryKey: ['location', id],
+    queryFn: () => getLocation(id),
+    enabled: !!id,
+  });
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteLocation(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['locations'] });
+      success('Berhasil', 'Lokasi berhasil dihapus');
+      navigate({ to: '/admin/locations' });
+    },
+    onError: (err: any) => {
+      const message = err.response?.data?.message || err.message || 'Gagal menghapus lokasi';
+      showError('Error', message);
+    },
+  });
+
+  if (isLoading) {
+    return <LoadingState message="Memuat detail lokasi..." />;
+  }
+
+  if (!location) {
+    return (
+      <div className="p-8 text-center">
+        <h2 className="text-xl font-semibold text-destructive">Lokasi tidak ditemukan</h2>
+        <Button variant="outline" className="mt-4" onClick={() => navigate({ to: '/admin/locations' })}>
+          Kembali
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto">
@@ -83,10 +96,10 @@ export default function LocationShowPage() {
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" asChild>
-              <a href={`/admin/locations/${location.id}/edit`}>
+              <Link to="/admin/locations/$id/edit" params={{ id: location.id }}>
                 <Edit className="h-4 w-4 mr-2" />
                 Edit
-              </a>
+              </Link>
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -104,8 +117,12 @@ export default function LocationShowPage() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Batal</AlertDialogCancel>
-                  <AlertDialogAction className="bg-destructive text-destructive-foreground">
-                    Hapus
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground"
+                    onClick={() => deleteMutation.mutate()}
+                    disabled={deleteMutation.isPending}
+                  >
+                    {deleteMutation.isPending ? 'Menghapus...' : 'Hapus'}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -119,28 +136,28 @@ export default function LocationShowPage() {
         <Card className="bg-primary/10 border-none">
           <CardContent className="p-4 text-center">
             <Users className="h-6 w-6 mx-auto mb-2 text-primary" />
-            <p className="text-2xl font-bold">{location.employee_count}</p>
+            <p className="text-2xl font-bold">{location.employee_count || 0}</p>
             <p className="text-xs text-muted-foreground">Karyawan</p>
           </CardContent>
         </Card>
         <Card className="bg-success/10 border-none">
           <CardContent className="p-4 text-center">
             <CheckCircle className="h-6 w-6 mx-auto mb-2 text-success" />
-            <p className="text-2xl font-bold">{location.today_checkins}</p>
+            <p className="text-2xl font-bold">-</p>
             <p className="text-xs text-muted-foreground">Check-in Hari Ini</p>
           </CardContent>
         </Card>
         <Card className="bg-warning/10 border-none">
           <CardContent className="p-4 text-center">
             <Navigation className="h-6 w-6 mx-auto mb-2 text-warning" />
-            <p className="text-2xl font-bold">{location.radius}m</p>
+            <p className="text-2xl font-bold">{location.radius_meters}m</p>
             <p className="text-xs text-muted-foreground">Radius</p>
           </CardContent>
         </Card>
         <Card className="bg-accent border-none">
           <CardContent className="p-4 text-center">
             <Clock className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
-            <p className="text-2xl font-bold">93%</p>
+            <p className="text-2xl font-bold">-</p>
             <p className="text-xs text-muted-foreground">Tingkat Kehadiran</p>
           </CardContent>
         </Card>
@@ -163,44 +180,26 @@ export default function LocationShowPage() {
                   <MapPin className="h-12 w-12 mx-auto mb-3" />
                   <p className="font-medium">Peta Interaktif</p>
                   <p className="text-sm">Lat: {location.latitude}, Lng: {location.longitude}</p>
-                  <p className="text-sm">Radius: {location.radius} meter</p>
+                  <p className="text-sm">Radius: {location.radius_meters} meter</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Assigned Employees */}
+          {/* Assigned Employees - Placeholder for now */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Users className="h-5 w-5 text-primary" />
                 Karyawan di Lokasi Ini
               </CardTitle>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" disabled>
                 Kelola
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {assignedEmployees.map((employee) => (
-                  <div
-                    key={employee.id}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-muted/50"
-                  >
-                    <Avatar className="h-10 w-10">
-                      <AvatarFallback className="bg-primary/10 text-primary">
-                        {employee.name.split(' ').map(n => n[0]).join('')}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <p className="font-medium">{employee.name}</p>
-                      <p className="text-sm text-muted-foreground">{employee.department}</p>
-                    </div>
-                  </div>
-                ))}
-                <p className="text-center text-sm text-muted-foreground py-2">
-                  +{location.employee_count - 5} karyawan lainnya
-                </p>
+              <div className="text-center py-6 text-muted-foreground">
+                <p>Daftar karyawan belum tersedia.</p>
               </div>
             </CardContent>
           </Card>
@@ -225,7 +224,7 @@ export default function LocationShowPage() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Radius Absensi</p>
-                <p className="text-sm font-medium">{location.radius} meter</p>
+                <p className="text-sm font-medium">{location.radius_meters} meter</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Dibuat</p>
@@ -242,7 +241,7 @@ export default function LocationShowPage() {
             </CardContent>
           </Card>
 
-          {/* Recent Check-ins */}
+          {/* Recent Check-ins - Placeholder */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -251,18 +250,8 @@ export default function LocationShowPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {recentCheckins.map((checkin, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-success" />
-                      <span className="text-sm">{checkin.name}</span>
-                    </div>
-                    <span className="text-sm text-muted-foreground font-mono">
-                      {checkin.time}
-                    </span>
-                  </div>
-                ))}
+              <div className="text-center py-6 text-muted-foreground">
+                <p>Data check-in belum tersedia.</p>
               </div>
             </CardContent>
           </Card>
@@ -273,13 +262,15 @@ export default function LocationShowPage() {
               <CardTitle className="text-lg">Aksi Cepat</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button variant="outline" className="w-full justify-start">
+              <Button variant="outline" className="w-full justify-start" disabled>
                 <Users className="h-4 w-4 mr-2" />
                 Assign Karyawan
               </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <MapPin className="h-4 w-4 mr-2" />
-                Update Koordinat
+              <Button variant="outline" className="w-full justify-start" asChild>
+                <Link to="/admin/locations/$id/edit" params={{ id: location.id }}>
+                  <MapPin className="h-4 w-4 mr-2" />
+                  Update Koordinat
+                </Link>
               </Button>
             </CardContent>
           </Card>

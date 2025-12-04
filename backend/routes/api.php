@@ -51,10 +51,14 @@ Route::prefix('v1')->group(function () {
             Route::post('/', [App\Http\Controllers\Api\EmployeeApiController::class, 'store']);
             Route::get('/search', [App\Http\Controllers\Api\EmployeeApiController::class, 'search']);
             Route::get('/statistics', [App\Http\Controllers\Api\EmployeeApiController::class, 'statistics']);
+            Route::get('/dashboard', [App\Http\Controllers\Api\EmployeeApiController::class, 'dashboard']);
             Route::get('/with-face-data', [App\Http\Controllers\Api\EmployeeApiController::class, 'withFaceData']); // Added route
             Route::get('/{id}', [App\Http\Controllers\Api\EmployeeApiController::class, 'show']);
             Route::put('/{id}', [App\Http\Controllers\Api\EmployeeApiController::class, 'update']);
             Route::delete('/{id}', [App\Http\Controllers\Api\EmployeeApiController::class, 'destroy']);
+            // Avatar management
+            Route::post('/{id}/avatar', [App\Http\Controllers\Api\EmployeeApiController::class, 'uploadAvatar']);
+            Route::delete('/{id}/avatar', [App\Http\Controllers\Api\EmployeeApiController::class, 'deleteAvatar']);
         });
 
         // User account management endpoints (for admin creating user accounts)
@@ -88,13 +92,20 @@ Route::prefix('v1')->group(function () {
 
         // Leave management endpoints
         Route::prefix('leave-requests')->group(function () {
-            Route::get('/', [App\Http\Controllers\Api\LeaveApiController::class, 'index']);
-            Route::post('/', [App\Http\Controllers\Api\LeaveApiController::class, 'store']);
-            Route::get('/pending', [App\Http\Controllers\Api\LeaveApiController::class, 'pending']);
-            Route::get('/{id}', [App\Http\Controllers\Api\LeaveApiController::class, 'show']);
-            Route::post('/{id}/approve', [App\Http\Controllers\Api\LeaveApiController::class, 'approve']);
-            Route::post('/{id}/reject', [App\Http\Controllers\Api\LeaveApiController::class, 'reject']);
-            Route::post('/{id}/cancel', [App\Http\Controllers\Api\LeaveApiController::class, 'cancel']);
+            Route::get('/', [App\Http\Controllers\Api\LeaveApiController::class, 'index'])
+                ->middleware('permission:view_leave_own|view_leave_all');
+            Route::post('/', [App\Http\Controllers\Api\LeaveApiController::class, 'store'])
+                ->middleware('permission:create_leave_requests');
+            Route::get('/pending', [App\Http\Controllers\Api\LeaveApiController::class, 'pending'])
+                ->middleware('permission:approve_leave');
+            Route::get('/{id}', [App\Http\Controllers\Api\LeaveApiController::class, 'show'])
+                ->middleware('permission:view_leave_own|view_leave_all');
+            Route::post('/{id}/approve', [App\Http\Controllers\Api\LeaveApiController::class, 'approve'])
+                ->middleware('permission:approve_leave');
+            Route::post('/{id}/reject', [App\Http\Controllers\Api\LeaveApiController::class, 'reject'])
+                ->middleware('permission:reject_leave');
+            Route::post('/{id}/cancel', [App\Http\Controllers\Api\LeaveApiController::class, 'cancel'])
+                ->middleware('permission:create_leave_requests');
         });
 
         Route::prefix('leave')->group(function () {
@@ -160,13 +171,22 @@ Route::prefix('v1')->group(function () {
         Route::prefix('reports')->group(function () {
             Route::get('/data', [App\Http\Controllers\Api\ReportsApiController::class, 'data']);
             Route::get('/summary', [App\Http\Controllers\Api\ReportsApiController::class, 'summary']);
+            
+            // Employee-only: View personal attendance summary (no export)
+            Route::get('/my-attendance-summary', [App\Http\Controllers\Api\ReportsApiController::class, 'myAttendanceSummary']);
+            
+            // Admin-only: Full reports & analytics
             Route::get('/attendance/monthly', [App\Http\Controllers\Api\ReportsApiController::class, 'monthlyAttendance']);
             Route::get('/attendance/weekly', [App\Http\Controllers\Api\ReportsApiController::class, 'weeklyTrend']);
             Route::get('/departments', [App\Http\Controllers\Api\ReportsApiController::class, 'departmentStats']);
             Route::get('/leave', [App\Http\Controllers\Api\ReportsApiController::class, 'leaveStats']);
-            Route::post('/generate', [App\Http\Controllers\Api\ReportsApiController::class, 'generate']);
+            
+            // Admin-only: Export functionality
+            Route::post('/generate', [App\Http\Controllers\Api\ReportsApiController::class, 'generate'])
+                ->middleware('throttle:report-export');
             Route::get('/templates', [App\Http\Controllers\Api\ReportsApiController::class, 'templates']);
             Route::get('/generated', [App\Http\Controllers\Api\ReportsApiController::class, 'generatedReports']);
+            Route::get('/generated/{id}', [App\Http\Controllers\Api\ReportsApiController::class, 'showGeneratedReport']);
         });
 
         // Admin endpoints
@@ -184,9 +204,11 @@ Route::prefix('v1')->group(function () {
             Route::get('/locations', [App\Http\Controllers\Api\AdminApiController::class, 'locations']);
             Route::post('/locations', [App\Http\Controllers\Api\AdminApiController::class, 'storeLocation']);
             Route::get('/locations/statistics', [App\Http\Controllers\Api\AdminApiController::class, 'locationStatistics']);
+            Route::get('/locations/{id}', [App\Http\Controllers\Api\AdminApiController::class, 'showLocation']);
             Route::put('/locations/{id}', [App\Http\Controllers\Api\AdminApiController::class, 'updateLocation']);
             Route::delete('/locations/{id}', [App\Http\Controllers\Api\AdminApiController::class, 'destroyLocation']);
             Route::post('/locations/{id}/toggle-status', [App\Http\Controllers\Api\AdminApiController::class, 'toggleLocationStatus']);
+            Route::post('/locations/{id}/assign-employees', [App\Http\Controllers\Api\AdminApiController::class, 'assignEmployeesToLocation']);
 
             // Holidays
             Route::get('/holidays', [App\Http\Controllers\Api\AdminApiController::class, 'holidays']);
@@ -452,7 +474,7 @@ Route::prefix('v1')->group(function () {
 
         // Reports endpoints
         Route::prefix('reports')->group(function () {
-            Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'getData'])
+            Route::get('/dashboard', [App\Http\Controllers\Api\ReportsApiController::class, 'dashboard'])
                 ->middleware('permission:view_attendance_reports');
         });
 

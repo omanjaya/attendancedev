@@ -5,39 +5,52 @@ export type ReportFormat = 'pdf' | 'excel';
 
 // Dashboard/Summary Statistics
 export interface ReportSummary {
-  average_attendance_rate: number;
+  period: {
+    start: string;
+    end: string;
+  };
   total_employees: number;
-  average_working_hours: number;
-  total_leave_used: number;
+  work_days: number;
+  attendance: {
+    total_records: number;
+    present: number;
+    late: number;
+    absent: number;
+    rate: number;
+  };
+  avg_work_hours: number;
 }
 
 // Monthly Attendance Data
 export interface MonthlyAttendanceData {
   month: string;
-  hadir: number;
-  terlambat: number;
-  tidak_hadir: number;
+  month_num: number;
+  present: number;
+  late: number;
+  absent: number;
 }
 
 // Weekly Trend Data
 export interface WeeklyTrendData {
-  day: string;
-  masuk: number;
-  keluar: number;
+  week: string;
+  week_start: string;
+  attendance_rate: number;
 }
 
 // Department Stats
 export interface DepartmentStats {
-  name: string;
-  value: number;
-  color: string;
+  department: string;
+  employee_count: number;
+  attendance_rate: number;
+  present: number;
+  late: number;
 }
 
 // Leave Stats
 export interface LeaveStats {
-  type: string;
-  used: number;
-  total: number;
+  leave_type: string;
+  count: number;
+  total_days: number;
 }
 
 // Full Report Data

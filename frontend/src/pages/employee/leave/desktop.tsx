@@ -15,20 +15,14 @@ import { ContentCard } from '@/components/shared/ContentCard';
 import { useAuthStore } from '@/stores';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { id } from 'date-fns/locale';
-
-interface LeaveRequest {
-  id: number;
-  leaveType: string;
-  startDate: string;
-  endDate: string;
-  days: number;
-  reason: string;
-  status: 'pending' | 'approved' | 'rejected';
-  approvedBy?: string;
-  approvedAt?: string;
-  rejectedReason?: string;
-  createdAt: string;
-}
+import {
+  getLeaveBalance,
+  getLeaveRequests,
+  createLeaveRequest,
+  cancelLeaveRequest
+} from '@/lib/api/leave';
+import { toast } from 'sonner';
+import type { LeaveRequest } from '@/types';
 
 /**
  * Employee Leave Page
@@ -49,87 +43,53 @@ export function DesktopEmployeeLeavePage() {
   // Fetch leave balance
   const { data: leaveBalance } = useQuery({
     queryKey: ['employee', 'leave-balance', user?.id],
-    queryFn: async () => {
-      // TODO: Replace with actual API call
-      return {
-        total: 12,
-        used: 3,
-        pending: 2,
-        remaining: 7,
-      };
-    },
+    queryFn: getLeaveBalance,
   });
 
   // Fetch leave requests
-  const { data: leaveRequests, isLoading } = useQuery({
+  const { data: leaveRequestsResponse, isLoading } = useQuery({
     queryKey: ['employee', 'leave-requests', user?.id],
-    queryFn: async () => {
-      // TODO: Replace with actual API call
-      return [
-        {
-          id: 1,
-          leaveType: 'Cuti Tahunan',
-          startDate: '2025-12-10',
-          endDate: '2025-12-12',
-          days: 3,
-          reason: 'Liburan keluarga',
-          status: 'pending' as const,
-          createdAt: '2025-12-01T08:00:00',
-        },
-        {
-          id: 2,
-          leaveType: 'Cuti Sakit',
-          startDate: '2025-11-28',
-          endDate: '2025-11-29',
-          days: 2,
-          reason: 'Sakit demam',
-          status: 'approved' as const,
-          approvedBy: 'Manager HR',
-          approvedAt: '2025-11-27T10:30:00',
-          createdAt: '2025-11-27T08:00:00',
-        },
-        {
-          id: 3,
-          leaveType: 'Cuti Tahunan',
-          startDate: '2025-11-15',
-          endDate: '2025-11-16',
-          days: 2,
-          reason: 'Keperluan pribadi',
-          status: 'rejected' as const,
-          approvedBy: 'Manager HR',
-          rejectedReason: 'Sudah ada karyawan lain yang cuti pada tanggal tersebut',
-          createdAt: '2025-11-10T08:00:00',
-        },
-      ] as LeaveRequest[];
-    },
+    queryFn: () => getLeaveRequests({ per_page: 50 }),
   });
+
+  const leaveRequests = (leaveRequestsResponse?.data || []) as LeaveRequest[];
 
   // Create leave request mutation
   const createLeaveMutation = useMutation({
     mutationFn: async (data: { leaveType: string; startDate: string; endDate: string; reason: string }) => {
-      // TODO: Replace with actual API call
-      console.log('Creating leave request:', data);
-      return { success: true };
+      return createLeaveRequest({
+        type: data.leaveType as any,
+        start_date: data.startDate,
+        end_date: data.endDate,
+        duration_type: 'full_day',
+        reason: data.reason,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employee', 'leave-requests'] });
       queryClient.invalidateQueries({ queryKey: ['employee', 'leave-balance'] });
       setShowRequestForm(false);
       resetForm();
+      toast.success('Pengajuan cuti berhasil dikirim');
     },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Gagal mengajukan cuti');
+    }
   });
 
   // Cancel leave request mutation
   const cancelLeaveMutation = useMutation({
-    mutationFn: async (id: number) => {
-      // TODO: Replace with actual API call
-      console.log('Canceling leave request:', id);
-      return { success: true };
+    mutationFn: async (id: string) => {
+      return cancelLeaveRequest(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employee', 'leave-requests'] });
       queryClient.invalidateQueries({ queryKey: ['employee', 'leave-balance'] });
+      toast.success('Pengajuan cuti dibatalkan');
     },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Gagal membatalkan cuti');
+    }
   });
 
   const resetForm = () => {
@@ -149,7 +109,7 @@ export function DesktopEmployeeLeavePage() {
     });
   };
 
-  const handleCancelRequest = (id: number) => {
+  const handleCancelRequest = (id: string) => {
     if (confirm('Apakah Anda yakin ingin membatalkan pengajuan cuti ini?')) {
       cancelLeaveMutation.mutate(id);
     }
@@ -211,11 +171,15 @@ export function DesktopEmployeeLeavePage() {
     <PageLayout
       title="Cuti Saya"
       description="Ajukan dan kelola cuti pribadi"
-      action={{
-        label: 'Ajukan Cuti',
-        icon: Plus,
-        onClick: () => setShowRequestForm(true),
-      }}
+      actions={
+        <button
+          onClick={() => setShowRequestForm(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          Ajukan Cuti
+        </button>
+      }
     >
       {/* Leave Balance Card */}
       <ContentCard className="mb-6">
@@ -225,24 +189,24 @@ export function DesktopEmployeeLeavePage() {
               <Plane className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <h3 className="text-sm font-medium text-muted-foreground">Saldo Cuti</h3>
+              <h3 className="text-sm font-medium text-muted-foreground">Saldo Cuti Tahunan</h3>
               <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                {leaveBalance?.remaining || 0} hari
+                {leaveBalance?.annual_remaining || 0} hari
               </p>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
               <p className="text-xs text-muted-foreground">Total</p>
-              <p className="text-lg font-semibold">{leaveBalance?.total || 0}</p>
+              <p className="text-lg font-semibold">{leaveBalance?.annual_total || 0}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Terpakai</p>
-              <p className="text-lg font-semibold">{leaveBalance?.used || 0}</p>
+              <p className="text-lg font-semibold">{leaveBalance?.annual_used || 0}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Pending</p>
-              <p className="text-lg font-semibold">{leaveBalance?.pending || 0}</p>
+              <p className="text-xs text-muted-foreground">Cuti Sakit</p>
+              <p className="text-lg font-semibold">{leaveBalance?.sick_remaining || 0}</p>
             </div>
           </div>
         </div>
@@ -260,6 +224,7 @@ export function DesktopEmployeeLeavePage() {
                   resetForm();
                 }}
                 className="p-1 hover:bg-muted rounded"
+                aria-label="Close modal"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -275,12 +240,13 @@ export function DesktopEmployeeLeavePage() {
                   onChange={(e) => setLeaveType(e.target.value)}
                   className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                   required
+                  aria-label="Pilih jenis cuti"
                 >
                   <option value="">Pilih jenis cuti</option>
-                  <option value="Cuti Tahunan">Cuti Tahunan</option>
-                  <option value="Cuti Sakit">Cuti Sakit</option>
-                  <option value="Cuti Penting">Cuti Penting</option>
-                  <option value="Cuti Melahirkan">Cuti Melahirkan</option>
+                  <option value="annual">Cuti Tahunan</option>
+                  <option value="sick">Cuti Sakit</option>
+                  <option value="special">Cuti Khusus</option>
+                  <option value="maternity">Cuti Melahirkan</option>
                 </select>
               </div>
 
@@ -295,6 +261,7 @@ export function DesktopEmployeeLeavePage() {
                     onChange={(e) => setStartDate(e.target.value)}
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     required
+                    aria-label="Tanggal Mulai"
                   />
                 </div>
 
@@ -309,6 +276,7 @@ export function DesktopEmployeeLeavePage() {
                     min={startDate}
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     required
+                    aria-label="Tanggal Selesai"
                   />
                 </div>
               </div>
@@ -400,7 +368,7 @@ export function DesktopEmployeeLeavePage() {
                 <div className="flex items-start justify-between gap-4 mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-sm font-semibold">{request.leaveType}</h3>
+                      <h3 className="text-sm font-semibold">{request.leave_type?.name || request.leave_type_id}</h3>
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
                         {getStatusIcon(request.status)}
                         {getStatusLabel(request.status)}
@@ -409,10 +377,10 @@ export function DesktopEmployeeLeavePage() {
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar className="h-4 w-4" />
                       <span>
-                        {format(parseISO(request.startDate), 'dd MMM', { locale: id })} -{' '}
-                        {format(parseISO(request.endDate), 'dd MMM yyyy', { locale: id })}
+                        {format(parseISO(request.start_date), 'dd MMM', { locale: id })} -{' '}
+                        {format(parseISO(request.end_date), 'dd MMM yyyy', { locale: id })}
                       </span>
-                      <span className="text-xs">({request.days} hari)</span>
+                      <span className="text-xs">({request.days_requested} hari)</span>
                     </div>
                   </div>
 
@@ -432,22 +400,22 @@ export function DesktopEmployeeLeavePage() {
                   <p>{request.reason}</p>
                 </div>
 
-                {request.status === 'approved' && request.approvedBy && (
+                {request.status === 'approved' && request.approved_by && (
                   <div className="text-xs text-muted-foreground">
                     <CheckCircle className="h-3 w-3 inline mr-1" />
-                    Disetujui oleh {request.approvedBy} pada{' '}
-                    {format(parseISO(request.approvedAt!), 'dd MMM yyyy HH:mm', { locale: id })}
+                    Disetujui oleh {request.approved_by} pada{' '}
+                    {format(parseISO(request.approved_at!), 'dd MMM yyyy HH:mm', { locale: id })}
                   </div>
                 )}
 
-                {request.status === 'rejected' && request.rejectedReason && (
+                {request.status === 'rejected' && request.rejection_reason && (
                   <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded text-xs text-red-700 dark:text-red-300">
-                    <strong>Alasan Penolakan:</strong> {request.rejectedReason}
+                    <strong>Alasan Penolakan:</strong> {request.rejection_reason}
                   </div>
                 )}
 
                 <div className="text-xs text-muted-foreground mt-2">
-                  Diajukan pada {format(parseISO(request.createdAt), 'dd MMM yyyy HH:mm', { locale: id })}
+                  Diajukan pada {format(parseISO(request.created_at), 'dd MMM yyyy HH:mm', { locale: id })}
                 </div>
               </div>
             ))

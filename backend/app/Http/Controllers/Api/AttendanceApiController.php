@@ -24,11 +24,11 @@ class AttendanceApiController extends BaseApiController
             $query->whereDate('date', $date);
         }
 
-        if ($startDate = $request->get('start_date')) {
+        if ($startDate = $request->get('start_date') ?? $request->get('date_from')) {
             $query->whereDate('date', '>=', $startDate);
         }
 
-        if ($endDate = $request->get('end_date')) {
+        if ($endDate = $request->get('end_date') ?? $request->get('date_to')) {
             $query->whereDate('date', '<=', $endDate);
         }
 
@@ -64,8 +64,11 @@ class AttendanceApiController extends BaseApiController
             return $this->errorResponse('Employee not found', 404);
         }
 
+        // Use WITA timezone to match AttendanceService
+        $today = Carbon::now('Asia/Makassar')->format('Y-m-d');
+
         $attendance = Attendance::where('employee_id', $employee->id)
-            ->whereDate('date', today())
+            ->whereDate('date', $today)
             ->first();
 
         return $this->apiResponse([

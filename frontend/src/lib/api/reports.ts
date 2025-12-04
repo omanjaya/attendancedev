@@ -17,8 +17,6 @@ export interface ReportsFilters extends ReportFilters {
   per_page?: number;
 }
 
-console.log('Loading reports.ts API module...');
-
 const ENDPOINTS = {
   data: '/reports/data',
   summary: '/reports/summary',
@@ -34,12 +32,8 @@ const ENDPOINTS = {
   download: (id: string) => `/reports/generated/${id}/download`,
 } as const;
 
-console.log('DEBUG: ENDPOINTS object:', ENDPOINTS);
-console.log('DEBUG: apiClient.defaults.baseURL:', apiClient.defaults.baseURL);
-
 // Get full report data (all charts)
 export async function getReportData(filters?: ReportFilters): Promise<ReportData> {
-  console.log('Calling getReportData with hardcoded path...');
   const response = await apiClient.get<{ data: ReportData }>('/reports/data', {
     params: filters,
   });
@@ -48,7 +42,6 @@ export async function getReportData(filters?: ReportFilters): Promise<ReportData
 
 // Get report summary statistics
 export async function getReportSummary(filters?: ReportFilters): Promise<ReportSummary> {
-  console.log('Calling getReportSummary with hardcoded path...');
   const response = await apiClient.get<{ data: ReportSummary }>('/reports/summary', {
     params: filters,
   });

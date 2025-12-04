@@ -9,10 +9,19 @@ use App\Models\Holiday;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+
+use App\Services\ScheduleManagementService;
 
 class MonthlyScheduleApiController extends BaseApiController
 {
+    protected $scheduleService;
+
+    public function __construct(ScheduleManagementService $scheduleService)
+    {
+        $this->scheduleService = $scheduleService;
+    }
     /**
      * Get all monthly schedules
      */
@@ -63,7 +72,7 @@ class MonthlyScheduleApiController extends BaseApiController
             'name' => 'required|string|max:255',
             'month' => 'required|integer|min:1|max:12',
             'year' => 'required|integer|min:2024|max:2030',
-            'location_id' => 'required|uuid|exists:locations,id',
+            'location_id' => 'nullable|uuid|exists:locations,id', // Made nullable
             'default_start_time' => 'required|date_format:H:i',
             'default_end_time' => 'required|date_format:H:i|after:default_start_time',
             'checkin_start_time' => 'required|date_format:H:i',
@@ -76,6 +85,19 @@ class MonthlyScheduleApiController extends BaseApiController
             'metadata' => 'nullable|array',
         ]);
 
+        // If location_id is not provided, use the first available location as a placeholder
+        // This is because the database requires a location_id, but the business logic
+        // has evolved to make schedules location-agnostic (tied to employees instead).
+        if (empty($validated['location_id'])) {
+            $defaultLocation = \App\Models\Location::first();
+            if ($defaultLocation) {
+                $validated['location_id'] = $defaultLocation->id;
+            } else {
+                // Fallback or error if no locations exist (should not happen in prod)
+                return $this->errorResponse('No locations available to assign to schedule. Please create a location first.', 400);
+            }
+        }
+
         // Calculate start_date and end_date from month/year
         $startDate = Carbon::createFromDate($validated['year'], $validated['month'], 1)->startOfMonth();
         $endDate = $startDate->copy()->endOfMonth();
@@ -85,7 +107,7 @@ class MonthlyScheduleApiController extends BaseApiController
             'end_date' => $endDate,
             'total_working_days' => count($validated['working_days']),
             'is_active' => true,
-            'created_by' => auth()->id(),
+            'created_by' => Auth::id(),
         ]));
 
         return $this->apiResponse(
@@ -144,7 +166,7 @@ class MonthlyScheduleApiController extends BaseApiController
             $validated['total_working_days'] = count($validated['working_days']);
         }
 
-        $validated['updated_by'] = auth()->id();
+        $validated['updated_by'] = Auth::id();
         $schedule->update($validated);
 
         return $this->apiResponse(
@@ -196,50 +218,29 @@ class MonthlyScheduleApiController extends BaseApiController
         DB::beginTransaction();
 
         try {
+            // 1. Clear existing schedules for these employees in this month
+            // This prevents "mixed" schedules if the new schedule has fewer working days
             foreach ($employeeIds as $employeeId) {
-                $employee = Employee::find($employeeId);
-
-                if (!$employee) {
-                    $errors[] = "Employee {$employeeId} not found";
-                    continue;
-                }
-
-                // Check for conflicts (existing schedules in same month/year)
-                $conflictingSchedules = EmployeeMonthlySchedule::where('employee_id', $employeeId)
+                EmployeeMonthlySchedule::where('employee_id', $employeeId)
                     ->whereHas('monthlySchedule', function ($query) use ($schedule) {
                         $query->where('month', $schedule->month)
                             ->where('year', $schedule->year);
                     })
-                    ->get();
-
-                // Auto-replace: Hard delete conflicting schedules
-                if ($conflictingSchedules->isNotEmpty()) {
-                    EmployeeMonthlySchedule::where('employee_id', $employeeId)
-                        ->whereHas('monthlySchedule', function ($query) use ($schedule) {
-                            $query->where('month', $schedule->month)
-                                ->where('year', $schedule->year);
-                        })
-                        ->forceDelete();
-
-                    $replacedCount++;
-                }
-
-                // Assign employee to schedule
-                if ($schedule->assignEmployee($employee)) {
-                    $assignedCount++;
-                } else {
-                    $errors[] = "Failed to assign {$employee->full_name}";
-                }
+                    ->forceDelete();
+                $replacedCount++; // This is an approximation, assuming they might have had schedules
             }
 
+            // 2. Use Service to assign and apply all overrides (Holidays, Teaching Schedules)
+            $results = $this->scheduleService->bulkAssignEmployees($schedule, $employeeIds);
+            
             DB::commit();
 
             return $this->apiResponse([
-                'assigned_count' => $assignedCount,
+                'assigned_count' => $results['success'],
                 'replaced_count' => $replacedCount,
                 'total_employees' => count($employeeIds),
-                'errors' => $errors,
-            ], "Successfully assigned {$assignedCount} employees" . ($replacedCount > 0 ? " ({$replacedCount} replaced)" : ""));
+                'errors' => $results['errors'],
+            ], "Successfully assigned employees");
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -352,7 +353,8 @@ class MonthlyScheduleApiController extends BaseApiController
      */
     public function mySchedule(Request $request)
     {
-        $user = auth()->user();
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
 
         if (!$user || !$user->employee) {
             return $this->errorResponse('Employee not found', 404);

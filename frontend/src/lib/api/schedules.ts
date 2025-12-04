@@ -211,7 +211,7 @@ export interface MonthlyAttendanceScheduleFormData {
   name: string;
   month: number; // 1-12
   year: number;
-  location_id: string;
+  location_id?: string;
   default_start_time: string; // HH:mm format
   default_end_time: string; // HH:mm format
   checkin_start_time: string; // HH:mm format

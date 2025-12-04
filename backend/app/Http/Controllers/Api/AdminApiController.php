@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\User;
 use App\Models\Location;
+use App\Models\Employee;
 use App\Models\Holiday;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -134,7 +135,7 @@ class AdminApiController extends BaseApiController
     // Locations
     public function locations(Request $request)
     {
-        $query = Location::query();
+        $query = Location::query()->withCount('employees as employee_count');
 
         if ($search = $request->get('search')) {
             $query->where('name', 'like', "%{$search}%");
@@ -177,6 +178,19 @@ class AdminApiController extends BaseApiController
         $location = Location::create(array_merge($validated, ['is_active' => true]));
 
         return $this->apiResponse($location, 'Location created', 201);
+    }
+
+    public function showLocation($id)
+    {
+        $location = Location::withCount('employees')->find($id);
+
+        if (!$location) {
+            return $this->errorResponse('Location not found', 404);
+        }
+
+        $location->employee_count = $location->employees_count;
+
+        return $this->apiResponse($location, 'Location retrieved');
     }
 
     public function updateLocation(Request $request, $id)
@@ -226,6 +240,26 @@ class AdminApiController extends BaseApiController
         $location->update(['is_active' => !$location->is_active]);
 
         return $this->apiResponse($location->fresh(), 'Location status toggled');
+    }
+
+    public function assignEmployeesToLocation(Request $request, $id)
+    {
+        $location = Location::find($id);
+
+        if (!$location) {
+            return $this->errorResponse('Location not found', 404);
+        }
+
+        $validated = $request->validate([
+            'employee_ids' => 'required|array',
+            'employee_ids.*' => 'exists:employees,id',
+        ]);
+
+        // Update employees
+        Employee::whereIn('id', $validated['employee_ids'])
+            ->update(['location_id' => $location->id]);
+
+        return $this->apiResponse(null, 'Employees assigned to location successfully');
     }
 
     // Holidays

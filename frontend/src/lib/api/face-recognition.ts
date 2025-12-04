@@ -36,13 +36,15 @@ export interface FaceVerificationResponse {
 export interface FaceDataResponse {
   success: boolean;
   data: {
-    employee_id: string;
     has_face_data: boolean;
-    descriptor?: number[];
-    confidence?: number;
-    quality_score?: number;
-    registered_at?: string;
-    updated_at?: string;
+    face_data: {
+      algorithm?: string;
+      model_version?: string;
+      confidence?: number;
+      quality_score?: number;
+      registered_at?: string;
+      updated_at?: string;
+    } | null;
   };
 }
 
@@ -374,11 +376,33 @@ export interface DeepFaceVerifyResponse {
   success: boolean;
   message?: string;
   matched?: boolean;
+  data?: {
+    matched?: boolean;
+    employee?: {
+      id?: string;
+      employee_id: string;
+      employee_code: string;
+      name: string;
+    };
+    employee_data?: any;
+    confidence?: number;
+    distance?: number;
+    similarity?: number;
+    liveness_passed?: boolean;
+    quality?: {
+      quality_ok: boolean;
+      blur_score: number;
+      brightness: number;
+      issues: string[];
+    };
+    [key: string]: any;
+  };
   employee?: {
     employee_id: string;
     employee_code: string;
     name: string;
   };
+  employee_data?: any;
   confidence?: number;
   distance?: number;
   similarity?: number;

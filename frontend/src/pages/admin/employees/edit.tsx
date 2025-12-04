@@ -43,6 +43,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useNotificationStore } from '@/stores';
 import { useEmployee, useUpdateEmployee } from '@/hooks';
+import { useLocations } from '@/hooks/use-locations';
 import { FaceEnrollmentFromPhoto, FaceEnrollmentWizard } from '@/components/face-recognition';
 import { useFaceData, useDeleteFace } from '@/hooks/use-face-recognition-api';
 
@@ -54,6 +55,7 @@ const employeeSchema = z.object({
   position: z.string().min(2, 'Posisi minimal 2 karakter'),
   join_date: z.string().min(1, 'Pilih tanggal bergabung'),
   address: z.string().optional(),
+  location_id: z.string().min(1, 'Pilih lokasi'),
 });
 
 type EmployeeForm = z.infer<typeof employeeSchema>;
@@ -130,7 +132,15 @@ export default function EmployeeEditPage() {
   const { data: faceData, isLoading: isLoadingFaceData, refetch: refetchFaceData } = useFaceData(id);
   const deleteFaceMutation = useDeleteFace();
 
-  const hasFaceData = faceData?.data?.has_face_data ?? false;
+  const hasFaceData = faceData?.has_face_data ?? false;
+
+  // Locations hook
+  const { locations, fetchLocations } = useLocations();
+
+  // Load locations on mount
+  useEffect(() => {
+    fetchLocations({ is_active: true });
+  }, [fetchLocations]);
 
   const {
     register,
@@ -153,6 +163,7 @@ export default function EmployeeEditPage() {
         position: employee.position,
         join_date: employee.join_date,
         address: employee.address || '',
+        location_id: employee.location?.id || '', // Add location_id
       });
       setIsActive(employee.status === 'active');
     }
@@ -181,10 +192,11 @@ export default function EmployeeEditPage() {
         id: Number(id),
         data: {
           ...data,
+          location_id: data.location_id, // Include location assignment
           status: isActive ? 'active' : 'inactive',
         },
       });
-      navigate({ to: '/employees' });
+      navigate({ to: '/admin/employees' });
     } catch {
       // Error handled by mutation hook
     }
@@ -304,7 +316,7 @@ export default function EmployeeEditPage() {
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {hasFaceData
-                        ? `Quality: ${faceData?.data?.quality_score ? Math.round(faceData.data.quality_score * 100) : '-'}%`
+                        ? `Quality: ${faceData?.face_data?.quality_score ? Math.round(faceData.face_data.quality_score * 100) : '-'}%`
                         : 'Daftarkan wajah untuk verifikasi absensi'}
                     </p>
                   </div>
@@ -489,6 +501,33 @@ export default function EmployeeEditPage() {
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="location">
+                    Lokasi <span className="text-destructive">*</span>
+                  </Label>
+                  <Select
+                    defaultValue={employee.location?.id}
+                    onValueChange={(value) => setValue('location_id', value)}
+                  >
+                    <SelectTrigger id="location">
+                      <SelectValue placeholder="Pilih lokasi" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {locations.map((location) => (
+                        <SelectItem key={location.id} value={location.id}>
+                          {location.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.location_id && (
+                    <p className="text-xs text-destructive">{errors.location_id.message}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Lokasi akan digunakan untuk validasi GPS saat check-in
+                  </p>
+                </div>
+
                 {/* Status Toggle */}
                 <div className="flex items-center justify-between p-4 rounded-lg border">
                   <div>
@@ -509,7 +548,7 @@ export default function EmployeeEditPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate({ to: '/employees' })}
+                  onClick={() => navigate({ to: '/admin/employees' })}
                 >
                   Batal
                 </Button>

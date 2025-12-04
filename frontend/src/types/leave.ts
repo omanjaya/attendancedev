@@ -24,12 +24,18 @@ export interface LeaveRequest {
   employee_id: string;
   employee_name?: string;
   employee_department?: string;
-  type: LeaveType;
+  leave_type_id: string;
+  leave_type?: {
+    id: string;
+    name: string;
+    code: string;
+  };
+  type?: LeaveType; // Optional, might be mapped from leave_type.code
   status: LeaveStatus;
   start_date: string;
   end_date: string;
   duration_type: LeaveDurationType;
-  total_days: number;
+  days_requested: number; // Changed from total_days
   reason: string;
   attachment_url?: string;
   emergency_contact?: string;
@@ -134,6 +140,7 @@ export interface LeaveStatistics {
   average_days_per_request: number;
   most_common_type: LeaveType;
   employees_on_leave_today: number;
+  total_days_this_month: number;
 }
 
 // Type labels in Indonesian

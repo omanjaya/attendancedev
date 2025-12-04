@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useParams, useNavigate } from '@tanstack/react-router';
 import {
   ArrowLeft,
@@ -14,7 +15,6 @@ import {
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LoadingState } from '@/components/states';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -29,7 +29,8 @@ import {
   useRejectLeaveRequest,
   useCancelLeaveRequest,
 } from '@/hooks';
-import { leaveTypeLabels, leaveTypeColors } from '@/types/leave';
+import { leaveTypeLabels, leaveTypeColors, type LeaveType } from '@/types/leave';
+import { RejectDialog } from '@/components/leave/RejectDialog';
 
 // Loading skeleton
 function ShowLoadingSkeleton() {
@@ -70,6 +71,7 @@ const statusConfig = {
 export default function LeaveShowPage() {
   const { id } = useParams({ strict: false }) as { id: string };
   const navigate = useNavigate();
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
 
   // Fetch leave request
   const {
@@ -96,10 +98,11 @@ export default function LeaveShowPage() {
     }
   };
 
-  // Handle reject
-  const handleReject = async () => {
+  // Handle reject confirm
+  const handleRejectConfirm = async (reason: string) => {
     try {
-      await rejectLeaveRequestMutation.mutateAsync({ id, reason: 'Ditolak oleh manager' });
+      await rejectLeaveRequestMutation.mutateAsync({ id, reason });
+      setShowRejectDialog(false);
     } catch {
       // Error handled in hook
     }
@@ -107,11 +110,13 @@ export default function LeaveShowPage() {
 
   // Handle cancel
   const handleCancel = async () => {
-    try {
-      await cancelLeaveRequestMutation.mutateAsync(id);
-      navigate({ to: '/leave' });
-    } catch {
-      // Error handled in hook
+    if (confirm('Apakah Anda yakin ingin membatalkan pengajuan ini?')) {
+      try {
+        await cancelLeaveRequestMutation.mutateAsync(id);
+        navigate({ to: '/admin/leave' });
+      } catch {
+        // Error handled in hook
+      }
     }
   };
 
@@ -174,30 +179,30 @@ export default function LeaveShowPage() {
     },
     ...(leave.status === 'pending'
       ? [{
-          id: 2,
-          action: 'Menunggu persetujuan',
-          user: 'System',
-          date: leave.created_at,
-          type: 'pending',
-        }]
+        id: 2,
+        action: 'Menunggu persetujuan',
+        user: 'System',
+        date: leave.created_at,
+        type: 'pending',
+      }]
       : []),
     ...(leave.status === 'approved'
       ? [{
-          id: 3,
-          action: 'Disetujui',
-          user: leave.approved_by_name || 'Manager',
-          date: leave.approved_at || '',
-          type: 'approved',
-        }]
+        id: 3,
+        action: 'Disetujui',
+        user: leave.approved_by_name || 'Manager',
+        date: leave.approved_at || '',
+        type: 'approved',
+      }]
       : []),
     ...(leave.status === 'rejected'
       ? [{
-          id: 3,
-          action: `Ditolak: ${leave.rejection_reason}`,
-          user: leave.approved_by_name || 'Manager',
-          date: leave.approved_at || '',
-          type: 'rejected',
-        }]
+        id: 3,
+        action: `Ditolak: ${leave.rejection_reason}`,
+        user: leave.approved_by_name || 'Manager',
+        date: leave.approved_at || '',
+        type: 'rejected',
+      }]
       : []),
   ];
 
@@ -230,20 +235,17 @@ export default function LeaveShowPage() {
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
-                className="text-destructive"
-                onClick={handleReject}
+                className="text-destructive border-destructive/20 hover:bg-destructive/10"
+                onClick={() => setShowRejectDialog(true)}
                 disabled={rejectLeaveRequestMutation.isPending}
               >
-                {rejectLeaveRequestMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <XCircle className="h-4 w-4 mr-2" />
-                )}
+                <XCircle className="h-4 w-4 mr-2" />
                 Tolak
               </Button>
               <Button
                 onClick={handleApprove}
                 disabled={approveLeaveRequestMutation.isPending}
+                className="bg-success hover:bg-success/90 text-white"
               >
                 {approveLeaveRequestMutation.isPending ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -295,8 +297,8 @@ export default function LeaveShowPage() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="p-3 rounded-lg bg-muted text-center">
                   <p className="text-xs text-muted-foreground mb-1">Jenis Cuti</p>
-                  <Badge style={{ backgroundColor: leaveTypeColors[leave.type], color: 'white' }}>
-                    {leaveTypeLabels[leave.type]}
+                  <Badge style={{ backgroundColor: leaveTypeColors[leave.type || 'annual'], color: 'white' }}>
+                    {leaveTypeLabels[leave.type || 'annual']}
                   </Badge>
                 </div>
                 <div className="p-3 rounded-lg bg-muted text-center">
@@ -319,7 +321,7 @@ export default function LeaveShowPage() {
                 </div>
                 <div className="p-3 rounded-lg bg-primary/10 text-center">
                   <p className="text-xs text-muted-foreground mb-1">Total Hari</p>
-                  <p className="text-2xl font-bold text-primary">{leave.total_days}</p>
+                  <p className="text-2xl font-bold text-primary">{leave.days_requested}</p>
                 </div>
               </div>
 
@@ -327,8 +329,8 @@ export default function LeaveShowPage() {
 
               <div>
                 <h4 className="text-sm font-medium mb-2">Alasan Pengajuan</h4>
-                <p className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
-                  {leave.reason}
+                <p className="text-sm text-muted-foreground bg-muted p-3 rounded-lg italic">
+                  "{leave.reason}"
                 </p>
               </div>
 
@@ -346,35 +348,27 @@ export default function LeaveShowPage() {
             </CardContent>
           </Card>
 
-          {/* Add Comment */}
+          {/* Add Comment / Cancel */}
           {leave.status === 'pending' && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <MessageSquare className="h-5 w-5 text-primary" />
-                  Tambah Komentar
+                  Tindakan Lain
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <Textarea
-                  placeholder="Tambahkan catatan atau alasan penolakan..."
-                  className="mb-3"
-                />
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
-                    Kirim Komentar
-                  </Button>
                   <Button
                     variant="outline"
-                    size="sm"
-                    className="text-destructive"
+                    className="text-destructive w-full sm:w-auto"
                     onClick={handleCancel}
                     disabled={cancelLeaveRequestMutation.isPending}
                   >
                     {cancelLeaveRequestMutation.isPending && (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     )}
-                    Batalkan Pengajuan
+                    Batalkan Pengajuan Ini
                   </Button>
                 </div>
               </CardContent>
@@ -395,10 +389,10 @@ export default function LeaveShowPage() {
                 {leave.status === 'pending'
                   ? 'Menunggu persetujuan atasan'
                   : leave.status === 'approved'
-                  ? `Disetujui oleh ${leave.approved_by_name}`
-                  : leave.status === 'rejected'
-                  ? `Ditolak oleh ${leave.approved_by_name}`
-                  : 'Pengajuan dibatalkan'}
+                    ? `Disetujui oleh ${leave.approved_by_name}`
+                    : leave.status === 'rejected'
+                      ? `Ditolak oleh ${leave.approved_by_name}`
+                      : 'Pengajuan dibatalkan'}
               </p>
             </CardContent>
           </Card>
@@ -416,12 +410,11 @@ export default function LeaveShowPage() {
                 {timeline.map((item, index) => (
                   <div key={item.id} className="flex gap-3">
                     <div className="flex flex-col items-center">
-                      <div className={`w-3 h-3 rounded-full ${
-                        item.type === 'created' ? 'bg-primary' :
-                        item.type === 'approved' ? 'bg-success' :
-                        item.type === 'rejected' ? 'bg-destructive' :
-                        'bg-warning'
-                      }`} />
+                      <div className={`w-3 h-3 rounded-full ${item.type === 'created' ? 'bg-primary' :
+                          item.type === 'approved' ? 'bg-success' :
+                            item.type === 'rejected' ? 'bg-destructive' :
+                              'bg-warning'
+                        }`} />
                       {index < timeline.length - 1 && (
                         <div className="w-px h-full bg-border mt-1" />
                       )}
@@ -463,6 +456,14 @@ export default function LeaveShowPage() {
           </Card>
         </div>
       </div>
+
+      {/* Reject Dialog */}
+      <RejectDialog
+        open={showRejectDialog}
+        onOpenChange={setShowRejectDialog}
+        onConfirm={handleRejectConfirm}
+        isLoading={rejectLeaveRequestMutation.isPending}
+      />
     </div>
   );
 }

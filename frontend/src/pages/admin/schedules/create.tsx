@@ -148,11 +148,11 @@ export default function ScheduleCreatePage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Lokasi</label>
+                <label className="text-sm font-medium">Lokasi (Opsional)</label>
                 <Select onValueChange={(value) => setValue('location_id', value)}>
                   <SelectTrigger>
                     <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <SelectValue placeholder="Pilih lokasi (opsional)" />
+                    <SelectValue placeholder="Pilih lokasi untuk referensi" />
                   </SelectTrigger>
                   <SelectContent>
                     {locations.map((loc) => (
@@ -162,6 +162,9 @@ export default function ScheduleCreatePage() {
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  Validasi GPS saat check-in menggunakan lokasi yang diassign ke karyawan di Manajemen Karyawan
+                </p>
               </div>
             </CardContent>
           </Card>

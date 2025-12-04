@@ -22,17 +22,48 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        // 1. Check if user exists
+        if (! $user) {
             throw ValidationException::withMessages([
                 'email' => ['Kredensial yang diberikan tidak cocok dengan catatan kami.'],
             ]);
         }
 
+        // 2. Check if user is active
+        if (! $user->is_active) {
+            throw ValidationException::withMessages([
+                'email' => ['Akun ini telah dinonaktifkan. Silakan hubungi administrator.'],
+            ]);
+        }
+
+        // 3. Check if account is locked
+        if ($user->isLocked()) {
+            $lockTime = $user->locked_until ? $user->locked_until->diffForHumans() : 'indefinitely';
+            throw ValidationException::withMessages([
+                'email' => ["Akun terkunci. Silakan coba lagi {$lockTime}."],
+            ]);
+        }
+
+        // 4. Verify password
+        if (! Hash::check($request->password, $user->password)) {
+            // Increment failed attempts and potentially lock account
+            $user->incrementFailedLogins($request->ip());
+            
+            throw ValidationException::withMessages([
+                'email' => ['Kredensial yang diberikan tidak cocok dengan catatan kami.'],
+            ]);
+        }
+
+        // 5. Login successful - Update stats
+        $user->updateLastLogin($request->ip());
+        
+        // 6. Create token
         $token = $user->createToken($request->device_name ?? 'web')->plainTextToken;
 
         return response()->json([
             'token' => $token,
             'user' => $user->load(['employee', 'roles', 'permissions']),
+            'requires_password_change' => $user->needsPasswordChange(),
         ]);
     }
 

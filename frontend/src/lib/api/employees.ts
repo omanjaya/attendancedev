@@ -12,6 +12,7 @@ const ENDPOINTS = {
   detail: (id: number) => `/employees/${id}`,
   search: '/employees/search',
   statistics: '/employees/statistics',
+  dashboard: '/employees/dashboard',
 } as const;
 
 // Get all employees with pagination and filters
@@ -62,4 +63,35 @@ export async function searchEmployees(query: string): Promise<Employee[]> {
 export async function getEmployeeStatistics(): Promise<EmployeeStatistics> {
   const response = await apiClient.get<{ data: EmployeeStatistics }>(ENDPOINTS.statistics);
   return response.data.data;
+}
+
+// Get employee dashboard data
+export async function getEmployeeDashboardData(): Promise<any> {
+  const response = await apiClient.get(ENDPOINTS.dashboard);
+  return response.data.data;
+}
+
+// Upload employee avatar
+export async function uploadEmployeeAvatar(
+  employeeId: number,
+  file: File
+): Promise<{ avatar_url: string }> {
+  const formData = new FormData();
+  formData.append('avatar', file);
+
+  const response = await apiClient.post<{ data: { avatar_url: string } }>(
+    `/employees/${employeeId}/avatar`,
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }
+  );
+  return response.data.data;
+}
+
+// Delete employee avatar
+export async function deleteEmployeeAvatar(employeeId: number): Promise<void> {
+  await apiClient.delete(`/employees/${employeeId}/avatar`);
 }

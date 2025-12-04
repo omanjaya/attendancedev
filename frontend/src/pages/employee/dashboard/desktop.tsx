@@ -1,47 +1,23 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { Clock, Calendar, Plane, DollarSign, User, CheckCircle, AlertCircle } from 'lucide-react';
 import { PageLayout } from '@/components/shared/PageLayout';
 import { StatsGrid } from '@/components/shared/StatsGrid';
 import { ContentCard } from '@/components/shared/ContentCard';
+import { getEmployeeDashboardData } from '@/lib/api/employees';
 import { useAuthStore } from '@/stores';
 
 /**
  * Employee Dashboard
- * Shows personal stats, my schedule, and recent activity
+ * Shows personal attendance stats, leave balance, and schedule
  */
 export function DesktopEmployeeDashboard() {
   const { user } = useAuthStore();
 
-  // Fetch personal stats
+  // Fetch dashboard stats
   const { data: stats } = useQuery({
     queryKey: ['employee', 'dashboard-stats', user?.id],
-    queryFn: async () => {
-      // TODO: Replace with actual API call
-      return {
-        attendance: {
-          thisMonth: 18,
-          present: 16,
-          late: 2,
-          absent: 0,
-          todayStatus: null, // 'checked-in' | 'checked-out' | null
-          checkIn: null,
-          checkOut: null,
-        },
-        leave: {
-          balance: 12,
-          used: 3,
-          pending: 1,
-        },
-        schedule: {
-          today: { shift: 'Pagi', time: '08:00 - 17:00', location: 'Kantor Pusat' },
-          nextShift: { date: 'Besok', shift: 'Pagi', time: '08:00 - 17:00' },
-        },
-        payroll: {
-          lastPayment: { amount: 8500000, date: '2025-11-25', status: 'paid' },
-          nextPayment: { date: '2025-12-25', estimated: 8500000 },
-        },
-      };
-    },
+    queryFn: getEmployeeDashboardData,
   });
 
   const dashboardStats = [
@@ -71,7 +47,7 @@ export function DesktopEmployeeDashboard() {
     {
       label: 'Gaji Terakhir',
       value: (stats?.payroll.lastPayment?.amount
-        ? `Rp ${(stats.payroll.lastPayment.amount / 1000000).toFixed(1)}jt`
+        ? `Rp ${(stats.payroll.lastPayment.amount / 1000000).toFixed(1)} jt`
         : '-') as any,
       description: stats?.payroll.lastPayment?.date || 'Belum ada',
       icon: DollarSign,
@@ -81,7 +57,7 @@ export function DesktopEmployeeDashboard() {
 
   return (
     <PageLayout
-      title={`Selamat datang, ${user?.name || 'Employee'}!`}
+      title={`Selamat datang, ${user?.name || 'Employee'} !`}
       description="Dashboard pribadi Anda"
     >
       {/* Stats Grid */}

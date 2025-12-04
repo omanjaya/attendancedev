@@ -18,6 +18,7 @@ import {
     CalendarCheck,
     CalendarX,
     RefreshCw,
+    Search,
 } from 'lucide-react';
 import { EmptyState, PageHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
@@ -43,13 +44,17 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
+    DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RejectDialog } from '@/components/leave/RejectDialog';
+import { LeaveCalendar } from '@/components/leave/LeaveCalendar';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
     useLeaveRequests,
     useLeaveBalance,
@@ -57,7 +62,9 @@ import {
     useApproveLeaveRequest,
     useRejectLeaveRequest,
     useCancelLeaveRequest,
+    useLeaveStatistics,
 } from '@/hooks';
+import { useAuthStore } from '@/stores/auth-store';
 import type { LeaveFilters } from '@/lib/api/leave';
 import {
     leaveTypeLabels,
@@ -70,10 +77,8 @@ import {
 import { LeaveBadge } from '@/components/status';
 import { CardSkeleton, StatSkeleton } from '@/components/states';
 
-// Status badge wrapper
-function StatusBadge({ status }: { status: LeaveStatus }) {
-    return <LeaveBadge status={status} />;
-}
+// Rejection Dialog Component
+
 
 // Leave request form dialog
 function LeaveRequestDialog({
@@ -230,10 +235,13 @@ function LeaveRequestDialog({
 
 // Desktop version (original implementation)
 export function DesktopAdminLeavePage() {
+    const { hasPermission } = useAuthStore();
     const [activeTab, setActiveTab] = useState('requests');
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [typeFilter, setTypeFilter] = useState<string>('all');
     const [showCreateDialog, setShowCreateDialog] = useState(false);
+    const [showRejectDialog, setShowRejectDialog] = useState(false);
+    const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
 
     // Build filters
     const filters: LeaveFilters = {};
@@ -282,12 +290,22 @@ export function DesktopAdminLeavePage() {
         }
     };
 
-    // Handle reject
-    const handleReject = async (id: string, reason: string) => {
-        try {
-            await rejectLeaveRequestMutation.mutateAsync({ id, reason });
-        } catch {
-            // Error handled in hook
+    // Handle reject click
+    const onRejectClick = (id: string) => {
+        setSelectedRequestId(id);
+        setShowRejectDialog(true);
+    };
+
+    // Handle reject confirm
+    const handleRejectConfirm = async (reason: string) => {
+        if (selectedRequestId) {
+            try {
+                await rejectLeaveRequestMutation.mutateAsync({ id: selectedRequestId, reason });
+                setShowRejectDialog(false);
+                setSelectedRequestId(null);
+            } catch {
+                // Error handled in hook
+            }
         }
     };
 
@@ -300,13 +318,14 @@ export function DesktopAdminLeavePage() {
         }
     };
 
+    // Fetch stats
+    const { data: statsData } = useLeaveStatistics();
+
     // Stats
     const stats = {
-        pending: leaveRequests.filter((r) => r.status === 'pending').length,
-        approved: leaveRequests.filter((r) => r.status === 'approved').length,
-        total_days_this_month: leaveRequests
-            .filter((r) => r.status === 'approved')
-            .reduce((acc, r) => acc + r.total_days, 0),
+        pending: statsData?.pending_requests ?? 0,
+        approved: statsData?.approved_requests ?? 0,
+        total_days_this_month: statsData?.total_days_this_month ?? 0,
     };
 
     // Default balance values
@@ -322,7 +341,7 @@ export function DesktopAdminLeavePage() {
     };
 
     return (
-        <div className="space-y-4 p-4 sm:space-y-6 sm:p-6">
+        <div className="space-y-4 p-4 sm:space-y-6 sm:p-6 max-w-[1600px] mx-auto">
             {/* Page Header */}
             <PageHeader
                 title="Cuti & Izin"
@@ -334,10 +353,12 @@ export function DesktopAdminLeavePage() {
                             <Download className="mr-2 h-4 w-4" />
                             Export
                         </Button>
-                        <Button size="sm" onClick={() => setShowCreateDialog(true)}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Ajukan Cuti
-                        </Button>
+                        {hasPermission('create_leave_requests') && (
+                            <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Ajukan Cuti
+                            </Button>
+                        )}
                     </div>
                 }
             />
@@ -354,40 +375,47 @@ export function DesktopAdminLeavePage() {
             ) : (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {/* Leave Balance Card */}
-                    <Card className="sm:col-span-2">
+                    <Card className="sm:col-span-2 border-primary/10 bg-primary/5">
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">
                                 Saldo Cuti Anda
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-3">
+                        <CardContent className="space-y-4">
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between text-sm">
-                                    <span>Cuti Tahunan</span>
+                                    <span className="flex items-center gap-2">
+                                        <div className="h-2 w-2 rounded-full bg-blue-500" />
+                                        Cuti Tahunan
+                                    </span>
                                     <span className="font-medium">
                                         {balance.annual_remaining} / {balance.annual_total} hari
                                     </span>
                                 </div>
                                 <Progress
                                     value={(balance.annual_used / balance.annual_total) * 100}
-                                    className="h-2"
+                                    className="h-2 bg-blue-100 [&>div]:bg-blue-500"
                                 />
                             </div>
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between text-sm">
-                                    <span>Cuti Sakit</span>
+                                    <span className="flex items-center gap-2">
+                                        <div className="h-2 w-2 rounded-full bg-red-500" />
+                                        Cuti Sakit
+                                    </span>
                                     <span className="font-medium">
                                         {balance.sick_remaining} / {balance.sick_total} hari
                                     </span>
                                 </div>
                                 <Progress
                                     value={(balance.sick_used / balance.sick_total) * 100}
-                                    className="h-2"
+                                    className="h-2 bg-red-100 [&>div]:bg-red-500"
                                 />
                             </div>
                             {balance.carry_forward > 0 && (
-                                <div className="rounded-lg bg-warning/5 p-2 text-xs">
-                                    <span className="text-warning">
+                                <div className="rounded-lg bg-warning/10 p-2 text-xs flex items-center gap-2">
+                                    <AlertCircle className="h-3 w-3 text-warning" />
+                                    <span className="text-warning-foreground font-medium">
                                         {balance.carry_forward} hari carry forward (exp: {balance.carry_forward_expiry})
                                     </span>
                                 </div>
@@ -397,14 +425,14 @@ export function DesktopAdminLeavePage() {
 
                     {/* Pending */}
                     <Card>
-                        <CardContent className="p-4">
+                        <CardContent className="p-6">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-xs text-muted-foreground">Menunggu Approval</p>
-                                    <p className="text-2xl font-bold text-warning">{stats.pending}</p>
+                                    <p className="text-sm font-medium text-muted-foreground">Menunggu Approval</p>
+                                    <p className="text-3xl font-bold text-warning mt-2">{stats.pending}</p>
                                 </div>
-                                <div className="rounded-lg bg-warning/10 p-2">
-                                    <Clock className="h-5 w-5 text-warning" />
+                                <div className="rounded-full bg-warning/10 p-3">
+                                    <Clock className="h-6 w-6 text-warning" />
                                 </div>
                             </div>
                         </CardContent>
@@ -412,14 +440,14 @@ export function DesktopAdminLeavePage() {
 
                     {/* Approved this month */}
                     <Card>
-                        <CardContent className="p-4">
+                        <CardContent className="p-6">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-xs text-muted-foreground">Disetujui Bulan Ini</p>
-                                    <p className="text-2xl font-bold text-success">{stats.approved}</p>
+                                    <p className="text-sm font-medium text-muted-foreground">Disetujui Bulan Ini</p>
+                                    <p className="text-3xl font-bold text-success mt-2">{stats.approved}</p>
                                 </div>
-                                <div className="rounded-lg bg-success/10 p-2">
-                                    <CalendarCheck className="h-5 w-5 text-success" />
+                                <div className="rounded-full bg-success/10 p-3">
+                                    <CalendarCheck className="h-6 w-6 text-success" />
                                 </div>
                             </div>
                         </CardContent>
@@ -441,9 +469,9 @@ export function DesktopAdminLeavePage() {
             )}
 
             {/* Main Content */}
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <TabsList>
+                    <TabsList className="grid w-full grid-cols-3 sm:w-auto">
                         <TabsTrigger value="requests" className="gap-2">
                             <FileText className="h-4 w-4" />
                             Pengajuan
@@ -452,22 +480,29 @@ export function DesktopAdminLeavePage() {
                             <Calendar className="h-4 w-4" />
                             Kalender
                         </TabsTrigger>
-                        <TabsTrigger value="approvals" className="gap-2">
+                        <TabsTrigger value="approvals" className="gap-2 relative">
                             <CheckCircle2 className="h-4 w-4" />
                             Approvals
                             {stats.pending > 0 && (
-                                <Badge variant="secondary" className="ml-1 h-5 w-5 rounded-full p-0 text-xs">
+                                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] text-destructive-foreground">
                                     {stats.pending}
-                                </Badge>
+                                </span>
                             )}
                         </TabsTrigger>
                     </TabsList>
 
                     {/* Filters */}
-                    <div className="flex items-center gap-2">
-                        <Filter className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex flex-wrap items-center gap-2">
+                        <div className="relative">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Cari..."
+                                className="pl-9 w-[150px] lg:w-[200px]"
+                            />
+                        </div>
                         <Select value={statusFilter} onValueChange={setStatusFilter}>
                             <SelectTrigger className="w-[140px]">
+                                <Filter className="mr-2 h-4 w-4 text-muted-foreground" />
                                 <SelectValue placeholder="Status" />
                             </SelectTrigger>
                             <SelectContent>
@@ -496,7 +531,7 @@ export function DesktopAdminLeavePage() {
                 </div>
 
                 {/* Requests Tab */}
-                <TabsContent value="requests" className="mt-6">
+                <TabsContent value="requests" className="space-y-4">
                     {isLoadingRequests ? (
                         <div className="space-y-4">
                             <CardSkeleton />
@@ -505,7 +540,7 @@ export function DesktopAdminLeavePage() {
                         </div>
                     ) : leaveRequests.length === 0 ? (
                         <Card>
-                            <CardContent className="py-10">
+                            <CardContent className="py-12">
                                 <EmptyState
                                     icon={CalendarX}
                                     title="Tidak ada pengajuan cuti"
@@ -518,35 +553,37 @@ export function DesktopAdminLeavePage() {
                             </CardContent>
                         </Card>
                     ) : (
-                        <div className="space-y-4">
+                        <div className="grid gap-4">
                             {leaveRequests.map((request) => (
-                                <Card key={request.id} className="overflow-hidden">
+                                <Card key={request.id} className="overflow-hidden hover:shadow-md transition-shadow">
                                     <CardContent className="p-0">
                                         <div className="flex flex-col sm:flex-row">
                                             {/* Type indicator */}
                                             <div
-                                                className="w-full sm:w-2 shrink-0"
-                                                style={{ backgroundColor: leaveTypeColors[request.type] }}
+                                                className="w-full sm:w-1.5 shrink-0"
+                                                style={{ backgroundColor: leaveTypeColors[request.type || 'annual'] }}
                                             />
 
-                                            <div className="flex-1 p-4">
+                                            <div className="flex-1 p-4 sm:p-5">
                                                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                                                    <div className="space-y-1">
-                                                        <div className="flex items-center gap-2">
-                                                            <h3 className="font-semibold">{leaveTypeLabels[request.type]}</h3>
-                                                            <StatusBadge status={request.status} />
+                                                    <div className="space-y-2">
+                                                        <div className="flex items-center gap-3">
+                                                            <h3 className="font-semibold text-lg">{leaveTypeLabels[request.type || 'annual']}</h3>
+                                                            <LeaveBadge status={request.status} />
                                                         </div>
                                                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                                            <span className="flex items-center gap-1">
-                                                                <User className="h-3 w-3" />
+                                                            <span className="flex items-center gap-1.5">
+                                                                <User className="h-3.5 w-3.5" />
                                                                 {request.employee_name}
                                                             </span>
-                                                            <span className="flex items-center gap-1">
-                                                                <Building className="h-3 w-3" />
+                                                            <span className="flex items-center gap-1.5">
+                                                                <Building className="h-3.5 w-3.5" />
                                                                 {request.employee_department}
                                                             </span>
                                                         </div>
-                                                        <p className="text-sm text-muted-foreground">{request.reason}</p>
+                                                        <p className="text-sm text-muted-foreground bg-muted/30 p-2 rounded-md border border-border/50">
+                                                            "{request.reason}"
+                                                        </p>
                                                     </div>
 
                                                     <div className="flex items-center gap-4">
@@ -555,20 +592,21 @@ export function DesktopAdminLeavePage() {
                                                                 {new Date(request.start_date).toLocaleDateString('id-ID', {
                                                                     day: 'numeric',
                                                                     month: 'short',
+                                                                    year: 'numeric'
                                                                 })}
-                                                                {request.start_date !== request.end_date && (
-                                                                    <>
-                                                                        {' - '}
-                                                                        {new Date(request.end_date).toLocaleDateString('id-ID', {
-                                                                            day: 'numeric',
-                                                                            month: 'short',
-                                                                        })}
-                                                                    </>
-                                                                )}
                                                             </p>
-                                                            <p className="text-xs text-muted-foreground">
-                                                                {request.total_days} hari
-                                                            </p>
+                                                            {request.start_date !== request.end_date && (
+                                                                <p className="text-xs text-muted-foreground">
+                                                                    s/d {new Date(request.end_date).toLocaleDateString('id-ID', {
+                                                                        day: 'numeric',
+                                                                        month: 'short',
+                                                                        year: 'numeric'
+                                                                    })}
+                                                                </p>
+                                                            )}
+                                                            <Badge variant="secondary" className="mt-1">
+                                                                {request.days_requested} Hari
+                                                            </Badge>
                                                         </div>
 
                                                         <DropdownMenu>
@@ -584,32 +622,36 @@ export function DesktopAdminLeavePage() {
                                                                 </DropdownMenuItem>
                                                                 {request.status === 'pending' && (
                                                                     <>
+                                                                        <DropdownMenuSeparator />
+                                                                        {hasPermission('approve_leave') && (
+                                                                            <DropdownMenuItem
+                                                                                className="text-success focus:text-success"
+                                                                                onClick={() => handleApprove(request.id)}
+                                                                                disabled={approveLeaveRequestMutation.isPending}
+                                                                            >
+                                                                                <CheckCircle2 className="mr-2 h-4 w-4" />
+                                                                                Setujui
+                                                                            </DropdownMenuItem>
+                                                                        )}
+                                                                        {hasPermission('reject_leave') && (
+                                                                            <DropdownMenuItem
+                                                                                className="text-destructive focus:text-destructive"
+                                                                                onClick={() => onRejectClick(request.id)}
+                                                                                disabled={rejectLeaveRequestMutation.isPending}
+                                                                            >
+                                                                                <XCircle className="mr-2 h-4 w-4" />
+                                                                                Tolak
+                                                                            </DropdownMenuItem>
+                                                                        )}
+                                                                        <DropdownMenuSeparator />
                                                                         <DropdownMenuItem
-                                                                            className="text-success"
-                                                                            onClick={() => handleApprove(request.id)}
-                                                                            disabled={approveLeaveRequestMutation.isPending}
+                                                                            onClick={() => handleCancel(request.id)}
+                                                                            disabled={cancelLeaveRequestMutation.isPending}
                                                                         >
-                                                                            <CheckCircle2 className="mr-2 h-4 w-4" />
-                                                                            Setujui
-                                                                        </DropdownMenuItem>
-                                                                        <DropdownMenuItem
-                                                                            className="text-destructive"
-                                                                            onClick={() => handleReject(request.id, 'Ditolak')}
-                                                                            disabled={rejectLeaveRequestMutation.isPending}
-                                                                        >
-                                                                            <XCircle className="mr-2 h-4 w-4" />
-                                                                            Tolak
+                                                                            <AlertCircle className="mr-2 h-4 w-4" />
+                                                                            Batalkan
                                                                         </DropdownMenuItem>
                                                                     </>
-                                                                )}
-                                                                {request.status === 'pending' && (
-                                                                    <DropdownMenuItem
-                                                                        onClick={() => handleCancel(request.id)}
-                                                                        disabled={cancelLeaveRequestMutation.isPending}
-                                                                    >
-                                                                        <AlertCircle className="mr-2 h-4 w-4" />
-                                                                        Batalkan
-                                                                    </DropdownMenuItem>
                                                                 )}
                                                             </DropdownMenuContent>
                                                         </DropdownMenu>
@@ -617,19 +659,23 @@ export function DesktopAdminLeavePage() {
                                                 </div>
 
                                                 {/* Approval info */}
-                                                {request.status !== 'pending' && request.approved_by_name && (
-                                                    <div className="mt-3 pt-3 border-t text-xs text-muted-foreground">
-                                                        {request.status === 'approved' && (
-                                                            <span>
-                                                                Disetujui oleh {request.approved_by_name} pada{' '}
-                                                                {new Date(request.approved_at!).toLocaleDateString('id-ID')}
-                                                            </span>
-                                                        )}
-                                                        {request.status === 'rejected' && (
-                                                            <span className="text-destructive">
-                                                                Ditolak: {request.rejection_reason}
-                                                            </span>
-                                                        )}
+                                                {request.status !== 'pending' && (
+                                                    <div className="mt-4 pt-3 border-t flex items-center gap-2 text-xs text-muted-foreground">
+                                                        {request.status === 'approved' ? (
+                                                            <>
+                                                                <CheckCircle2 className="h-3 w-3 text-success" />
+                                                                <span>
+                                                                    Disetujui oleh <span className="font-medium text-foreground">{request.approved_by_name}</span> pada {new Date(request.approved_at!).toLocaleDateString('id-ID')}
+                                                                </span>
+                                                            </>
+                                                        ) : request.status === 'rejected' ? (
+                                                            <>
+                                                                <XCircle className="h-3 w-3 text-destructive" />
+                                                                <span className="text-destructive">
+                                                                    Ditolak: {request.rejection_reason}
+                                                                </span>
+                                                            </>
+                                                        ) : null}
                                                     </div>
                                                 )}
                                             </div>
@@ -642,22 +688,8 @@ export function DesktopAdminLeavePage() {
                 </TabsContent>
 
                 {/* Calendar Tab */}
-                <TabsContent value="calendar" className="mt-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Kalender Cuti</CardTitle>
-                            <CardDescription>Lihat jadwal cuti karyawan dalam format kalender</CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex items-center justify-center py-20">
-                            <div className="text-center">
-                                <Calendar className="h-12 w-12 text-muted-foreground/50 mx-auto" />
-                                <p className="mt-4 text-lg font-medium">Coming Soon</p>
-                                <p className="text-sm text-muted-foreground">
-                                    Fitur kalender akan segera hadir
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
+                <TabsContent value="calendar" className="mt-6 h-[600px]">
+                    <LeaveCalendar leaveRequests={leaveRequests} />
                 </TabsContent>
 
                 {/* Approvals Tab */}
@@ -681,39 +713,55 @@ export function DesktopAdminLeavePage() {
                                         .map((request) => (
                                             <div
                                                 key={request.id}
-                                                className="flex items-center justify-between rounded-lg border p-4"
+                                                className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border p-4 gap-4 hover:bg-muted/50 transition-colors"
                                             >
-                                                <div className="space-y-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-medium">{request.employee_name}</span>
-                                                        <Badge variant="outline">{leaveTypeLabels[request.type]}</Badge>
+                                                <div className="flex items-start gap-4">
+                                                    <Avatar>
+                                                        <AvatarFallback className="bg-primary/10 text-primary">
+                                                            {request.employee_name?.charAt(0) || 'U'}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <div className="space-y-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-semibold">{request.employee_name}</span>
+                                                            <Badge variant="outline" className="text-xs font-normal">
+                                                                {leaveTypeLabels[request.type || 'annual']}
+                                                            </Badge>
+                                                        </div>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            {new Date(request.start_date).toLocaleDateString('id-ID')} -{' '}
+                                                            {new Date(request.end_date).toLocaleDateString('id-ID')} • <span className="font-medium text-foreground">{request.days_requested} hari</span>
+                                                        </p>
+                                                        <p className="text-sm text-muted-foreground italic">
+                                                            "{request.reason}"
+                                                        </p>
                                                     </div>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        {new Date(request.start_date).toLocaleDateString('id-ID')} -{' '}
-                                                        {new Date(request.end_date).toLocaleDateString('id-ID')} ({request.total_days} hari)
-                                                    </p>
-                                                    <p className="text-sm text-muted-foreground">{request.reason}</p>
                                                 </div>
-                                                <div className="flex gap-2">
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="text-destructive"
-                                                        onClick={() => handleReject(request.id, 'Ditolak')}
-                                                        disabled={rejectLeaveRequestMutation.isPending}
-                                                    >
-                                                        <XCircle className="mr-1 h-4 w-4" />
-                                                        Tolak
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        className="bg-success hover:bg-success/90"
-                                                        onClick={() => handleApprove(request.id)}
-                                                        disabled={approveLeaveRequestMutation.isPending}
-                                                    >
-                                                        <CheckCircle2 className="mr-1 h-4 w-4" />
-                                                        Setujui
-                                                    </Button>
+
+                                                <div className="flex items-center gap-2 self-end sm:self-center">
+                                                    {hasPermission('reject_leave') && (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20"
+                                                            onClick={() => onRejectClick(request.id)}
+                                                            disabled={rejectLeaveRequestMutation.isPending}
+                                                        >
+                                                            <XCircle className="mr-2 h-4 w-4" />
+                                                            Tolak
+                                                        </Button>
+                                                    )}
+                                                    {hasPermission('approve_leave') && (
+                                                        <Button
+                                                            size="sm"
+                                                            className="bg-success hover:bg-success/90 text-white"
+                                                            onClick={() => handleApprove(request.id)}
+                                                            disabled={approveLeaveRequestMutation.isPending}
+                                                        >
+                                                            <CheckCircle2 className="mr-2 h-4 w-4" />
+                                                            Setujui
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}
@@ -730,6 +778,14 @@ export function DesktopAdminLeavePage() {
                 onOpenChange={setShowCreateDialog}
                 onSubmit={handleCreate}
                 isLoading={createLeaveRequestMutation.isPending}
+            />
+
+            {/* Reject Dialog */}
+            <RejectDialog
+                open={showRejectDialog}
+                onOpenChange={setShowRejectDialog}
+                onConfirm={handleRejectConfirm}
+                isLoading={rejectLeaveRequestMutation.isPending}
             />
         </div>
     );

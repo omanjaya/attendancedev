@@ -13,11 +13,11 @@ import { PageHeader } from '@/components/shared';
 import { ScheduleListContent } from './tabs/ScheduleListContent';
 import { ScheduleBuilderContent } from './tabs/ScheduleBuilderContent';
 import { ScheduleAssignContent } from './tabs/ScheduleAssignContent';
-import { MonthlyScheduleContent } from './tabs/MonthlyScheduleContent';
+import { MonthlyScheduleList } from './monthly/index';
 
 // Desktop version (original implementation)
 export function DesktopSchedulesPage() {
-  const [activeTab, setActiveTab] = useState('list');
+  const [activeTab, setActiveTab] = useState('monthly');
 
   return (
     <div className="space-y-4 p-4 sm:space-y-6 sm:p-6">
@@ -37,6 +37,11 @@ export function DesktopSchedulesPage() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+          <TabsTrigger value="monthly" className="gap-2">
+            <CalendarRange className="h-4 w-4" />
+            <span className="hidden sm:inline">Bulanan</span>
+            <span className="sm:hidden">Bulan</span>
+          </TabsTrigger>
           <TabsTrigger value="list" className="gap-2">
             <Calendar className="h-4 w-4" />
             <span className="hidden sm:inline">Daftar Jadwal</span>
@@ -52,12 +57,11 @@ export function DesktopSchedulesPage() {
             <span className="hidden sm:inline">Penugasan</span>
             <span className="sm:hidden">Tugas</span>
           </TabsTrigger>
-          <TabsTrigger value="monthly" className="gap-2">
-            <CalendarRange className="h-4 w-4" />
-            <span className="hidden sm:inline">Bulanan</span>
-            <span className="sm:hidden">Bulan</span>
-          </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="monthly" className="mt-6">
+          <MonthlyScheduleList showHeader={false} />
+        </TabsContent>
 
         <TabsContent value="list" className="mt-6">
           <ScheduleListContent />
@@ -69,10 +73,6 @@ export function DesktopSchedulesPage() {
 
         <TabsContent value="assign" className="mt-6">
           <ScheduleAssignContent />
-        </TabsContent>
-
-        <TabsContent value="monthly" className="mt-6">
-          <MonthlyScheduleContent />
         </TabsContent>
       </Tabs>
     </div>

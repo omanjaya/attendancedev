@@ -32,7 +32,7 @@ for i in $(seq 0 $((NUM_INSTANCES - 1))); do
 
     # Start in background
     cd "$SCRIPT_DIR"
-    nohup python3 main.py --port $PORT > "$LOG_FILE" 2>&1 &
+    nohup "$SCRIPT_DIR/venv/bin/python" main.py --port $PORT > "$LOG_FILE" 2>&1 &
     echo $! > "$PID_FILE"
 
     # Wait a bit before starting next instance

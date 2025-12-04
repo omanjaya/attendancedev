@@ -7,6 +7,8 @@ import {
   deleteEmployee,
   searchEmployees,
   getEmployeeStatistics,
+  uploadEmployeeAvatar,
+  deleteEmployeeAvatar,
 } from '@/lib/api/employees';
 import type { EmployeeFilters, EmployeeFormData } from '@/types';
 import { useNotificationStore } from '@/stores';
@@ -107,6 +109,43 @@ export function useDeleteEmployee() {
     },
     onError: (err: Error) => {
       error('Gagal', err.message || 'Gagal menghapus karyawan');
+    },
+  });
+}
+
+// Upload employee avatar mutation
+export function useUploadEmployeeAvatar() {
+  const queryClient = useQueryClient();
+  const { success, error } = useNotificationStore();
+
+  return useMutation({
+    mutationFn: ({ employeeId, file }: { employeeId: number; file: File }) =>
+      uploadEmployeeAvatar(employeeId, file),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: employeeKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: employeeKeys.detail(variables.employeeId) });
+      success('Berhasil', 'Avatar berhasil diunggah');
+    },
+    onError: (err: Error) => {
+      error('Gagal', err.message || 'Gagal mengunggah avatar');
+    },
+  });
+}
+
+// Delete employee avatar mutation
+export function useDeleteEmployeeAvatar() {
+  const queryClient = useQueryClient();
+  const { success, error } = useNotificationStore();
+
+  return useMutation({
+    mutationFn: (employeeId: number) => deleteEmployeeAvatar(employeeId),
+    onSuccess: (_, employeeId) => {
+      queryClient.invalidateQueries({ queryKey: employeeKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: employeeKeys.detail(employeeId) });
+      success('Berhasil', 'Avatar berhasil dihapus');
+    },
+    onError: (err: Error) => {
+      error('Gagal', err.message || 'Gagal menghapus avatar');
     },
   });
 }

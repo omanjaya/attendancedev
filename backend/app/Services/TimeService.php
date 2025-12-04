@@ -115,7 +115,7 @@ class TimeService
         ];
         
         return [
-            'timestamp' => $time,
+            'timestamp' => $time->setTimezone('Asia/Makassar'),
             'formatted' => $this->formatForDisplay($time),
             'verification' => $verification,
             'source' => 'server_ntp',

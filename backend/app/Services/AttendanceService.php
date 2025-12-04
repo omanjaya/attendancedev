@@ -71,21 +71,89 @@ class AttendanceService implements AttendanceServiceInterface
             }
 
             // Create or update attendance record
-            $attendance = Attendance::updateOrCreate(
-                [
-                    'employee_id' => $employee->id,
-                    'date' => $this->timeService->today(),
-                ],
-                [
-                    'check_in_time' => $currentTime,
+            // Create or update attendance record
+            $date = $this->timeService->today()->format('Y-m-d');
+            
+            $attendance = Attendance::withTrashed()
+                ->where('employee_id', $employee->id)
+                ->where('date', $date)
+                ->first();
+
+            if ($attendance) {
+                if ($attendance->trashed()) {
+                    $attendance->restore();
+                }
+                $attendance->update([
+                    'check_in_time' => $currentTime->format('Y-m-d H:i:s'),
                     'check_in_latitude' => $locationData['latitude'] ?? null,
                     'check_in_longitude' => $locationData['longitude'] ?? null,
                     'check_in_confidence' => $faceData['confidence'] ?? null,
                     'status' => $this->determineStatus($currentTime, 'check_in', $employee),
                     'time_verification' => $attendanceTime['verification'],
                     'metadata' => $metadata,
-                ]
-            );
+                ]);
+            } else {
+                try {
+                    $attendance = Attendance::create([
+                        'employee_id' => $employee->id,
+                        'date' => $date,
+                        'check_in_time' => $currentTime->format('Y-m-d H:i:s'),
+                        'check_in_latitude' => $locationData['latitude'] ?? null,
+                        'check_in_longitude' => $locationData['longitude'] ?? null,
+                        'check_in_confidence' => $faceData['confidence'] ?? null,
+                        'status' => $this->determineStatus($currentTime, 'check_in', $employee),
+                        'time_verification' => $attendanceTime['verification'],
+                        'metadata' => $metadata,
+                    ]);
+                } catch (\Exception $e) {
+                    // Check for duplicate entry/integrity constraint violation
+                    // MySQL: 1062, SQLSTATE: 23000
+                    $isDuplicate = false;
+                    if ($e instanceof \Illuminate\Database\QueryException) {
+                        if (($e->errorInfo[1] ?? null) === 1062) $isDuplicate = true;
+                        if ($e->getCode() === '23000') $isDuplicate = true;
+                    }
+                    if (str_contains($e->getMessage(), 'Duplicate entry') || str_contains($e->getMessage(), 'Integrity constraint violation')) {
+                        $isDuplicate = true;
+                    }
+
+                    if ($isDuplicate) {
+                        // Record exists (likely race condition or soft deleted), so update it
+                        // Use whereDate to handle potential time component differences in DB (especially SQLite)
+                        $attendance = Attendance::withTrashed()
+                            ->where('employee_id', $employee->id)
+                            ->whereDate('date', $date)
+                            ->first();
+                            
+                        if ($attendance) {
+                            if ($attendance->trashed()) {
+                                $attendance->restore();
+                            }
+                            
+                            $attendance->update([
+                                'check_in_time' => $currentTime->format('Y-m-d H:i:s'),
+                                'check_in_latitude' => $locationData['latitude'] ?? null,
+                                'check_in_longitude' => $locationData['longitude'] ?? null,
+                                'check_in_confidence' => $faceData['confidence'] ?? null,
+                                'status' => $this->determineStatus($currentTime, 'check_in', $employee),
+                                'time_verification' => $attendanceTime['verification'],
+                                'metadata' => $metadata,
+                            ]);
+                        } else {
+                            // If we still can't find it, it's a true mystery. 
+                            // Log it and re-throw.
+                            \Illuminate\Support\Facades\Log::error('Duplicate entry error but record not found via whereDate', [
+                                'employee_id' => $employee->id,
+                                'date' => $date,
+                                'original_error' => $e->getMessage()
+                            ]);
+                            throw $e;
+                        }
+                    } else {
+                        throw $e;
+                    }
+                }
+            }
 
             // Send notification
             $this->notificationService->send(
@@ -108,16 +176,17 @@ class AttendanceService implements AttendanceServiceInterface
         Employee $employee,
         array $locationData,
         ?array $faceData = null,
-        ?UploadedFile $photo = null
+        ?UploadedFile $photo = null,
+        bool $overwrite = false
     ): Attendance {
-        return DB::transaction(function () use ($employee, $locationData, $faceData, $photo) {
+        return DB::transaction(function () use ($employee, $locationData, $faceData, $photo, $overwrite) {
             $attendance = $this->getTodayAttendance($employee);
             
             if (!$attendance || !$attendance->check_in_time) {
                 throw new \Exception('No check-in found for today');
             }
 
-            if ($attendance->check_out_time) {
+            if ($attendance->check_out_time && !$overwrite) {
                 throw new \Exception('Already checked out today');
             }
 

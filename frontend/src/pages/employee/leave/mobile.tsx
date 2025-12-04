@@ -13,20 +13,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/stores';
-
-interface LeaveRequest {
-    id: number;
-    leaveType: string;
-    startDate: string;
-    endDate: string;
-    days: number;
-    reason: string;
-    status: 'pending' | 'approved' | 'rejected';
-    approvedBy?: string;
-    approvedAt?: string;
-    rejectedReason?: string;
-    createdAt: string;
-}
+import {
+    getLeaveBalance,
+    getLeaveRequests,
+    createLeaveRequest,
+    cancelLeaveRequest
+} from '@/lib/api/leave';
+import { toast } from 'sonner';
+import type { LeaveRequest } from '@/types';
 
 export function MobileEmployeeLeavePage() {
     const { user } = useAuthStore();
@@ -43,87 +37,53 @@ export function MobileEmployeeLeavePage() {
     // Fetch leave balance
     const { data: leaveBalance } = useQuery({
         queryKey: ['employee', 'leave-balance', user?.id],
-        queryFn: async () => {
-            // TODO: Replace with actual API call
-            return {
-                total: 12,
-                used: 3,
-                pending: 2,
-                remaining: 7,
-            };
-        },
+        queryFn: getLeaveBalance,
     });
 
     // Fetch leave requests
-    const { data: leaveRequests, isLoading } = useQuery({
+    const { data: leaveRequestsResponse, isLoading } = useQuery({
         queryKey: ['employee', 'leave-requests', user?.id],
-        queryFn: async () => {
-            // TODO: Replace with actual API call
-            return [
-                {
-                    id: 1,
-                    leaveType: 'Cuti Tahunan',
-                    startDate: '2025-12-10',
-                    endDate: '2025-12-12',
-                    days: 3,
-                    reason: 'Liburan keluarga',
-                    status: 'pending' as const,
-                    createdAt: '2025-12-01T08:00:00',
-                },
-                {
-                    id: 2,
-                    leaveType: 'Cuti Sakit',
-                    startDate: '2025-11-28',
-                    endDate: '2025-11-29',
-                    days: 2,
-                    reason: 'Sakit demam',
-                    status: 'approved' as const,
-                    approvedBy: 'Manager HR',
-                    approvedAt: '2025-11-27T10:30:00',
-                    createdAt: '2025-11-27T08:00:00',
-                },
-                {
-                    id: 3,
-                    leaveType: 'Cuti Tahunan',
-                    startDate: '2025-11-15',
-                    endDate: '2025-11-16',
-                    days: 2,
-                    reason: 'Keperluan pribadi',
-                    status: 'rejected' as const,
-                    approvedBy: 'Manager HR',
-                    rejectedReason: 'Sudah ada karyawan lain yang cuti pada tanggal tersebut',
-                    createdAt: '2025-11-10T08:00:00',
-                },
-            ] as LeaveRequest[];
-        },
+        queryFn: () => getLeaveRequests({ per_page: 50 }), // Fetch more for list
     });
+
+    const leaveRequests = (leaveRequestsResponse?.data || []) as LeaveRequest[];
 
     // Create leave request mutation
     const createLeaveMutation = useMutation({
         mutationFn: async (data: { leaveType: string; startDate: string; endDate: string; reason: string }) => {
-            // TODO: Replace with actual API call
-            console.log('Creating leave request:', data);
-            return { success: true };
+            return createLeaveRequest({
+                type: data.leaveType as any, // Cast as any because select value is string but type expects LeaveType
+                start_date: data.startDate,
+                end_date: data.endDate,
+                duration_type: 'full_day', // Default to full_day for now
+                reason: data.reason,
+            });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['employee', 'leave-requests'] });
             queryClient.invalidateQueries({ queryKey: ['employee', 'leave-balance'] });
             setShowRequestForm(false);
             resetForm();
+            toast.success('Pengajuan cuti berhasil dikirim');
         },
+        onError: (error: any) => {
+            toast.error(error.response?.data?.message || 'Gagal mengajukan cuti');
+        }
     });
 
     // Cancel leave request mutation
     const cancelLeaveMutation = useMutation({
-        mutationFn: async (id: number) => {
-            // TODO: Replace with actual API call
-            console.log('Canceling leave request:', id);
-            return { success: true };
+        mutationFn: async (id: string) => {
+            return cancelLeaveRequest(id);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['employee', 'leave-requests'] });
             queryClient.invalidateQueries({ queryKey: ['employee', 'leave-balance'] });
+            toast.success('Pengajuan cuti dibatalkan');
         },
+        onError: (error: any) => {
+            toast.error(error.response?.data?.message || 'Gagal membatalkan cuti');
+        }
     });
 
     const resetForm = () => {
@@ -143,7 +103,7 @@ export function MobileEmployeeLeavePage() {
         });
     };
 
-    const handleCancelRequest = (id: number) => {
+    const handleCancelRequest = (id: string) => {
         if (confirm('Apakah Anda yakin ingin membatalkan pengajuan cuti ini?')) {
             cancelLeaveMutation.mutate(id);
         }
@@ -211,12 +171,13 @@ export function MobileEmployeeLeavePage() {
                                     onChange={(e) => setLeaveType(e.target.value)}
                                     className="w-full p-2 border rounded-md"
                                     required
+                                    aria-label="Pilih jenis cuti"
                                 >
                                     <option value="">Pilih jenis cuti</option>
-                                    <option value="Cuti Tahunan">Cuti Tahunan</option>
-                                    <option value="Cuti Sakit">Cuti Sakit</option>
-                                    <option value="Cuti Penting">Cuti Penting</option>
-                                    <option value="Cuti Melahirkan">Cuti Melahirkan</option>
+                                    <option value="annual">Cuti Tahunan</option>
+                                    <option value="sick">Cuti Sakit</option>
+                                    <option value="special">Cuti Khusus</option>
+                                    <option value="maternity">Cuti Melahirkan</option>
                                 </select>
                             </div>
 
@@ -274,18 +235,18 @@ export function MobileEmployeeLeavePage() {
                 <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl">
                     <div className="flex items-center gap-2 mb-2">
                         <Plane className="h-4 w-4 text-blue-600" />
-                        <span className="text-xs font-medium text-blue-700">Sisa Cuti</span>
+                        <span className="text-xs font-medium text-blue-700">Sisa Cuti Tahunan</span>
                     </div>
-                    <p className="text-2xl font-bold text-blue-700">{leaveBalance?.remaining || 0}</p>
-                    <p className="text-xs text-blue-600">dari {leaveBalance?.total || 0} hari</p>
+                    <p className="text-2xl font-bold text-blue-700">{leaveBalance?.annual_remaining || 0}</p>
+                    <p className="text-xs text-blue-600">dari {leaveBalance?.annual_total || 0} hari</p>
                 </div>
                 <div className="p-4 bg-yellow-50 border border-yellow-100 rounded-xl">
                     <div className="flex items-center gap-2 mb-2">
                         <Clock className="h-4 w-4 text-yellow-600" />
-                        <span className="text-xs font-medium text-yellow-700">Pending</span>
+                        <span className="text-xs font-medium text-yellow-700">Cuti Sakit</span>
                     </div>
-                    <p className="text-2xl font-bold text-yellow-700">{leaveBalance?.pending || 0}</p>
-                    <p className="text-xs text-yellow-600">pengajuan</p>
+                    <p className="text-2xl font-bold text-yellow-700">{leaveBalance?.sick_remaining || 0}</p>
+                    <p className="text-xs text-yellow-600">dari {leaveBalance?.sick_total || 0} hari</p>
                 </div>
             </div>
 
@@ -309,6 +270,8 @@ export function MobileEmployeeLeavePage() {
             <div className="px-4 space-y-3">
                 {isLoading ? (
                     <div className="text-center py-8 text-muted-foreground">Memuat data...</div>
+                ) : filteredRequests?.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">Belum ada pengajuan cuti</div>
                 ) : filteredRequests?.map((request) => (
                     <div
                         key={request.id}
@@ -316,10 +279,10 @@ export function MobileEmployeeLeavePage() {
                     >
                         <div className="flex items-start justify-between">
                             <div>
-                                <h3 className="font-semibold">{request.leaveType}</h3>
+                                <h3 className="font-semibold">{request.leave_type?.name || request.leave_type_id}</h3>
                                 <p className="text-xs text-muted-foreground">
-                                    {format(parseISO(request.startDate), 'dd MMM', { locale: id })} -{' '}
-                                    {format(parseISO(request.endDate), 'dd MMM yyyy', { locale: id })}
+                                    {format(parseISO(request.start_date), 'dd MMM', { locale: id })} -{' '}
+                                    {format(parseISO(request.end_date), 'dd MMM yyyy', { locale: id })}
                                 </p>
                             </div>
                             <Badge variant="outline" className={getStatusColor(request.status)}>

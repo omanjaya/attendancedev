@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useParams } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
   MapPin,
@@ -19,6 +20,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useNotificationStore } from '@/stores';
+import { getLocation, updateLocation } from '@/lib/api/locations';
+import type { LocationFormData } from '@/types/location';
 
 const locationSchema = z.object({
   name: z.string().min(2, 'Nama lokasi minimal 2 karakter'),
@@ -30,37 +33,57 @@ const locationSchema = z.object({
 
 type LocationForm = z.infer<typeof locationSchema>;
 
-// Mock location data
-const mockLocation = {
-  id: 1,
-  name: 'Kantor Pusat Jakarta',
-  address: 'Jl. Sudirman No. 123, Karet Semanggi, Setiabudi, Jakarta Selatan 12930',
-  latitude: '-6.2088',
-  longitude: '106.8456',
-  radius: '100',
-  is_active: true,
-};
-
 export default function LocationEditPage() {
+  const { id } = useParams({ strict: false }) as { id: string };
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { success, error: showError } = useNotificationStore();
-  const [isLoading, setIsLoading] = useState(false);
-  const [isActive, setIsActive] = useState(mockLocation.is_active);
+  const [isActive, setIsActive] = useState(true);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   const {
     register,
     handleSubmit,
     setValue,
+    reset,
     formState: { errors },
   } = useForm<LocationForm>({
     resolver: zodResolver(locationSchema),
-    defaultValues: {
-      name: mockLocation.name,
-      address: mockLocation.address,
-      latitude: mockLocation.latitude,
-      longitude: mockLocation.longitude,
-      radius: mockLocation.radius,
+  });
+
+  // Fetch location data
+  const { data: location, isLoading: isFetching } = useQuery({
+    queryKey: ['location', id],
+    queryFn: () => getLocation(id),
+    enabled: !!id,
+  });
+
+  // Update form when data is loaded
+  useEffect(() => {
+    if (location) {
+      reset({
+        name: location.name,
+        address: location.address || '',
+        latitude: location.latitude.toString(),
+        longitude: location.longitude.toString(),
+        radius: location.radius_meters.toString(),
+      });
+      setIsActive(location.is_active);
+    }
+  }, [location, reset]);
+
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: (data: Partial<LocationFormData>) => updateLocation(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['locations'] });
+      queryClient.invalidateQueries({ queryKey: ['location', id] });
+      success('Berhasil', 'Lokasi berhasil diperbarui');
+      navigate({ to: '/admin/locations' });
+    },
+    onError: (err: any) => {
+      const message = err.response?.data?.message || err.message || 'Gagal memperbarui lokasi';
+      showError('Error', message);
     },
   });
 
@@ -85,20 +108,31 @@ export default function LocationEditPage() {
     );
   };
 
-  const onSubmit = async (data: LocationForm) => {
-    setIsLoading(true);
-    try {
-      console.log('Updating location:', { ...data, is_active: isActive });
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      success('Berhasil', 'Lokasi berhasil diperbarui');
-      navigate({ to: '/admin/locations' });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Gagal memperbarui lokasi';
-      showError('Error', message);
-    } finally {
-      setIsLoading(false);
-    }
+  const onSubmit = (data: LocationForm) => {
+    updateMutation.mutate({
+      name: data.name,
+      address: data.address,
+      latitude: parseFloat(data.latitude),
+      longitude: parseFloat(data.longitude),
+      radius_meters: parseInt(data.radius),
+      is_active: isActive,
+    });
   };
+
+  if (isFetching) {
+    return <LoadingState message="Memuat data lokasi..." />;
+  }
+
+  if (!location) {
+    return (
+      <div className="p-8 text-center">
+        <h2 className="text-xl font-semibold text-destructive">Lokasi tidak ditemukan</h2>
+        <Button variant="outline" className="mt-4" onClick={() => navigate({ to: '/admin/locations' })}>
+          Kembali
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-6 max-w-2xl mx-auto">
@@ -269,8 +303,8 @@ export default function LocationEditPage() {
             >
               Batal
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? (
+            <Button type="submit" disabled={updateMutation.isPending}>
+              {updateMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Menyimpan...

@@ -64,6 +64,7 @@ export interface CheckRequest {
   notes?: string;
   face_confidence?: number;
   metadata?: any;
+  overwrite?: boolean;
 }
 
 // Attendance statistics

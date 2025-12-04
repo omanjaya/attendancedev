@@ -3,21 +3,16 @@ import { Users, Clock, Calendar, DollarSign, AlertCircle, CheckCircle } from 'lu
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
+import { getDashboardData } from '@/lib/api/dashboard';
+
 export function MobileAdminDashboard() {
     // Fetch dashboard stats
-    const { data: stats } = useQuery({
+    const { data: dashboardData } = useQuery({
         queryKey: ['admin', 'dashboard-stats'],
-        queryFn: async () => {
-            // TODO: Replace with actual API call
-            return {
-                employees: { total: 150, active: 142, onLeave: 8 },
-                attendance: { today: 128, present: 120, late: 5, absent: 3 },
-                leave: { pending: 12, approved: 45, rejected: 3 },
-                schedules: { upcoming: 8, active: 15, draft: 3 },
-                payroll: { pending: 5, processed: 145, total: 2450000 },
-            };
-        },
+        queryFn: getDashboardData,
     });
+
+    const stats = dashboardData?.summary;
 
     return (
         <div className="min-h-screen bg-background pb-20">
@@ -54,7 +49,7 @@ export function MobileAdminDashboard() {
                         <Calendar className="h-4 w-4 text-yellow-600" />
                         <span className="text-xs font-medium text-yellow-700">Cuti</span>
                     </div>
-                    <p className="text-2xl font-bold text-yellow-700">{stats?.leave.pending || 0}</p>
+                    <p className="text-2xl font-bold text-yellow-700">{stats?.leave?.pending || 0}</p>
                     <p className="text-xs text-yellow-600">Pending</p>
                 </div>
 
@@ -63,7 +58,7 @@ export function MobileAdminDashboard() {
                         <DollarSign className="h-4 w-4 text-purple-600" />
                         <span className="text-xs font-medium text-purple-700">Payroll</span>
                     </div>
-                    <p className="text-2xl font-bold text-purple-700">{stats?.payroll.pending || 0}</p>
+                    <p className="text-2xl font-bold text-purple-700">{stats?.payroll?.pending || 0}</p>
                     <p className="text-xs text-purple-600">Pending</p>
                 </div>
             </div>
@@ -81,7 +76,7 @@ export function MobileAdminDashboard() {
                             </div>
                             <div>
                                 <h3 className="font-semibold">Pengajuan Cuti</h3>
-                                <p className="text-xs text-muted-foreground">{stats?.leave.pending || 0} menunggu approval</p>
+                                <p className="text-xs text-muted-foreground">{stats?.leave?.pending || 0} menunggu approval</p>
                             </div>
                         </div>
                         <AlertCircle className="h-5 w-5 text-yellow-600" />
@@ -109,7 +104,7 @@ export function MobileAdminDashboard() {
                             </div>
                             <div>
                                 <h3 className="font-semibold">Payroll Pending</h3>
-                                <p className="text-xs text-muted-foreground">{stats?.payroll.pending || 0} perlu diproses</p>
+                                <p className="text-xs text-muted-foreground">{stats?.payroll?.pending || 0} perlu diproses</p>
                             </div>
                         </div>
                         <AlertCircle className="h-5 w-5 text-purple-600" />
@@ -131,8 +126,8 @@ export function MobileAdminDashboard() {
                         <div key={index} className="bg-card border rounded-xl p-3 shadow-sm flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className={`p-2 rounded-full ${activity.status === 'success' ? 'bg-green-100' :
-                                        activity.status === 'late' ? 'bg-yellow-100' :
-                                            'bg-blue-100'
+                                    activity.status === 'late' ? 'bg-yellow-100' :
+                                        'bg-blue-100'
                                     }`}>
                                     {activity.status === 'success' ? (
                                         <CheckCircle className="h-4 w-4 text-green-600" />

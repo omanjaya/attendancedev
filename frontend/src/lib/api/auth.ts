@@ -1,11 +1,10 @@
 import apiClient from './client';
-import type { User, LoginCredentials, RegisterData, ApiResponse } from '@/types/auth';
+import type { User, LoginCredentials, ApiResponse } from '@/types/auth';
 
 // Auth API endpoints
 const AUTH_ENDPOINTS = {
   login: 'auth/login',
   logout: 'auth/logout',
-  register: 'auth/register',
   user: 'auth/user',
   forgotPassword: 'auth/forgot-password',
   resetPassword: 'auth/reset-password',
@@ -46,17 +45,7 @@ export async function logout(): Promise<void> {
   }
 }
 
-// Register new user
-export async function register(data: RegisterData): Promise<LoginResponse> {
-  const response = await apiClient.post<LoginResponse>(AUTH_ENDPOINTS.register, data);
 
-  if (response.data.token) {
-    localStorage.setItem('auth_token', response.data.token);
-    localStorage.setItem('auth_user', JSON.stringify(response.data.user));
-  }
-
-  return response.data;
-}
 
 // Get current user
 export async function getUser(): Promise<User> {

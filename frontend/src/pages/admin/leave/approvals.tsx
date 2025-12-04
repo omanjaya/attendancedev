@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Search,
   Filter,
@@ -8,7 +9,7 @@ import {
   AlertCircle,
   Calendar,
   Eye,
-  Clock,
+  Loader2,
 } from 'lucide-react';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -34,62 +35,76 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-
-// Mock pending approvals
-const mockApprovals = [
-  {
-    id: 1,
-    employee: { name: 'Ahmad Fauzi', position: 'Senior Developer', department: 'IT' },
-    type: 'annual',
-    type_label: 'Cuti Tahunan',
-    start_date: '2024-12-02',
-    end_date: '2024-12-06',
-    days: 5,
-    reason: 'Liburan keluarga ke Bali',
-    status: 'pending',
-    created_at: '2024-11-25',
-  },
-  {
-    id: 2,
-    employee: { name: 'Siti Aminah', position: 'HR Manager', department: 'HR' },
-    type: 'sick',
-    type_label: 'Cuti Sakit',
-    start_date: '2024-11-28',
-    end_date: '2024-11-29',
-    days: 2,
-    reason: 'Demam dan flu',
-    status: 'pending',
-    created_at: '2024-11-27',
-  },
-  {
-    id: 3,
-    employee: { name: 'Budi Santoso', position: 'Finance Staff', department: 'Finance' },
-    type: 'personal',
-    type_label: 'Cuti Personal',
-    start_date: '2024-12-10',
-    end_date: '2024-12-10',
-    days: 1,
-    reason: 'Urusan keluarga',
-    status: 'pending',
-    created_at: '2024-11-26',
-  },
-];
-
-const leaveTypeColors: Record<string, string> = {
-  annual: 'bg-primary/10 text-primary',
-  sick: 'bg-destructive/10 text-destructive',
-  personal: 'bg-chart-5/10 text-chart-5',
-};
+import { Textarea } from '@/components/ui/textarea';
+import { getPendingApprovals, approveLeaveRequest, rejectLeaveRequest } from '@/lib/api/leave';
+import { useNotificationStore } from '@/stores';
+import { leaveTypeLabels, leaveTypeColors } from '@/types/leave';
 
 export default function LeaveApprovalsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [rejectReason, setRejectReason] = useState('');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const filteredApprovals = mockApprovals.filter(approval => {
-    const matchesSearch = approval.employee.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = typeFilter === 'all' || approval.type === typeFilter;
+  const queryClient = useQueryClient();
+  const { success, error: showError } = useNotificationStore();
+
+  const { data: approvals = [], isLoading } = useQuery({
+    queryKey: ['leave-approvals'],
+    queryFn: getPendingApprovals,
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: (id: string) => approveLeaveRequest(id),
+    onSuccess: () => {
+      success('Berhasil', 'Pengajuan cuti disetujui');
+      queryClient.invalidateQueries({ queryKey: ['leave-approvals'] });
+    },
+    onError: (err: any) => {
+      showError('Gagal', err.message || 'Gagal menyetujui pengajuan');
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => rejectLeaveRequest(id, reason),
+    onSuccess: () => {
+      success('Berhasil', 'Pengajuan cuti ditolak');
+      queryClient.invalidateQueries({ queryKey: ['leave-approvals'] });
+      setRejectReason('');
+      setSelectedId(null);
+    },
+    onError: (err: any) => {
+      showError('Gagal', err.message || 'Gagal menolak pengajuan');
+    },
+  });
+
+  const handleApprove = (id: string) => {
+    approveMutation.mutate(id);
+  };
+
+  const handleReject = () => {
+    if (selectedId && rejectReason) {
+      rejectMutation.mutate({ id: selectedId, reason: rejectReason });
+    }
+  };
+
+  const filteredApprovals = approvals.filter((approval) => {
+    // Handle both nested employee object and flat properties if API varies
+    const employeeName = (approval as any).employee?.full_name || approval.employee_name || '';
+    const matchesSearch = employeeName.toLowerCase().includes(searchQuery.toLowerCase());
+
+    // Map API type to filter value if needed, or just compare
+    const matchesType = typeFilter === 'all' || (approval.leave_type?.code === typeFilter || approval.type === typeFilter);
     return matchesSearch && matchesType;
   });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-6">
@@ -114,31 +129,11 @@ export default function LeaveApprovalsPage() {
         <Card className="bg-warning/10 border-warning/20">
           <CardContent className="p-4 text-center">
             <AlertCircle className="h-8 w-8 mx-auto mb-2 text-warning" />
-            <p className="text-2xl font-bold">{mockApprovals.length}</p>
+            <p className="text-2xl font-bold">{approvals.length}</p>
             <p className="text-xs text-muted-foreground">Menunggu</p>
           </CardContent>
         </Card>
-        <Card className="bg-success/10 border-success/20">
-          <CardContent className="p-4 text-center">
-            <CheckCircle className="h-8 w-8 mx-auto mb-2 text-success" />
-            <p className="text-2xl font-bold">12</p>
-            <p className="text-xs text-muted-foreground">Disetujui</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-destructive/10 border-destructive/20">
-          <CardContent className="p-4 text-center">
-            <XCircle className="h-8 w-8 mx-auto mb-2 text-destructive" />
-            <p className="text-2xl font-bold">2</p>
-            <p className="text-xs text-muted-foreground">Ditolak</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-primary/10 border-primary/20">
-          <CardContent className="p-4 text-center">
-            <Clock className="h-8 w-8 mx-auto mb-2 text-primary" />
-            <p className="text-2xl font-bold">24h</p>
-            <p className="text-xs text-muted-foreground">Rata-rata Respon</p>
-          </CardContent>
-        </Card>
+        {/* Other stats could be fetched from statistics endpoint if needed, keeping static placeholders for now or removing */}
       </div>
 
       {/* Filters */}
@@ -164,6 +159,7 @@ export default function LeaveApprovalsPage() {
                 <SelectItem value="annual">Cuti Tahunan</SelectItem>
                 <SelectItem value="sick">Cuti Sakit</SelectItem>
                 <SelectItem value="personal">Cuti Personal</SelectItem>
+                {/* Add more types as needed */}
               </SelectContent>
             </Select>
           </div>
@@ -172,109 +168,142 @@ export default function LeaveApprovalsPage() {
 
       {/* Approval List */}
       <div className="space-y-4">
-        {filteredApprovals.map((approval) => (
-          <Card key={approval.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-                {/* Employee Info */}
-                <div className="flex items-center gap-4 flex-1">
-                  <Avatar className="h-12 w-12">
-                    <AvatarFallback className="bg-primary/10 text-primary">
-                      {approval.employee.name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="font-semibold">{approval.employee.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {approval.employee.position} - {approval.employee.department}
+        {filteredApprovals.map((approval) => {
+          const employeeName = (approval as any).employee?.full_name || approval.employee_name || 'Unknown';
+          const employeePosition = (approval as any).employee?.position || 'Employee';
+          const employeeDept = (approval as any).employee?.department || '-';
+          const typeCode = approval.leave_type?.code || approval.type || 'other';
+          const typeLabel = approval.leave_type?.name || leaveTypeLabels[typeCode as keyof typeof leaveTypeLabels] || typeCode;
+
+          return (
+            <Card key={approval.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                  {/* Employee Info */}
+                  <div className="flex items-center gap-4 flex-1">
+                    <Avatar className="h-12 w-12">
+                      <AvatarFallback className="bg-primary/10 text-primary">
+                        {employeeName.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <h3 className="font-semibold">{employeeName}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {employeePosition} - {employeeDept}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Leave Info */}
+                  <div className="flex flex-wrap items-center gap-4 flex-1">
+                    <Badge className={leaveTypeColors[typeCode as keyof typeof leaveTypeColors] || 'bg-gray-500'}>
+                      {typeLabel}
+                    </Badge>
+                    <div className="text-sm">
+                      <p className="font-medium">
+                        {new Date(approval.start_date).toLocaleDateString('id-ID', {
+                          day: 'numeric',
+                          month: 'short',
+                        })}
+                        {' - '}
+                        {new Date(approval.end_date).toLocaleDateString('id-ID', {
+                          day: 'numeric',
+                          month: 'short',
+                        })}
+                      </p>
+                      <p className="text-muted-foreground">{approval.days_requested} hari</p>
+                    </div>
+                  </div>
+
+                  {/* Reason */}
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground truncate">
+                      {approval.reason}
                     </p>
                   </div>
-                </div>
 
-                {/* Leave Info */}
-                <div className="flex flex-wrap items-center gap-4 flex-1">
-                  <Badge className={leaveTypeColors[approval.type]}>
-                    {approval.type_label}
-                  </Badge>
-                  <div className="text-sm">
-                    <p className="font-medium">
-                      {new Date(approval.start_date).toLocaleDateString('id-ID', {
-                        day: 'numeric',
-                        month: 'short',
-                      })}
-                      {' - '}
-                      {new Date(approval.end_date).toLocaleDateString('id-ID', {
-                        day: 'numeric',
-                        month: 'short',
-                      })}
-                    </p>
-                    <p className="text-muted-foreground">{approval.days} hari</p>
+                  {/* Actions */}
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={`/admin/leave/${approval.id}`}>
+                        <Eye className="h-4 w-4 mr-1" />
+                        Detail
+                      </a>
+                    </Button>
+
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive"
+                          onClick={() => setSelectedId(approval.id)}
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Tolak Pengajuan Cuti?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Anda akan menolak pengajuan cuti dari {employeeName}.
+                            Mohon berikan alasan penolakan.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <div className="py-4">
+                          <Textarea
+                            placeholder="Alasan penolakan..."
+                            value={rejectReason}
+                            onChange={(e) => setRejectReason(e.target.value)}
+                          />
+                        </div>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel onClick={() => {
+                            setRejectReason('');
+                            setSelectedId(null);
+                          }}>Batal</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground"
+                            onClick={handleReject}
+                            disabled={!rejectReason.trim() || rejectMutation.isPending}
+                          >
+                            {rejectMutation.isPending ? 'Memproses...' : 'Tolak'}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm">
+                          <CheckCircle className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Setujui Pengajuan Cuti?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Anda akan menyetujui pengajuan cuti dari {employeeName}
+                            selama {approval.days_requested} hari.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Batal</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleApprove(approval.id)}
+                            disabled={approveMutation.isPending}
+                          >
+                            {approveMutation.isPending ? 'Memproses...' : 'Setujui'}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
-
-                {/* Reason */}
-                <div className="flex-1">
-                  <p className="text-sm text-muted-foreground truncate">
-                    {approval.reason}
-                  </p>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={`/leave/${approval.id}`}>
-                      <Eye className="h-4 w-4 mr-1" />
-                      Detail
-                    </a>
-                  </Button>
-
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="text-destructive">
-                        <XCircle className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Tolak Pengajuan Cuti?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Anda akan menolak pengajuan cuti dari {approval.employee.name}.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Batal</AlertDialogCancel>
-                        <AlertDialogAction className="bg-destructive text-destructive-foreground">
-                          Tolak
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button size="sm">
-                        <CheckCircle className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Setujui Pengajuan Cuti?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Anda akan menyetujui pengajuan cuti dari {approval.employee.name}
-                          selama {approval.days} hari.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Batal</AlertDialogCancel>
-                        <AlertDialogAction>Setujui</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          );
+        })}
 
         {filteredApprovals.length === 0 && (
           <Card>
@@ -282,7 +311,7 @@ export default function LeaveApprovalsPage() {
               <CheckCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-semibold mb-2">Tidak Ada Pengajuan</h3>
               <p className="text-sm text-muted-foreground">
-                Semua pengajuan cuti sudah diproses
+                Semua pengajuan cuti sudah diproses atau tidak ditemukan
               </p>
             </CardContent>
           </Card>

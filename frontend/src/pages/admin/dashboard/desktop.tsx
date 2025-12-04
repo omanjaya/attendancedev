@@ -3,7 +3,7 @@ import { Users, Clock, Calendar, DollarSign, FileText, AlertCircle, CheckCircle 
 import { PageLayout } from '@/components/shared/PageLayout';
 import { StatsGrid } from '@/components/shared/StatsGrid';
 import { ContentCard } from '@/components/shared/ContentCard';
-import { getDashboardStatistics } from '@/lib/api/dashboard';
+import { getDashboardData } from '@/lib/api/dashboard';
 
 /**
  * Admin Dashboard
@@ -11,11 +11,13 @@ import { getDashboardStatistics } from '@/lib/api/dashboard';
  */
 export function DesktopAdminDashboard() {
   // Fetch dashboard stats from real API
-  const { data: stats, isLoading } = useQuery({
+  const { data: dashboardData, isLoading } = useQuery({
     queryKey: ['admin', 'dashboard-stats'],
-    queryFn: getDashboardStatistics,
+    queryFn: getDashboardData,
     refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
   });
+
+  const stats = dashboardData?.summary;
 
   // Fix color types if needed. StatsGrid usually supports: default, primary, success, warning, destructive, info.
   // Let's adjust colors to match supported types.
@@ -27,13 +29,13 @@ export function DesktopAdminDashboard() {
       description: `${stats?.employees?.active || 0} aktif, ${stats?.employees?.inactive || 0} tidak aktif`,
       icon: Users,
       trend: 'up' as const,
-      trendValue: stats?.employees?.by_type ? `${Object.keys(stats.employees.by_type).length} tipe` : '',
+      trendValue: stats?.employees?.by_department ? `${Object.keys(stats.employees.by_department).length} departemen` : '',
       color: 'info' as const,
     },
     {
       label: 'Kehadiran Hari Ini',
-      value: stats?.attendance?.present_today || 0,
-      description: `${stats?.attendance?.late_today || 0} terlambat, ${stats?.attendance?.absent_today || 0} tidak hadir`,
+      value: stats?.attendance?.present || 0,
+      description: `${stats?.attendance?.late || 0} terlambat, ${stats?.attendance?.absent || 0} tidak hadir`,
       icon: Clock,
       trend: stats?.attendance?.attendance_rate && stats.attendance.attendance_rate >= 90 ? 'up' as const : 'down' as const,
       trendValue: stats?.attendance?.attendance_rate ? `${stats.attendance.attendance_rate.toFixed(1)}%` : '',
@@ -48,8 +50,8 @@ export function DesktopAdminDashboard() {
     },
     {
       label: 'Payroll Pending',
-      value: stats?.payroll?.pending_periods || 0,
-      description: `${stats?.payroll?.completed_periods || 0} sudah diproses`,
+      value: stats?.payroll?.pending || 0,
+      description: `${stats?.payroll?.processed || 0} sudah diproses`,
       icon: DollarSign,
       color: 'primary' as const,
     },
@@ -125,7 +127,7 @@ export function DesktopAdminDashboard() {
                 </div>
                 <div>
                   <p className="text-sm font-medium">Payroll Pending</p>
-                  <p className="text-xs text-muted-foreground">{stats?.payroll?.pending_periods || 0} perlu diproses</p>
+                  <p className="text-xs text-muted-foreground">{stats?.payroll?.pending || 0} perlu diproses</p>
                 </div>
               </div>
               <AlertCircle className="h-4 w-4 text-purple-600" />

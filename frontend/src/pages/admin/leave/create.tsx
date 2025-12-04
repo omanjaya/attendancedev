@@ -3,6 +3,7 @@ import { useNavigate, Link } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useMutation } from '@tanstack/react-query';
 import {
   ArrowLeft,
   Calendar,
@@ -13,7 +14,6 @@ import {
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LoadingState } from '@/components/states';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -26,12 +26,17 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useNotificationStore } from '@/stores';
+import { createLeaveRequest } from '@/lib/api/leave';
+import type { LeaveDurationType, LeaveType } from '@/types/leave';
 
 const leaveSchema = z.object({
   type: z.string().min(1, 'Pilih jenis cuti'),
   start_date: z.string().min(1, 'Pilih tanggal mulai'),
   end_date: z.string().min(1, 'Pilih tanggal selesai'),
+  duration_type: z.enum(['full_day', 'half_day', 'hours'] as const),
   reason: z.string().min(10, 'Alasan minimal 10 karakter'),
+  emergency_contact: z.string().optional(),
+  emergency_phone: z.string().optional(),
 });
 
 type LeaveForm = z.infer<typeof leaveSchema>;
@@ -48,7 +53,6 @@ const leaveTypes = [
 export default function LeaveCreatePage() {
   const navigate = useNavigate();
   const { success, error: showError } = useNotificationStore();
-  const [isLoading, setIsLoading] = useState(false);
   const [selectedType, setSelectedType] = useState<string>('');
 
   const {
@@ -59,6 +63,9 @@ export default function LeaveCreatePage() {
     formState: { errors },
   } = useForm<LeaveForm>({
     resolver: zodResolver(leaveSchema),
+    defaultValues: {
+      duration_type: 'full_day',
+    },
   });
 
   const startDate = watch('start_date');
@@ -74,19 +81,23 @@ export default function LeaveCreatePage() {
 
   const selectedLeaveType = leaveTypes.find(t => t.value === selectedType);
 
-  const onSubmit = async (data: LeaveForm) => {
-    setIsLoading(true);
-    try {
-      console.log('Submitting leave request:', data);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+  const createMutation = useMutation({
+    mutationFn: (data: LeaveForm) => createLeaveRequest({
+      ...data,
+      type: data.type as LeaveType,
+      duration_type: data.duration_type as LeaveDurationType,
+    }),
+    onSuccess: () => {
       success('Berhasil', 'Pengajuan cuti berhasil dikirim');
-      navigate({ to: '/leave' });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Gagal mengajukan cuti';
-      showError('Error', message);
-    } finally {
-      setIsLoading(false);
-    }
+      navigate({ to: '/admin/leave' });
+    },
+    onError: (err: any) => {
+      showError('Gagal', err.message || 'Gagal mengajukan cuti');
+    },
+  });
+
+  const onSubmit = (data: LeaveForm) => {
+    createMutation.mutate(data);
   };
 
   return (
@@ -158,16 +169,16 @@ export default function LeaveCreatePage() {
             </CardContent>
           </Card>
 
-          {/* Date Range */}
+          {/* Date Range & Duration */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Calendar className="h-5 w-5 text-primary" />
-                Tanggal Cuti
+                Waktu Cuti
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2 mb-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
                     Tanggal Mulai <span className="text-destructive">*</span>
@@ -187,6 +198,28 @@ export default function LeaveCreatePage() {
                     <p className="text-xs text-destructive">{errors.end_date.message}</p>
                   )}
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Durasi <span className="text-destructive">*</span>
+                </label>
+                <Select
+                  onValueChange={(value) => setValue('duration_type', value as any)}
+                  defaultValue="full_day"
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih durasi" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="full_day">Seharian Penuh</SelectItem>
+                    <SelectItem value="half_day">Setengah Hari</SelectItem>
+                    {/* <SelectItem value="hours">Jam Tertentu</SelectItem> */}
+                  </SelectContent>
+                </Select>
+                {errors.duration_type && (
+                  <p className="text-xs text-destructive">{errors.duration_type.message}</p>
+                )}
               </div>
 
               {calculateDays() > 0 && (
@@ -216,17 +249,34 @@ export default function LeaveCreatePage() {
             </CardContent>
           </Card>
 
+          {/* Emergency Contact */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Kontak Darurat (Opsional)</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Nama Kontak</label>
+                <Input placeholder="Nama kerabat/keluarga" {...register('emergency_contact')} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Nomor Telepon</label>
+                <Input placeholder="08..." {...register('emergency_phone')} />
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Actions */}
           <div className="flex justify-end gap-3">
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate({ to: '/leave' })}
+              onClick={() => navigate({ to: '/admin/leave' })}
             >
               Batal
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? (
+            <Button type="submit" disabled={createMutation.isPending}>
+              {createMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Mengirim...

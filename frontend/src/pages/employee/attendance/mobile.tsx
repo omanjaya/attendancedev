@@ -12,9 +12,18 @@ import {
   MapPin,
   ScanFace,
   AlertCircle,
+  AlertTriangle,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { useAuthStore } from '@/stores';
 import { useQuery } from '@tanstack/react-query';
 import { getTodayAttendance } from '@/lib/api/attendance';
@@ -24,6 +33,10 @@ export function MobileEmployeeAttendancePage() {
   const { user } = useAuthStore();
   const [currentTime, setCurrentTime] = useState('');
   const [currentDate, setCurrentDate] = useState('');
+
+  // State for re-attendance confirmation
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'check_in' | 'check_out' | null>(null);
 
   // Fetch today's attendance
   const { data: todayAttendance, refetch } = useQuery({
@@ -58,12 +71,31 @@ export function MobileEmployeeAttendancePage() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleCheckIn = () => {
-    window.location.href = '/shared/verify-location?type=check-in';
+  const handleActionClick = (type: 'check_in' | 'check_out') => {
+    // Check if already attended
+    const alreadyAttended = type === 'check_in'
+      ? (todayAttendance?.has_checked_in || !!todayAttendance?.attendance?.check_in_time || !!todayAttendance?.attendance?.check_in)
+      : (todayAttendance?.has_checked_out || !!todayAttendance?.attendance?.check_out_time || !!todayAttendance?.attendance?.check_out);
+
+    if (alreadyAttended) {
+      setPendingAction(type);
+      setShowConfirmModal(true);
+    } else {
+      // Proceed directly
+      window.location.href = `/shared/verify-location?type=${type === 'check_in' ? 'check-in' : 'check-out'}`;
+    }
   };
 
-  const handleCheckOut = () => {
-    window.location.href = '/shared/verify-location?type=check-out';
+  const handleConfirmReattend = () => {
+    if (pendingAction) {
+      window.location.href = `/shared/verify-location?type=${pendingAction === 'check_in' ? 'check-in' : 'check-out'}&overwrite=true`;
+    }
+    setShowConfirmModal(false);
+  };
+
+  const handleCancelReattend = () => {
+    setShowConfirmModal(false);
+    setPendingAction(null);
   };
 
   // Format time from "HH:MM:SS" to "HH:MM:SS"
@@ -189,7 +221,7 @@ export function MobileEmployeeAttendancePage() {
           <div className="space-y-2">
             {/* Datang (Check In) */}
             <button
-              onClick={handleCheckIn}
+              onClick={() => handleActionClick('check_in')}
               className="w-full bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 dark:from-emerald-600 dark:to-emerald-700 dark:hover:from-emerald-700 dark:hover:to-emerald-800 rounded-xl p-3 shadow-lg shadow-emerald-500/30 dark:shadow-emerald-600/20 transition-all active:scale-[0.98] group"
             >
               <div className="flex items-center gap-2.5">
@@ -208,7 +240,7 @@ export function MobileEmployeeAttendancePage() {
 
             {/* Pulang (Check Out) */}
             <button
-              onClick={handleCheckOut}
+              onClick={() => handleActionClick('check_out')}
               className="w-full bg-gradient-to-br from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 dark:from-rose-600 dark:to-rose-700 dark:hover:from-rose-700 dark:hover:to-rose-800 rounded-xl p-3 shadow-lg shadow-rose-500/30 dark:shadow-rose-600/20 transition-all active:scale-[0.98] group"
             >
               <div className="flex items-center gap-2.5">
@@ -315,6 +347,58 @@ export function MobileEmployeeAttendancePage() {
           </div>
         </div>
       </div>
+
+      {/* Re-Attendance Confirmation Dialog */}
+      <Dialog open={showConfirmModal} onOpenChange={handleCancelReattend}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-warning" />
+              Konfirmasi Absen Ulang
+            </DialogTitle>
+            <DialogDescription>
+              Anda sudah melakukan absensi sebelumnya
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <Alert className="border-warning/50 bg-warning/10">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              <AlertTitle className="text-warning">Sudah Absen</AlertTitle>
+              <AlertDescription className="space-y-2">
+                <p className="font-medium">
+                  Anda sudah absen {pendingAction === 'check_in' ? 'datang' : 'pulang'} pada:
+                </p>
+                <p className="text-lg font-bold">
+                  {formatTime(pendingAction === 'check_in'
+                    ? (todayAttendance?.attendance?.check_in_time || todayAttendance?.attendance?.check_in)
+                    : (todayAttendance?.attendance?.check_out_time || todayAttendance?.attendance?.check_out))}
+                </p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Apakah Anda ingin absen ulang? Data absensi lama akan diganti dengan yang baru.
+                </p>
+              </AlertDescription>
+            </Alert>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={handleConfirmReattend}
+                className="flex-1"
+                variant="default"
+              >
+                Lanjut Absen
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleCancelReattend}
+                className="flex-1"
+              >
+                Batal
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

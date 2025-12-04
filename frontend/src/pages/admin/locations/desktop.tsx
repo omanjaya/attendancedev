@@ -14,7 +14,11 @@ import {
     Power,
     PowerOff,
     Map,
+    UserPlus,
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { getEmployees } from '@/lib/api/employees';
+import type { Employee } from '@/types';
 import { toast } from 'sonner';
 import { PageHeader, StatsGrid, type StatItem } from '@/components/shared';
 import { Button } from '@/components/ui/button';
@@ -90,11 +94,13 @@ function LocationCard({
     onEdit,
     onDelete,
     onToggle,
+    onAssign,
 }: {
     location: Location;
     onEdit: () => void;
     onDelete: () => void;
     onToggle: () => void;
+    onAssign: () => void;
 }) {
     return (
         <Card className={`transition-all ${!location.is_active ? 'opacity-60' : ''}`}>
@@ -124,6 +130,10 @@ function LocationCard({
                             <DropdownMenuItem onClick={onEdit}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={onAssign}>
+                                <UserPlus className="mr-2 h-4 w-4" />
+                                Assign Pegawai
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={onToggle}>
                                 {location.is_active ? (
@@ -247,14 +257,28 @@ function LocationFormDialog({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        await onSubmit(formData);
+
+        // If type is remote (WFA), set default values for location-specific fields
+        const submitData: LocationFormData = formData.type === 'remote'
+            ? {
+                ...formData,
+                name: formData.name || 'WFA',
+                address: 'Remote Work',
+                latitude: 0,
+                longitude: 0,
+                radius_meters: 9999999, // Set to large number for WFA (no radius limit)
+                wifi_ssid: '',
+            }
+            : formData;
+
+        await onSubmit(submitData);
         onOpenChange(false);
     };
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px]">
-                <DialogHeader>
+            <DialogContent className="sm:max-w-[650px] max-h-[90vh] flex flex-col">
+                <DialogHeader className="flex-shrink-0">
                     <DialogTitle>{location ? 'Edit Lokasi' : 'Tambah Lokasi Baru'}</DialogTitle>
                     <DialogDescription>
                         {location
@@ -262,8 +286,8 @@ function LocationFormDialog({
                             : 'Tambahkan lokasi baru untuk absensi'}
                     </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleSubmit}>
-                    <div className="grid gap-4 py-4">
+                <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+                    <div className="grid gap-4 py-4 overflow-y-auto pr-1">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="grid gap-2">
                                 <Label htmlFor="name">Nama Lokasi</Label>
@@ -271,7 +295,7 @@ function LocationFormDialog({
                                     id="name"
                                     value={formData.name}
                                     onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                                    placeholder="Gedung Utama"
+                                    placeholder={formData.type === 'remote' ? 'WFA' : 'Gedung Utama'}
                                     required
                                 />
                             </div>
@@ -297,91 +321,95 @@ function LocationFormDialog({
                             </div>
                         </div>
 
-                        <div className="grid gap-2">
-                            <Label htmlFor="address">Alamat</Label>
-                            <Textarea
-                                id="address"
-                                value={formData.address}
-                                onChange={(e) => setFormData((prev) => ({ ...prev, address: e.target.value }))}
-                                placeholder="Jl. Pendidikan No. 1, Jakarta"
-                                required
-                            />
-                        </div>
+                        {formData.type !== 'remote' && (
+                            <>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="address">Alamat</Label>
+                                    <Textarea
+                                        id="address"
+                                        value={formData.address}
+                                        onChange={(e) => setFormData((prev) => ({ ...prev, address: e.target.value }))}
+                                        placeholder="Jl. Pendidikan No. 1, Jakarta"
+                                        required
+                                    />
+                                </div>
 
-                        <div className="grid gap-2">
-                            <Label>Pilih Lokasi di Map</Label>
-                            <LocationMapPicker
-                                latitude={formData.latitude}
-                                longitude={formData.longitude}
-                                onLocationChange={(lat, lng, address) => {
-                                    setFormData((prev) => ({
-                                        ...prev,
-                                        latitude: lat,
-                                        longitude: lng,
-                                        ...(address && !prev.address ? { address } : {}),
-                                    }));
-                                }}
-                                height="350px"
-                            />
-                        </div>
+                                <div className="grid gap-2">
+                                    <Label>Pilih Lokasi di Map</Label>
+                                    <LocationMapPicker
+                                        latitude={formData.latitude}
+                                        longitude={formData.longitude}
+                                        onLocationChange={(lat, lng, address) => {
+                                            setFormData((prev) => ({
+                                                ...prev,
+                                                latitude: lat,
+                                                longitude: lng,
+                                                ...(address && !prev.address ? { address } : {}),
+                                            }));
+                                        }}
+                                        height="350px"
+                                    />
+                                </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="latitude">Latitude</Label>
-                                <Input
-                                    id="latitude"
-                                    type="number"
-                                    step="0.000001"
-                                    value={formData.latitude}
-                                    onChange={(e) => {
-                                        const val = parseFloat(e.target.value);
-                                        setFormData((prev) => ({ ...prev, latitude: isNaN(val) ? 0 : val }));
-                                    }}
-                                    required
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="longitude">Longitude</Label>
-                                <Input
-                                    id="longitude"
-                                    type="number"
-                                    step="0.000001"
-                                    value={formData.longitude}
-                                    onChange={(e) => {
-                                        const val = parseFloat(e.target.value);
-                                        setFormData((prev) => ({ ...prev, longitude: isNaN(val) ? 0 : val }));
-                                    }}
-                                    required
-                                />
-                            </div>
-                        </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="latitude">Latitude</Label>
+                                        <Input
+                                            id="latitude"
+                                            type="number"
+                                            step="0.000001"
+                                            value={formData.latitude}
+                                            onChange={(e) => {
+                                                const val = parseFloat(e.target.value);
+                                                setFormData((prev) => ({ ...prev, latitude: isNaN(val) ? 0 : val }));
+                                            }}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="longitude">Longitude</Label>
+                                        <Input
+                                            id="longitude"
+                                            type="number"
+                                            step="0.000001"
+                                            value={formData.longitude}
+                                            onChange={(e) => {
+                                                const val = parseFloat(e.target.value);
+                                                setFormData((prev) => ({ ...prev, longitude: isNaN(val) ? 0 : val }));
+                                            }}
+                                            required
+                                        />
+                                    </div>
+                                </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="radius">Radius (meter)</Label>
-                                <Input
-                                    id="radius"
-                                    type="number"
-                                    value={formData.radius_meters}
-                                    onChange={(e) => {
-                                        const val = parseInt(e.target.value);
-                                        setFormData((prev) => ({ ...prev, radius_meters: isNaN(val) ? 0 : val }));
-                                    }}
-                                    required
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="wifi">WiFi SSID (Opsional)</Label>
-                                <Input
-                                    id="wifi"
-                                    value={formData.wifi_ssid}
-                                    onChange={(e) =>
-                                        setFormData((prev) => ({ ...prev, wifi_ssid: e.target.value }))
-                                    }
-                                    placeholder="SCHOOL_WIFI"
-                                />
-                            </div>
-                        </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="radius">Radius (meter)</Label>
+                                        <Input
+                                            id="radius"
+                                            type="number"
+                                            value={formData.radius_meters}
+                                            onChange={(e) => {
+                                                const val = parseInt(e.target.value);
+                                                setFormData((prev) => ({ ...prev, radius_meters: isNaN(val) ? 0 : val }));
+                                            }}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="wifi">WiFi SSID (Opsional)</Label>
+                                        <Input
+                                            id="wifi"
+                                            value={formData.wifi_ssid}
+                                            onChange={(e) =>
+                                                setFormData((prev) => ({ ...prev, wifi_ssid: e.target.value }))
+                                            }
+                                            placeholder="SCHOOL_WIFI"
+                                        />
+                                    </div>
+                                </div>
+                            </>
+                        )}
 
                         <div className="grid gap-2">
                             <Label htmlFor="description">Deskripsi (Opsional)</Label>
@@ -406,7 +434,7 @@ function LocationFormDialog({
                             />
                         </div>
                     </div>
-                    <DialogFooter>
+                    <DialogFooter className="flex-shrink-0 mt-4">
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                             Batal
                         </Button>
@@ -421,6 +449,161 @@ function LocationFormDialog({
     );
 }
 
+// Assign Employees Dialog
+function AssignEmployeesDialog({
+    open,
+    onOpenChange,
+    location,
+    onSubmit,
+    isLoading,
+}: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    location: Location | null;
+    onSubmit: (locationId: string, employeeIds: string[]) => Promise<void>;
+    isLoading: boolean;
+}) {
+    const [employees, setEmployees] = useState<(Employee & { location_id?: string | number })[]>([]);
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [showAssignedOnly, setShowAssignedOnly] = useState(false);
+    const [isFetching, setIsFetching] = useState(false);
+
+    useEffect(() => {
+        if (open && location) {
+            fetchEmployees();
+            setSelectedIds([]);
+        }
+    }, [open, location]);
+
+    const fetchEmployees = async () => {
+        setIsFetching(true);
+        try {
+            const response = await getEmployees({ per_page: 1000 }); // Fetch many
+            setEmployees(response.data as (Employee & { location_id?: string | number })[]);
+
+            // Pre-select employees who are already in this location
+            // Note: API response might not include location_id unless we request it or it's in the model
+            // If it's not in the response, we can't pre-select. 
+            // Assuming getEmployees returns location_id if available.
+            if (location) {
+                const current = response.data
+                    .filter((e: any) => String(e.location_id) === String(location.id))
+                    .map(e => String(e.id));
+                setSelectedIds(current);
+            }
+        } catch (error) {
+            console.error('Failed to fetch employees', error);
+            toast.error('Gagal memuat data pegawai');
+        } finally {
+            setIsFetching(false);
+        }
+    };
+
+    const handleSubmit = async () => {
+        if (location) {
+            await onSubmit(location.id, selectedIds);
+            onOpenChange(false);
+        }
+    };
+
+    const filteredEmployees = employees.filter(e => {
+        const matchesSearch = e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (e.employee_id && e.employee_id.toLowerCase().includes(searchQuery.toLowerCase()));
+
+        if (showAssignedOnly) {
+            return matchesSearch && selectedIds.includes(String(e.id));
+        }
+        return matchesSearch;
+    });
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-[500px] h-[600px] flex flex-col">
+                <DialogHeader>
+                    <DialogTitle>Assign Pegawai</DialogTitle>
+                    <DialogDescription>
+                        Pilih pegawai untuk ditugaskan ke lokasi <strong>{location?.name}</strong>.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="py-4 space-y-4 flex-1 flex flex-col min-h-0">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            placeholder="Cari pegawai..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-9"
+                        />
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                        <Checkbox
+                            id="show-assigned"
+                            checked={showAssignedOnly}
+                            onCheckedChange={(checked) => setShowAssignedOnly(checked as boolean)}
+                        />
+                        <Label htmlFor="show-assigned" className="text-sm font-normal cursor-pointer">
+                            Tampilkan yang ditugaskan saja
+                        </Label>
+                    </div>
+
+                    <div className="border rounded-md flex-1 overflow-y-auto p-2 space-y-2">
+                        {isFetching ? (
+                            <div className="flex justify-center py-4">
+                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                            </div>
+                        ) : filteredEmployees.length === 0 ? (
+                            <p className="text-center text-muted-foreground py-4">Tidak ada pegawai ditemukan</p>
+                        ) : (
+                            filteredEmployees.map(employee => (
+                                <div key={employee.id} className="flex items-center space-x-3 p-2 hover:bg-accent rounded-md">
+                                    <Checkbox
+                                        id={`emp-${employee.id}`}
+                                        checked={selectedIds.includes(String(employee.id))}
+                                        onCheckedChange={(checked) => {
+                                            const id = String(employee.id);
+                                            if (checked) {
+                                                setSelectedIds(prev => [...prev, id]);
+                                            } else {
+                                                setSelectedIds(prev => prev.filter(i => i !== id));
+                                            }
+                                        }}
+                                    />
+                                    <div className="flex-1">
+                                        <Label htmlFor={`emp-${employee.id}`} className="cursor-pointer font-medium">
+                                            {employee.name}
+                                        </Label>
+                                        <p className="text-xs text-muted-foreground">{employee.employee_id}</p>
+                                    </div>
+                                    {employee.location_id && String(employee.location_id) !== String(location?.id) && (
+                                        <Badge variant="outline" className="text-xs">
+                                            Pindah Lokasi
+                                        </Badge>
+                                    )}
+                                </div>
+                            ))
+                        )}
+                    </div>
+
+                    <div className="text-sm text-muted-foreground text-right">
+                        {selectedIds.length} pegawai dipilih
+                    </div>
+                </div>
+
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>Batal</Button>
+                    <Button onClick={handleSubmit} disabled={isLoading}>
+                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Simpan
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 export function DesktopLocationsPage() {
     const {
         isLoading,
@@ -430,6 +613,7 @@ export function DesktopLocationsPage() {
         updateLocation,
         deleteLocation,
         toggleStatus,
+        assignEmployees,
         getStatistics,
     } = useLocations();
 
@@ -438,6 +622,7 @@ export function DesktopLocationsPage() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingLocation, setEditingLocation] = useState<Location | null>(null);
     const [deletingLocation, setDeletingLocation] = useState<Location | null>(null);
+    const [assigningLocation, setAssigningLocation] = useState<Location | null>(null);
     const [stats, setStats] = useState<LocationStatistics | null>(null);
 
     const loadStats = async () => {
@@ -494,6 +679,18 @@ export function DesktopLocationsPage() {
                 console.error('Update location error:', error);
                 toast.error(error.message || 'Gagal memperbarui lokasi');
             }
+        }
+    };
+
+    const handleAssignEmployees = async (locationId: string, employeeIds: string[]) => {
+        try {
+            await assignEmployees(locationId, employeeIds);
+            toast.success('Pegawai berhasil ditugaskan');
+            setAssigningLocation(null);
+            loadStats();
+        } catch (error: any) {
+            console.error('Assign employees error:', error);
+            toast.error(error.message || 'Gagal menugaskan pegawai');
         }
     };
 
@@ -634,6 +831,7 @@ export function DesktopLocationsPage() {
                             }}
                             onDelete={() => setDeletingLocation(location)}
                             onToggle={() => toggleStatus(location.id)}
+                            onAssign={() => setAssigningLocation(location)}
                         />
                     ))}
                 </div>
@@ -648,6 +846,15 @@ export function DesktopLocationsPage() {
                 }}
                 location={editingLocation}
                 onSubmit={editingLocation ? handleUpdate : handleCreate}
+                isLoading={isLoading}
+            />
+
+            {/* Assign Employees Dialog */}
+            <AssignEmployeesDialog
+                open={!!assigningLocation}
+                onOpenChange={(open) => !open && setAssigningLocation(null)}
+                location={assigningLocation}
+                onSubmit={handleAssignEmployees}
                 isLoading={isLoading}
             />
 

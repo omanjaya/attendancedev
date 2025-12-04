@@ -34,7 +34,7 @@ export function MobileReportsPage() {
         setIsExporting(true);
         try {
             // Generate the report (default PDF format for mobile)
-            const initialReport = await generateReport({
+            const response = await generateReport({
                 type: reportType, // Changed from report_type
                 format: 'pdf',
                 start_date: format(startDate, 'yyyy-MM-dd'),
@@ -42,22 +42,29 @@ export function MobileReportsPage() {
                 filters: { columns: ['employee_name', 'date', 'check_in', 'check_out', 'status', 'work_hours'] }, // Changed to filters
             });
 
-            console.log('DEBUG: Initial mobile report response:', initialReport);
+            console.log('DEBUG: Initial mobile report response:', response);
             toast.loading('Laporan sedang diproses. Mohon tunggu...');
 
-            let report = initialReport;
+            // Handle nested response structure: { report: {...}, download_url: ... }
+            const reportData = (response as any).report || response;
+            const downloadUrl = (response as any).download_url || reportData.download_url;
+
+            let report = reportData;
 
             // Only poll if not already completed
-            if (initialReport.status !== 'completed') {
-                report = await waitForReportCompletion(initialReport.id);
+            if (report.status !== 'completed') {
+                report = await waitForReportCompletion(report.id);
             }
 
             // If we have a direct download URL, use it
-            if (report.download_url) {
+            if (downloadUrl) {
+                window.open(downloadUrl, '_blank');
+                toast.success(`${reportTitle} sedang diunduh!`);
+            } else if (report.download_url) {
                 window.open(report.download_url, '_blank');
                 toast.success(`${reportTitle} sedang diunduh!`);
             } else {
-                // Download the generated report
+                // Fallback: Download the generated report
                 const blob = await downloadReport(report.id);
 
                 // Create download link

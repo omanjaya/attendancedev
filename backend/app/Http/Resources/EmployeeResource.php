@@ -34,6 +34,8 @@ class EmployeeResource extends JsonResource
             'birth_date' => $this->metadata['date_of_birth'] ?? null,
             'gender' => $this->metadata['gender'] ?? null,
             'face_registered' => $this->hasFaceData(),
+            'location_id' => $this->location_id,
+            'location_name' => $this->location?->name,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

@@ -164,7 +164,7 @@ document.addEventListener('alpine:init', () => {
                     // Load component content
                     this.componentContent = `
                         <div class="component-loaded">
-                            @include('{{ $component }}', {{ json_encode($data) }})
+                            @include($component, $data)
                         </div>
                     `;
                     resolve();

@@ -6,6 +6,8 @@ use App\Http\Resources\EmployeeResource;
 use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class EmployeeApiController extends BaseApiController
 {
@@ -94,6 +96,7 @@ class EmployeeApiController extends BaseApiController
             'is_active' => 'boolean',
             'password' => 'nullable|string|min:8', // Accept password from frontend
             'role' => 'nullable|string|in:pegawai,guru,admin,kepala-sekolah', // Accept role
+            'location_id' => 'nullable|uuid|exists:locations,id', // Accept location assignment
         ]);
 
         try {
@@ -106,7 +109,7 @@ class EmployeeApiController extends BaseApiController
                 $user = \App\Models\User::create([
                     'name' => $validated['full_name'],
                     'email' => $validated['email'],
-                    'password' => \Hash::make($password), // Use Hash facade for consistency
+                    'password' => Hash::make($password), // Use Hash facade for consistency
                     'force_password_change' => false, // Disable force password change for easier onboarding
                 ]);
 
@@ -133,6 +136,7 @@ class EmployeeApiController extends BaseApiController
                     'salary_amount' => $validated['base_salary'] ?? 0,
                     'hire_date' => $validated['hire_date'] ?? ($request->get('join_date') ?? now()),
                     'is_active' => $validated['is_active'] ?? true,
+                    'location_id' => $validated['location_id'] ?? null, // Assign location
                     'metadata' => $metadata, // Store department and position in metadata
                 ];
 
@@ -227,6 +231,7 @@ class EmployeeApiController extends BaseApiController
             'base_salary' => 'sometimes|numeric|min:0',
             'hire_date' => 'sometimes|date',
             'is_active' => 'boolean',
+            'location_id' => 'nullable|uuid|exists:locations,id', // Allow location update
         ]);
 
         try {
@@ -238,6 +243,7 @@ class EmployeeApiController extends BaseApiController
                 'salary_amount' => $validated['base_salary'] ?? $employee->salary_amount,
                 'hire_date' => $validated['hire_date'] ?? $employee->hire_date,
                 'is_active' => $validated['is_active'] ?? $employee->is_active,
+                'location_id' => $validated['location_id'] ?? $employee->location_id, // Update location if provided
             ]);
 
             return $this->apiResponse(
@@ -291,5 +297,181 @@ class EmployeeApiController extends BaseApiController
             ->values();
 
         return $this->apiResponse($employees, 'Employees with face data retrieved');
+    }
+
+    /**
+     * Get employee dashboard data
+     */
+    public function dashboard(Request $request)
+    {
+        $user = $request->user();
+        $employee = $user->employee;
+
+        if (!$employee) {
+            return $this->errorResponse('Employee record not found', 404);
+        }
+
+        $today = now();
+        $startOfMonth = now()->startOfMonth();
+        $endOfMonth = now()->endOfMonth();
+
+        // 1. Attendance Stats
+        $attendanceStats = [
+            'thisMonth' => \App\Models\Attendance::where('employee_id', $employee->id)
+                ->whereBetween('date', [$startOfMonth, $endOfMonth])
+                ->count(),
+            'present' => \App\Models\Attendance::where('employee_id', $employee->id)
+                ->whereBetween('date', [$startOfMonth, $endOfMonth])
+                ->where('status', 'present')
+                ->count(),
+            'late' => \App\Models\Attendance::where('employee_id', $employee->id)
+                ->whereBetween('date', [$startOfMonth, $endOfMonth])
+                ->where('status', 'late')
+                ->count(),
+            'absent' => \App\Models\Attendance::where('employee_id', $employee->id)
+                ->whereBetween('date', [$startOfMonth, $endOfMonth])
+                ->where('status', 'absent')
+                ->count(),
+            'todayStatus' => null,
+            'checkIn' => null,
+            'checkOut' => null,
+        ];
+
+        $todayAttendance = \App\Models\Attendance::where('employee_id', $employee->id)
+            ->forDate($today)
+            ->first();
+
+        if ($todayAttendance) {
+            $attendanceStats['todayStatus'] = $todayAttendance->check_out_time ? 'checked-out' : 'checked-in';
+            $attendanceStats['checkIn'] = $todayAttendance->check_in_time ? $todayAttendance->check_in_time->format('H:i') : null;
+            $attendanceStats['checkOut'] = $todayAttendance->check_out_time ? $todayAttendance->check_out_time->format('H:i') : null;
+        }
+
+        // 2. Leave Stats
+        // Assuming 12 days annual leave default if not in database
+        $annualLeave = 12;
+        $usedLeave = \App\Models\Leave::where('employee_id', $employee->id)
+            ->where('status', 'approved')
+            ->whereYear('start_date', $today->year)
+            ->count(); // This is a simplification, should sum days
+
+        $pendingLeave = \App\Models\Leave::where('employee_id', $employee->id)
+            ->where('status', 'pending')
+            ->count();
+
+        $leaveStats = [
+            'balance' => $annualLeave - $usedLeave,
+            'used' => $usedLeave,
+            'pending' => $pendingLeave,
+        ];
+
+        // 3. Schedule
+        $todaySchedule = $employee->getEffectiveScheduleForDate($today);
+        $nextShift = null;
+
+        // Find next working day
+        for ($i = 1; $i <= 7; $i++) {
+            $nextDate = $today->copy()->addDays($i);
+            $schedule = $employee->getEffectiveScheduleForDate($nextDate);
+            if ($schedule['working_hours'] > 0) {
+                $nextShift = [
+                    'date' => $nextDate->isoFormat('dddd, D MMMM'),
+                    'shift' => 'Regular', // Or derive from time
+                    'time' => ($schedule['start_time'] ? $schedule['start_time']->format('H:i') : '08:00') . ' - ' . ($schedule['end_time'] ? $schedule['end_time']->format('H:i') : '17:00'),
+                ];
+                break;
+            }
+        }
+
+        $scheduleData = [
+            'today' => [
+                'shift' => 'Regular',
+                'time' => ($todaySchedule['start_time'] ? $todaySchedule['start_time']->format('H:i') : '08:00') . ' - ' . ($todaySchedule['end_time'] ? $todaySchedule['end_time']->format('H:i') : '17:00'),
+                'location' => $employee->location->name ?? 'Office',
+            ],
+            'nextShift' => $nextShift,
+        ];
+
+        // 4. Payroll (Mock for now as Payroll module might be complex)
+        $payrollData = [
+            'lastPayment' => [
+                'amount' => $employee->salary_amount ?? 0,
+                'date' => $today->copy()->subMonth()->endOfMonth()->format('Y-m-d'),
+                'status' => 'paid'
+            ],
+            'nextPayment' => [
+                'date' => $today->copy()->endOfMonth()->format('Y-m-d'),
+                'estimated' => $employee->salary_amount ?? 0
+            ]
+        ];
+
+        return $this->apiResponse([
+            'attendance' => $attendanceStats,
+            'leave' => $leaveStats,
+            'schedule' => $scheduleData,
+            'payroll' => $payrollData,
+        ], 'Employee dashboard data retrieved');
+    }
+
+    /**
+     * Upload avatar for employee
+     */
+    public function uploadAvatar(Request $request, $id)
+    {
+        $employee = Employee::find($id);
+
+        if (!$employee) {
+            return $this->errorResponse('Employee not found', 404);
+        }
+
+        $validated = $request->validate([
+            'avatar' => 'required|image|mimes:jpeg,jpg,png,webp|max:2048', // Max 2MB
+        ]);
+
+        try {
+            // Delete old avatar if exists
+            if ($employee->photo_path && Storage::disk('public')->exists($employee->photo_path)) {
+                Storage::disk('public')->delete($employee->photo_path);
+            }
+
+            // Store new avatar
+            $avatarPath = $request->file('avatar')->store('avatars', 'public');
+
+            // Update employee photo_path
+            $employee->update(['photo_path' => $avatarPath]);
+
+            return $this->apiResponse([
+                'employee' => $employee->fresh()->load(['user', 'location']),
+                'avatar_url' => asset("storage/{$avatarPath}"),
+            ], 'Avatar uploaded successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to upload avatar: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Delete employee avatar
+     */
+    public function deleteAvatar($id)
+    {
+        $employee = Employee::find($id);
+
+        if (!$employee) {
+            return $this->errorResponse('Employee not found', 404);
+        }
+
+        try {
+            // Delete avatar file if exists
+            if ($employee->photo_path && Storage::disk('public')->exists($employee->photo_path)) {
+                Storage::disk('public')->delete($employee->photo_path);
+            }
+
+            // Clear photo_path in database
+            $employee->update(['photo_path' => null]);
+
+            return $this->apiResponse(null, 'Avatar deleted successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to delete avatar: ' . $e->getMessage(), 500);
+        }
     }
 }

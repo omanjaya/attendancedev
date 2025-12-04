@@ -35,14 +35,10 @@ export async function getDashboardStatistics() {
 }
 
 // Get dashboard data
+// Get dashboard data
 export async function getDashboardData(): Promise<DashboardData> {
-  try {
-    const response = await apiClient.get<{ data: DashboardData }>(ENDPOINTS.dashboard);
-    return response.data.data;
-  } catch (error) {
-    console.warn('Dashboard API failed, using mock data', error);
-    return getMockDashboardData();
-  }
+  const response = await apiClient.get<{ data: DashboardData }>(ENDPOINTS.dashboard);
+  return response.data.data;
 }
 
 // Mock dashboard data for development (when API is not available)

@@ -15,7 +15,11 @@ import {
     PowerOff,
     ChevronLeft,
     Filter,
+    UserPlus,
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { getEmployees } from '@/lib/api/employees';
+import type { Employee } from '@/types';
 import { toast } from 'sonner';
 import { useNavigate } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
@@ -36,6 +40,7 @@ import {
     DialogHeader,
     DialogTitle,
     DialogDescription,
+    DialogFooter,
 } from '@/components/ui/dialog';
 import {
     Sheet,
@@ -148,13 +153,27 @@ function LocationFormDialog({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        await onSubmit(formData);
+
+        // If type is remote (WFA), set default values for location-specific fields
+        const submitData: LocationFormData = formData.type === 'remote'
+            ? {
+                ...formData,
+                name: formData.name || 'WFA',
+                address: 'Remote Work',
+                latitude: 0,
+                longitude: 0,
+                radius_meters: 9999999, // Set to large number for WFA (no radius limit)
+                wifi_ssid: '',
+            }
+            : formData;
+
+        await onSubmit(submitData);
         onOpenChange(false);
     };
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-[90%] rounded-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="w-[90%] rounded-2xl max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>{location ? 'Edit Lokasi' : 'Tambah Lokasi'}</DialogTitle>
                     <DialogDescription>
@@ -168,7 +187,7 @@ function LocationFormDialog({
                             id="name"
                             value={formData.name}
                             onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                            placeholder="Nama lokasi"
+                            placeholder={formData.type === 'remote' ? 'WFA' : 'Nama lokasi'}
                             required
                         />
                     </div>
@@ -192,85 +211,103 @@ function LocationFormDialog({
                             </SelectContent>
                         </Select>
                     </div>
+
+                    {formData.type !== 'remote' && (
+                        <>
+                            <div className="space-y-2">
+                                <Label htmlFor="address">Alamat</Label>
+                                <Textarea
+                                    id="address"
+                                    value={formData.address}
+                                    onChange={(e) => setFormData((prev) => ({ ...prev, address: e.target.value }))}
+                                    placeholder="Alamat lengkap"
+                                    required
+                                    className="min-h-[80px]"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Pilih Lokasi di Map</Label>
+                                <LocationMapPicker
+                                    latitude={formData.latitude}
+                                    longitude={formData.longitude}
+                                    onLocationChange={(lat, lng, address) => {
+                                        setFormData((prev) => ({
+                                            ...prev,
+                                            latitude: lat,
+                                            longitude: lng,
+                                            ...(address && !prev.address ? { address } : {}),
+                                        }));
+                                    }}
+                                    height="300px"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-2">
+                                    <Label htmlFor="latitude">Latitude</Label>
+                                    <Input
+                                        id="latitude"
+                                        type="number"
+                                        step="0.000001"
+                                        value={formData.latitude}
+                                        onChange={(e) => {
+                                            const val = parseFloat(e.target.value);
+                                            setFormData((prev) => ({ ...prev, latitude: isNaN(val) ? 0 : val }));
+                                        }}
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="longitude">Longitude</Label>
+                                    <Input
+                                        id="longitude"
+                                        type="number"
+                                        step="0.000001"
+                                        value={formData.longitude}
+                                        onChange={(e) => {
+                                            const val = parseFloat(e.target.value);
+                                            setFormData((prev) => ({ ...prev, longitude: isNaN(val) ? 0 : val }));
+                                        }}
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="radius">Radius (meter)</Label>
+                                <Input
+                                    id="radius"
+                                    type="number"
+                                    value={formData.radius_meters}
+                                    onChange={(e) => {
+                                        const val = parseInt(e.target.value);
+                                        setFormData((prev) => ({ ...prev, radius_meters: isNaN(val) ? 0 : val }));
+                                    }}
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="wifi">WiFi SSID (Opsional)</Label>
+                                <Input
+                                    id="wifi"
+                                    value={formData.wifi_ssid}
+                                    onChange={(e) =>
+                                        setFormData((prev) => ({ ...prev, wifi_ssid: e.target.value }))
+                                    }
+                                    placeholder="SSID WiFi"
+                                />
+                            </div>
+                        </>
+                    )}
+
                     <div className="space-y-2">
-                        <Label htmlFor="address">Alamat</Label>
+                        <Label htmlFor="description">Deskripsi (Opsional)</Label>
                         <Textarea
-                            id="address"
-                            value={formData.address}
-                            onChange={(e) => setFormData((prev) => ({ ...prev, address: e.target.value }))}
-                            placeholder="Alamat lengkap"
-                            required
-                            className="min-h-[80px]"
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Pilih Lokasi di Map</Label>
-                        <LocationMapPicker
-                            latitude={formData.latitude}
-                            longitude={formData.longitude}
-                            onLocationChange={(lat, lng, address) => {
-                                setFormData((prev) => ({
-                                    ...prev,
-                                    latitude: lat,
-                                    longitude: lng,
-                                    ...(address && !prev.address ? { address } : {}),
-                                }));
-                            }}
-                            height="300px"
-                        />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-2">
-                            <Label htmlFor="latitude">Latitude</Label>
-                            <Input
-                                id="latitude"
-                                type="number"
-                                step="0.000001"
-                                value={formData.latitude}
-                                onChange={(e) => {
-                                    const val = parseFloat(e.target.value);
-                                    setFormData((prev) => ({ ...prev, latitude: isNaN(val) ? 0 : val }));
-                                }}
-                                required
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="longitude">Longitude</Label>
-                            <Input
-                                id="longitude"
-                                type="number"
-                                step="0.000001"
-                                value={formData.longitude}
-                                onChange={(e) => {
-                                    const val = parseFloat(e.target.value);
-                                    setFormData((prev) => ({ ...prev, longitude: isNaN(val) ? 0 : val }));
-                                }}
-                                required
-                            />
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="radius">Radius (meter)</Label>
-                        <Input
-                            id="radius"
-                            type="number"
-                            value={formData.radius_meters}
-                            onChange={(e) => {
-                                const val = parseInt(e.target.value);
-                                setFormData((prev) => ({ ...prev, radius_meters: isNaN(val) ? 0 : val }));
-                            }}
-                            required
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="wifi">WiFi SSID (Opsional)</Label>
-                        <Input
-                            id="wifi"
-                            value={formData.wifi_ssid}
+                            id="description"
+                            value={formData.description}
                             onChange={(e) =>
-                                setFormData((prev) => ({ ...prev, wifi_ssid: e.target.value }))
+                                setFormData((prev) => ({ ...prev, description: e.target.value }))
                             }
-                            placeholder="SSID WiFi"
+                            placeholder="Deskripsi lokasi..."
+                            className="min-h-[80px]"
                         />
                     </div>
                     <div className="flex items-center justify-between py-2">
@@ -298,6 +335,157 @@ function LocationFormDialog({
     );
 }
 
+// Assign Employees Dialog
+function AssignEmployeesDialog({
+    open,
+    onOpenChange,
+    location,
+    onSubmit,
+    isLoading,
+}: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    location: Location | null;
+    onSubmit: (locationId: string, employeeIds: string[]) => Promise<void>;
+    isLoading: boolean;
+}) {
+    const [employees, setEmployees] = useState<(Employee & { location_id?: string | number })[]>([]);
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [showAssignedOnly, setShowAssignedOnly] = useState(false);
+    const [isFetching, setIsFetching] = useState(false);
+
+    useEffect(() => {
+        if (open && location) {
+            fetchEmployees();
+            setSelectedIds([]);
+        }
+    }, [open, location]);
+
+    const fetchEmployees = async () => {
+        setIsFetching(true);
+        try {
+            const response = await getEmployees({ per_page: 1000 });
+            setEmployees(response.data as (Employee & { location_id?: string | number })[]);
+
+            if (location) {
+                const current = response.data
+                    .filter((e: any) => String(e.location_id) === String(location.id))
+                    .map(e => String(e.id));
+                setSelectedIds(current);
+            }
+        } catch (error) {
+            console.error('Failed to fetch employees', error);
+            toast.error('Gagal memuat data pegawai');
+        } finally {
+            setIsFetching(false);
+        }
+    };
+
+    const handleSubmit = async () => {
+        if (location) {
+            await onSubmit(location.id, selectedIds);
+            onOpenChange(false);
+        }
+    };
+
+    const filteredEmployees = employees.filter(e => {
+        const matchesSearch = e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (e.employee_id && e.employee_id.toLowerCase().includes(searchQuery.toLowerCase()));
+
+        if (showAssignedOnly) {
+            return matchesSearch && selectedIds.includes(String(e.id));
+        }
+        return matchesSearch;
+    });
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="w-[90%] rounded-2xl max-h-[85vh] overflow-y-auto flex flex-col">
+                <DialogHeader>
+                    <DialogTitle>Assign Pegawai</DialogTitle>
+                    <DialogDescription>
+                        Pilih pegawai untuk ditugaskan ke lokasi <strong>{location?.name}</strong>.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="py-4 space-y-4 flex-1 flex flex-col min-h-0">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            placeholder="Cari pegawai..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-9"
+                        />
+                    </div>
+
+                    <div className="flex items-center space-x-2 px-1">
+                        <Checkbox
+                            id="show-assigned-mobile"
+                            checked={showAssignedOnly}
+                            onCheckedChange={(checked) => setShowAssignedOnly(checked as boolean)}
+                        />
+                        <Label htmlFor="show-assigned-mobile" className="text-sm font-normal cursor-pointer">
+                            Tampilkan yang ditugaskan saja
+                        </Label>
+                    </div>
+
+                    <div className="border rounded-md flex-1 overflow-y-auto p-2 space-y-2 min-h-[200px]">
+                        {isFetching ? (
+                            <div className="flex justify-center py-4">
+                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                            </div>
+                        ) : filteredEmployees.length === 0 ? (
+                            <p className="text-center text-muted-foreground py-4">Tidak ada pegawai ditemukan</p>
+                        ) : (
+                            filteredEmployees.map(employee => (
+                                <div key={employee.id} className="flex items-center space-x-3 p-2 hover:bg-accent rounded-md">
+                                    <Checkbox
+                                        id={`emp-${employee.id}`}
+                                        checked={selectedIds.includes(String(employee.id))}
+                                        onCheckedChange={(checked) => {
+                                            const id = String(employee.id);
+                                            if (checked) {
+                                                setSelectedIds(prev => [...prev, id]);
+                                            } else {
+                                                setSelectedIds(prev => prev.filter(i => i !== id));
+                                            }
+                                        }}
+                                    />
+                                    <div className="flex-1">
+                                        <Label htmlFor={`emp-${employee.id}`} className="cursor-pointer font-medium">
+                                            {employee.name}
+                                        </Label>
+                                        <p className="text-xs text-muted-foreground">{employee.employee_id}</p>
+                                    </div>
+                                    {employee.location_id && String(employee.location_id) !== String(location?.id) && (
+                                        <Badge variant="outline" className="text-xs">
+                                            Pindah
+                                        </Badge>
+                                    )}
+                                </div>
+                            ))
+                        )}
+                    </div>
+
+                    <div className="text-sm text-muted-foreground text-right">
+                        {selectedIds.length} pegawai dipilih
+                    </div>
+                </div>
+
+                <DialogFooter className="flex-row gap-2 justify-end">
+                    <Button variant="outline" onClick={() => onOpenChange(false)} className="mt-0">Batal</Button>
+                    <Button onClick={handleSubmit} disabled={isLoading}>
+                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Simpan
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 export function MobileLocationsPage() {
     const navigate = useNavigate();
     const {
@@ -308,6 +496,7 @@ export function MobileLocationsPage() {
         updateLocation,
         deleteLocation,
         toggleStatus,
+        assignEmployees,
     } = useLocations();
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -315,6 +504,7 @@ export function MobileLocationsPage() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingLocation, setEditingLocation] = useState<Location | null>(null);
     const [deletingLocation, setDeletingLocation] = useState<Location | null>(null);
+    const [assigningLocation, setAssigningLocation] = useState<Location | null>(null);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
 
     useEffect(() => {
@@ -365,6 +555,20 @@ export function MobileLocationsPage() {
         }
     };
 
+
+
+    const handleAssignEmployees = async (locationId: string, employeeIds: string[]) => {
+        try {
+            await assignEmployees(locationId, employeeIds);
+            toast.success('Pegawai berhasil ditugaskan');
+            setAssigningLocation(null);
+            fetchLocations(); // Refresh to update counts
+        } catch (error: any) {
+            console.error('Assign employees error:', error);
+            toast.error(error.message || 'Gagal menugaskan pegawai');
+        }
+    };
+
     const handleDelete = async () => {
         if (deletingLocation) {
             try {
@@ -389,6 +593,7 @@ export function MobileLocationsPage() {
                         <button
                             onClick={() => navigate({ to: '/admin/dashboard' })}
                             className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
+                            aria-label="Kembali ke Dashboard"
                         >
                             <ChevronLeft className="h-5 w-5 text-white" />
                         </button>
@@ -396,6 +601,7 @@ export function MobileLocationsPage() {
                         <button
                             onClick={() => setIsFilterOpen(true)}
                             className="relative p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
+                            aria-label="Filter Lokasi"
                         >
                             <Filter className="h-5 w-5 text-white" />
                             {activeFiltersCount > 0 && (
@@ -498,6 +704,12 @@ export function MobileLocationsPage() {
                                             <Edit className="mr-2 h-4 w-4" />
                                             Edit
                                         </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => {
+                                            setAssigningLocation(location);
+                                        }}>
+                                            <UserPlus className="mr-2 h-4 w-4" />
+                                            Assign Pegawai
+                                        </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => toggleStatus(location.id)}>
                                             {location.is_active ? (
                                                 <>
@@ -584,6 +796,15 @@ export function MobileLocationsPage() {
                 }}
                 location={editingLocation}
                 onSubmit={editingLocation ? handleUpdate : handleCreate}
+                isLoading={isLoading}
+            />
+
+            {/* Assign Employees Dialog */}
+            <AssignEmployeesDialog
+                open={!!assigningLocation}
+                onOpenChange={(open) => !open && setAssigningLocation(null)}
+                location={assigningLocation}
+                onSubmit={handleAssignEmployees}
                 isLoading={isLoading}
             />
 

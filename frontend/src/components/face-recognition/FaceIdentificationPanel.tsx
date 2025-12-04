@@ -15,9 +15,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { faceDetectionService } from '@/lib/services/face-detection';
-import { useRegisteredFaces, useVerifyFace } from '@/hooks/use-face-recognition-api';
+import { useRegisteredFaces, useVerifyFaceDeepFace } from '@/hooks/use-face-recognition-api';
 import { useFaceStore } from '@/stores';
-import { findBestMatch } from '@/lib/api/face-recognition';
 import { cn } from '@/lib/utils';
 import type { KnownFaceDescriptor } from '@/types/face-recognition';
 
@@ -59,7 +58,8 @@ export function FaceIdentificationPanel({
 
   // Fetch registered faces from API
   const { data: apiRegisteredFaces, isLoading: isLoadingFaces, refetch: refetchFaces } = useRegisteredFaces();
-  const verifyFaceMutation = useVerifyFace();
+
+  const verifyFaceMutation = useVerifyFaceDeepFace();
 
   // Local store for caching
   const {
@@ -67,7 +67,7 @@ export function FaceIdentificationPanel({
     setRegisteredFaces,
     addToIdentificationHistory,
     identificationHistory,
-    settings,
+
   } = useFaceStore();
 
   // Use cached faces or API faces
@@ -174,79 +174,48 @@ export function FaceIdentificationPanel({
         setScanProgress((prev) => Math.min(prev + 10, 90));
       }, 100);
 
-      // Get face descriptor
-      const faceData = await faceDetectionService.captureFaceDescriptor(
-        videoRef.current,
-        'temp-identification'
-      );
+      // Capture image for DeepFace verification
+      const imageFile = await faceDetectionService.captureImage(videoRef.current);
 
       clearInterval(progressInterval);
       setScanProgress(100);
 
-      // Try local matching first for speed
-      const localMatch = findBestMatch(
-        faceData.descriptor,
-        registeredFaces,
-        settings.confidence_threshold
-      );
-
-      if (localMatch.match) {
-        const identified: IdentifiedEmployee = {
-          id: String(localMatch.match.employeeId),
-          name: localMatch.match.name || 'Unknown',
-          similarity: localMatch.similarity,
-          timestamp: Date.now(),
-        };
-
-        setIdentifiedEmployee(identified);
-        addToIdentificationHistory({
-          employeeId: identified.id,
-          employeeName: identified.name,
-          similarity: identified.similarity,
-          timestamp: identified.timestamp,
+      // Verify using DeepFace (Server-side 1:N matching)
+      try {
+        const response = await verifyFaceMutation.mutateAsync({
+          image: imageFile,
         });
 
-        setState('identified');
-        onIdentified?.(identified.id, identified.name, identified.similarity);
-      } else {
-        // Try backend verification as fallback
-        try {
-          const response = await verifyFaceMutation.mutateAsync({
-            descriptor: faceData.descriptor,
-            confidence: faceData.confidence,
-            threshold: settings.confidence_threshold,
+        if (response.success && response.matched && response.employee) {
+          const identified: IdentifiedEmployee = {
+            id: response.employee.employee_id, // Note: API returns employee_id (string)
+            name: response.employee.name,
+            similarity: response.similarity || response.confidence || 0,
+            timestamp: Date.now(),
+            // photoUrl: response.employee.photo_url, // API might not return photo_url yet
+          };
+
+          setIdentifiedEmployee(identified);
+          addToIdentificationHistory({
+            employeeId: identified.id,
+            employeeName: identified.name,
+            similarity: identified.similarity,
+            timestamp: identified.timestamp,
           });
 
-          if (response.data.success && response.data.employee) {
-            const identified: IdentifiedEmployee = {
-              id: response.data.employee.id,
-              name: response.data.employee.name,
-              similarity: response.data.confidence,
-              timestamp: Date.now(),
-              photoUrl: response.data.employee.photo_url,
-            };
-
-            setIdentifiedEmployee(identified);
-            addToIdentificationHistory({
-              employeeId: identified.id,
-              employeeName: identified.name,
-              similarity: identified.similarity,
-              timestamp: identified.timestamp,
-            });
-
-            setState('identified');
-            onIdentified?.(identified.id, identified.name, identified.similarity);
-          } else {
-            setState('not_recognized');
-            setIdentifiedEmployee(null);
-            onNotRecognized?.();
-          }
-        } catch {
+          setState('identified');
+          onIdentified?.(identified.id, identified.name, identified.similarity);
+        } else {
           setState('not_recognized');
           setIdentifiedEmployee(null);
           onNotRecognized?.();
         }
+      } catch {
+        setState('not_recognized');
+        setIdentifiedEmployee(null);
+        onNotRecognized?.();
       }
+
     } catch (err) {
       console.error('Identification error:', err);
       setError(err instanceof Error ? err.message : 'Gagal mengidentifikasi wajah');
@@ -255,7 +224,6 @@ export function FaceIdentificationPanel({
   }, [
     detectionStatus,
     registeredFaces,
-    settings.confidence_threshold,
     verifyFaceMutation,
     addToIdentificationHistory,
     onIdentified,

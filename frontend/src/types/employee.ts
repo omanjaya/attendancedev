@@ -1,6 +1,8 @@
 // Employee status
 export type EmployeeStatus = 'active' | 'inactive' | 'on_leave' | 'terminated';
 
+import type { Location } from './location';
+
 // Employee interface
 export interface Employee {
   id: number;
@@ -18,6 +20,9 @@ export interface Employee {
   birth_date?: string;
   gender?: 'male' | 'female';
   face_registered: boolean;
+  location_id?: string | number;
+  location_name?: string;
+  location?: Location;
   created_at: string;
   updated_at: string;
 }
@@ -34,6 +39,7 @@ export interface EmployeeFormData {
   address?: string;
   birth_date?: string;
   gender?: 'male' | 'female';
+  location_id?: string;
 }
 
 // Employee filters

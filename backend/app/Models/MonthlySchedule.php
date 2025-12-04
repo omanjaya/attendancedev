@@ -323,8 +323,8 @@ class MonthlySchedule extends Model
     public function getAssignedEmployeesCount(): int
     {
         return $this->employeeSchedules()
-            ->distinct('employee_id')
-            ->count();
+            ->distinct()
+            ->count('employee_id');
     }
 
     public function getHolidayConflicts(): array

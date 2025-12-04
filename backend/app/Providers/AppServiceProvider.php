@@ -41,6 +41,18 @@ class AppServiceProvider extends ServiceProvider
             // This prevents spam but allows legitimate error reporting
             return Limit::perMinute(50)->by($request->ip());
         });
+
+        // Report export rate limiter
+        RateLimiter::for('report-export', function (Request $request) {
+            // Allow 3 exports per minute per user to prevent abuse
+            $userId = Auth::id() ?? $request->ip();
+            return Limit::perMinute(3)->by($userId)->response(function () {
+                return response()->json([
+                    'message' => 'Too many export requests. Please wait a moment before trying again.',
+                    'retry_after' => 60
+                ], 429);
+            });
+        });
     }
 
     /**

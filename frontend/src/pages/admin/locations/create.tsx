@@ -3,6 +3,7 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
   MapPin,
@@ -13,12 +14,13 @@ import {
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LoadingState } from '@/components/states';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useNotificationStore } from '@/stores';
+import { createLocation } from '@/lib/api/locations';
+import type { LocationFormData } from '@/types/location';
 
 const locationSchema = z.object({
   name: z.string().min(2, 'Nama lokasi minimal 2 karakter'),
@@ -32,8 +34,8 @@ type LocationForm = z.infer<typeof locationSchema>;
 
 export default function LocationCreatePage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { success, error: showError } = useNotificationStore();
-  const [isLoading, setIsLoading] = useState(false);
   const [isActive, setIsActive] = useState(true);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
 
@@ -46,6 +48,19 @@ export default function LocationCreatePage() {
     resolver: zodResolver(locationSchema),
     defaultValues: {
       radius: '100',
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (data: LocationFormData) => createLocation(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['locations'] });
+      success('Berhasil', 'Lokasi berhasil dibuat');
+      navigate({ to: '/admin/locations' });
+    },
+    onError: (err: any) => {
+      const message = err.response?.data?.message || err.message || 'Gagal membuat lokasi';
+      showError('Error', message);
     },
   });
 
@@ -70,19 +85,15 @@ export default function LocationCreatePage() {
     );
   };
 
-  const onSubmit = async (data: LocationForm) => {
-    setIsLoading(true);
-    try {
-      console.log('Creating location:', { ...data, is_active: isActive });
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      success('Berhasil', 'Lokasi berhasil dibuat');
-      navigate({ to: '/admin/locations' });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Gagal membuat lokasi';
-      showError('Error', message);
-    } finally {
-      setIsLoading(false);
-    }
+  const onSubmit = (data: LocationForm) => {
+    createMutation.mutate({
+      name: data.name,
+      address: data.address,
+      latitude: parseFloat(data.latitude),
+      longitude: parseFloat(data.longitude),
+      radius_meters: parseInt(data.radius),
+      is_active: isActive,
+    });
   };
 
   return (
@@ -254,8 +265,8 @@ export default function LocationCreatePage() {
             >
               Batal
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? (
+            <Button type="submit" disabled={createMutation.isPending}>
+              {createMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Menyimpan...

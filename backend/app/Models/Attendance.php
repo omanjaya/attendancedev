@@ -136,9 +136,8 @@ class Attendance extends Model
      */
     public function scopeToday($query)
     {
-        $today = now('Asia/Makassar')->startOfDay();
-        $todayDate = $today->format('Y-m-d');
-        return $query->whereDate('date', $todayDate);
+        $today = Carbon::now('Asia/Makassar')->format('Y-m-d');
+        return $query->whereDate('date', $today);
     }
 
     /**

@@ -84,7 +84,7 @@ const months = [
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
 ];
 
-export default function MonthlyScheduleIndexPage() {
+export function MonthlyScheduleList({ showHeader = true }: { showHeader?: boolean }) {
   const queryClient = useQueryClient();
   const { success, error: showError } = useNotificationStore();
   const [searchQuery, setSearchQuery] = useState('');
@@ -230,7 +230,7 @@ export default function MonthlyScheduleIndexPage() {
       console.log('  Action: Deselect all');
       setSelectedEmployees([]);
     } else {
-      const allIds = employees.map(e => e.id);
+      const allIds = employees.map(e => String(e.id));
       console.log('  Action: Select all');
       console.log('  All employee IDs:', allIds);
       setSelectedEmployees(allIds);
@@ -244,31 +244,46 @@ export default function MonthlyScheduleIndexPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6">
+    <div className={showHeader ? "p-4 sm:p-6" : ""}>
       {/* Header */}
-      <div className="mb-6">
-        <Link
-          to="/admin/schedules"
-          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Kembali ke jadwal
-        </Link>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Jadwal Bulanan</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Kelola jadwal absensi bulanan untuk karyawan
-            </p>
+      {showHeader && (
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <Link
+              to="/admin/dashboard"
+              className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Kembali ke Dashboard
+            </Link>
           </div>
-          <Link to="/admin/schedules/monthly/create" className="self-start sm:self-auto">
-            <Button size="lg" className="h-10">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Jadwal Bulanan</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Kelola jadwal absensi bulanan untuk karyawan
+              </p>
+            </div>
+            <Link to="/admin/schedules/monthly/create" className="self-start sm:self-auto">
+              <Button size="lg" className="h-10">
+                <Plus className="h-4 w-4 mr-2" />
+                Buat Jadwal Baru
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {!showHeader && (
+        <div className="flex justify-end mb-4">
+          <Link to="/admin/schedules/monthly/create">
+            <Button>
               <Plus className="h-4 w-4 mr-2" />
               Buat Jadwal Baru
             </Button>
           </Link>
         </div>
-      </div>
+      )}
 
       {/* Filters */}
       <Card className="mb-6">
@@ -448,12 +463,12 @@ export default function MonthlyScheduleIndexPage() {
                       className="flex items-center gap-3 p-4 hover:bg-muted/50 cursor-pointer transition-colors"
                       onClick={(e) => {
                         e.stopPropagation();
-                        toggleEmployee(employee.id);
+                        toggleEmployee(String(employee.id));
                       }}
                     >
                       <Checkbox
-                        checked={selectedEmployees.includes(employee.id)}
-                        onCheckedChange={() => toggleEmployee(employee.id)}
+                        checked={selectedEmployees.includes(String(employee.id))}
+                        onCheckedChange={() => toggleEmployee(String(employee.id))}
                       />
                       <Avatar className="h-10 w-10">
                         <AvatarFallback>{getInitials(employee.name)}</AvatarFallback>
@@ -461,7 +476,7 @@ export default function MonthlyScheduleIndexPage() {
                       <div className="flex-1">
                         <div className="font-medium">{employee.name}</div>
                         <div className="text-sm text-muted-foreground">
-                          {employee.position || 'No Position'} • {employee.location?.name || 'No Location'}
+                          {employee.position || 'No Position'} • {employee.location_name || 'No Location'}
                         </div>
                       </div>
                     </div>
@@ -603,4 +618,8 @@ export default function MonthlyScheduleIndexPage() {
       </Dialog>
     </div >
   );
+}
+
+export default function MonthlyScheduleIndexPage() {
+  return <MonthlyScheduleList showHeader={true} />;
 }

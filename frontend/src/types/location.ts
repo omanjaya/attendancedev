@@ -50,7 +50,7 @@ export const locationTypeLabels: Record<LocationType, string> = {
   school: 'Sekolah',
   factory: 'Pabrik',
   warehouse: 'Gudang',
-  remote: 'Remote',
+  remote: 'WFA (Work From Anywhere)',
   other: 'Lainnya',
 };
 

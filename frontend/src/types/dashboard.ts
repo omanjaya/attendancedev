@@ -3,8 +3,23 @@ import type { EmployeeStatistics } from './employee';
 
 // Dashboard summary
 export interface DashboardSummary {
-  attendance: AttendanceStatistics;
+  attendance: AttendanceStatistics & { today?: number };
   employees: EmployeeStatistics;
+  leave?: {
+    pending: number;
+    approved: number;
+    rejected: number;
+  };
+  schedules?: {
+    active: number;
+    draft: number;
+    upcoming: number;
+  };
+  payroll?: {
+    pending: number;
+    processed: number;
+    total: number;
+  };
   pending_leaves: number;
   upcoming_holidays: number;
 }

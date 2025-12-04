@@ -140,6 +140,24 @@ export function useLocations() {
     }
   }, [selectedLocation]);
 
+  // Assign employees
+  const assignEmployees = useCallback(async (locationId: string, employeeIds: string[]) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      await locationsApi.assignEmployees(locationId, employeeIds);
+      fetchLocations();
+      fetchStatistics();
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || 'Gagal menetapkan pegawai';
+      setError(errorMsg);
+      throw new Error(errorMsg);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchLocations, fetchStatistics]);
+
   // Get statistics (kept for backward compatibility)
   const getStatistics = useCallback(async (): Promise<LocationStatistics> => {
     const stats = await locationsApi.getLocationStatistics();
@@ -168,6 +186,7 @@ export function useLocations() {
     updateLocation,
     deleteLocation,
     toggleStatus,
+    assignEmployees,
     getStatistics,
     setSelectedLocation,
     clearError: () => setError(null),

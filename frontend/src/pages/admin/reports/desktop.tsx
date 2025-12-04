@@ -63,7 +63,7 @@ import { id } from 'date-fns/locale';
 
 export function DesktopReportsPage() {
   const [timeRange, setTimeRange] = useState('30');
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('export');
   const [isExporting, setIsExporting] = useState(false);
 
   // Export filters
@@ -90,12 +90,12 @@ export function DesktopReportsPage() {
   };
 
   // Fetch report data
-  const { data: summary, isLoading: summaryLoading } = useQuery({
+  const { data: summary } = useQuery({
     queryKey: ['reports', 'summary', timeRange],
     queryFn: () => getReportSummary(filters),
   });
 
-  const { data: monthlyData, isLoading: monthlyLoading } = useQuery({
+  const { data: monthlyData } = useQuery({
     queryKey: ['reports', 'monthly-attendance', timeRange],
     queryFn: () => getMonthlyAttendance(filters),
   });
@@ -164,7 +164,7 @@ export function DesktopReportsPage() {
     setIsExporting(true);
     try {
       // Generate the report with custom filters
-      const initialReport = await generateReport({
+      const response = await generateReport({
         type: reportType, // Changed from report_type
         format: reportFormat,
         start_date: filters.start_date,
@@ -172,20 +172,41 @@ export function DesktopReportsPage() {
         filters: { columns: selectedColumns }, // Changed from columns to filters
       });
 
-      console.log('DEBUG: Initial report response:', initialReport);
+      console.log('DEBUG: Initial report response:', response);
       toast.loading('Laporan sedang diproses. Mohon tunggu...');
 
-      let report = initialReport;
+      // The API returns { report: GeneratedReport, download_url: string, ... }
+      // But the type definition for generateReport return value might be misleading or the API response wrapper is confusing.
+      // Based on logs: { report: {...}, download_url: '...', ... }
+      // So response is actually that object.
 
-      // Only poll if not already completed
-      if (initialReport.status !== 'completed') {
-        report = await waitForReportCompletion(initialReport.id);
+      // We need to cast or handle the response structure. 
+      // Let's assume response is `any` for a moment to fix the access, or we should update the type.
+      // For now, let's fix the access in this file.
+
+      const reportData = (response as any).report || response;
+      const downloadUrl = (response as any).download_url || reportData.download_url;
+
+      let report = reportData;
+
+      // Only poll if not already completed AND we don't have a download URL
+      if (report.status !== 'completed' && !downloadUrl) {
+        report = await waitForReportCompletion(report.id);
       }
 
       // If we have a direct download URL, use it
-      if (report.download_url) {
+      if (downloadUrl) {
+        toast.dismiss();
+        window.open(downloadUrl, '_blank');
+        setTimeout(() => {
+          toast.success(`Export berhasil! Laporan ${reportFormat.toUpperCase()} sedang diunduh.`);
+        }, 500);
+      } else if (report.download_url) {
+        toast.dismiss();
         window.open(report.download_url, '_blank');
-        toast.success(`Export berhasil! Laporan ${reportFormat.toUpperCase()} sedang diunduh.`);
+        setTimeout(() => {
+          toast.success(`Export berhasil! Laporan ${reportFormat.toUpperCase()} sedang diunduh.`);
+        }, 500);
       } else {
         // Fallback to API download
         const blob = await downloadReport(report.id);
@@ -208,12 +229,16 @@ export function DesktopReportsPage() {
         link.parentNode?.removeChild(link);
         window.URL.revokeObjectURL(url);
 
-        toast.success(`Export berhasil! Laporan ${reportFormat.toUpperCase()} berhasil diunduh.`);
+        toast.dismiss();
+        setTimeout(() => {
+          toast.success(`Export berhasil! Laporan ${reportFormat.toUpperCase()} berhasil diunduh.`);
+        }, 500);
       }
 
       refetchHistory(); // Refresh history after export
     } catch (error: any) {
       console.error('Export error:', error);
+      toast.dismiss(); // Dismiss all toasts on error just in case, or we should track the ID
       toast.error(error.message || error.response?.data?.message || 'Export gagal. Gagal membuat laporan. Silakan coba lagi.');
     } finally {
       setIsExporting(false);

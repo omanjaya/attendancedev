@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { Loader2, CheckCircle2, XCircle, Camera, User } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Camera, User, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { verifyFaceDeepFace } from '@/lib/api/face-recognition';
 import { checkIn, checkOut } from '@/lib/api/attendance';
@@ -27,10 +27,10 @@ export function VerifyFacePage() {
     type?: 'check-in' | 'check-out';
     latitude?: number;
     longitude?: number;
+    overwrite?: boolean;
   };
   const type = search.type || 'check-in';
-  const latitude = search.latitude;
-  const longitude = search.longitude;
+  const overwrite = search.overwrite;
 
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [faceState, setFaceState] = useState<FaceVerificationState>({
@@ -46,7 +46,7 @@ export function VerifyFacePage() {
     captureImage,
   } = useCameraCapture();
 
-  const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
 
   // Initialize and start camera
   useEffect(() => {
@@ -66,27 +66,25 @@ export function VerifyFacePage() {
 
     init();
 
-    // Get location if not provided
-    if (!latitude || !longitude) {
-      if ('geolocation' in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            setCurrentLocation({
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-            });
-          },
-          (error) => {
-            console.error('Geolocation error:', error);
-          }
-        );
-      }
-    }
-
     return () => {
       stopCamera();
     };
   }, []);
+
+  const handleCancel = () => {
+    stopCamera();
+    const isAdmin = user?.role === 'admin' || user?.role === 'super-admin' || user?.role === 'kepala-sekolah';
+    navigate({ to: isAdmin ? '/admin/attendance' : '/employee/attendance' });
+  };
+
+  const handleRetry = async () => {
+    setCapturedImage(null);
+    setFaceState({
+      status: 'ready',
+      message: 'Siap! Tekan tombol untuk verifikasi wajah',
+    });
+    await startCamera();
+  };
 
   const handleCapture = async () => {
     if (faceState.status !== 'ready') return;
@@ -115,26 +113,42 @@ export function VerifyFacePage() {
       // Verify face with DeepFace (includes liveness detection)
       const result = await verifyFaceDeepFace(imageFile);
 
-      if (result.success && result.matched && result.employee) {
-        const { employee, confidence, distance, similarity, liveness_passed } = result;
+      // Extract data from nested response or top-level (fallback)
+      const resultData = result.data || result;
+      const employee = result.employee || resultData.employee || resultData.employee_data;
+      const confidence = result.confidence || resultData.confidence;
+      const distance = result.distance || resultData.distance;
+      const similarity = result.similarity || resultData.similarity;
+      const livenessPassed = result.liveness_passed || resultData.liveness_passed;
+      const isMatched = result.matched || resultData.matched;
 
+      if (result.success && isMatched && employee) {
         setFaceState({
           status: 'verified',
           message: 'Wajah terverifikasi dengan DeepFace!',
-          employeeName: employee.name,
-          employeeCode: employee.employee_code,
+          employeeName: employee.name || employee.full_name,
+          employeeCode: employee.employee_code || employee.employee_id,
           similarity: similarity,
           distance: distance,
           confidence: confidence,
-          liveness_passed: liveness_passed,
+          liveness_passed: livenessPassed,
         });
 
         stopCamera();
       } else {
+        let errorMessage = result.message || 'Silakan coba lagi atau hubungi admin untuk registrasi wajah';
+        let statusMessage = 'Wajah tidak dikenali';
+
+        // Handle case where face is matched but employee data is missing in response
+        if (isMatched && !employee) {
+          statusMessage = 'Data Karyawan Tidak Ditemukan';
+          errorMessage = 'Wajah dikenali di sistem tetapi data karyawan terkait tidak ditemukan.';
+        }
+
         setFaceState({
           status: 'failed',
-          message: 'Wajah tidak dikenali',
-          error: result.message || 'Silakan coba lagi atau hubungi admin untuk registrasi wajah',
+          message: statusMessage,
+          error: errorMessage,
         });
       }
     } catch (error: any) {
@@ -147,21 +161,36 @@ export function VerifyFacePage() {
     }
   };
 
-  const handleConfirm = async () => {
-    const finalLatitude = latitude || currentLocation?.latitude;
-    const finalLongitude = longitude || currentLocation?.longitude;
-
-    if (faceState.status !== 'verified' || !finalLatitude || !finalLongitude) {
-      if (!finalLatitude || !finalLongitude) {
-        alert('Lokasi tidak ditemukan. Pastikan GPS aktif.');
+  const getCurrentLocation = (): Promise<{ latitude: number; longitude: number }> => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation not supported'));
+        return;
       }
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+        },
+        (error) => {
+          reject(error);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    });
+  };
+
+  const submitAttendance = async (forceOverwrite: boolean = false) => {
+    if (faceState.status !== 'verified') {
       return;
     }
 
     setFaceState({
       ...faceState,
       status: 'submitting',
-      message: 'Menyimpan absensi...',
+      message: 'Memverifikasi lokasi terkini...',
     });
 
     if (!user?.employee?.id) {
@@ -174,17 +203,25 @@ export function VerifyFacePage() {
     }
 
     try {
+      // Force fresh location capture to prevent spoofing
+      const location = await getCurrentLocation();
+
+      setFaceState(prev => ({
+        ...prev,
+        message: 'Menyimpan absensi...',
+      }));
+
       const attendanceData: CheckRequest = {
         employee_id: user.employee.id,
         action: type === 'check-in' ? 'check_in' : 'check_out',
         location: {
-          latitude: finalLatitude,
-          longitude: finalLongitude,
+          latitude: location.latitude,
+          longitude: location.longitude,
         },
         type: type === 'check-in' ? 'check_in' : 'check_out',
         face_confidence: Number(faceState.confidence || faceState.similarity || 0),
-        latitude: finalLatitude,
-        longitude: finalLongitude,
+        latitude: location.latitude,
+        longitude: location.longitude,
         notes: `${type === 'check-in' ? 'Check-in' : 'Check-out'} via server-side face recognition`,
         metadata: {
           device: navigator.userAgent,
@@ -198,6 +235,7 @@ export function VerifyFacePage() {
             server_side: true,
           },
         },
+        overwrite: forceOverwrite || overwrite,
       };
 
       if (type === 'check-in') {
@@ -211,48 +249,56 @@ export function VerifyFacePage() {
       navigate({ to: isAdmin ? '/admin/attendance' : '/employee/attendance' });
     } catch (error: any) {
       console.error('Attendance submission error:', error);
-      setFaceState({
-        ...faceState,
-        status: 'failed',
-        error: error.response?.data?.message || 'Gagal menyimpan absensi',
-      });
+
+      // Handle geolocation errors specifically
+      if (error.code === 1 || error.message?.includes('Geolocation')) {
+        setFaceState({
+          ...faceState,
+          status: 'failed',
+          message: 'Gagal mendapatkan lokasi terkini. Pastikan GPS aktif.',
+          error: error.message
+        });
+        return;
+      }
+
+      const errorMessage = error.response?.data?.message || 'Gagal menyimpan absensi';
+
+      if (errorMessage.includes('Already checked out') || errorMessage.includes('Already checked in')) {
+        setShowOverwriteConfirm(true);
+        setFaceState({
+          ...faceState,
+          status: 'verified', // Keep verified status so we can retry
+          message: 'Konfirmasi Absen Ulang',
+        });
+      } else {
+        setFaceState({
+          ...faceState,
+          status: 'failed',
+          error: errorMessage,
+        });
+      }
     }
   };
 
-  const handleCancel = () => {
-    stopCamera();
-    const isAdmin = user?.role === 'admin' || user?.role === 'super-admin' || user?.role === 'kepala-sekolah';
-    navigate({ to: isAdmin ? '/admin/attendance' : '/employee/attendance' });
+  const handleConfirm = () => {
+    submitAttendance(false);
   };
 
-  const handleRetry = async () => {
-    setCapturedImage(null);
-    setFaceState({
-      status: 'ready',
-      message: 'Siap! Tekan tombol untuk verifikasi wajah',
-    });
-    await startCamera();
+  const handleForceOverwrite = () => {
+    setShowOverwriteConfirm(false);
+    submitAttendance(true);
   };
+
+  const handleCancelOverwrite = () => {
+    setShowOverwriteConfirm(false);
+    handleCancel();
+  };
+
+  // ... (existing handleCancel, handleRetry)
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-muted/30 via-background to-background dark:from-gray-950 dark:via-gray-900 dark:to-gray-900">
-      {/* Header */}
-      <div className="px-4 pt-6 pb-4">
-        <div className="flex items-center gap-3 mb-4">
-          <button
-            onClick={handleCancel}
-            className="p-2 hover:bg-muted rounded-lg transition-colors"
-          >
-            <XCircle className="h-5 w-5" />
-          </button>
-          <div className="flex-1">
-            <h1 className="text-lg font-bold">Verifikasi Wajah</h1>
-            <p className="text-xs text-muted-foreground">
-              {type === 'check-in' ? 'Absensi Datang' : 'Absensi Pulang'}
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* ... (existing header) */}
 
       {/* Content */}
       <div className="px-4 pb-4">
@@ -326,8 +372,9 @@ export function VerifyFacePage() {
           )}
 
           {/* Success State */}
-          {faceState.status === 'verified' && (
+          {faceState.status === 'verified' && !showOverwriteConfirm && (
             <div className="text-center py-8">
+              {/* ... (existing success UI) */}
               <div className="bg-emerald-50 dark:bg-emerald-950/50 rounded-full p-4 w-fit mx-auto mb-4 border-4 border-emerald-100 dark:border-emerald-900">
                 <CheckCircle2 className="h-16 w-16 text-emerald-600 dark:text-emerald-400" />
               </div>
@@ -336,6 +383,7 @@ export function VerifyFacePage() {
 
               {faceState.employeeName && (
                 <div className="bg-muted/30 rounded-xl p-4 mt-6 space-y-3">
+                  {/* ... (existing employee info) */}
                   <div className="flex items-center gap-3 justify-center">
                     <User className="h-5 w-5 text-primary" />
                     <div className="text-left">
@@ -371,8 +419,30 @@ export function VerifyFacePage() {
             </div>
           )}
 
-          {/* Failed State */}
-          {faceState.status === 'failed' && (
+          {/* Overwrite Confirmation State */}
+          {showOverwriteConfirm && (
+            <div className="text-center py-8">
+              <div className="bg-yellow-50 dark:bg-yellow-950/50 rounded-full p-4 w-fit mx-auto mb-4 border-4 border-yellow-100 dark:border-yellow-900">
+                <AlertTriangle className="h-16 w-16 text-yellow-600 dark:text-yellow-400" />
+              </div>
+              <h2 className="text-xl font-bold mb-2">Sudah Absen</h2>
+              <p className="text-sm text-muted-foreground mb-6">
+                Anda sudah melakukan absensi {type === 'check-in' ? 'datang' : 'pulang'} hari ini. Apakah Anda ingin melakukan absen ulang?
+              </p>
+
+              <div className="flex gap-3">
+                <Button onClick={handleCancelOverwrite} variant="outline" className="flex-1">
+                  Batal
+                </Button>
+                <Button onClick={handleForceOverwrite} className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white">
+                  Absen Ulang
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* ... (existing failed state) */}
+          {faceState.status === 'failed' && !showOverwriteConfirm && (
             <div className="text-center py-12">
               <div className="bg-destructive/10 rounded-full p-4 w-fit mx-auto mb-4">
                 <XCircle className="h-12 w-12 text-destructive" />
@@ -388,7 +458,7 @@ export function VerifyFacePage() {
             </div>
           )}
 
-          {/* Submitting State */}
+          {/* ... (existing submitting state) */}
           {faceState.status === 'submitting' && (
             <div className="text-center py-12">
               <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
@@ -397,7 +467,7 @@ export function VerifyFacePage() {
           )}
 
           {/* Actions */}
-          {faceState.status === 'verified' && (
+          {faceState.status === 'verified' && !showOverwriteConfirm && (
             <div className="flex gap-3 pt-4">
               <Button onClick={handleCancel} variant="outline" className="flex-1">
                 Batal
@@ -409,7 +479,8 @@ export function VerifyFacePage() {
             </div>
           )}
 
-          {faceState.status === 'failed' && (
+          {/* ... (existing failed actions) */}
+          {faceState.status === 'failed' && !showOverwriteConfirm && (
             <div className="flex gap-3 pt-4">
               <Button onClick={handleCancel} variant="outline" className="flex-1">
                 Batal

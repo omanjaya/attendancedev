@@ -7,6 +7,7 @@ use App\Models\Employee;
 use App\Repositories\AttendanceRepository;
 use App\Repositories\EmployeeRepository;
 use App\Repositories\FaceRecognitionRepository;
+use App\Services\DeepFaceLoadBalancer;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -27,6 +28,10 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
 
     protected $faceRecognitionRepository;
 
+    protected $deepFaceLoadBalancer;
+
+
+
     // Configuration constants
     const FACE_SIMILARITY_THRESHOLD = 0.6;
 
@@ -41,11 +46,21 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
     public function __construct(
         EmployeeRepository $employeeRepository,
         AttendanceRepository $attendanceRepository,
-        FaceRecognitionRepository $faceRecognitionRepository
+        FaceRecognitionRepository $faceRecognitionRepository,
+        DeepFaceLoadBalancer $deepFaceLoadBalancer
     ) {
         $this->employeeRepository = $employeeRepository;
         $this->attendanceRepository = $attendanceRepository;
         $this->faceRecognitionRepository = $faceRecognitionRepository;
+        $this->deepFaceLoadBalancer = $deepFaceLoadBalancer;
+    }
+
+    /**
+     * Set DeepFace Load Balancer (Setter injection to avoid circular dependency if any)
+     */
+    public function setDeepFaceLoadBalancer(DeepFaceLoadBalancer $deepFaceLoadBalancer)
+    {
+        $this->deepFaceLoadBalancer = $deepFaceLoadBalancer;
     }
 
     /**
@@ -59,14 +74,16 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
     ): array {
         return DB::transaction(function () use ($employee, $descriptor, $image, $metadata) {
             // Validate face descriptor
-            $this->validateDescriptor($descriptor);
+            if (!$this->validateDescriptor($descriptor)) {
+                throw new \InvalidArgumentException('Invalid face descriptor format. Must be 128-d or 512-d array of numbers.');
+            }
 
             // Check for duplicate registration
             if ($this->hasFaceRegistered($employee)) {
                 throw new \Exception('Employee already has a registered face. Use update instead.');
             }
 
-            // Process and store face image
+            // Process and store face image (for face recognition only, NOT for avatar)
             $imagePath = null;
             if ($image) {
                 $imagePath = $this->storeFaceImage($image, $employee->id);
@@ -85,7 +102,7 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
                 'features' => $this->extractAdditionalFeatures(['descriptor' => $descriptor]),
             ];
 
-            // Store in employee metadata
+            // Store in employee metadata (face data only, avatar handled separately)
             $metadata = $employee->metadata ?? [];
             $metadata['face_recognition'] = $faceRecognitionData;
 
@@ -277,12 +294,12 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
             // Backup existing face data
             $this->backupFaceData($employee);
 
-            // Delete old face image if exists
+            // Delete old face image if exists (face data only, don't touch avatar)
             if ($image && isset($employee->metadata['face_recognition']['image_path'])) {
                 $this->deleteFaceImage($employee->metadata['face_recognition']['image_path']);
             }
 
-            // Store new image
+            // Store new image (for face recognition only)
             $imagePath = null;
             if ($image) {
                 $imagePath = $this->storeFaceImage($image, $employeeId);
@@ -304,7 +321,7 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
                 'update_count' => ($employee->metadata['face_recognition']['update_count'] ?? 0) + 1,
             ];
 
-            // Update metadata
+            // Update metadata (face data only, avatar handled separately)
             $metadata = $employee->metadata ?? [];
             $metadata['face_recognition'] = $faceRecognitionData;
 
@@ -620,7 +637,8 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
     }
 
     /**
-     * Store face image securely
+     * Store face image securely (private storage for face recognition only)
+     * NOTE: This is NOT used for avatar - avatar is handled separately via profile upload
      */
     protected function storeFaceImage(UploadedFile $image, string $employeeId): string
     {
@@ -841,8 +859,14 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
      */
     public function validateDescriptor(array $descriptor): bool
     {
-        // Check if descriptor is array and has correct length
-        if (!is_array($descriptor) || count($descriptor) !== 128) {
+        // Check if descriptor is array
+        if (!is_array($descriptor)) {
+            return false;
+        }
+
+        // Check descriptor length (support 128-d for face-api.js and 512-d for DeepFace)
+        $length = count($descriptor);
+        if ($length !== 128 && $length !== 512) {
             return false;
         }
 
@@ -950,5 +974,116 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
                     'texture' => isset($faceData['texture_score']),
                 ],
         ];
+    }
+
+
+    /**
+     * Verify face using DeepFace service (ArcFace 512-d)
+     */
+    public function verifyFaceDeepFace(UploadedFile $image, ?string $employeeId = null): array
+    {
+        // Get employees with face embeddings
+        $query = Employee::whereRaw('json_extract(metadata, "$.face_recognition.descriptor") IS NOT NULL')
+            ->select('id', 'employee_id', 'full_name', 'metadata', 'is_active', 'location_id');
+
+        if ($employeeId) {
+            $query->where('id', $employeeId);
+        }
+
+        $employees = $query->get();
+
+        if ($employees->isEmpty()) {
+            return [
+                'success' => false,
+                'matched' => false,
+                'message' => 'No registered employees with face data found',
+            ];
+        }
+
+        // Prepare known faces
+        $knownFaces = $employees->map(function ($employee) {
+            $metadata = $employee->metadata;
+            if (!isset($metadata['face_recognition']['descriptor'])) {
+                return null;
+            }
+
+            return [
+                'employee_id' => $employee->id,
+                'employee_code' => $employee->employee_id,
+                'name' => $employee->full_name,
+                'embedding' => $metadata['face_recognition']['descriptor'],
+            ];
+        })->filter()->values()->toArray();
+
+        if (empty($knownFaces)) {
+            return [
+                'success' => false,
+                'matched' => false,
+                'message' => 'No valid face embeddings found',
+            ];
+        }
+
+        // Call DeepFace service via Load Balancer
+        try {
+            $result = $this->deepFaceLoadBalancer->verifyFace($image, $knownFaces);
+
+            if ($result['matched'] && isset($result['employee']['id'])) {
+                $matchedEmployeeId = $result['employee']['id'];
+                $similarity = $result['similarity'] ?? 0;
+                $isLive = $result['is_live'] ?? true;
+
+                // Update statistics
+                $this->updateFaceStatistics($matchedEmployeeId, $similarity);
+
+                // Log success
+                $this->logFaceActivity('verify_deepface_success', $matchedEmployeeId, [
+                    'similarity' => $similarity,
+                    'distance' => $result['distance'] ?? 0,
+                    'is_live' => $isLive,
+                    'model' => $result['model'] ?? 'ArcFace',
+                ]);
+
+                // Fetch full employee object for response
+                $employee = $this->employeeRepository->find($matchedEmployeeId);
+
+                return array_merge($result, [
+                    'employee_data' => $employee, // Return full Eloquent model if needed
+                ]);
+            } else {
+                // Log failure
+                $this->logFaceActivity('verify_deepface_failed', null, [
+                    'best_distance' => $result['distance'] ?? null,
+                    'is_live' => $result['is_live'] ?? null,
+                ]);
+            }
+
+            return $result;
+
+        } catch (\Exception $e) {
+            Log::error('DeepFace verification service error', ['error' => $e->getMessage()]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Check liveness using DeepFace service
+     */
+    public function checkLivenessDeepFace(UploadedFile $image): array
+    {
+        try {
+            $result = $this->deepFaceLoadBalancer->checkLiveness($image);
+
+            // Log activity
+            $this->logFaceActivity('liveness_check_deepface', null, [
+                'is_live' => $result['is_live'] ?? false,
+                'score' => $result['confidence'] ?? 0,
+            ]);
+
+            return $result;
+
+        } catch (\Exception $e) {
+            Log::error('DeepFace liveness check service error', ['error' => $e->getMessage()]);
+            throw $e;
+        }
     }
 }

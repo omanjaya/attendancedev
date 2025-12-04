@@ -782,6 +782,26 @@ class FaceRecognitionController extends Controller
 
             return response()->json($data);
 
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::error('DeepFace service connection failed (embedding)', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Face recognition service unavailable. Please try again later.',
+                'error' => $e->getMessage(),
+            ], 503);
+        } catch (\RuntimeException $e) {
+            Log::error('DeepFace service runtime error (embedding)', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Face recognition service unavailable: ' . $e->getMessage(),
+                'error' => $e->getMessage(),
+            ], 503);
         } catch (\Exception $e) {
             Log::error('DeepFace embedding extraction error', [
                 'error' => $e->getMessage(),
@@ -812,16 +832,35 @@ class FaceRecognitionController extends Controller
         try {
             $image = $request->file('image');
 
-            // Use load balancer for liveness check (with automatic failover)
-            $data = $this->deepFaceLoadBalancer->checkLiveness($image);
+            // Use service for liveness check
+            $data = $this->faceRecognitionService->checkLivenessDeepFace($image);
 
-            Log::info('DeepFace liveness check completed (load balanced)', [
-                'is_live' => $data['is_live'] ?? null,
-                'result' => $data['result'] ?? null,
+            return response()->json([
+                'success' => true,
+                'message' => 'Liveness check completed',
+                'data' => $data
             ]);
 
-            return response()->json($data);
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::error('DeepFace service connection failed (liveness)', [
+                'error' => $e->getMessage(),
+            ]);
 
+            return response()->json([
+                'success' => false,
+                'message' => 'Face recognition service unavailable. Please try again later.',
+                'error' => $e->getMessage(),
+            ], 503);
+        } catch (\RuntimeException $e) {
+            Log::error('DeepFace service runtime error (liveness)', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Face recognition service unavailable: ' . $e->getMessage(),
+                'error' => $e->getMessage(),
+            ], 503);
         } catch (\Exception $e) {
             Log::error('DeepFace liveness check error', [
                 'error' => $e->getMessage(),
@@ -864,93 +903,57 @@ class FaceRecognitionController extends Controller
         ]);
 
         try {
-            $serviceUrl = env('DEEPFACE_SERVICE_URL', 'http://127.0.0.1:8001');
             $image = $request->file('image');
+            $employeeId = $request->employee_id;
 
-            // Get employees with face embeddings (512-d) from metadata
-            $query = Employee::whereRaw('json_extract(metadata, "$.face_recognition.descriptor") IS NOT NULL')
-                ->select('id', 'employee_id', 'full_name', 'metadata');
+            // Use service for verification
+            $result = $this->faceRecognitionService->verifyFaceDeepFace($image, $employeeId);
 
-            // If specific employee ID provided, filter to that employee
-            if ($request->has('employee_id')) {
-                $query->where('id', $request->employee_id);
-            }
-
-            $employees = $query->get();
-
-            if ($employees->isEmpty()) {
+            if ($result['success'] ?? false) {
+                return response()->json([
+                    'success' => true,
+                    'matched' => $result['matched'] ?? false,
+                    'message' => $result['message'] ?? 'Face verification completed',
+                    'data' => $result
+                ]);
+            } else {
                 return response()->json([
                     'success' => false,
                     'matched' => false,
-                    'message' => 'No registered employees with face data found',
-                ], 404);
+                    'message' => $result['message'] ?? 'Face not recognized',
+                    'data' => $result
+                ], 200); // Return 200 even for no match, as it's a valid check result
             }
 
-            // Prepare known faces with embeddings for DeepFace service
-            $knownFaces = $employees->map(function ($employee) {
-                $metadata = $employee->metadata;
-                // Check if face_recognition exists and has descriptor
-                if (!isset($metadata['face_recognition']['descriptor'])) {
-                    return null;
-                }
-
-                $embedding = $metadata['face_recognition']['descriptor'];
-
-                return [
-                    'employee_id' => $employee->id,
-                    'employee_code' => $employee->employee_id,
-                    'name' => $employee->full_name,
-                    'embedding' => $embedding,
-                ];
-            })->filter()->values()->toArray();
-
-            if (empty($knownFaces)) {
-                return response()->json([
-                    'success' => false,
-                    'matched' => false,
-                    'message' => 'No valid face embeddings found',
-                ], 404);
-            }
-            // Forward to DeepFace service
-            $response = Http::timeout(30)
-                ->attach('image', file_get_contents($image->getRealPath()), $image->getClientOriginalName())
-                ->post("{$serviceUrl}/verify-face", [
-                    'known_faces_json' => json_encode($knownFaces),
-                ]);
-
-            if ($response->successful()) {
-                $data = $response->json();
-
-                Log::info('DeepFace verification completed', [
-                    'matched' => $data['matched'] ?? null,
-                    'employee_id' => $data['employee']['id'] ?? null,
-                    'distance' => $data['distance'] ?? null,
-                    'is_live' => $data['is_live'] ?? null,
-                ]);
-
-                return response()->json($data);
-            }
-
-            $error = $response->json();
-            Log::warning('DeepFace verification failed', [
-                'status' => $response->status(),
-                'error' => $error,
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => $error['message'] ?? 'Failed to verify face',
-                'error' => $error,
-            ], $response->status());
-
-        } catch (\Exception $e) {
-            Log::error('DeepFace verification error', [
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::error('DeepFace service connection failed', [
                 'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to verify face',
+                'message' => 'Face recognition service unavailable. Please try again later.',
+                'error' => $e->getMessage(),
+            ], 503);
+        } catch (\RuntimeException $e) {
+            Log::error('DeepFace service runtime error', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Face recognition service unavailable: ' . $e->getMessage(),
+                'error' => $e->getMessage(),
+            ], 503);
+        } catch (\Exception $e) {
+            Log::error('DeepFace verification error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to verify face: ' . $e->getMessage(),
                 'error' => $e->getMessage(),
             ], 500);
         }
