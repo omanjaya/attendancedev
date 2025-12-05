@@ -36,11 +36,14 @@ export interface HolidayFormData {
 }
 
 export interface HolidayStatistics {
-  total: number;
-  by_type: Record<string, number>;
-  by_month: Record<string, number>;
-  is_paid_count: number;
-  is_unpaid_count: number;
+  total_holidays: number;
+  active_holidays: number;
+  holidays_this_month: number;
+  holidays_this_year: number;
+  paid_holidays: number;
+  unpaid_holidays: number;
+  recurring_holidays: number;
+  upcoming_holiday?: Holiday;
 }
 
 // Get holidays with pagination and filters (old admin endpoint)

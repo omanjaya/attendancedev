@@ -19,7 +19,7 @@ export const employeeKeys = {
   lists: () => [...employeeKeys.all, 'list'] as const,
   list: (filters: EmployeeFilters) => [...employeeKeys.lists(), filters] as const,
   details: () => [...employeeKeys.all, 'detail'] as const,
-  detail: (id: number) => [...employeeKeys.details(), id] as const,
+  detail: (id: string) => [...employeeKeys.details(), id] as const,
   search: (query: string) => [...employeeKeys.all, 'search', query] as const,
   statistics: () => [...employeeKeys.all, 'statistics'] as const,
 };
@@ -33,7 +33,7 @@ export function useEmployees(filters?: EmployeeFilters) {
 }
 
 // Get single employee
-export function useEmployee(id: number) {
+export function useEmployee(id: string) {
   return useQuery({
     queryKey: employeeKeys.detail(id),
     queryFn: () => getEmployee(id),
@@ -82,7 +82,7 @@ export function useUpdateEmployee() {
   const { success, error } = useNotificationStore();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<EmployeeFormData> }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<EmployeeFormData> }) =>
       updateEmployee(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: employeeKeys.lists() });
@@ -101,7 +101,7 @@ export function useDeleteEmployee() {
   const { success, error } = useNotificationStore();
 
   return useMutation({
-    mutationFn: (id: number) => deleteEmployee(id),
+    mutationFn: (id: string) => deleteEmployee(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: employeeKeys.lists() });
       queryClient.invalidateQueries({ queryKey: employeeKeys.statistics() });
@@ -119,7 +119,7 @@ export function useUploadEmployeeAvatar() {
   const { success, error } = useNotificationStore();
 
   return useMutation({
-    mutationFn: ({ employeeId, file }: { employeeId: number; file: File }) =>
+    mutationFn: ({ employeeId, file }: { employeeId: string; file: File }) =>
       uploadEmployeeAvatar(employeeId, file),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: employeeKeys.lists() });
@@ -138,7 +138,7 @@ export function useDeleteEmployeeAvatar() {
   const { success, error } = useNotificationStore();
 
   return useMutation({
-    mutationFn: (employeeId: number) => deleteEmployeeAvatar(employeeId),
+    mutationFn: (employeeId: string) => deleteEmployeeAvatar(employeeId),
     onSuccess: (_, employeeId) => {
       queryClient.invalidateQueries({ queryKey: employeeKeys.lists() });
       queryClient.invalidateQueries({ queryKey: employeeKeys.detail(employeeId) });

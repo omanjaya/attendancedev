@@ -92,6 +92,9 @@ const HolidayEditPage = lazy(() => import('@/pages/admin/holidays/edit'));
 const HolidayCalendarPage = lazy(() => import('@/pages/admin/holidays/calendar'));
 const HolidayCreatePage = lazy(() => import('@/pages/admin/holidays/create'));
 
+const MasterDataPage = lazy(() => import('@/pages/admin/master-data'));
+const EmployeeTypesPage = lazy(() => import('@/pages/admin/settings/employee-types'));
+
 // Employee - Profile
 const ProfilePage = lazy(() => import('@/pages/employee/profile'));
 const ProfileEditPage = lazy(() => import('@/pages/employee/profile/edit'));
@@ -415,6 +418,13 @@ const adminSettingsRoute = createRoute({
   component: SettingsPage,
 });
 
+const adminSettingsEmployeeTypesRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/admin/settings/employee-types',
+  beforeLoad: requireAdmin,
+  component: EmployeeTypesPage,
+});
+
 // Admin Security
 const adminSecurityRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
@@ -536,6 +546,14 @@ const adminHolidayEditRoute = createRoute({
   path: '/admin/holidays/$id/edit',
   beforeLoad: requireAdmin,
   component: HolidayEditPage,
+});
+
+// Admin Master Data
+const adminMasterDataRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/admin/master-data',
+  beforeLoad: requireAdmin,
+  component: MasterDataPage,
 });
 
 // ====================================
@@ -716,6 +734,8 @@ const routeTree = rootRoute.addChildren([
     adminHolidayCalendarRoute,
     adminHolidayShowRoute,
     adminHolidayEditRoute,
+    adminMasterDataRoute,
+    adminSettingsEmployeeTypesRoute,
     // Employee routes
     employeeDashboardRoute,
     employeeAttendanceRoute,

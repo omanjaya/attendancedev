@@ -216,6 +216,15 @@ Route::prefix('v1')->group(function () {
             Route::get('/holidays/statistics', [App\Http\Controllers\Api\AdminApiController::class, 'holidayStatistics']);
             Route::put('/holidays/{id}', [App\Http\Controllers\Api\AdminApiController::class, 'updateHoliday']);
             Route::delete('/holidays/{id}', [App\Http\Controllers\Api\AdminApiController::class, 'destroyHoliday']);
+
+            // Master Data
+            Route::apiResource('academic-years', App\Http\Controllers\Api\AcademicYearApiController::class);
+            Route::apiResource('employee-types', App\Http\Controllers\Api\EmployeeTypeApiController::class);
+            Route::get('employee-types-features', [App\Http\Controllers\Api\EmployeeTypeApiController::class, 'features']);
+            Route::post('employee-types-reorder', [App\Http\Controllers\Api\EmployeeTypeApiController::class, 'reorder']);
+            Route::apiResource('subjects', App\Http\Controllers\Api\SubjectApiController::class);
+            Route::apiResource('classrooms', App\Http\Controllers\Api\ClassroomApiController::class);
+            Route::apiResource('periods', App\Http\Controllers\Api\PeriodApiController::class);
         });
 
         // Two-Factor Authentication endpoints

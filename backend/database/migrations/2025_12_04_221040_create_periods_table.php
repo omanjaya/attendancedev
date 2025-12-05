@@ -13,19 +13,21 @@ return new class extends Migration
     {
         Schema::create('periods', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('name', 100);
+            $table->string('name');                  // e.g., "Period 1", "Jam ke-1"
+            $table->integer('period_number')->default(1);
+            $table->integer('day_of_week')->nullable(); // 1-7 for specific day, null for all days
             $table->time('start_time');
             $table->time('end_time');
-            $table->integer('day_of_week'); // 0 = Sunday, 1 = Monday, etc.
+            $table->integer('duration_minutes')->nullable();
             $table->boolean('is_active')->default(true);
-            $table->jsonb('metadata')->default('{}');
+            $table->text('description')->nullable();
+            $table->json('metadata')->nullable();
             $table->timestamps();
             $table->softDeletes();
-
-            // Indexes
-            $table->index('day_of_week');
-            $table->index('is_active');
+            
+            // Index for quick lookups
             $table->index(['day_of_week', 'start_time']);
+            $table->index('is_active');
         });
     }
 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams, useNavigate } from '@tanstack/react-router';
+import { motion } from 'framer-motion';
 import {
   ArrowLeft,
   ArrowRight,
@@ -18,10 +19,12 @@ import {
   RefreshCw,
   Loader2,
   CheckCircle,
+  Clock,
+  CalendarDays,
+  XCircle,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { LoadingState } from '@/components/states';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -94,15 +97,15 @@ export default function EmployeeShowPage() {
     isLoading,
     error,
     refetch,
-  } = useEmployee(Number(id));
+  } = useEmployee(id);
 
   // Delete mutation
   const deleteEmployeeMutation = useDeleteEmployee();
 
   const handleDelete = async () => {
     try {
-      await deleteEmployeeMutation.mutateAsync(Number(id));
-      navigate({ to: '/employees' });
+      await deleteEmployeeMutation.mutateAsync(id);
+      navigate({ to: '/admin/employees' });
     } catch {
       // Error handled by mutation
     }
@@ -111,11 +114,11 @@ export default function EmployeeShowPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'present':
-        return <Badge variant="outline" className="border-success/50 text-success">Hadir</Badge>;
+        return <Badge variant="outline" className="border-success/50 text-success bg-success/10">Hadir</Badge>;
       case 'late':
-        return <Badge variant="outline" className="border-warning/50 text-warning">Terlambat</Badge>;
+        return <Badge variant="outline" className="border-warning/50 text-warning bg-warning/10">Terlambat</Badge>;
       case 'leave':
-        return <Badge variant="outline" className="border-info/50 text-info">Cuti</Badge>;
+        return <Badge variant="outline" className="border-info/50 text-info bg-info/10">Cuti</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -166,55 +169,80 @@ export default function EmployeeShowPage() {
     );
   }
 
-  // Stats data for Stats8 style
+  // Stats data
   const stats = [
-    { id: 'stat-1', value: '95.6%', label: 'tingkat kehadiran bulan ini' },
-    { id: 'stat-2', value: '22', label: 'hari hadir dalam bulan ini' },
-    { id: 'stat-3', value: '2', label: 'kali terlambat bulan ini' },
-    { id: 'stat-4', value: '3', label: 'hari cuti digunakan' },
+    { id: 'stat-1', value: '95.6%', label: 'Kehadiran Bulan Ini', icon: CheckCircle, color: 'text-success' },
+    { id: 'stat-2', value: '22', label: 'Hari Hadir', icon: CalendarDays, color: 'text-primary' },
+    { id: 'stat-3', value: '2', label: 'Terlambat', icon: Clock, color: 'text-warning' },
+    { id: 'stat-4', value: '3', label: 'Cuti Digunakan', icon: Briefcase, color: 'text-info' },
   ];
 
   return (
-    <section className="py-8 sm:py-16">
-      <div className="container">
-        {/* Back Link */}
-        <Link
-          to="/admin/employees"
-          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-8"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Kembali ke daftar karyawan
-        </Link>
+    <section className="relative py-8 sm:py-16 overflow-hidden min-h-screen">
+      {/* Background Gradients */}
+      <div className="pointer-events-none absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80">
+        <div className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-primary to-secondary opacity-30 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]" />
+      </div>
 
-        {/* Profile Header - shadcnblocks style */}
-        <div className="flex flex-col md:flex-row md:items-start gap-8 mb-16">
-          <Avatar className="h-28 w-28 border-4 border-background shadow-lg">
-            <AvatarImage src={employee.avatar} />
-            <AvatarFallback className="text-3xl">
-              {employee.name.split(' ').map(n => n[0]).join('')}
-            </AvatarFallback>
-          </Avatar>
+      <div className="container relative z-10">
+        {/* Back Link */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Link
+            to="/admin/employees"
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Kembali ke daftar karyawan
+          </Link>
+        </motion.div>
+
+        {/* Profile Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex flex-col md:flex-row md:items-start gap-8 mb-12"
+        >
+          <div className="relative">
+            <div className="absolute -inset-1 bg-gradient-to-br from-primary to-accent rounded-full blur opacity-50"></div>
+            <Avatar className="relative h-32 w-32 border-4 border-background shadow-xl">
+              <AvatarImage src={employee.avatar} className="object-cover" />
+              <AvatarFallback className="text-4xl font-bold bg-primary/10 text-primary">
+                {employee.name.split(' ').map(n => n[0]).join('')}
+              </AvatarFallback>
+            </Avatar>
+            <div className={`absolute bottom-2 right-2 h-6 w-6 rounded-full border-4 border-background ${employee.status === 'active' ? 'bg-success' : 'bg-muted-foreground'}`}></div>
+          </div>
 
           <div className="flex-1 space-y-4">
             <div>
               <div className="flex flex-wrap items-center gap-3 mb-2">
-                <h1 className="text-4xl font-bold">{employee.name}</h1>
-                <Badge variant={employee.status === 'active' ? 'default' : 'secondary'}>
+                <h1 className="text-4xl font-bold tracking-tight">{employee.name}</h1>
+                <Badge variant={employee.status === 'active' ? 'default' : 'secondary'} className="rounded-full px-3">
                   {employee.status === 'active' ? 'Aktif' : 'Tidak Aktif'}
                 </Badge>
                 {employee.face_registered && (
-                  <Badge variant="outline">
+                  <Badge variant="outline" className="rounded-full px-3 border-primary/20 bg-primary/5 text-primary">
                     <Camera className="h-3 w-3 mr-1" />
                     Face Enrolled
                   </Badge>
                 )}
               </div>
-              <p className="text-xl text-muted-foreground">{employee.position}</p>
-              <p className="text-muted-foreground">{employee.department} • {employee.employee_id}</p>
+              <p className="text-xl text-muted-foreground font-medium">{employee.position}</p>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                <Building className="h-4 w-4" />
+                <span>{employee.department}</span>
+                <span>•</span>
+                <Badge variant="secondary" className="font-mono text-xs">{employee.employee_id}</Badge>
+              </div>
             </div>
 
-            <div className="flex gap-3">
-              <Button variant="outline" asChild>
+            <div className="flex flex-wrap gap-3 pt-2">
+              <Button variant="outline" className="shadow-sm hover:bg-accent hover:text-accent-foreground transition-all" asChild>
                 <Link to="/admin/employees/$id/edit" params={{ id }}>
                   <Edit className="h-4 w-4 mr-2" />
                   Edit Profil
@@ -222,7 +250,7 @@ export default function EmployeeShowPage() {
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" className="text-destructive hover:text-destructive">
+                  <Button variant="outline" className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20 shadow-sm transition-all">
                     <Trash2 className="h-4 w-4 mr-2" />
                     Hapus
                   </Button>
@@ -231,20 +259,20 @@ export default function EmployeeShowPage() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Hapus Karyawan?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Tindakan ini tidak dapat dibatalkan. Data karyawan akan dihapus permanen.
+                      Tindakan ini tidak dapat dibatalkan. Data karyawan <strong>{employee.name}</strong> akan dihapus permanen dari sistem.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Batal</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={handleDelete}
-                      className="bg-destructive text-destructive-foreground"
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       disabled={deleteEmployeeMutation.isPending}
                     >
                       {deleteEmployeeMutation.isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        'Hapus'
+                        'Hapus Permanen'
                       )}
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -252,98 +280,140 @@ export default function EmployeeShowPage() {
               </AlertDialog>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Stats Section - shadcnblocks Stats8 style */}
-        <div className="mb-16">
-          <div className="flex flex-col gap-4 mb-10">
-            <h2 className="text-2xl font-bold md:text-3xl">Statistik Kehadiran</h2>
-            <p className="text-muted-foreground">Ringkasan performa kehadiran bulan ini</p>
-            <a
-              href={`/employees/${id}/attendance`}
-              className="flex items-center gap-1 font-bold hover:underline w-fit"
-            >
-              Lihat riwayat lengkap
-              <ArrowRight className="h-auto w-4" />
-            </a>
-          </div>
-          <div className="grid gap-x-5 gap-y-8 md:grid-cols-2 lg:grid-cols-4">
-            {stats.map((stat) => (
-              <div key={stat.id} className="flex flex-col gap-4">
-                <div className="text-5xl font-bold md:text-6xl">{stat.value}</div>
-                <p className="text-muted-foreground">{stat.label}</p>
-              </div>
+        {/* Stats Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="mb-12"
+        >
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {stats.map((stat, index) => (
+              <motion.div
+                key={stat.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, delay: 0.1 + index * 0.1 }}
+                className="group relative overflow-hidden rounded-xl border bg-card p-6 shadow-sm transition-all hover:shadow-md"
+              >
+                <div className="flex items-center justify-between space-y-0 pb-2">
+                  <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
+                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <div className="text-2xl font-bold">{stat.value}</div>
+                </div>
+                <div className={`absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-${stat.color.replace('text-', '')}/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100`} />
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
 
         {/* Tabs Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-8">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="attendance">Kehadiran</TabsTrigger>
-            <TabsTrigger value="security">Keamanan</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+          <TabsList className="w-full justify-start border-b bg-transparent p-0 h-auto rounded-none">
+            <TabsTrigger
+              value="overview"
+              className="rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none transition-all"
+            >
+              Overview
+            </TabsTrigger>
+            <TabsTrigger
+              value="attendance"
+              className="rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none transition-all"
+            >
+              Kehadiran
+            </TabsTrigger>
+            <TabsTrigger
+              value="security"
+              className="rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none transition-all"
+            >
+              Keamanan
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview">
-            <div className="grid gap-8 md:grid-cols-2">
-              {/* Personal Info - shadcnblocks style */}
-              <div className="border-border bg-background rounded-xl border p-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-6">
-                  <User className="w-5 h-5" />
+          <TabsContent value="overview" className="mt-0">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="grid gap-8 md:grid-cols-2"
+            >
+              {/* Personal Info */}
+              <div className="rounded-xl border bg-card p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <User className="w-5 h-5 text-primary" />
+                  </div>
                   <h3 className="text-lg font-semibold">Informasi Pribadi</h3>
                 </div>
-                <div className="space-y-5">
-                  <div className="flex items-start gap-4">
-                    <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div className="space-y-6">
+                  <div className="flex items-start gap-4 group">
+                    <div className="p-2 rounded-md bg-muted group-hover:bg-primary/5 transition-colors">
+                      <Mail className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Email</p>
-                      <p>{employee.email}</p>
+                      <p className="text-sm font-medium text-muted-foreground mb-1">Email</p>
+                      <p className="font-medium">{employee.email}</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-4">
-                    <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div className="flex items-start gap-4 group">
+                    <div className="p-2 rounded-md bg-muted group-hover:bg-primary/5 transition-colors">
+                      <Phone className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Telepon</p>
-                      <p>{employee.phone || '-'}</p>
+                      <p className="text-sm font-medium text-muted-foreground mb-1">Telepon</p>
+                      <p className="font-medium">{employee.phone || '-'}</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-4">
-                    <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div className="flex items-start gap-4 group">
+                    <div className="p-2 rounded-md bg-muted group-hover:bg-primary/5 transition-colors">
+                      <MapPin className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Alamat</p>
-                      <p>{employee.address || '-'}</p>
+                      <p className="text-sm font-medium text-muted-foreground mb-1">Alamat</p>
+                      <p className="font-medium leading-relaxed">{employee.address || '-'}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Employment Info */}
-              <div className="border-border bg-background rounded-xl border p-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-6">
-                  <Briefcase className="w-5 h-5" />
+              <div className="rounded-xl border bg-card p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Briefcase className="w-5 h-5 text-primary" />
+                  </div>
                   <h3 className="text-lg font-semibold">Informasi Pekerjaan</h3>
                 </div>
-                <div className="space-y-5">
-                  <div className="flex items-start gap-4">
-                    <Building className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div className="space-y-6">
+                  <div className="flex items-start gap-4 group">
+                    <div className="p-2 rounded-md bg-muted group-hover:bg-primary/5 transition-colors">
+                      <Building className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Departemen</p>
-                      <p>{employee.department}</p>
+                      <p className="text-sm font-medium text-muted-foreground mb-1">Departemen</p>
+                      <p className="font-medium">{employee.department}</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-4">
-                    <Briefcase className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div className="flex items-start gap-4 group">
+                    <div className="p-2 rounded-md bg-muted group-hover:bg-primary/5 transition-colors">
+                      <Briefcase className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Posisi</p>
-                      <p>{employee.position}</p>
+                      <p className="text-sm font-medium text-muted-foreground mb-1">Posisi</p>
+                      <p className="font-medium">{employee.position}</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-4">
-                    <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div className="flex items-start gap-4 group">
+                    <div className="p-2 rounded-md bg-muted group-hover:bg-primary/5 transition-colors">
+                      <Calendar className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Tanggal Bergabung</p>
-                      <p>
+                      <p className="text-sm font-medium text-muted-foreground mb-1">Tanggal Bergabung</p>
+                      <p className="font-medium">
                         {new Date(employee.join_date).toLocaleDateString('id-ID', {
                           day: 'numeric',
                           month: 'long',
@@ -354,28 +424,42 @@ export default function EmployeeShowPage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
           </TabsContent>
 
-          <TabsContent value="attendance">
-            <div className="border-border bg-background rounded-xl border shadow-sm overflow-hidden">
-              <div className="p-4 sm:p-6 border-b">
-                <h3 className="text-lg font-semibold">Kehadiran Terbaru</h3>
+          <TabsContent value="attendance" className="mt-0">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="rounded-xl border bg-card shadow-sm overflow-hidden"
+            >
+              <div className="p-6 border-b flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold">Kehadiran Terbaru</h3>
+                  <p className="text-sm text-muted-foreground">Riwayat absensi 5 hari terakhir</p>
+                </div>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/admin/attendance" search={{ employee_id: id }}>
+                    Lihat Semua
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b bg-muted/50">
-                      <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Tanggal</th>
-                      <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Check In</th>
-                      <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Check Out</th>
-                      <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Status</th>
+                    <tr className="border-b bg-muted/30">
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tanggal</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Check In</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Check Out</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y">
                     {recentAttendance.map((record, index) => (
-                      <tr key={index} className="border-b last:border-0">
-                        <td className="px-6 py-4">
+                      <tr key={index} className="hover:bg-muted/30 transition-colors">
+                        <td className="px-6 py-4 text-sm font-medium">
                           {new Date(record.date).toLocaleDateString('id-ID', {
                             weekday: 'short',
                             day: 'numeric',
@@ -383,49 +467,71 @@ export default function EmployeeShowPage() {
                             year: 'numeric',
                           })}
                         </td>
-                        <td className="px-6 py-4 font-mono">{record.check_in}</td>
-                        <td className="px-6 py-4 font-mono">{record.check_out}</td>
+                        <td className="px-6 py-4 text-sm font-mono text-muted-foreground">{record.check_in}</td>
+                        <td className="px-6 py-4 text-sm font-mono text-muted-foreground">{record.check_out}</td>
                         <td className="px-6 py-4">{getStatusBadge(record.status)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            </div>
+            </motion.div>
           </TabsContent>
 
-          <TabsContent value="security">
-            <div className="border-border bg-background rounded-xl border p-6 shadow-sm">
-              <div className="flex items-center gap-2 mb-6">
-                <Shield className="w-5 h-5" />
+          <TabsContent value="security" className="mt-0">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="rounded-xl border bg-card p-6 shadow-sm"
+            >
+              <div className="flex items-center gap-3 mb-6 pb-4 border-b">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Shield className="w-5 h-5 text-primary" />
+                </div>
                 <h3 className="text-lg font-semibold">Keamanan & Verifikasi</h3>
               </div>
-              <div className="flex items-center justify-between p-4 rounded-lg border">
-                <div className="flex items-center gap-4">
-                  <Camera className="h-6 w-6 text-muted-foreground" />
+
+              <div className="flex flex-col sm:flex-row items-center justify-between p-6 rounded-xl border bg-muted/10 gap-6">
+                <div className="flex items-center gap-5">
+                  <div className={`h-16 w-16 rounded-full flex items-center justify-center ${employee.face_registered ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}`}>
+                    {employee.face_registered ? (
+                      <CheckCircle className="h-8 w-8" />
+                    ) : (
+                      <XCircle className="h-8 w-8" />
+                    )}
+                  </div>
                   <div>
-                    <p className="font-medium">Face Recognition</p>
-                    <p className="text-sm text-muted-foreground">
+                    <h4 className="font-semibold text-lg">Face Recognition</h4>
+                    <p className="text-muted-foreground">
                       {employee.face_registered
-                        ? 'Wajah sudah terdaftar untuk absensi'
-                        : 'Wajah belum didaftarkan'}
+                        ? 'Wajah sudah terdaftar dan diverifikasi untuk absensi.'
+                        : 'Wajah belum didaftarkan. Karyawan tidak dapat melakukan absensi wajah.'}
                     </p>
                   </div>
                 </div>
+
                 {employee.face_registered ? (
-                  <Badge variant="outline" className="border-success/50 text-success">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Terdaftar
-                  </Badge>
+                  <div className="flex gap-3">
+                    <Badge variant="outline" className="h-9 px-4 border-success/30 text-success bg-success/5 text-sm">
+                      Terverifikasi
+                    </Badge>
+                    <Button variant="outline" asChild>
+                      <Link to="/admin/employees/$id/edit" params={{ id }}>
+                        Update Wajah
+                      </Link>
+                    </Button>
+                  </div>
                 ) : (
-                  <Button asChild>
+                  <Button asChild className="bg-primary hover:bg-primary/90">
                     <Link to="/admin/employees/$id/edit" params={{ id }}>
+                      <Camera className="mr-2 h-4 w-4" />
                       Daftarkan Wajah
                     </Link>
                   </Button>
                 )}
               </div>
-            </div>
+            </motion.div>
           </TabsContent>
         </Tabs>
       </div>

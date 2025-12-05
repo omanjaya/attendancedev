@@ -8,9 +8,14 @@ import {
     Users,
     Building2,
     Mail,
-    Phone
+    Trash2,
+    Phone,
+    UserPlus,
+    UserCheck,
+    UserX,
 } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -28,10 +33,21 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
+    DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PageHeader } from '@/components/shared';
-import { useEmployees } from '@/hooks/use-employees';
+import { useEmployees, useDeleteEmployee } from '@/hooks/use-employees';
 import { LoadingState } from '@/components/states';
 
 export function DesktopEmployeesPage() {
@@ -40,8 +56,21 @@ export function DesktopEmployeesPage() {
         search: searchQuery,
         per_page: 10,
     });
+    const deleteEmployeeMutation = useDeleteEmployee();
+    const [employeeToDelete, setEmployeeToDelete] = useState<{ id: string; name: string } | null>(null);
+
+    const handleDelete = async () => {
+        if (!employeeToDelete) return;
+        try {
+            await deleteEmployeeMutation.mutateAsync(employeeToDelete.id);
+            setEmployeeToDelete(null);
+        } catch (error) {
+            console.error('Failed to delete employee:', error);
+        }
+    };
 
     const employees = employeesData?.data || [];
+    const totalEmployees = employeesData?.meta?.total || 0;
 
     const getInitials = (name: string) => {
         if (!name) return '??';
@@ -56,29 +85,81 @@ export function DesktopEmployeesPage() {
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'active':
-                return <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Aktif</Badge>;
+                return <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-emerald-200">Aktif</Badge>;
             case 'inactive':
-                return <Badge variant="destructive">Tidak Aktif</Badge>;
-            case 'leave':
-                return <Badge variant="secondary" className="bg-amber-100 text-amber-700">Cuti</Badge>;
+                return <Badge variant="destructive" className="bg-red-100 text-red-700 hover:bg-red-100 border-red-200">Tidak Aktif</Badge>;
+            case 'on_leave':
+                return <Badge variant="secondary" className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-amber-200">Cuti</Badge>;
             default:
                 return <Badge variant="outline">{status}</Badge>;
         }
     };
 
+    // Quick stats for the top of the page
+    const quickStats = [
+        { label: 'Total Karyawan', value: totalEmployees, icon: Users, color: 'text-primary', bg: 'bg-primary/10' },
+        { label: 'Karyawan Aktif', value: employees.filter(e => e.status === 'active').length, icon: UserCheck, color: 'text-emerald-600', bg: 'bg-emerald-100' },
+        { label: 'Sedang Cuti', value: employees.filter(e => e.status === 'on_leave').length, icon: UserX, color: 'text-amber-600', bg: 'bg-amber-100' },
+    ];
+
+    const handleExport = () => {
+        if (!employeesData?.data) return;
+
+        // Define CSV headers
+        const headers = ['ID', 'NIP', 'Nama', 'Email', 'Telepon', 'Departemen', 'Jabatan', 'Status', 'Tanggal Bergabung'];
+
+        // Map employee data to rows
+        const rows = employeesData.data.map(emp => [
+            emp.id,
+            emp.employee_id,
+            emp.name,
+            emp.email,
+            emp.phone || '-',
+            emp.department,
+            emp.position,
+            emp.status,
+            emp.join_date
+        ]);
+
+        // Combine headers and rows
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+        ].join('\n');
+
+        // Create download link
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `employees_export_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    };
+
     return (
-        <div className="space-y-6 p-6">
+        <div className="space-y-8 p-8 min-h-screen bg-background/50">
+            {/* Background Gradients */}
+            <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+                <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-secondary/20 rounded-full blur-3xl" />
+            </div>
+
             <PageHeader
                 title="Karyawan"
                 description="Kelola data karyawan, departemen, dan jabatan"
                 icon={Users}
                 actions={
-                    <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm">
+                    <div className="flex items-center gap-3">
+                        <Button variant="outline" size="sm" className="h-9 shadow-sm hover:bg-accent" onClick={handleExport}>
                             <Download className="mr-2 h-4 w-4" />
                             Export
                         </Button>
-                        <Button size="sm" asChild>
+                        <Button size="sm" asChild className="h-9 shadow-md bg-primary hover:bg-primary/90 transition-all hover:scale-105">
                             <Link to="/admin/employees/create">
                                 <Plus className="mr-2 h-4 w-4" />
                                 Tambah Karyawan
@@ -88,118 +169,202 @@ export function DesktopEmployeesPage() {
                 }
             />
 
-            {/* Filters */}
-            <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2 flex-1">
-                    <div className="relative w-full max-w-sm">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            type="search"
-                            placeholder="Cari nama, NIP, atau email..."
-                            className="pl-8 w-full"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-                    <Button variant="outline" size="icon">
-                        <Filter className="h-4 w-4" />
-                    </Button>
-                </div>
+            {/* Quick Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {quickStats.map((stat, index) => (
+                    <motion.div
+                        key={stat.label}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                    >
+                        <Card className="border-none shadow-sm hover:shadow-md transition-all bg-card/50 backdrop-blur-sm">
+                            <CardContent className="p-6 flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-muted-foreground mb-1">{stat.label}</p>
+                                    <h3 className="text-2xl font-bold">{stat.value}</h3>
+                                </div>
+                                <div className={`p-3 rounded-xl ${stat.bg}`}>
+                                    <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </motion.div>
+                ))}
             </div>
 
-            {/* Employees Table */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Daftar Karyawan</CardTitle>
-                    <CardDescription>Total {employeesData?.meta?.total || 0} karyawan terdaftar</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {isLoading ? (
-                        <div className="py-8">
-                            <LoadingState message="Memuat data karyawan..." />
+            {/* Main Content Card */}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+            >
+                <Card className="border-none shadow-lg bg-card/80 backdrop-blur-md overflow-hidden">
+                    <CardHeader className="border-b bg-muted/30 px-6 py-4">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div>
+                                <CardTitle className="text-lg font-semibold">Daftar Karyawan</CardTitle>
+                                <CardDescription>Total {totalEmployees} karyawan terdaftar</CardDescription>
+                            </div>
+
+                            {/* Search & Filter */}
+                            <div className="flex items-center gap-3 w-full md:w-auto">
+                                <div className="relative w-full md:w-72">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        type="search"
+                                        placeholder="Cari nama, NIP, atau email..."
+                                        className="pl-9 w-full bg-background/50 border-muted-foreground/20 focus:bg-background transition-all"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                    />
+                                </div>
+                                <Button variant="outline" size="icon" className="shrink-0 bg-background/50 border-muted-foreground/20">
+                                    <Filter className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
-                    ) : employees.length === 0 ? (
-                        <div className="text-center py-12 text-muted-foreground">
-                            Tidak ada data karyawan ditemukan
-                        </div>
-                    ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Karyawan</TableHead>
-                                    <TableHead>Kontak</TableHead>
-                                    <TableHead>Departemen & Jabatan</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead className="text-right">Aksi</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {employees.map((employee) => (
-                                    <TableRow key={employee.id}>
-                                        <TableCell>
-                                            <div className="flex items-center gap-3">
-                                                <Avatar>
-                                                    <AvatarImage src={employee.avatar || undefined} alt={employee.name} />
-                                                    <AvatarFallback>{getInitials(employee.name)}</AvatarFallback>
-                                                </Avatar>
-                                                <div>
-                                                    <div className="font-medium">{employee.name}</div>
-                                                    <div className="text-xs text-muted-foreground">{employee.employee_id}</div>
-                                                </div>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="space-y-1 text-sm">
-                                                <div className="flex items-center gap-2">
-                                                    <Mail className="h-3 w-3 text-muted-foreground" />
-                                                    {employee.email}
-                                                </div>
-                                                {employee.phone && (
-                                                    <div className="flex items-center gap-2">
-                                                        <Phone className="h-3 w-3 text-muted-foreground" />
-                                                        {employee.phone}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="space-y-1">
-                                                <div className="font-medium">{employee.position}</div>
-                                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                    <Building2 className="h-3 w-3" />
-                                                    {employee.department}
-                                                </div>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>{getStatusBadge(employee.status)}</TableCell>
-                                        <TableCell className="text-right">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon">
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem asChild>
-                                                        <Link to="/admin/employees/$id" params={{ id: employee.id.toString() }}>
-                                                            Lihat Detail
-                                                        </Link>
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem asChild>
-                                                        <Link to="/admin/employees/$id/edit" params={{ id: employee.id.toString() }}>
-                                                            Edit Data
-                                                        </Link>
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </TableCell>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        {isLoading ? (
+                            <div className="py-12">
+                                <LoadingState message="Memuat data karyawan..." />
+                            </div>
+                        ) : employees.length === 0 ? (
+                            <div className="text-center py-16 text-muted-foreground flex flex-col items-center gap-3">
+                                <div className="p-4 rounded-full bg-muted">
+                                    <Users className="h-8 w-8 text-muted-foreground/50" />
+                                </div>
+                                <p>Tidak ada data karyawan ditemukan</p>
+                                {searchQuery && (
+                                    <Button variant="link" onClick={() => setSearchQuery('')} className="text-primary">
+                                        Hapus pencarian
+                                    </Button>
+                                )}
+                            </div>
+                        ) : (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                                        <TableHead className="w-[300px] pl-6">Karyawan</TableHead>
+                                        <TableHead>Kontak</TableHead>
+                                        <TableHead>Departemen & Jabatan</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead className="text-right pr-6">Aksi</TableHead>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    )}
-                </CardContent>
-            </Card>
+                                </TableHeader>
+                                <TableBody>
+                                    {employees.map((employee, index) => (
+                                        <motion.tr
+                                            key={employee.id}
+                                            initial={{ opacity: 0, x: -20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: index * 0.05 }}
+                                            className="group hover:bg-muted/40 transition-colors border-b last:border-0"
+                                        >
+                                            <TableCell className="pl-6 py-4">
+                                                <div className="flex items-center gap-4">
+                                                    <Avatar className="h-10 w-10 border-2 border-background shadow-sm group-hover:scale-105 transition-transform">
+                                                        <AvatarImage src={employee.avatar || undefined} alt={employee.name} className="object-cover" />
+                                                        <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                                                            {getInitials(employee.name)}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <div>
+                                                        <div className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                                                            {employee.name}
+                                                        </div>
+                                                        <div className="text-xs text-muted-foreground font-mono mt-0.5">
+                                                            {employee.employee_id}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="space-y-1.5 text-sm">
+                                                    <div className="flex items-center gap-2 text-muted-foreground group-hover:text-foreground transition-colors">
+                                                        <Mail className="h-3.5 w-3.5" />
+                                                        {employee.email}
+                                                    </div>
+                                                    {employee.phone && (
+                                                        <div className="flex items-center gap-2 text-muted-foreground group-hover:text-foreground transition-colors">
+                                                            <Phone className="h-3.5 w-3.5" />
+                                                            {employee.phone}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="space-y-1.5">
+                                                    <div className="font-medium">{employee.position}</div>
+                                                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                                        <Building2 className="h-3.5 w-3.5" />
+                                                        {employee.department}
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>{getStatusBadge(employee.status)}</TableCell>
+                                            <TableCell className="text-right pr-6">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-48">
+                                                        <DropdownMenuItem asChild>
+                                                            <Link to="/admin/employees/$id" params={{ id: employee.id.toString() }} className="cursor-pointer">
+                                                                <Users className="mr-2 h-4 w-4" />
+                                                                Lihat Detail
+                                                            </Link>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem asChild>
+                                                            <Link to="/admin/employees/$id/edit" params={{ id: employee.id.toString() }} className="cursor-pointer">
+                                                                <UserPlus className="mr-2 h-4 w-4" />
+                                                                Edit Data
+                                                            </Link>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem
+                                                            className="text-destructive focus:text-destructive cursor-pointer"
+                                                            onClick={() => setEmployeeToDelete({ id: employee.id, name: employee.name })}
+                                                        >
+                                                            <Trash2 className="mr-2 h-4 w-4" />
+                                                            Hapus
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </TableCell>
+                                        </motion.tr>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        )}
+                    </CardContent>
+                </Card>
+            </motion.div>
+
+            <AlertDialog open={!!employeeToDelete} onOpenChange={(open) => !open && setEmployeeToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Hapus Karyawan?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Apakah Anda yakin ingin menghapus karyawan <strong>{employeeToDelete?.name}</strong>?
+                            Tindakan ini tidak dapat dibatalkan dan akan menghapus semua data terkait.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Batal</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDelete}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            disabled={deleteEmployeeMutation.isPending}
+                        >
+                            {deleteEmployeeMutation.isPending ? 'Menghapus...' : 'Hapus'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

@@ -9,7 +9,7 @@ import {
     Calendar,
     Loader2,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+
 import { toast } from 'sonner';
 import { generateReport, downloadReport, waitForReportCompletion } from '@/lib/api/reports';
 import type { ReportType } from '@/types/reports';
@@ -46,8 +46,8 @@ export function MobileReportsPage() {
             toast.loading('Laporan sedang diproses. Mohon tunggu...');
 
             // Handle nested response structure: { report: {...}, download_url: ... }
-            const reportData = (response as any).report || response;
-            const downloadUrl = (response as any).download_url || reportData.download_url;
+            const reportData = response.report;
+            const downloadUrl = response.download_url || reportData.download_url;
 
             let report = reportData;
 

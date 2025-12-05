@@ -44,6 +44,7 @@ export interface HolidayFormData {
   affected_roles?: string[];
   color?: string;
   is_paid: boolean;
+  status?: HolidayStatus;
 }
 
 export interface HolidayStatistics {
@@ -70,6 +71,13 @@ export const holidayTypeColors: Record<HolidayType, string> = {
   religious_holiday: '#7C3AED',
   school_holiday: '#2563EB',
   substitute_holiday: '#059669',
+};
+
+export const holidayTypeColorClasses: Record<HolidayType, { bg: string, text: string, border: string, bgSoft: string }> = {
+  public_holiday: { bg: 'bg-red-600', text: 'text-red-600', border: 'border-red-600', bgSoft: 'bg-red-600/10' },
+  religious_holiday: { bg: 'bg-violet-600', text: 'text-violet-600', border: 'border-violet-600', bgSoft: 'bg-violet-600/10' },
+  school_holiday: { bg: 'bg-blue-600', text: 'text-blue-600', border: 'border-blue-600', bgSoft: 'bg-blue-600/10' },
+  substitute_holiday: { bg: 'bg-emerald-600', text: 'text-emerald-600', border: 'border-emerald-600', bgSoft: 'bg-emerald-600/10' },
 };
 
 export const holidayStatusLabels: Record<HolidayStatus, string> = {

@@ -21,7 +21,7 @@ class Employee extends Model
 
     protected $fillable = [
         'user_id', 'employee_id', 'full_name', 'phone',
-        'photo_path', 'employee_type', 'hire_date', 'salary_type',
+        'photo_path', 'employee_type', 'employee_type_id', 'hire_date', 'salary_type',
         'salary_amount', 'hourly_rate', 'location_id', 'metadata', 'is_active',
     ];
 
@@ -102,6 +102,14 @@ class Employee extends Model
     public function defaultLocation(): BelongsTo
     {
         return $this->belongsTo(Location::class, 'default_location_id');
+    }
+
+    /**
+     * Relationship to EmployeeType
+     */
+    public function employeeTypeRelation(): BelongsTo
+    {
+        return $this->belongsTo(EmployeeType::class, 'employee_type_id');
     }
 
     // ========== SCOPES ==========
@@ -205,7 +213,7 @@ class Employee extends Model
     public function getScheduleForDate($date): ?EmployeeMonthlySchedule
     {
         return $this->monthlySchedules()
-            ->where('effective_date', $date instanceof \Carbon\Carbon ? $date->toDateString() : $date)
+            ->whereDate('effective_date', $date instanceof \Carbon\Carbon ? $date : $date)
             ->where('status', '!=', 'suspended')
             ->first();
     }
@@ -217,7 +225,14 @@ class Employee extends Model
 
     public function getTeachingScheduleForDate($date): ?TeachingSchedule
     {
-        if ($this->employee_type !== 'guru_honorer') {
+        // Check if employee type allows teaching override
+        $employeeType = $this->employeeTypeRelation;
+        if ($employeeType && !$employeeType->can_override_by_teaching) {
+            return null;
+        }
+
+        // Fallback to legacy check if no employee_type relationship
+        if (!$employeeType && $this->employee_type !== 'guru_honorer') {
             return null;
         }
 
@@ -235,57 +250,184 @@ class Employee extends Model
             ->first();
     }
 
+    /**
+     * Get ALL teaching schedules for a specific date (not just the first one)
+     * This is important for flexible employees who may have multiple teaching sessions
+     */
+    public function getTeachingSchedulesForDate($date): \Illuminate\Support\Collection
+    {
+        $dateCarbon = $date instanceof \Carbon\Carbon ? $date : \Carbon\Carbon::parse($date);
+        $dayOfWeek = strtolower($dateCarbon->format('l'));
+        
+        return $this->teachingSchedules()
+            ->where('day_of_week', $dayOfWeek)
+            ->where('effective_from', '<=', $dateCarbon)
+            ->where(function($query) use ($dateCarbon) {
+                $query->whereNull('effective_until')
+                      ->orWhere('effective_until', '>=', $dateCarbon);
+            })
+            ->where('is_active', true)
+            ->orderBy('teaching_start_time')
+            ->get();
+    }
+
+    /**
+     * Get effective schedule for a specific date
+     * This method handles all the logic for determining what schedule applies:
+     * - For fixed employees: uses the monthly schedule
+     * - For flexible employees: uses teaching schedules as override
+     * - Returns can_attend flag to indicate if employee is allowed to check in
+     */
     public function getEffectiveScheduleForDate($date): array
     {
         $baseSchedule = $this->getScheduleForDate($date);
+        $employeeType = $this->employeeTypeRelation;
         
+        // If no specific monthly schedule, try to use EmployeeType default
+        if (!$baseSchedule && $employeeType) {
+            $dayOfWeek = $date instanceof \Carbon\Carbon ? $date->format('D') : \Carbon\Carbon::parse($date)->format('D');
+            $workDays = $employeeType->work_days ?? [];
+            
+            // Check if today is a work day for this employee type
+            if (in_array($dayOfWeek, $workDays)) {
+                // Create a virtual schedule object based on defaults
+                $baseSchedule = (object) [
+                    'start_time' => $employeeType->default_start_time,
+                    'end_time' => $employeeType->default_end_time,
+                    'location_id' => $this->location_id,
+                    'is_holiday' => false,
+                    'status' => 'scheduled',
+                    'working_hours' => 8, // Approximate
+                    'override_metadata' => [],
+                ];
+            }
+        }
+        
+        // IMPORTANT: If still no schedule assigned, employee cannot attend
         if (!$baseSchedule) {
+            // Check for Global Holiday first even if no schedule exists
+            $globalHoliday = \App\Models\Holiday::active()
+                ->whereDate('date', $date instanceof \Carbon\Carbon ? $date : $date)
+                ->first();
+
+            if ($globalHoliday) {
+                return [
+                    'schedule_type' => 'holiday',
+                    'can_attend' => false,
+                    'start_time' => null,
+                    'end_time' => null,
+                    'location_id' => $this->location_id,
+                    'working_hours' => 0,
+                    'holiday_name' => $globalHoliday->name,
+                    'message' => 'Hari libur: ' . $globalHoliday->name,
+                    'late_tolerance' => 0,
+                    'color' => $globalHoliday->color ?? '#dc3545',
+                ];
+            }
+
+            $requireSchedule = $employeeType?->require_schedule_for_attendance ?? true;
+            
             return [
                 'schedule_type' => 'none',
+                'can_attend' => !$requireSchedule, // Only allow if schedule not required
                 'start_time' => null,
                 'end_time' => null,
-                'location_id' => null,
-                'working_hours' => 0
+                'location_id' => $this->location_id,
+                'working_hours' => 0,
+                'message' => 'Tidak ada jadwal yang di-assign untuk tanggal ini',
+                'late_tolerance' => $employeeType?->late_tolerance_minutes ?? 15,
             ];
         }
 
-        // Check for holiday
-        if ($baseSchedule->is_holiday || $baseSchedule->status === 'holiday') {
+        // Check for holiday (either from schedule override or global holiday)
+        $isScheduleHoliday = $baseSchedule->is_holiday || $baseSchedule->status === 'holiday';
+        
+        // Check global holiday if not explicitly overridden to work
+        $globalHoliday = null;
+        if (!$isScheduleHoliday && !in_array($baseSchedule->status, ['overridden', 'scheduled'])) {
+            $globalHoliday = \App\Models\Holiday::active()
+                ->whereDate('date', $date instanceof \Carbon\Carbon ? $date : $date)
+                ->first();
+        }
+
+        if ($isScheduleHoliday || $globalHoliday) {
             return [
                 'schedule_type' => 'holiday',
+                'can_attend' => false,
                 'start_time' => null,
                 'end_time' => null,
                 'location_id' => $baseSchedule->location_id,
                 'working_hours' => 0,
-                'holiday_name' => $baseSchedule->override_metadata['holiday_name'] ?? 'Holiday'
+                'holiday_name' => $isScheduleHoliday 
+                    ? ($baseSchedule->override_metadata['holiday_name'] ?? 'Libur')
+                    : $globalHoliday->name,
+                'message' => 'Hari libur' . ($globalHoliday ? ': ' . $globalHoliday->name : ''),
+                'late_tolerance' => 0,
+                'color' => $globalHoliday->color ?? '#dc3545',
             ];
         }
 
-        // For Guru Honorer, check teaching schedule override
-        if ($this->employee_type === 'guru_honorer') {
-            $teachingSchedule = $this->getTeachingScheduleForDate($date);
+        // Check if employee type is flexible (e.g., Guru Honor)
+        $isFlexible = $employeeType?->isFlexible() ?? ($this->employee_type === 'guru_honorer');
+        $canOverrideByTeaching = $employeeType?->can_override_by_teaching ?? ($this->employee_type === 'guru_honorer');
+        
+        if ($isFlexible && $canOverrideByTeaching) {
+            $teachingSchedules = $this->getTeachingSchedulesForDate($date);
             
-            if ($teachingSchedule) {
+            if ($teachingSchedules->isEmpty()) {
+                // Flexible employee without teaching schedule = cannot attend
                 return [
-                    'schedule_type' => 'teaching_override',
-                    'start_time' => $teachingSchedule->teaching_start_time,
-                    'end_time' => $teachingSchedule->teaching_end_time,
+                    'schedule_type' => 'no_teaching',
+                    'can_attend' => false,
+                    'start_time' => null,
+                    'end_time' => null,
                     'location_id' => $baseSchedule->location_id,
-                    'working_hours' => $teachingSchedule->teaching_duration_hours,
-                    'subject' => $teachingSchedule->subject->name ?? 'Unknown',
-                    'class_name' => $teachingSchedule->class_name,
-                    'room' => $teachingSchedule->room
+                    'working_hours' => 0,
+                    'message' => 'Tidak ada jadwal mengajar hari ini',
+                    'late_tolerance' => $employeeType?->late_tolerance_minutes ?? 15,
                 ];
             }
+            
+            // Get earliest start time and latest end time from all teaching schedules
+            $firstTeaching = $teachingSchedules->sortBy('teaching_start_time')->first();
+            $lastTeaching = $teachingSchedules->sortByDesc('teaching_end_time')->first();
+            
+            $totalHours = $teachingSchedules->sum(function ($schedule) {
+                return $schedule->teaching_duration_hours ?? 0;
+            });
+            
+            return [
+                'schedule_type' => 'teaching_override',
+                'can_attend' => true,
+                'start_time' => $firstTeaching->teaching_start_time,
+                'end_time' => $lastTeaching->teaching_end_time,
+                'location_id' => $baseSchedule->location_id,
+                'working_hours' => $totalHours,
+                'teaching_schedules' => $teachingSchedules->map(function ($ts) {
+                    return [
+                        'id' => $ts->id,
+                        'subject' => $ts->subject?->name ?? 'Unknown',
+                        'class_name' => $ts->class_name,
+                        'room' => $ts->room,
+                        'start_time' => $ts->teaching_start_time?->format('H:i'),
+                        'end_time' => $ts->teaching_end_time?->format('H:i'),
+                    ];
+                })->toArray(),
+                'message' => 'Jadwal mengajar: ' . $teachingSchedules->count() . ' sesi',
+                'late_tolerance' => $employeeType?->late_tolerance_minutes ?? 15,
+            ];
         }
 
-        // Default to base schedule
+        // Default: Fixed employee - use base schedule
         return [
             'schedule_type' => 'base_schedule',
+            'can_attend' => true,
             'start_time' => $baseSchedule->start_time,
             'end_time' => $baseSchedule->end_time,
             'location_id' => $baseSchedule->location_id,
-            'working_hours' => $baseSchedule->working_hours
+            'working_hours' => $baseSchedule->working_hours,
+            'message' => 'Jadwal tetap',
+            'late_tolerance' => $employeeType?->late_tolerance_minutes ?? 15,
         ];
     }
 

@@ -11,6 +11,7 @@ import {
   SidebarMenuItem,
   SidebarFooter,
   SidebarRail,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -30,6 +31,7 @@ import { cn } from '@/lib/utils';
 export function AppSidebar() {
   const location = useLocation();
   const { user, logout } = useAuthStore();
+  const { isMobile, setOpenMobile } = useSidebar();
 
   // Get role-based navigation
   const rawUserRole = user?.role || 'employee';
@@ -60,7 +62,10 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild className="hover:bg-primary/10 transition-all duration-300 hover:scale-[1.02] group">
-              <Link to={getDefaultRedirect(user)}>
+              <Link
+                to={getDefaultRedirect(user)}
+                onClick={() => isMobile && setOpenMobile(false)}
+              >
                 <div className="flex aspect-square size-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary via-emerald-500 to-emerald-600 text-primary-foreground shadow-lg shadow-primary/30 group-hover:shadow-xl group-hover:shadow-primary/40 transition-all duration-300">
                   <Clock className="size-5 group-hover:rotate-12 transition-transform duration-300" />
                 </div>
@@ -106,7 +111,10 @@ export function AppSidebar() {
                             : 'hover:bg-gradient-to-r hover:from-primary/10 hover:to-emerald-600/10 hover:text-primary text-muted-foreground hover:scale-[1.01] hover:shadow-sm'
                         )}
                       >
-                        <Link to={item.href}>
+                        <Link
+                          to={item.href}
+                          onClick={() => isMobile && setOpenMobile(false)}
+                        >
                           {isActive && (
                             <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                           )}
@@ -185,14 +193,20 @@ export function AppSidebar() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-border/50" />
                 <DropdownMenuItem asChild className="focus:bg-primary/10 focus:text-primary cursor-pointer">
-                  <Link to={userRole === 'admin' || userRole === 'super-admin' || userRole === 'kepala-sekolah' ? '/admin/dashboard' : '/employee/profile'}>
+                  <Link
+                    to={userRole === 'admin' || userRole === 'super-admin' || userRole === 'kepala-sekolah' ? '/admin/dashboard' : '/employee/profile'}
+                    onClick={() => isMobile && setOpenMobile(false)}
+                  >
                     <User className="mr-2 h-4 w-4" />
                     Profil
                   </Link>
                 </DropdownMenuItem>
                 {(userRole === 'admin' || userRole === 'super-admin' || userRole === 'kepala-sekolah') && (
                   <DropdownMenuItem asChild className="focus:bg-primary/10 focus:text-primary cursor-pointer">
-                    <Link to="/admin/settings">
+                    <Link
+                      to="/admin/settings"
+                      onClick={() => isMobile && setOpenMobile(false)}
+                    >
                       <Settings className="mr-2 h-4 w-4" />
                       Pengaturan
                     </Link>

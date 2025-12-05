@@ -9,7 +9,7 @@ import type {
 
 const ENDPOINTS = {
   list: '/employees',
-  detail: (id: number) => `/employees/${id}`,
+  detail: (id: string) => `/employees/${id}`,
   search: '/employees/search',
   statistics: '/employees/statistics',
   dashboard: '/employees/dashboard',
@@ -26,7 +26,7 @@ export async function getEmployees(
 }
 
 // Get single employee by ID
-export async function getEmployee(id: number): Promise<Employee> {
+export async function getEmployee(id: string): Promise<Employee> {
   const response = await apiClient.get<{ data: Employee }>(ENDPOINTS.detail(id));
   return response.data.data;
 }
@@ -39,7 +39,7 @@ export async function createEmployee(data: EmployeeFormData): Promise<Employee> 
 
 // Update employee
 export async function updateEmployee(
-  id: number,
+  id: string,
   data: Partial<EmployeeFormData>
 ): Promise<Employee> {
   const response = await apiClient.put<{ data: Employee }>(ENDPOINTS.detail(id), data);
@@ -47,7 +47,7 @@ export async function updateEmployee(
 }
 
 // Delete employee
-export async function deleteEmployee(id: number): Promise<void> {
+export async function deleteEmployee(id: string): Promise<void> {
   await apiClient.delete(ENDPOINTS.detail(id));
 }
 
@@ -73,7 +73,7 @@ export async function getEmployeeDashboardData(): Promise<any> {
 
 // Upload employee avatar
 export async function uploadEmployeeAvatar(
-  employeeId: number,
+  employeeId: string,
   file: File
 ): Promise<{ avatar_url: string }> {
   const formData = new FormData();
@@ -92,6 +92,6 @@ export async function uploadEmployeeAvatar(
 }
 
 // Delete employee avatar
-export async function deleteEmployeeAvatar(employeeId: number): Promise<void> {
+export async function deleteEmployeeAvatar(employeeId: string): Promise<void> {
   await apiClient.delete(`/employees/${employeeId}/avatar`);
 }

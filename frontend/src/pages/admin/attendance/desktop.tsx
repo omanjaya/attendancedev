@@ -19,7 +19,8 @@ import { StatsGrid } from '@/components/shared/StatsGrid';
 import { ContentCard } from '@/components/shared/ContentCard';
 import { format, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { getAttendance, getAttendanceStatistics, updateAttendance, deleteAttendance } from '@/lib/api/attendance';
+import { getAttendance, getAttendanceStatistics } from '@/lib/api/attendance';
+import type { AttendanceStatus } from '@/types/attendance';
 
 interface AttendanceRecord {
   id: number;
@@ -65,11 +66,11 @@ export function DesktopAdminAttendancePage() {
     queryFn: () => getAttendance({
       month: format(selectedMonth, 'yyyy-MM'),
       search: searchQuery || undefined,
-      status: filterStatus !== 'all' ? filterStatus : undefined,
+      status: filterStatus !== 'all' ? filterStatus as AttendanceStatus : undefined,
     }),
   });
 
-  const attendanceRecords = attendanceData?.data || [];
+  const _attendanceRecords = attendanceData?.data || [];
 
   // Approve attendance mutation
   const approveAttendanceMutation = useMutation({
@@ -239,7 +240,22 @@ export function DesktopAdminAttendancePage() {
     }
   };
 
-  const filteredRecords = attendanceRecords?.filter((record: AttendanceRecord) => {
+  // Transform and filter records
+  const transformedRecords: AttendanceRecord[] = (attendanceData?.data || []).map((record: any) => ({
+    id: record.id,
+    employee_id: record.employee_id?.toString() || '',
+    employee_name: record.employee_name || record.employee?.full_name || 'Unknown',
+    employeePhoto: record.employee?.avatar_url,
+    date: record.date,
+    check_in_formatted: record.check_in_time || record.check_in || undefined,
+    check_out_formatted: record.check_out_time || record.check_out || undefined,
+    status: record.status || 'present',
+    location: typeof record.location === 'object' ? record.location?.address : record.location,
+    notes: record.notes,
+    needsApproval: record.needs_approval || record.status === 'pending' || false,
+  }));
+
+  const filteredRecords = transformedRecords.filter((record) => {
     const matchesSearch = record.employee_name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false;
     const matchesStatus = filterStatus === 'all' || record.status === filterStatus;
     return matchesSearch && matchesStatus;
@@ -274,6 +290,8 @@ export function DesktopAdminAttendancePage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Cari nama karyawan..."
               className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              aria-label="Cari nama karyawan"
+              title="Cari nama karyawan"
             />
           </div>
         </div>
@@ -285,6 +303,8 @@ export function DesktopAdminAttendancePage() {
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
             className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            aria-label="Filter Status"
+            title="Filter Status"
           >
             <option value="all">Semua Status</option>
             <option value="present">Hadir</option>
@@ -303,6 +323,8 @@ export function DesktopAdminAttendancePage() {
             value={format(selectedMonth, 'yyyy-MM')}
             onChange={(e) => setSelectedMonth(parseISO(e.target.value + '-01'))}
             className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            aria-label="Filter Bulan"
+            title="Filter Bulan"
           />
         </div>
 
@@ -433,6 +455,8 @@ export function DesktopAdminAttendancePage() {
                   resetManualForm();
                 }}
                 className="p-1 hover:bg-muted rounded"
+                aria-label="Tutup"
+                title="Tutup"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -440,10 +464,11 @@ export function DesktopAdminAttendancePage() {
 
             <form onSubmit={handleManualSubmit} className="p-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label htmlFor="manual-employee" className="block text-sm font-medium mb-2">
                   Karyawan <span className="text-red-500">*</span>
                 </label>
                 <select
+                  id="manual-employee"
                   value={manualEmployeeId}
                   onChange={(e) => setManualEmployeeId(e.target.value)}
                   className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
@@ -457,10 +482,11 @@ export function DesktopAdminAttendancePage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label htmlFor="manual-date" className="block text-sm font-medium mb-2">
                   Tanggal <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="manual-date"
                   type="date"
                   value={manualDate}
                   onChange={(e) => setManualDate(e.target.value)}
@@ -471,10 +497,11 @@ export function DesktopAdminAttendancePage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">
+                  <label htmlFor="manual-checkin" className="block text-sm font-medium mb-2">
                     Check-In <span className="text-red-500">*</span>
                   </label>
                   <input
+                    id="manual-checkin"
                     type="time"
                     value={manualCheckIn}
                     onChange={(e) => setManualCheckIn(e.target.value)}

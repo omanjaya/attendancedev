@@ -3,11 +3,11 @@ import { Link, useNavigate, useParams } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { motion } from 'framer-motion';
 import {
   ArrowLeft,
   Loader2,
   Save,
-  CheckCircle,
   ScanFace,
   CheckCircle2,
   XCircle,
@@ -16,10 +16,14 @@ import {
   Trash2,
   AlertCircle,
   RefreshCw,
+  User,
+  Briefcase,
+  MapPin,
+  Shield,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { LoadingState } from '@/components/states';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -44,6 +48,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useNotificationStore } from '@/stores';
 import { useEmployee, useUpdateEmployee } from '@/hooks';
 import { useLocations } from '@/hooks/use-locations';
+import { useEmployeeTypes } from '@/hooks/use-master-data';
 import { FaceEnrollmentFromPhoto, FaceEnrollmentWizard } from '@/components/face-recognition';
 import { useFaceData, useDeleteFace } from '@/hooks/use-face-recognition-api';
 
@@ -51,22 +56,16 @@ const employeeSchema = z.object({
   name: z.string().min(2, 'Nama minimal 2 karakter'),
   email: z.string().email('Email tidak valid'),
   phone: z.string().min(10, 'Nomor telepon minimal 10 digit'),
-  department: z.string().min(1, 'Pilih departemen'),
+  employee_type_id: z.string().min(1, 'Pilih jenis pegawai'),
+  department: z.string().optional(),
   position: z.string().min(2, 'Posisi minimal 2 karakter'),
   join_date: z.string().min(1, 'Pilih tanggal bergabung'),
   address: z.string().optional(),
   location_id: z.string().min(1, 'Pilih lokasi'),
+  is_active: z.boolean(),
 });
 
 type EmployeeForm = z.infer<typeof employeeSchema>;
-
-const departments = [
-  { id: '1', name: 'IT & Development' },
-  { id: '2', name: 'Human Resources' },
-  { id: '3', name: 'Finance & Accounting' },
-  { id: '4', name: 'Marketing' },
-  { id: '5', name: 'Operations' },
-];
 
 type EnrollmentMode = 'photo' | 'camera';
 
@@ -75,8 +74,8 @@ function EditLoadingSkeleton() {
   return (
     <div className="container py-16">
       <Skeleton className="h-4 w-48 mb-8" />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-        <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-1 space-y-6">
           <Skeleton className="h-12 w-64" />
           <Skeleton className="h-6 w-48" />
           <div className="space-y-4 mt-8">
@@ -91,16 +90,9 @@ function EditLoadingSkeleton() {
             ))}
           </div>
         </div>
-        <div className="space-y-6 p-6 border rounded-xl">
-          <Skeleton className="h-6 w-32" />
-          <div className="grid grid-cols-2 gap-4">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="space-y-2">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-            ))}
-          </div>
+        <div className="lg:col-span-2 space-y-6">
+          <Skeleton className="h-64 w-full rounded-xl" />
+          <Skeleton className="h-64 w-full rounded-xl" />
         </div>
       </div>
     </div>
@@ -111,7 +103,6 @@ export default function EmployeeEditPage() {
   const navigate = useNavigate();
   const { id } = useParams({ strict: false }) as { id: string };
   const { success, error: showError } = useNotificationStore();
-  const [isActive, setIsActive] = useState(true);
 
   // Face enrollment state
   const [isEnrollmentDialogOpen, setIsEnrollmentDialogOpen] = useState(false);
@@ -123,7 +114,7 @@ export default function EmployeeEditPage() {
     isLoading: isLoadingEmployee,
     error: employeeError,
     refetch: refetchEmployee,
-  } = useEmployee(Number(id));
+  } = useEmployee(id);
 
   // Update mutation
   const updateEmployeeMutation = useUpdateEmployee();
@@ -137,6 +128,10 @@ export default function EmployeeEditPage() {
   // Locations hook
   const { locations, fetchLocations } = useLocations();
 
+  // Employee Types hook
+  const { data: employeeTypesData } = useEmployeeTypes({ is_active: true });
+  const employeeTypes = employeeTypesData?.data || [];
+
   // Load locations on mount
   useEffect(() => {
     fetchLocations({ is_active: true });
@@ -146,11 +141,17 @@ export default function EmployeeEditPage() {
     register,
     handleSubmit,
     setValue,
+    watch,
     reset,
     formState: { errors },
   } = useForm<EmployeeForm>({
     resolver: zodResolver(employeeSchema),
+    defaultValues: {
+      is_active: true,
+    }
   });
+
+  const isActive = watch('is_active');
 
   // Populate form when employee data loads
   useEffect(() => {
@@ -159,13 +160,14 @@ export default function EmployeeEditPage() {
         name: employee.name,
         email: employee.email,
         phone: employee.phone || '',
-        department: employee.department,
+        employee_type_id: employee.employee_type_id || '',
+        department: employee.department || '',
         position: employee.position,
         join_date: employee.join_date,
         address: employee.address || '',
-        location_id: employee.location?.id || '', // Add location_id
+        location_id: employee.location?.id || '',
+        is_active: employee.status === 'active',
       });
-      setIsActive(employee.status === 'active');
     }
   }, [employee, reset]);
 
@@ -189,11 +191,11 @@ export default function EmployeeEditPage() {
   const onSubmit = async (data: EmployeeForm) => {
     try {
       await updateEmployeeMutation.mutateAsync({
-        id: Number(id),
+        id: id,
         data: {
           ...data,
-          location_id: data.location_id, // Include location assignment
-          status: isActive ? 'active' : 'inactive',
+          location_id: data.location_id,
+          status: data.is_active ? 'active' : 'inactive',
         },
       });
       navigate({ to: '/admin/employees' });
@@ -204,10 +206,10 @@ export default function EmployeeEditPage() {
 
   // Checklist items for the left panel
   const infoItems = [
-    { label: 'Data Pribadi', description: 'Nama, email, dan nomor telepon karyawan' },
-    { label: 'Informasi Pekerjaan', description: 'Departemen, posisi, dan tanggal bergabung' },
-    { label: 'Status Karyawan', description: 'Aktifkan atau nonaktifkan akun karyawan' },
-    { label: 'Face Recognition', description: 'Kelola data wajah untuk verifikasi absensi' },
+    { label: 'Data Pribadi', description: 'Nama, email, dan nomor telepon', icon: User },
+    { label: 'Informasi Pekerjaan', description: 'Departemen, posisi, dan tanggal', icon: Briefcase },
+    { label: 'Lokasi & Status', description: 'Lokasi kerja dan status aktif', icon: MapPin },
+    { label: 'Face Recognition', description: 'Data wajah untuk absensi', icon: Shield },
   ];
 
   // Show loading state
@@ -252,61 +254,84 @@ export default function EmployeeEditPage() {
   }
 
   return (
-    <section className="relative py-8 sm:py-16">
-      {/* Background pattern - shadcnblocks style */}
-      <div className="pointer-events-none absolute inset-x-0 -bottom-20 -top-20 bg-[radial-gradient(ellipse_35%_15%_at_40%_55%,hsl(var(--accent))_0%,transparent_100%)] opacity-50"></div>
-      <div className="pointer-events-none absolute inset-x-0 -bottom-20 -top-20 bg-[radial-gradient(ellipse_35%_20%_at_60%_60%,hsl(var(--accent))_0%,transparent_100%)] opacity-30"></div>
+    <section className="relative py-8 sm:py-16 min-h-screen bg-background/50">
+      {/* Background pattern */}
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute top-0 right-0 w-1/2 h-1/2 bg-primary/5 rounded-bl-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-1/2 h-1/2 bg-secondary/10 rounded-tr-full blur-3xl" />
+      </div>
 
       <div className="container relative">
         {/* Back Link */}
-        <Link
-          to="/admin/employees"
-          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-8"
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3 }}
         >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Kembali ke daftar karyawan
-        </Link>
+          <Link
+            to="/admin/employees"
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Kembali ke daftar karyawan
+          </Link>
+        </motion.div>
 
-        <div className="grid w-full grid-cols-1 gap-x-16 overflow-hidden lg:grid-cols-2">
+        <div className="grid w-full grid-cols-1 gap-x-12 gap-y-10 lg:grid-cols-3">
           {/* Left Side - Info Panel */}
-          <div className="w-full pb-10 md:space-y-10 md:pb-0">
-            <div className="space-y-4 md:space-y-6">
-              <div>
-                <Badge variant="outline" className="mb-4">Edit Karyawan</Badge>
-                <h1 className="text-4xl font-medium lg:text-5xl">{employee.name}</h1>
-                <p className="text-lg text-muted-foreground mt-2">NIP: {employee.employee_id}</p>
-              </div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="lg:col-span-1 space-y-8"
+          >
+            <div>
+              <Badge variant="outline" className="mb-4 border-primary/20 bg-primary/5 text-primary">Edit Karyawan</Badge>
+              <h1 className="text-3xl font-bold tracking-tight">{employee.name}</h1>
+              <p className="text-muted-foreground mt-2 font-mono text-sm">ID: {employee.employee_id}</p>
+            </div>
 
-              <div className="space-y-4">
-                {infoItems.map((item, index) => (
-                  <div key={index} className="flex gap-4">
-                    <CheckCircle className="mt-1 h-5 w-5 shrink-0 text-primary" />
-                    <div>
-                      <p className="font-medium">{item.label}</p>
-                      <p className="text-sm text-muted-foreground">{item.description}</p>
-                    </div>
+            <div className="space-y-6">
+              {infoItems.map((item, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 + index * 0.1 }}
+                  className="flex gap-4 group"
+                >
+                  <div className="mt-1 h-10 w-10 shrink-0 rounded-lg bg-muted flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                    <item.icon className="h-5 w-5" />
                   </div>
-                ))}
-              </div>
+                  <div>
+                    <p className="font-medium group-hover:text-primary transition-colors">{item.label}</p>
+                    <p className="text-sm text-muted-foreground">{item.description}</p>
+                  </div>
+                </motion.div>
+              ))}
             </div>
 
             {/* Face Recognition Status Card */}
-            <div className="mt-10 border-border bg-background rounded-xl border p-6 shadow-sm">
-              <div className="flex items-center gap-2 mb-4">
-                <ScanFace className="h-5 w-5" />
-                <h3 className="text-lg font-semibold">Face Recognition</h3>
+            <Card className="border-primary/10 shadow-md overflow-hidden">
+              <div className="absolute top-0 right-0 p-3 opacity-10">
+                <ScanFace className="w-24 h-24" />
               </div>
-
-              <div className="flex items-center justify-between p-4 rounded-lg border mb-4">
-                <div className="flex items-center gap-3">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <ScanFace className="h-4 w-4 text-primary" />
+                  Face Recognition
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6 relative">
+                <div className="flex items-center gap-4">
                   {isLoadingFaceData ? (
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
                   ) : hasFaceData ? (
-                    <div className="h-12 w-12 rounded-full bg-success/10 flex items-center justify-center">
+                    <div className="h-12 w-12 rounded-full bg-success/10 flex items-center justify-center ring-4 ring-success/5">
                       <CheckCircle2 className="h-6 w-6 text-success" />
                     </div>
                   ) : (
-                    <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                    <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center ring-4 ring-muted/20">
                       <XCircle className="h-6 w-6 text-muted-foreground" />
                     </div>
                   )}
@@ -314,245 +339,203 @@ export default function EmployeeEditPage() {
                     <p className="font-medium">
                       {hasFaceData ? 'Wajah Terdaftar' : 'Belum Terdaftar'}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       {hasFaceData
-                        ? `Quality: ${faceData?.face_data?.quality_score ? Math.round(faceData.face_data.quality_score * 100) : '-'}%`
-                        : 'Daftarkan wajah untuk verifikasi absensi'}
+                        ? `Quality Score: ${faceData?.face_data?.quality_score ? Math.round(faceData.face_data.quality_score * 100) : '-'}%`
+                        : 'Wajib untuk absensi wajah'}
                     </p>
                   </div>
                 </div>
-                {hasFaceData && (
-                  <Badge variant="outline" className="border-success/50 text-success">
-                    Aktif
-                  </Badge>
-                )}
-              </div>
 
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant={hasFaceData ? 'outline' : 'default'}
-                  size="sm"
-                  onClick={() => {
-                    setEnrollmentMode('photo');
-                    setIsEnrollmentDialogOpen(true);
-                  }}
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  {hasFaceData ? 'Update Foto' : 'Upload Foto'}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setEnrollmentMode('camera');
-                    setIsEnrollmentDialogOpen(true);
-                  }}
-                >
-                  <Camera className="h-4 w-4 mr-2" />
-                  {hasFaceData ? 'Update Kamera' : 'Via Kamera'}
-                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant={hasFaceData ? 'outline' : 'default'}
+                    size="sm"
+                    className="w-full"
+                    onClick={() => {
+                      setEnrollmentMode('photo');
+                      setIsEnrollmentDialogOpen(true);
+                    }}
+                  >
+                    <Upload className="h-3.5 w-3.5 mr-2" />
+                    {hasFaceData ? 'Update' : 'Upload'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => {
+                      setEnrollmentMode('camera');
+                      setIsEnrollmentDialogOpen(true);
+                    }}
+                  >
+                    <Camera className="h-3.5 w-3.5 mr-2" />
+                    Kamera
+                  </Button>
+                </div>
+
                 {hasFaceData && (
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="text-destructive hover:text-destructive"
+                    className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
                     onClick={handleDeleteFace}
                     disabled={deleteFaceMutation.isPending}
                   >
                     {deleteFaceMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
                     ) : (
-                      <Trash2 className="h-4 w-4 mr-2" />
+                      <Trash2 className="h-3.5 w-3.5 mr-2" />
                     )}
-                    Hapus
+                    Hapus Data Wajah
                   </Button>
                 )}
-              </div>
-            </div>
-          </div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
           {/* Right Side - Form */}
-          <div className="border-border bg-background w-full space-y-6 rounded-xl border px-6 py-8 shadow-sm">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="lg:col-span-2"
+          >
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               {/* Personal Info Section */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-lg">Data Pribadi</h3>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5 text-primary" />
+                    Data Pribadi
+                  </CardTitle>
+                  <CardDescription>Informasi dasar karyawan</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Nama Lengkap <span className="text-destructive">*</span></Label>
+                      <Input id="name" placeholder="Masukkan nama lengkap" {...register('name')} />
+                      {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+                    </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">
-                      Nama Lengkap <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="name"
-                      placeholder="Masukkan nama lengkap"
-                      {...register('name')}
-                    />
-                    {errors.name && (
-                      <p className="text-xs text-destructive">{errors.name.message}</p>
-                    )}
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>
+                      <Input id="email" type="email" placeholder="email@example.com" {...register('email')} />
+                      {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+                    </div>
+                  </div>
+
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Nomor Telepon <span className="text-destructive">*</span></Label>
+                      <Input id="phone" type="tel" placeholder="08xxxxxxxxxx" {...register('phone')} />
+                      {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="join_date">Tanggal Bergabung <span className="text-destructive">*</span></Label>
+                      <Input id="join_date" type="date" {...register('join_date')} />
+                      {errors.join_date && <p className="text-xs text-destructive">{errors.join_date.message}</p>}
+                    </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="email">
-                      Email <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="email@example.com"
-                      {...register('email')}
-                    />
-                    {errors.email && (
-                      <p className="text-xs text-destructive">{errors.email.message}</p>
-                    )}
+                    <Label htmlFor="address">Alamat</Label>
+                    <Textarea id="address" placeholder="Masukkan alamat lengkap" className="min-h-[80px]" {...register('address')} />
                   </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">
-                      Nomor Telepon <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      placeholder="08xxxxxxxxxx"
-                      {...register('phone')}
-                    />
-                    {errors.phone && (
-                      <p className="text-xs text-destructive">{errors.phone.message}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="join_date">
-                      Tanggal Bergabung <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="join_date"
-                      type="date"
-                      {...register('join_date')}
-                    />
-                    {errors.join_date && (
-                      <p className="text-xs text-destructive">{errors.join_date.message}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="address">Alamat</Label>
-                  <Textarea
-                    id="address"
-                    placeholder="Masukkan alamat lengkap"
-                    className="min-h-[80px]"
-                    {...register('address')}
-                  />
-                </div>
-              </div>
-
-              {/* Divider */}
-              <div className="border-t" />
+                </CardContent>
+              </Card>
 
               {/* Employment Info Section */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-lg">Informasi Pekerjaan</h3>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Briefcase className="h-5 w-5 text-primary" />
+                    Informasi Pekerjaan
+                  </CardTitle>
+                  <CardDescription>Detail posisi dan penempatan</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="employee_type">Jenis Pegawai <span className="text-destructive">*</span></Label>
+                      <Select
+                        defaultValue={employee.employee_type_id}
+                        onValueChange={(value) => setValue('employee_type_id', value)}
+                      >
+                        <SelectTrigger id="employee_type">
+                          <SelectValue placeholder="Pilih jenis pegawai" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {employeeTypes.map((type) => (
+                            <SelectItem key={type.id} value={type.id}>
+                              <div className="flex items-center gap-2">
+                                <span>{type.name}</span>
+                                <Badge variant="outline" className="text-[10px]">
+                                  {type.schedule_mode === 'fixed' ? 'Tetap' : 'Fleksibel'}
+                                </Badge>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.employee_type_id && <p className="text-xs text-destructive">{errors.employee_type_id.message}</p>}
+                      <p className="text-xs text-muted-foreground">Menentukan aturan jadwal dan absensi karyawan</p>
+                    </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="department">
-                      Departemen <span className="text-destructive">*</span>
-                    </Label>
-                    <Select
-                      defaultValue={employee.department}
-                      onValueChange={(value) => setValue('department', value)}
-                    >
-                      <SelectTrigger id="department">
-                        <SelectValue placeholder="Pilih departemen" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {departments.map((dept) => (
-                          <SelectItem key={dept.id} value={dept.name}>
-                            {dept.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.department && (
-                      <p className="text-xs text-destructive">{errors.department.message}</p>
-                    )}
+                    <div className="space-y-2">
+                      <Label htmlFor="position">Posisi/Jabatan <span className="text-destructive">*</span></Label>
+                      <Input id="position" placeholder="Contoh: Guru Matematika" {...register('position')} />
+                      {errors.position && <p className="text-xs text-destructive">{errors.position.message}</p>}
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="position">
-                      Posisi/Jabatan <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="position"
-                      placeholder="Contoh: Staff IT"
-                      {...register('position')}
-                    />
-                    {errors.position && (
-                      <p className="text-xs text-destructive">{errors.position.message}</p>
-                    )}
-                  </div>
-                </div>
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="department">Departemen/Unit</Label>
+                      <Input id="department" placeholder="Contoh: Bagian Akademik" {...register('department')} />
+                      <p className="text-xs text-muted-foreground">Opsional, untuk pengelompokan internal</p>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="location">
-                    Lokasi <span className="text-destructive">*</span>
-                  </Label>
-                  <Select
-                    defaultValue={employee.location?.id}
-                    onValueChange={(value) => setValue('location_id', value)}
-                  >
-                    <SelectTrigger id="location">
-                      <SelectValue placeholder="Pilih lokasi" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {locations.map((location) => (
-                        <SelectItem key={location.id} value={location.id}>
-                          {location.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.location_id && (
-                    <p className="text-xs text-destructive">{errors.location_id.message}</p>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    Lokasi akan digunakan untuk validasi GPS saat check-in
-                  </p>
-                </div>
-
-                {/* Status Toggle */}
-                <div className="flex items-center justify-between p-4 rounded-lg border">
-                  <div>
-                    <p className="font-medium">Status Karyawan</p>
-                    <p className="text-sm text-muted-foreground">
-                      {isActive ? 'Karyawan aktif dan dapat melakukan absensi' : 'Karyawan tidak aktif'}
-                    </p>
+                    <div className="space-y-2">
+                      <Label htmlFor="location">Lokasi Kerja <span className="text-destructive">*</span></Label>
+                      <Select defaultValue={employee.location?.id} onValueChange={(value) => setValue('location_id', value)}>
+                        <SelectTrigger id="location">
+                          <SelectValue placeholder="Pilih lokasi" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {locations.map((location) => (
+                            <SelectItem key={location.id} value={location.id}>{location.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.location_id && <p className="text-xs text-destructive">{errors.location_id.message}</p>}
+                      <p className="text-xs text-muted-foreground">Lokasi akan digunakan untuk validasi GPS saat check-in</p>
+                    </div>
                   </div>
-                  <Switch
-                    checked={isActive}
-                    onCheckedChange={setIsActive}
-                  />
-                </div>
-              </div>
+
+                  <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/30">
+                    <div className="space-y-0.5">
+                      <Label className="text-base">Status Karyawan</Label>
+                      <p className="text-sm text-muted-foreground">
+                        {isActive ? 'Karyawan aktif dan dapat melakukan absensi' : 'Karyawan tidak aktif'}
+                      </p>
+                    </div>
+                    <Switch checked={isActive} onCheckedChange={(checked) => setValue('is_active', checked)} />
+                  </div>
+                </CardContent>
+              </Card>
 
               {/* Actions */}
               <div className="flex justify-end gap-3 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => navigate({ to: '/admin/employees' })}
-                >
+                <Button type="button" variant="outline" onClick={() => navigate({ to: '/admin/employees' })}>
                   Batal
                 </Button>
-                <Button type="submit" disabled={updateEmployeeMutation.isPending}>
+                <Button type="submit" disabled={updateEmployeeMutation.isPending} className="min-w-[150px]">
                   {updateEmployeeMutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -567,7 +550,7 @@ export default function EmployeeEditPage() {
                 </Button>
               </div>
             </form>
-          </div>
+          </motion.div>
         </div>
       </div>
 

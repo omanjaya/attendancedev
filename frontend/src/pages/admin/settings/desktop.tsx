@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import {
     Sun,
     Moon,
@@ -21,7 +22,11 @@ import {
     Smartphone,
     MapPin,
     Users,
+    Users2,
     Settings,
+    Database,
+    ChevronRight,
+    CalendarClock,
 } from 'lucide-react';
 import { PageHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
@@ -202,8 +207,12 @@ export function DesktopSettingsPage() {
             )}
 
             {/* Settings Tabs */}
-            <Tabs defaultValue="appearance" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-3 md:w-auto md:inline-flex">
+            <Tabs defaultValue="master-data" className="space-y-4">
+                <TabsList className="grid w-full grid-cols-4 md:w-auto md:inline-flex">
+                    <TabsTrigger value="master-data">
+                        <Database className="h-4 w-4 mr-2" />
+                        Master Data
+                    </TabsTrigger>
                     <TabsTrigger value="appearance">
                         <Palette className="h-4 w-4 mr-2" />
                         Tampilan
@@ -217,6 +226,151 @@ export function DesktopSettingsPage() {
                         Privasi
                     </TabsTrigger>
                 </TabsList>
+
+                {/* Master Data Tab */}
+                <TabsContent value="master-data" className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Pengaturan Data Utama</CardTitle>
+                            <CardDescription>Kelola data referensi sistem</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                            <Link
+                                to="/admin/settings/employee-types"
+                                className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors group"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="p-2 rounded-lg bg-primary/10">
+                                        <Users2 className="h-5 w-5 text-primary" />
+                                    </div>
+                                    <div>
+                                        <div className="font-medium">Jenis Pegawai</div>
+                                        <div className="text-sm text-muted-foreground">
+                                            Kelola tipe pegawai dan aturan jadwal
+                                        </div>
+                                    </div>
+                                </div>
+                                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                            </Link>
+
+                            <Link
+                                to="/admin/locations"
+                                className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors group"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="p-2 rounded-lg bg-blue-500/10">
+                                        <MapPin className="h-5 w-5 text-blue-500" />
+                                    </div>
+                                    <div>
+                                        <div className="font-medium">Lokasi</div>
+                                        <div className="text-sm text-muted-foreground">
+                                            Kelola lokasi kerja dan GPS verification
+                                        </div>
+                                    </div>
+                                </div>
+                                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-blue-500 transition-colors" />
+                            </Link>
+
+                            <Link
+                                to="/admin/holidays"
+                                className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors group"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="p-2 rounded-lg bg-amber-500/10">
+                                        <Calendar className="h-5 w-5 text-amber-500" />
+                                    </div>
+                                    <div>
+                                        <div className="font-medium">Hari Libur</div>
+                                        <div className="text-sm text-muted-foreground">
+                                            Kelola kalender libur nasional dan sekolah
+                                        </div>
+                                    </div>
+                                </div>
+                                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-amber-500 transition-colors" />
+                            </Link>
+
+                            <Link
+                                to="/admin/master-data"
+                                className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors group"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="p-2 rounded-lg bg-purple-500/10">
+                                        <Database className="h-5 w-5 text-purple-500" />
+                                    </div>
+                                    <div>
+                                        <div className="font-medium">Master Data Lainnya</div>
+                                        <div className="text-sm text-muted-foreground">
+                                            Tahun ajaran, mata pelajaran, kelas, dan periode
+                                        </div>
+                                    </div>
+                                </div>
+                                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-purple-500 transition-colors" />
+                            </Link>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Pengaturan Absensi</CardTitle>
+                            <CardDescription>Konfigurasi sistem kehadiran</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                            <Link
+                                to="/admin/schedules"
+                                className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors group"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="p-2 rounded-lg bg-green-500/10">
+                                        <CalendarClock className="h-5 w-5 text-green-500" />
+                                    </div>
+                                    <div>
+                                        <div className="font-medium">Jadwal Kerja</div>
+                                        <div className="text-sm text-muted-foreground">
+                                            Kelola template dan penugasan jadwal
+                                        </div>
+                                    </div>
+                                </div>
+                                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-green-500 transition-colors" />
+                            </Link>
+
+                            <Link
+                                to="/admin/face-recognition"
+                                className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors group"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="p-2 rounded-lg bg-rose-500/10">
+                                        <Users className="h-5 w-5 text-rose-500" />
+                                    </div>
+                                    <div>
+                                        <div className="font-medium">Face Recognition</div>
+                                        <div className="text-sm text-muted-foreground">
+                                            Registrasi dan pengaturan pengenalan wajah
+                                        </div>
+                                    </div>
+                                </div>
+                                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-rose-500 transition-colors" />
+                            </Link>
+
+                            <Link
+                                to="/admin/security"
+                                className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors group"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="p-2 rounded-lg bg-indigo-500/10">
+                                        <Shield className="h-5 w-5 text-indigo-500" />
+                                    </div>
+                                    <div>
+                                        <div className="font-medium">Keamanan</div>
+                                        <div className="text-sm text-muted-foreground">
+                                            Two-factor auth, perangkat, dan log aktivitas
+                                        </div>
+                                    </div>
+                                </div>
+                                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-indigo-500 transition-colors" />
+                            </Link>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
                 {/* Appearance Tab */}
                 <TabsContent value="appearance" className="space-y-4">

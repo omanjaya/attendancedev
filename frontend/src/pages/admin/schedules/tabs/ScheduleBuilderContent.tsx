@@ -15,10 +15,10 @@ import {
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { LoadingState } from '@/components/states';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -40,6 +40,7 @@ import {
   useSubjects,
   useAcademicClasses,
   useSchedulesByClass,
+  useSchedules,
   useCreateSchedule,
   useUpdateSchedule,
   useDeleteSchedule,
@@ -83,6 +84,9 @@ export function ScheduleBuilderContent() {
   const [localScheduleItems, setLocalScheduleItems] = useState<ScheduleItem[]>([]);
   const [selectedCell, setSelectedCell] = useState<{ day: number; slotId: string } | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [copyDialogOpen, setCopyDialogOpen] = useState(false);
+  const [copySourceDay, setCopySourceDay] = useState<string>('monday');
+  const [copyTargetDay, setCopyTargetDay] = useState<string>('tuesday');
   const [isSavingAll, setIsSavingAll] = useState(false);
   const [conflicts, setConflicts] = useState<string[]>([]);
 
@@ -100,6 +104,10 @@ export function ScheduleBuilderContent() {
   const employees = employeesResponse?.data ?? [];
   const { data: existingSchedules = [] } = useSchedulesByClass(selectedClassId);
 
+  // Fetch ALL schedules to detect cross-class conflicts
+  const { data: allSchedulesResponse } = useSchedules();
+  const allSchedules = allSchedulesResponse?.data ?? [];
+
   // Mutations
   const createScheduleMutation = useCreateSchedule();
   const updateScheduleMutation = useUpdateSchedule();
@@ -111,6 +119,32 @@ export function ScheduleBuilderContent() {
   if (classes.length > 0 && !selectedClassId) {
     setSelectedClassId(classes[0].id);
   }
+
+  // Check if a teacher is busy at a specific day/time slot (across ALL classes)
+  const isTeacherBusy = (teacherId: string, dayOfWeek: number, timeSlotId: string, excludeScheduleId?: string): boolean => {
+    const dayKey = daysOfWeek[dayOfWeek];
+
+    // Check in all existing schedules
+    const conflictInApi = allSchedules.find(
+      (s) =>
+        s.employee_id === teacherId &&
+        s.day_of_week === dayKey &&
+        s.time_slot_id === timeSlotId &&
+        s.id !== excludeScheduleId
+    );
+
+    if (conflictInApi) return true;
+
+    // Check in local unsaved items
+    const conflictInLocal = localScheduleItems.find(
+      (item) =>
+        item.teacherId === teacherId &&
+        item.dayOfWeek === dayOfWeek &&
+        item.timeSlotId === timeSlotId
+    );
+
+    return !!conflictInLocal;
+  };
 
   // Convert existing schedules to local format
   const getExistingScheduleItem = (dayOfWeek: number, timeSlotId: string): Schedule | undefined => {
@@ -214,18 +248,64 @@ export function ScheduleBuilderContent() {
     setDialogOpen(false);
   };
 
-  const handleCopyDay = (fromDay: number, toDay: number) => {
-    const dayItems = localScheduleItems.filter((item) => item.dayOfWeek === fromDay);
-    const newItems = dayItems.map((item, idx) => ({
-      ...item,
-      id: String(new Date().getTime()) + idx,
-      dayOfWeek: toDay,
-    }));
-    setLocalScheduleItems([
-      ...localScheduleItems.filter((item) => item.dayOfWeek !== toDay),
-      ...newItems,
-    ]);
+  const handleCopyDay = () => {
+    const sourceDayIndex = daysOfWeek.indexOf(copySourceDay as DayOfWeek);
+    const targetDayIndex = daysOfWeek.indexOf(copyTargetDay as DayOfWeek);
+
+    if (sourceDayIndex === -1 || targetDayIndex === -1 || sourceDayIndex === targetDayIndex) {
+      return;
+    }
+
+    // Get all items from source day (API + Local)
+    const sourceItems = [
+      ...existingSchedules
+        .filter((s) => s.day_of_week === copySourceDay)
+        .map((s) => ({
+          timeSlotId: s.time_slot_id,
+          subjectId: s.subject_id,
+          teacherId: s.employee_id,
+          room: s.room || '',
+        })),
+      ...localScheduleItems
+        .filter((item) => item.dayOfWeek === sourceDayIndex)
+        .map((item) => ({
+          timeSlotId: item.timeSlotId,
+          subjectId: item.subjectId,
+          teacherId: item.teacherId,
+          room: item.room,
+        })),
+    ];
+
+    // Create new items for target day
+    const newItems: ScheduleItem[] = [];
+    const timestamp = new Date().getTime();
+
+    sourceItems.forEach((sourceItem, index) => {
+      // Check if target slot is empty in both API and Local
+      const targetSlotOccupiedApi = existingSchedules.find(
+        (s) => s.day_of_week === copyTargetDay && s.time_slot_id === sourceItem.timeSlotId
+      );
+      const targetSlotOccupiedLocal = localScheduleItems.find(
+        (item) => item.dayOfWeek === targetDayIndex && item.timeSlotId === sourceItem.timeSlotId
+      );
+
+      if (!targetSlotOccupiedApi && !targetSlotOccupiedLocal) {
+        newItems.push({
+          id: `${timestamp}-${index}`,
+          dayOfWeek: targetDayIndex,
+          timeSlotId: sourceItem.timeSlotId,
+          subjectId: sourceItem.subjectId,
+          teacherId: sourceItem.teacherId,
+          room: sourceItem.room,
+        });
+      }
+    });
+
+    setLocalScheduleItems([...localScheduleItems, ...newItems]);
+    setCopyDialogOpen(false);
   };
+
+
 
   const handleSaveAll = async () => {
     if (!selectedClassId || localScheduleItems.length === 0) return;
@@ -309,6 +389,10 @@ export function ScheduleBuilderContent() {
         </div>
 
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setCopyDialogOpen(true)}>
+            <Copy className="h-4 w-4 mr-2" />
+            Salin Hari
+          </Button>
           <Button variant="outline" onClick={() => setLocalScheduleItems([])}>
             <Trash2 className="h-4 w-4 mr-2" />
             Reset
@@ -401,8 +485,12 @@ export function ScheduleBuilderContent() {
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6"
-                          onClick={() => handleCopyDay(index, (index + 1) % 5)}
-                          title="Copy ke hari berikutnya"
+                          onClick={() => {
+                            setCopySourceDay(daysOfWeek[index]);
+                            setCopyTargetDay(daysOfWeek[(index + 1) % 5]);
+                            setCopyDialogOpen(true);
+                          }}
+                          title="Salin ke hari lain"
                         >
                           <Copy className="h-3 w-3" />
                         </Button>
@@ -456,9 +544,8 @@ export function ScheduleBuilderContent() {
                       return (
                         <td
                           key={dayIndex}
-                          className={`border p-1 cursor-pointer hover:bg-muted/20 transition-colors ${
-                            localItem && !isFromApi ? 'bg-warning/10' : ''
-                          }`}
+                          className={`border p-1 cursor-pointer hover:bg-muted/20 transition-colors ${localItem && !isFromApi ? 'bg-warning/10' : ''
+                            }`}
                           onClick={() => handleCellClick(dayIndex, slot.id)}
                         >
                           {item ? (
@@ -574,13 +661,47 @@ export function ScheduleBuilderContent() {
                   <SelectValue placeholder="Pilih guru" />
                 </SelectTrigger>
                 <SelectContent>
-                  {employees.map((employee) => (
-                    <SelectItem key={employee.id} value={String(employee.id)}>
-                      {employee.name}
-                    </SelectItem>
-                  ))}
+                  {selectedCell && employees.map((employee) => {
+                    const existingSchedule = getExistingScheduleItem(selectedCell.day, selectedCell.slotId);
+                    const isBusy = isTeacherBusy(
+                      String(employee.id),
+                      selectedCell.day,
+                      selectedCell.slotId,
+                      existingSchedule?.id
+                    );
+                    return (
+                      <SelectItem
+                        key={employee.id}
+                        value={String(employee.id)}
+                        disabled={isBusy}
+                        className={isBusy ? 'opacity-50' : ''}
+                      >
+                        <div className="flex items-center gap-2">
+                          {employee.name}
+                          {isBusy && (
+                            <Badge variant="destructive" className="text-[10px] px-1 py-0">
+                              Bentrok
+                            </Badge>
+                          )}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
+              {selectedCell && formData.teacherId && isTeacherBusy(
+                formData.teacherId,
+                selectedCell.day,
+                selectedCell.slotId,
+                getExistingScheduleItem(selectedCell.day, selectedCell.slotId)?.id
+              ) && (
+                  <Alert variant="destructive" className="py-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription className="text-xs">
+                      Guru ini sudah memiliki jadwal di waktu yang sama!
+                    </AlertDescription>
+                  </Alert>
+                )}
             </div>
 
             <div className="space-y-2">
@@ -621,6 +742,76 @@ export function ScheduleBuilderContent() {
                 <Save className="h-4 w-4 mr-2" />
               )}
               Simpan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Copy Day Dialog */}
+      <Dialog open={copyDialogOpen} onOpenChange={setCopyDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Salin Jadwal Harian</DialogTitle>
+            <DialogDescription>
+              Salin semua jadwal dari satu hari ke hari lain. Jadwal yang sudah ada di hari tujuan tidak akan ditimpa.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Dari Hari</label>
+                <Select value={copySourceDay} onValueChange={setCopySourceDay}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {daysOfWeek.map((day, index) => (
+                      <SelectItem key={day} value={day}>
+                        {dayNames[index]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Ke Hari</label>
+                <Select value={copyTargetDay} onValueChange={setCopyTargetDay}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {daysOfWeek.map((day, index) => (
+                      <SelectItem
+                        key={day}
+                        value={day}
+                        disabled={day === copySourceDay}
+                      >
+                        {dayNames[index]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {copySourceDay && copyTargetDay && (
+              <Alert>
+                <Copy className="h-4 w-4" />
+                <AlertDescription>
+                  Akan menyalin jadwal dari <strong>{dayNames[daysOfWeek.indexOf(copySourceDay as DayOfWeek)]}</strong> ke <strong>{dayNames[daysOfWeek.indexOf(copyTargetDay as DayOfWeek)]}</strong>.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCopyDialogOpen(false)}>
+              Batal
+            </Button>
+            <Button onClick={handleCopyDay}>
+              Salin Jadwal
             </Button>
           </DialogFooter>
         </DialogContent>

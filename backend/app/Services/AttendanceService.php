@@ -39,6 +39,13 @@ class AttendanceService implements AttendanceServiceInterface
                 throw new \Exception('Already checked in today');
             }
 
+            // === NEW: Validate schedule before allowing check-in ===
+            $effectiveSchedule = $employee->getEffectiveScheduleForDate(now());
+            if (!($effectiveSchedule['can_attend'] ?? true)) {
+                $message = $effectiveSchedule['message'] ?? 'Tidak memiliki jadwal untuk absen hari ini';
+                throw new \Exception($message);
+            }
+
             // Validate location if required
             if (config('attendance.require_location_verification')) {
                 if (!$this->validateLocation($locationData, $employee)) {
@@ -453,14 +460,18 @@ class AttendanceService implements AttendanceServiceInterface
      */
     private function determineStatus(Carbon $time, string $type, Employee $employee): string
     {
-        $schedule = $employee->getTodaySchedule();
-        if (!$schedule) {
+        // Use effective schedule which considers employee type and teaching schedules
+        $effectiveSchedule = $employee->getEffectiveScheduleForDate($time);
+        
+        // If no schedule or cannot attend, return present (validation should happen before)
+        if (!($effectiveSchedule['can_attend'] ?? false) || !$effectiveSchedule['start_time']) {
             return 'present';
         }
 
         if ($type === 'check_in') {
-            $scheduledTime = Carbon::parse($schedule->start_time);
-            $graceMinutes = config('attendance.late_grace_minutes', 15);
+            $scheduledTime = Carbon::parse($effectiveSchedule['start_time']);
+            // Use dynamic late tolerance from employee type
+            $graceMinutes = $effectiveSchedule['late_tolerance'] ?? config('attendance.late_grace_minutes', 15);
 
             if ($time->gt($scheduledTime->addMinutes($graceMinutes))) {
                 return 'late';

@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PageHeader } from '@/components/shared/PageHeader';
 import { PageLayout } from '@/components/shared/PageLayout';
 
 interface ReportCard {
@@ -66,11 +65,7 @@ export function DesktopEmployeeReportsPage() {
   ];
 
   return (
-    <PageLayout>
-      <PageHeader
-        title="Laporan Pribadi"
-        description="Akses laporan kehadiran, cuti, dan slip gaji Anda"
-      />
+    <PageLayout title="Laporan Pribadi" description="Akses laporan kehadiran, cuti, dan slip gaji Anda">
 
       <div className="space-y-6">
         {/* Quick Stats */}

@@ -5,6 +5,7 @@ import {
   UserPlus,
   CalendarRange,
   Download,
+  Users,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,7 @@ import { PageHeader } from '@/components/shared';
 import { ScheduleListContent } from './tabs/ScheduleListContent';
 import { ScheduleBuilderContent } from './tabs/ScheduleBuilderContent';
 import { ScheduleAssignContent } from './tabs/ScheduleAssignContent';
+import { TeacherScheduleContent } from './tabs/TeacherScheduleContent';
 import { MonthlyScheduleList } from './monthly/index';
 
 // Desktop version (original implementation)
@@ -36,7 +38,7 @@ export function DesktopSchedulesPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
           <TabsTrigger value="monthly" className="gap-2">
             <CalendarRange className="h-4 w-4" />
             <span className="hidden sm:inline">Bulanan</span>
@@ -51,6 +53,11 @@ export function DesktopSchedulesPage() {
             <Layers className="h-4 w-4" />
             <span className="hidden sm:inline">Builder</span>
             <span className="sm:hidden">Builder</span>
+          </TabsTrigger>
+          <TabsTrigger value="teacher" className="gap-2">
+            <Users className="h-4 w-4" />
+            <span className="hidden sm:inline">Per Guru</span>
+            <span className="sm:hidden">Guru</span>
           </TabsTrigger>
           <TabsTrigger value="assign" className="gap-2">
             <UserPlus className="h-4 w-4" />
@@ -71,6 +78,10 @@ export function DesktopSchedulesPage() {
           <ScheduleBuilderContent />
         </TabsContent>
 
+        <TabsContent value="teacher" className="mt-6">
+          <TeacherScheduleContent />
+        </TabsContent>
+
         <TabsContent value="assign" className="mt-6">
           <ScheduleAssignContent />
         </TabsContent>
@@ -78,3 +89,4 @@ export function DesktopSchedulesPage() {
     </div>
   );
 }
+

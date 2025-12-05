@@ -5,6 +5,7 @@ import { Calendar, Clock, CheckCircle, XCircle, AlertCircle, Download, Filter } 
 import { PageLayout } from '@/components/shared/PageLayout';
 import { StatsGrid } from '@/components/shared/StatsGrid';
 import { ContentCard } from '@/components/shared/ContentCard';
+import { getEmployeeDashboardData } from '@/lib/api/employees';
 import { useAuthStore } from '@/stores';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -20,7 +21,7 @@ export function DesktopEmployeeAttendancePage() {
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('list');
 
   // Fetch employee's attendance data
-  const { data: attendanceData, isLoading } = useQuery({
+  const { data: attendanceData, isLoading: _isLoading } = useQuery({
     queryKey: ['employee', 'attendance', user?.id, format(selectedMonth, 'yyyy-MM')],
     queryFn: async () => {
       // TODO: Replace with actual API call
@@ -82,6 +83,16 @@ export function DesktopEmployeeAttendancePage() {
       };
     },
   });
+
+  // Fetch dashboard stats for schedule info
+  const { data: dashboardStats } = useQuery({
+    queryKey: ['employee', 'dashboard-stats', user?.id],
+    queryFn: getEmployeeDashboardData,
+    enabled: !!user?.id,
+  });
+
+  const canAttend = dashboardStats?.schedule.today.can_attend ?? true;
+  const scheduleMessage = dashboardStats?.schedule.today.message;
 
   const stats = [
     {
@@ -342,6 +353,7 @@ export function DesktopEmployeeAttendancePage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setViewMode('list')}
+            title="List View"
             className={`px-3 py-2 rounded-lg transition-colors ${viewMode === 'list'
               ? 'bg-primary text-primary-foreground'
               : 'border hover:bg-muted'
@@ -351,6 +363,7 @@ export function DesktopEmployeeAttendancePage() {
           </button>
           <button
             onClick={() => setViewMode('calendar')}
+            title="Calendar View"
             className={`px-3 py-2 rounded-lg transition-colors ${viewMode === 'calendar'
               ? 'bg-primary text-primary-foreground'
               : 'border hover:bg-muted'
@@ -368,12 +381,17 @@ export function DesktopEmployeeAttendancePage() {
       <ContentCard title="Aksi Cepat" className="mt-6">
         <div className="grid grid-cols-2 gap-4">
           <button
-            onClick={() => navigate({ to: '/shared/verify-face', search: { type: 'check-in' } })}
-            className="flex items-center justify-center gap-2 p-4 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg transition-colors border border-green-200 dark:border-green-900"
+            onClick={() => canAttend && navigate({ to: '/shared/verify-face', search: { type: 'check-in' } })}
+            disabled={!canAttend}
+            className={`flex items-center justify-center gap-2 p-4 rounded-lg transition-colors border ${canAttend
+              ? 'bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 border-green-200 dark:border-green-900'
+              : 'bg-muted border-muted-foreground/20 cursor-not-allowed opacity-70'
+              }`}
+            title={!canAttend ? (scheduleMessage || 'Absensi tidak tersedia') : 'Check-In'}
           >
-            <Clock className="h-5 w-5 text-green-600 dark:text-green-400" />
-            <span className="text-sm font-medium text-green-900 dark:text-green-100">
-              Check-In
+            <Clock className={`h-5 w-5 ${canAttend ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
+            <span className={`text-sm font-medium ${canAttend ? 'text-green-900 dark:text-green-100' : 'text-muted-foreground'}`}>
+              {!canAttend && scheduleMessage ? scheduleMessage : 'Check-In'}
             </span>
           </button>
           <button

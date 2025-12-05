@@ -47,8 +47,8 @@ export default function ChangePasswordPage() {
     try {
       await apiClient.post('/auth/change-password', {
         current_password: data.current_password,
-        new_password: data.new_password,
-        new_password_confirmation: data.confirm_password,
+        password: data.new_password,
+        password_confirmation: data.confirm_password,
       });
 
       success('Berhasil!', 'Password berhasil diubah. Silakan login kembali dengan password baru.');

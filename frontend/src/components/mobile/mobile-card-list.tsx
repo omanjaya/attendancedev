@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { ChevronRight, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -46,7 +46,7 @@ export function MobileCardList<T>({
           className={cn(
             'py-0 transition-all duration-200 hover:border-primary/20',
             onItemClick &&
-              'cursor-pointer hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] hover:bg-muted/30'
+            'cursor-pointer hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] hover:bg-muted/30'
           )}
           onClick={() => onItemClick?.(item)}
         >

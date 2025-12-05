@@ -22,6 +22,7 @@ import { Switch } from '@/components/ui/switch';
 import { useNotificationStore } from '@/stores';
 import { getLocation, updateLocation } from '@/lib/api/locations';
 import type { LocationFormData } from '@/types/location';
+import { LocationMapPicker } from '@/components/maps/LocationMapPicker';
 
 const locationSchema = z.object({
   name: z.string().min(2, 'Nama lokasi minimal 2 karakter'),
@@ -46,6 +47,7 @@ export default function LocationEditPage() {
     handleSubmit,
     setValue,
     reset,
+    watch,
     formState: { errors },
   } = useForm<LocationForm>({
     resolver: zodResolver(locationSchema),
@@ -266,12 +268,26 @@ export default function LocationEditPage() {
                 )}
               </div>
 
-              {/* Map Placeholder */}
-              <div className="h-[200px] rounded-lg bg-muted flex items-center justify-center border-2 border-dashed">
-                <div className="text-center text-muted-foreground">
-                  <MapPin className="h-8 w-8 mx-auto mb-2" />
-                  <p className="text-sm">Preview peta akan ditampilkan di sini</p>
-                </div>
+              {/* Map Picker */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Peta Lokasi
+                </label>
+                <LocationMapPicker
+                  latitude={parseFloat(watch('latitude') || '-6.2088')}
+                  longitude={parseFloat(watch('longitude') || '106.8456')}
+                  onLocationChange={(lat: number, lng: number, address?: string) => {
+                    setValue('latitude', lat.toString());
+                    setValue('longitude', lng.toString());
+                    if (address) {
+                      setValue('address', address);
+                    }
+                  }}
+                  height="300px"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Geser pin atau cari lokasi untuk memperbarui alamat dan koordinat secara otomatis
+                </p>
               </div>
             </CardContent>
           </Card>

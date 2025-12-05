@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Camera, CameraOff, CheckCircle2, XCircle, Loader2, AlertTriangle } from 'lucide-react';
+import { Camera, CameraOff, CheckCircle2, XCircle, Loader2, AlertTriangle, Smile } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { useFaceDetection } from '@/hooks/use-face-detection';
+import { faceDetectionService } from '@/lib/services/face-detection';
 import { cn } from '@/lib/utils';
 
 export interface FaceQuality {
@@ -25,11 +26,13 @@ export interface AutoCaptureFaceProps {
     className?: string;
 }
 
+type LivenessStep = 'idle' | 'detecting' | 'smile_check' | 'capturing' | 'success' | 'failed';
+
 export function AutoCaptureFace({
     onCapture,
     onError,
     autoCapture = true,
-    stabilityDuration = 1500,
+    stabilityDuration = 1000,
     confidenceThreshold = 0.7,
     className,
 }: AutoCaptureFaceProps) {
@@ -63,13 +66,14 @@ export function AutoCaptureFace({
         isGood: false,
     });
 
-    const [captureStatus, setCaptureStatus] = useState<'idle' | 'capturing' | 'success' | 'failed'>('idle');
+    const [livenessStep, setLivenessStep] = useState<LivenessStep>('idle');
     const [captureProgress, setCaptureProgress] = useState(0);
     const [showFlash, setShowFlash] = useState(false);
+    const [smileScore, setSmileScore] = useState(0);
 
     const stableStartTimeRef = useRef<number | null>(null);
-    const captureTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const hasCapturedRef = useRef(false);
+    const smileCheckIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     // Initialize camera on mount
     useEffect(() => {
@@ -78,6 +82,7 @@ export function AutoCaptureFace({
                 await initialize();
             }
             await startCamera();
+            setLivenessStep('detecting');
             startDetection();
         };
 
@@ -86,13 +91,13 @@ export function AutoCaptureFace({
         return () => {
             stopDetection();
             stopCamera();
-            if (captureTimeoutRef.current) {
-                clearTimeout(captureTimeoutRef.current);
+            if (smileCheckIntervalRef.current) {
+                clearInterval(smileCheckIntervalRef.current);
             }
         };
     }, []);
 
-    // Analyze face quality
+    // Analyze face quality (brightness & basic stability)
     const analyzeFaceQuality = useCallback((video: HTMLVideoElement): FaceQuality => {
         const canvas = document.createElement('canvas');
         canvas.width = video.videoWidth;
@@ -127,7 +132,7 @@ export function AutoCaptureFace({
 
         const hasFace = detectionStatus === 'detected';
         const faceConfidence = confidence;
-        const isBrightnessGood = brightness > 50 && brightness < 200;
+        const isBrightnessGood = brightness > 40 && brightness < 220; // Relaxed limits
         const isConfidenceGood = faceConfidence >= confidenceThreshold;
 
         let message = 'Mencari wajah...';
@@ -136,7 +141,7 @@ export function AutoCaptureFace({
         if (!hasFace) {
             message = '💡 Hadap ke kamera';
         } else if (!isBrightnessGood) {
-            if (brightness <= 50) {
+            if (brightness <= 40) {
                 message = '💡 Terlalu gelap';
             } else {
                 message = '☀️ Terlalu terang';
@@ -144,7 +149,7 @@ export function AutoCaptureFace({
         } else if (!isConfidenceGood) {
             message = '📸 Posisi wajah kurang jelas';
         } else {
-            message = '✅ Wajah terdeteksi dengan baik';
+            message = '✅ Wajah terdeteksi';
             isGood = true;
         }
 
@@ -159,73 +164,115 @@ export function AutoCaptureFace({
         };
     }, [detectionStatus, confidence, confidenceThreshold]);
 
-    // Monitor face quality and trigger auto-capture
+    // Check for smile (Liveness Detection)
+    const checkSmile = async () => {
+        if (!videoRef.current || livenessStep !== 'smile_check') return;
+
+        try {
+            // We use the full detection here to get expressions
+            const detections = await faceDetectionService.detectFaces(videoRef.current);
+
+            if (detections.length > 0) {
+                const expressions = detections[0].expressions;
+                const happyScore = expressions.asSortedArray().find(e => e.expression === 'happy')?.probability || 0;
+                setSmileScore(happyScore);
+
+                if (happyScore > 0.7) {
+                    // Smile detected!
+                    if (smileCheckIntervalRef.current) {
+                        clearInterval(smileCheckIntervalRef.current);
+                    }
+                    handleAutoCapture();
+                }
+            }
+        } catch (err) {
+            console.warn('Smile check failed', err);
+        }
+    };
+
+    // Main Face Detection Loop & Logic
     useEffect(() => {
-        if (!videoRef.current || !autoCapture || hasCapturedRef.current || captureStatus !== 'idle') {
+        if (!videoRef.current || !autoCapture || hasCapturedRef.current) {
             return;
         }
 
+        // 1. Analyze Quality
         const quality = analyzeFaceQuality(videoRef.current);
         setFaceQuality(quality);
 
-        if (quality.isGood) {
-            // Face is good quality
-            if (stableStartTimeRef.current === null) {
-                stableStartTimeRef.current = Date.now();
-            }
+        // 2. Handle Steps
+        if (livenessStep === 'detecting') {
+            if (quality.isGood) {
+                // If stable for duration, move to smile check
+                if (stableStartTimeRef.current === null) {
+                    stableStartTimeRef.current = Date.now();
+                }
 
-            const elapsed = Date.now() - stableStartTimeRef.current;
-            const progress = Math.min((elapsed / stabilityDuration) * 100, 100);
-            setCaptureProgress(progress);
+                const elapsed = Date.now() - stableStartTimeRef.current;
+                const progress = Math.min((elapsed / stabilityDuration) * 100, 100);
+                setCaptureProgress(progress);
 
-            if (elapsed >= stabilityDuration) {
-                // Trigger auto-capture
-                hasCapturedRef.current = true;
-                handleAutoCapture();
+                if (elapsed >= stabilityDuration) {
+                    setLivenessStep('smile_check');
+                    stableStartTimeRef.current = null;
+                    setCaptureProgress(0);
+
+                    // Start smile check interval
+                    smileCheckIntervalRef.current = setInterval(checkSmile, 200);
+                }
+            } else {
+                stableStartTimeRef.current = null;
+                setCaptureProgress(0);
             }
-        } else {
-            // Reset stability timer
-            stableStartTimeRef.current = null;
-            setCaptureProgress(0);
         }
-    }, [detectionStatus, confidence, autoCapture, captureStatus, analyzeFaceQuality, stabilityDuration]);
+    }, [detectionStatus, confidence, autoCapture, livenessStep, analyzeFaceQuality, stabilityDuration]);
+
+    // Clean up interval when step changes
+    useEffect(() => {
+        if (livenessStep !== 'smile_check' && smileCheckIntervalRef.current) {
+            clearInterval(smileCheckIntervalRef.current);
+            smileCheckIntervalRef.current = null;
+        }
+    }, [livenessStep]);
+
 
     const handleAutoCapture = async () => {
         if (!videoRef.current) return;
 
-        setCaptureStatus('capturing');
+        setLivenessStep('capturing');
         setShowFlash(true);
 
-        // Haptic feedback if available
+        // Haptic feedback
         if (navigator.vibrate) {
-            navigator.vibrate(100);
+            navigator.vibrate([100, 50, 100]);
         }
 
-        // Flash effect
         setTimeout(() => setShowFlash(false), 200);
 
         try {
             await onCapture(videoRef.current);
-            setCaptureStatus('success');
+            setLivenessStep('success');
+            hasCapturedRef.current = true;
         } catch (err) {
             console.error('Capture error:', err);
-            setCaptureStatus('failed');
+            setLivenessStep('failed');
             onError?.(err instanceof Error ? err.message : 'Gagal mengambil foto');
 
             // Reset for retry
             setTimeout(() => {
-                setCaptureStatus('idle');
+                setLivenessStep('detecting');
                 hasCapturedRef.current = false;
                 stableStartTimeRef.current = null;
                 setCaptureProgress(0);
+                setSmileScore(0);
             }, 2000);
         }
     };
 
     return (
-        <div className={cn('space-y-4', className)}>
-            {/* Camera View */}
-            <div className="relative aspect-video overflow-hidden rounded-lg bg-neutral-900">
+        <div className={cn('space-y-4 w-full max-w-md mx-auto', className)}>
+            {/* Camera View - Enlarged */}
+            <div className="relative aspect-[3/4] sm:aspect-square w-full overflow-hidden rounded-2xl bg-neutral-900 border-4 border-neutral-800 shadow-xl">
                 {cameraStatus === 'active' ? (
                     <>
                         <video
@@ -233,88 +280,90 @@ export function AutoCaptureFace({
                             autoPlay
                             playsInline
                             muted
-                            className="h-full w-full object-cover"
+                            className="h-full w-full object-cover scale-x-[-1]" // Flip horizontal
                         />
                         <canvas
                             ref={canvasRef}
-                            className="absolute inset-0 h-full w-full"
+                            className="absolute inset-0 h-full w-full scale-x-[-1]" // Flip canvas too
                         />
 
                         {/* Flash Effect */}
                         {showFlash && (
-                            <div className="absolute inset-0 bg-white animate-pulse" />
+                            <div className="absolute inset-0 bg-white animate-pulse z-50" />
                         )}
 
-                        {/* Status Overlays */}
-                        {captureStatus === 'idle' && (
-                            <>
-                                {/* No face detected */}
-                                {!faceQuality.hasFace && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                                        <div className="text-center">
-                                            <Camera className="mx-auto h-12 w-12 text-white/70 animate-pulse" />
-                                            <p className="mt-2 text-sm text-white/70">{faceQuality.message}</p>
-                                        </div>
-                                    </div>
-                                )}
+                        {/* Guides / Overlays */}
+                        {livenessStep !== 'capturing' && livenessStep !== 'success' && (
+                            <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/80 to-transparent flex flex-col items-center gap-3">
 
-                                {/* Face detected - show quality feedback */}
-                                {faceQuality.hasFace && (
-                                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 space-y-2">
+                                {/* Step 1: Detecting Face */}
+                                {livenessStep === 'detecting' && (
+                                    <>
                                         <Badge
-                                            className={cn(
-                                                'gap-1 border-0',
-                                                faceQuality.isGood
-                                                    ? 'bg-success'
-                                                    : 'bg-warning'
+                                            variant={faceQuality.isGood ? "default" : "destructive"}
+                                            className={cn("px-4 py-1 text-sm transition-all",
+                                                faceQuality.isGood ? "bg-blue-500 hover:bg-blue-600" : ""
                                             )}
                                         >
-                                            {faceQuality.isGood ? (
-                                                <CheckCircle2 className="h-3 w-3" />
-                                            ) : (
-                                                <AlertTriangle className="h-3 w-3" />
-                                            )}
                                             {faceQuality.message}
                                         </Badge>
 
                                         {/* Stability Progress */}
-                                        {faceQuality.isGood && captureProgress > 0 && (
-                                            <div className="bg-black/50 backdrop-blur-sm rounded-full px-3 py-1">
-                                                <Progress value={captureProgress} className="h-1 w-32" />
+                                        {faceQuality.isGood && (
+                                            <div className="w-full max-w-[200px] space-y-1">
+                                                <div className="flex justify-between text-xs text-white/80 px-1">
+                                                    <span>Tahan posisi...</span>
+                                                </div>
+                                                <Progress value={captureProgress} className="h-2" />
                                             </div>
+                                        )}
+                                    </>
+                                )}
+
+                                {/* Step 2: Smile Check */}
+                                {livenessStep === 'smile_check' && (
+                                    <div className="animate-in slide-in-from-bottom-5 fade-in duration-300 flex flex-col items-center gap-3">
+                                        <div className="p-3 bg-yellow-500/20 backdrop-blur-md rounded-full border border-yellow-500/50 animate-bounce">
+                                            <Smile className="w-8 h-8 text-yellow-400" />
+                                        </div>
+                                        <div className="text-center space-y-1">
+                                            <h3 className="text-xl font-bold text-white tracking-wide drop-shadow-md">
+                                                Silakan Senyum! 😊
+                                            </h3>
+                                            <p className="text-sm text-white/70">
+                                                Validasi kehidupan
+                                            </p>
+                                        </div>
+                                        {smileScore > 0 && (
+                                            <Progress value={smileScore * 100} className="w-32 h-2 mt-2" />
                                         )}
                                     </div>
                                 )}
-                            </>
+                            </div>
                         )}
 
-                        {/* Capturing */}
-                        {captureStatus === 'capturing' && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/60">
-                                <div className="text-center">
-                                    <Loader2 className="mx-auto h-12 w-12 text-primary animate-spin" />
-                                    <p className="mt-2 text-sm text-white">Memproses...</p>
-                                </div>
+                        {/* Processing */}
+                        {livenessStep === 'capturing' && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm z-40">
+                                <Loader2 className="h-12 w-12 text-primary animate-spin" />
+                                <p className="mt-4 text-lg font-medium text-white">Memverifikasi...</p>
                             </div>
                         )}
 
                         {/* Success */}
-                        {captureStatus === 'success' && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-success/30">
-                                <div className="text-center">
-                                    <CheckCircle2 className="mx-auto h-16 w-16 text-success" />
-                                    <p className="mt-2 text-lg font-semibold text-white">Foto diambil!</p>
-                                </div>
+                        {livenessStep === 'success' && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-success/80 backdrop-blur-sm z-40 animate-in fade-in zoom-in">
+                                <CheckCircle2 className="h-20 w-20 text-white drop-shadow-lg" />
+                                <p className="mt-4 text-xl font-bold text-white">Berhasil!</p>
                             </div>
                         )}
 
                         {/* Failed */}
-                        {captureStatus === 'failed' && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-destructive/30">
-                                <div className="text-center">
-                                    <XCircle className="mx-auto h-16 w-16 text-destructive" />
-                                    <p className="mt-2 text-lg font-semibold text-white">Gagal</p>
-                                </div>
+                        {livenessStep === 'failed' && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-destructive/80 backdrop-blur-sm z-40 animate-in fade-in zoom-in">
+                                <XCircle className="h-20 w-20 text-white drop-shadow-lg" />
+                                <p className="mt-4 text-xl font-bold text-white">Gagal</p>
+                                <p className="text-white/80">Silakan coba lagi</p>
                             </div>
                         )}
                     </>
@@ -322,6 +371,7 @@ export function AutoCaptureFace({
                     <div className="flex h-full flex-col items-center justify-center gap-4">
                         <CameraOff className="h-12 w-12 text-muted-foreground" />
                         <p className="text-muted-foreground">Mengaktifkan kamera...</p>
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
                     </div>
                 )}
             </div>
@@ -330,7 +380,7 @@ export function AutoCaptureFace({
             {error && (
                 <Alert variant="destructive">
                     <XCircle className="h-4 w-4" />
-                    <AlertTitle>Error</AlertTitle>
+                    <AlertTitle>Error Kamera</AlertTitle>
                     <AlertDescription>{error}</AlertDescription>
                 </Alert>
             )}

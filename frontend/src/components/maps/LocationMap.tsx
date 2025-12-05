@@ -44,6 +44,7 @@ interface LocationMapProps {
   };
   isWithinRadius?: boolean;
   distance?: number; // in meters
+  className?: string;
 }
 
 // Component to auto-fit bounds
@@ -62,7 +63,7 @@ function FitBounds({ userLocation, officeLocation }: { userLocation: [number, nu
   return null;
 }
 
-export function LocationMap({ userLocation, officeLocation, isWithinRadius, distance }: LocationMapProps) {
+export function LocationMap({ userLocation, officeLocation, isWithinRadius, distance, className }: LocationMapProps) {
   const userPos: [number, number] = [userLocation.latitude, userLocation.longitude];
   const officePos: [number, number] | undefined =
     officeLocation &&
@@ -72,7 +73,7 @@ export function LocationMap({ userLocation, officeLocation, isWithinRadius, dist
       : undefined;
 
   return (
-    <div className="relative w-full h-[400px] rounded-2xl overflow-hidden shadow-lg border-2 border-border">
+    <div className={`relative w-full rounded-2xl overflow-hidden shadow-lg border-2 border-border ${className || 'h-[400px]'}`}>
       <MapContainer
         center={userPos}
         zoom={15}

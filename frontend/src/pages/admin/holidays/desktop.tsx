@@ -69,6 +69,7 @@ import { useHolidays } from '@/hooks/use-holidays';
 import {
     holidayTypeLabels,
     holidayTypeColors,
+    holidayTypeColorClasses,
     holidayStatusLabels,
     holidayStatusColors,
     type Holiday,
@@ -76,17 +77,14 @@ import {
     type HolidayFormData,
     type HolidayStatistics,
 } from '@/types/holiday';
+import { GenerateHolidaysDialog } from './GenerateHolidaysDialog';
 
 // Type badge component
 function TypeBadge({ type }: { type: HolidayType }) {
     return (
         <Badge
             variant="outline"
-            style={{
-                borderColor: holidayTypeColors[type],
-                color: holidayTypeColors[type],
-                backgroundColor: `${holidayTypeColors[type]}10`,
-            }}
+            className={`${holidayTypeColorClasses[type].border} ${holidayTypeColorClasses[type].text} ${holidayTypeColorClasses[type].bgSoft}`}
         >
             {holidayTypeLabels[type]}
         </Badge>
@@ -169,8 +167,8 @@ function CalendarView({ holidays, currentMonth, onMonthChange }: {
                     {dayHolidays.slice(0, 2).map((h) => (
                         <div
                             key={h.id}
-                            className="truncate rounded px-1 py-0.5 text-xs text-white"
-                            style={{ backgroundColor: holidayTypeColors[h.type] }}
+                            className={`truncate rounded px-1 py-0.5 text-xs text-white ${!h.color ? holidayTypeColorClasses[h.type].bg : ''}`}
+                            style={h.color ? { backgroundColor: h.color } : undefined}
                             title={h.name}
                         >
                             {h.name}
@@ -244,20 +242,10 @@ function HolidayFormDialog({
     onSubmit: (data: HolidayFormData) => Promise<void>;
     isLoading: boolean;
 }) {
-    const [formData, setFormData] = useState<HolidayFormData>({
-        name: '',
-        description: '',
-        date: new Date().toISOString().split('T')[0],
-        end_date: '',
-        type: 'public_holiday',
-        is_recurring: false,
-        is_paid: true,
-        color: '#DC2626',
-    });
-
-    useEffect(() => {
+    // Initialize state from props directly since we force remount on open/holiday change
+    const [formData, setFormData] = useState<HolidayFormData>(() => {
         if (holiday) {
-            setFormData({
+            return {
                 name: holiday.name,
                 description: holiday.description || '',
                 date: holiday.date,
@@ -266,20 +254,19 @@ function HolidayFormDialog({
                 is_recurring: holiday.is_recurring,
                 is_paid: holiday.is_paid,
                 color: holiday.color || holidayTypeColors[holiday.type],
-            });
-        } else {
-            setFormData({
-                name: '',
-                description: '',
-                date: new Date().toISOString().split('T')[0],
-                end_date: '',
-                type: 'public_holiday',
-                is_recurring: false,
-                is_paid: true,
-                color: '#DC2626',
-            });
+            };
         }
-    }, [holiday, open]);
+        return {
+            name: '',
+            description: '',
+            date: new Date().toISOString().split('T')[0],
+            end_date: '',
+            type: 'public_holiday',
+            is_recurring: false,
+            is_paid: true,
+            color: '#DC2626',
+        };
+    });
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -423,21 +410,17 @@ export function DesktopHolidaysPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [typeFilter, setTypeFilter] = useState<HolidayType | 'all'>('all');
     const [yearFilter, setYearFilter] = useState(new Date().getFullYear());
+    const [isGenerateOpen, setIsGenerateOpen] = useState(false);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingHoliday, setEditingHoliday] = useState<Holiday | null>(null);
     const [deletingHoliday, setDeletingHoliday] = useState<Holiday | null>(null);
     const [stats, setStats] = useState<HolidayStatistics | null>(null);
     const [currentMonth, setCurrentMonth] = useState(new Date());
 
-    const loadStats = async () => {
-        const statistics = await getStatistics();
-        setStats(statistics);
-    };
-
     useEffect(() => {
         fetchHolidays({ year: yearFilter });
-        loadStats();
-    }, [fetchHolidays, yearFilter]);
+        getStatistics(yearFilter).then(setStats);
+    }, [fetchHolidays, yearFilter, getStatistics]);
 
     const handleSearch = () => {
         fetchHolidays({
@@ -449,18 +432,20 @@ export function DesktopHolidaysPage() {
 
     useEffect(() => {
         handleSearch();
-    }, [typeFilter, yearFilter]);
+    }, [typeFilter, yearFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleCreate = async (data: HolidayFormData) => {
         await createHoliday(data);
-        loadStats();
+        const newStats = await getStatistics(yearFilter);
+        setStats(newStats);
     };
 
     const handleUpdate = async (data: HolidayFormData) => {
         if (editingHoliday) {
             await updateHoliday(editingHoliday.id, data);
             setEditingHoliday(null);
-            loadStats();
+            const newStats = await getStatistics(yearFilter);
+            setStats(newStats);
         }
     };
 
@@ -468,7 +453,8 @@ export function DesktopHolidaysPage() {
         if (deletingHoliday) {
             await deleteHoliday(deletingHoliday.id);
             setDeletingHoliday(null);
-            loadStats();
+            const newStats = await getStatistics(yearFilter);
+            setStats(newStats);
         }
     };
 
@@ -515,24 +501,32 @@ export function DesktopHolidaysPage() {
         <div className="space-y-4 p-4 sm:space-y-6 sm:p-6">
             {/* Page Header */}
             <PageHeader
-                title="Manajemen Hari Libur"
-                description="Kelola kalender hari libur dan cuti bersama"
-                icon={CalendarDays}
+                title="Hari Libur"
+                description="Kelola hari libur nasional dan cuti bersama"
                 actions={
-                    <Button
-                        onClick={() => {
+                    <div className="flex gap-2">
+                        <Button variant="outline" onClick={() => setIsGenerateOpen(true)}>
+                            <RefreshCcw className="mr-2 h-4 w-4" />
+                            Generate Otomatis
+                        </Button>
+                        <Button onClick={() => {
                             setEditingHoliday(null);
                             setIsFormOpen(true);
-                        }}
-                    >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Tambah Hari Libur
-                    </Button>
+                        }}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Tambah Hari Libur
+                        </Button>
+                    </div>
                 }
             />
 
             {/* Stats */}
             {stats && <StatsGrid stats={statsItems} columns={4} variant="cards" />}
+
+            <GenerateHolidaysDialog
+                open={isGenerateOpen}
+                onOpenChange={setIsGenerateOpen}
+            />
 
             {/* Tabs */}
             <Tabs defaultValue="list">
@@ -634,8 +628,8 @@ export function DesktopHolidaysPage() {
                                                     <TableCell>
                                                         <div className="flex items-center gap-3">
                                                             <div
-                                                                className="h-3 w-3 rounded-full"
-                                                                style={{ backgroundColor: holiday.color || holidayTypeColors[holiday.type] }}
+                                                                className={`h-3 w-3 rounded-full ${!holiday.color ? holidayTypeColorClasses[holiday.type].bg : ''}`}
+                                                                style={holiday.color ? { backgroundColor: holiday.color } : undefined}
                                                             />
                                                             <div>
                                                                 <div className="font-medium">{holiday.name}</div>
@@ -740,6 +734,7 @@ export function DesktopHolidaysPage() {
 
             {/* Holiday Form Dialog */}
             <HolidayFormDialog
+                key={`${isFormOpen}-${editingHoliday?.id || 'new'}`}
                 open={isFormOpen}
                 onOpenChange={(open) => {
                     setIsFormOpen(open);

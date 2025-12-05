@@ -10,6 +10,7 @@ import type {
   GeneratedReport,
   ReportTemplate,
   ReportFilters,
+  GenerateReportResponse,
 } from '@/types/reports';
 
 export interface ReportsFilters extends ReportFilters {
@@ -84,8 +85,8 @@ export async function getLeaveStats(filters?: ReportFilters): Promise<LeaveStats
 }
 
 // Generate a new report
-export async function generateReport(data: GenerateReportRequest): Promise<GeneratedReport> {
-  const response = await apiClient.post<{ data: GeneratedReport }>(ENDPOINTS.generate, data);
+export async function generateReport(data: GenerateReportRequest): Promise<GenerateReportResponse> {
+  const response = await apiClient.post<{ data: GenerateReportResponse }>(ENDPOINTS.generate, data);
   return response.data.data;
 }
 

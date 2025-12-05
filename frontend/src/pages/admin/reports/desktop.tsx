@@ -57,7 +57,7 @@ import {
   deleteReportTemplate,
   waitForReportCompletion,
 } from '@/lib/api/reports';
-import type { ReportFormat } from '@/types/reports';
+import type { ReportFormat, ReportTemplate } from '@/types/reports';
 import { format, subMonths } from 'date-fns';
 import { id } from 'date-fns/locale';
 
@@ -176,16 +176,8 @@ export function DesktopReportsPage() {
       toast.loading('Laporan sedang diproses. Mohon tunggu...');
 
       // The API returns { report: GeneratedReport, download_url: string, ... }
-      // But the type definition for generateReport return value might be misleading or the API response wrapper is confusing.
-      // Based on logs: { report: {...}, download_url: '...', ... }
-      // So response is actually that object.
-
-      // We need to cast or handle the response structure. 
-      // Let's assume response is `any` for a moment to fix the access, or we should update the type.
-      // For now, let's fix the access in this file.
-
-      const reportData = (response as any).report || response;
-      const downloadUrl = (response as any).download_url || reportData.download_url;
+      const reportData = response.report;
+      const downloadUrl = response.download_url || reportData.download_url;
 
       let report = reportData;
 
@@ -317,10 +309,10 @@ export function DesktopReportsPage() {
   };
 
   // Generate report from template
-  const handleGenerateFromTemplate = async (template: any) => {
+  const handleGenerateFromTemplate = async (template: ReportTemplate) => {
     setIsExporting(true);
     try {
-      const initialReport = await generateReport({
+      const response = await generateReport({
         type: template.report_type, // Changed from report_type
         format: 'pdf',
         start_date: filters.start_date,
@@ -328,19 +320,20 @@ export function DesktopReportsPage() {
         filters: { columns: template.columns }, // Changed from columns to filters
       });
 
-      console.log('DEBUG: Initial template report response:', initialReport);
+      console.log('DEBUG: Initial template report response:', response);
       toast.loading('Laporan dari template sedang diproses...');
 
-      let report = initialReport;
+      let report = response.report;
 
       // Only poll if not already completed
-      if (initialReport.status !== 'completed') {
-        report = await waitForReportCompletion(initialReport.id);
+      if (report.status !== 'completed') {
+        report = await waitForReportCompletion(report.id);
       }
 
       // If we have a direct download URL, use it
-      if (report.download_url) {
-        window.open(report.download_url, '_blank');
+      const downloadUrl = response.download_url || report.download_url;
+      if (downloadUrl) {
+        window.open(downloadUrl, '_blank');
         toast.success(`Laporan dari template "${template.name}" sedang diunduh!`);
       } else {
         const blob = await downloadReport(report.id);
@@ -635,7 +628,7 @@ export function DesktopReportsPage() {
               {/* Report Type Selection */}
               <div className="space-y-3">
                 <label className="text-sm font-semibold">Tipe Laporan</label>
-                <Select value={reportType} onValueChange={(value: any) => setReportType(value)}>
+                <Select value={reportType} onValueChange={(value) => setReportType(value as any)}>
                   <SelectTrigger className="h-11">
                     <SelectValue />
                   </SelectTrigger>
@@ -953,7 +946,7 @@ export function DesktopReportsPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="template-type">Tipe Laporan</Label>
-              <Select value={templateType} onValueChange={(value: any) => setTemplateType(value)}>
+              <Select value={templateType} onValueChange={(value) => setTemplateType(value as any)}>
                 <SelectTrigger id="template-type">
                   <SelectValue />
                 </SelectTrigger>

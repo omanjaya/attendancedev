@@ -27,6 +27,7 @@ import {
 import { useAuthStore } from '@/stores';
 import { useQuery } from '@tanstack/react-query';
 import { getTodayAttendance } from '@/lib/api/attendance';
+import { getEmployeeDashboardData } from '@/lib/api/employees';
 
 export function MobileEmployeeAttendancePage() {
   const navigate = useNavigate();
@@ -39,12 +40,23 @@ export function MobileEmployeeAttendancePage() {
   const [pendingAction, setPendingAction] = useState<'check_in' | 'check_out' | null>(null);
 
   // Fetch today's attendance
-  const { data: todayAttendance, refetch } = useQuery({
+  const { data: todayAttendance } = useQuery({
     queryKey: ['attendance-today', user?.id],
     queryFn: getTodayAttendance,
     enabled: !!user?.id,
     refetchInterval: 30000, // Refetch every 30 seconds
   });
+
+  // Fetch dashboard stats for schedule info
+  const { data: dashboardStats } = useQuery({
+    queryKey: ['employee', 'dashboard-stats', user?.id],
+    queryFn: getEmployeeDashboardData,
+    enabled: !!user?.id,
+  });
+
+  const canAttend = dashboardStats?.schedule.today.can_attend ?? true;
+  const scheduleMessage = dashboardStats?.schedule.today.message;
+  const scheduleType = dashboardStats?.schedule.today.schedule_type;
 
   useEffect(() => {
     const updateTime = () => {
@@ -72,6 +84,11 @@ export function MobileEmployeeAttendancePage() {
   }, []);
 
   const handleActionClick = (type: 'check_in' | 'check_out') => {
+    if (!canAttend) {
+      // We can show a toast or modal here, but for now rely on the UI state
+      return;
+    }
+
     // Check if already attended
     const alreadyAttended = type === 'check_in'
       ? (todayAttendance?.has_checked_in || !!todayAttendance?.attendance?.check_in_time || !!todayAttendance?.attendance?.check_in)
@@ -222,19 +239,25 @@ export function MobileEmployeeAttendancePage() {
             {/* Datang (Check In) */}
             <button
               onClick={() => handleActionClick('check_in')}
-              className="w-full bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 dark:from-emerald-600 dark:to-emerald-700 dark:hover:from-emerald-700 dark:hover:to-emerald-800 rounded-xl p-3 shadow-lg shadow-emerald-500/30 dark:shadow-emerald-600/20 transition-all active:scale-[0.98] group"
+              disabled={!canAttend}
+              className={`w-full rounded-xl p-3 shadow-lg transition-all active:scale-[0.98] group ${canAttend
+                ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 dark:from-emerald-600 dark:to-emerald-700 dark:hover:from-emerald-700 dark:hover:to-emerald-800 shadow-emerald-500/30 dark:shadow-emerald-600/20'
+                : 'bg-muted cursor-not-allowed opacity-70'
+                }`}
             >
               <div className="flex items-center gap-2.5">
-                <div className="bg-white/20 dark:bg-white/10 backdrop-blur-sm rounded-lg p-2 border border-white/10">
-                  <LogIn className="h-5 w-5 text-white drop-shadow-sm" />
+                <div className={`backdrop-blur-sm rounded-lg p-2 border border-white/10 ${canAttend ? 'bg-white/20 dark:bg-white/10' : 'bg-gray-400/20'}`}>
+                  <LogIn className={`h-5 w-5 drop-shadow-sm ${canAttend ? 'text-white' : 'text-muted-foreground'}`} />
                 </div>
                 <div className="flex-1 text-left">
-                  <h3 className="text-base font-bold text-white drop-shadow-sm">Datang</h3>
-                  <p className="text-xs text-white/90 dark:text-white/80 line-clamp-1">
-                    Absensi wajib yang dipergunakan pada saat datang di hari kerja
+                  <h3 className={`text-base font-bold drop-shadow-sm ${canAttend ? 'text-white' : 'text-muted-foreground'}`}>
+                    {canAttend ? 'Datang' : (scheduleType === 'holiday' ? 'Libur' : 'Tidak Ada Jadwal')}
+                  </h3>
+                  <p className={`text-xs line-clamp-1 ${canAttend ? 'text-white/90 dark:text-white/80' : 'text-muted-foreground'}`}>
+                    {canAttend ? 'Absensi wajib yang dipergunakan pada saat datang di hari kerja' : (scheduleMessage || 'Absensi tidak tersedia hari ini')}
                   </p>
                 </div>
-                <ChevronRight className="h-5 w-5 text-white/90 group-hover:translate-x-1 transition-transform" />
+                {canAttend && <ChevronRight className="h-5 w-5 text-white/90 group-hover:translate-x-1 transition-transform" />}
               </div>
             </button>
 
@@ -371,8 +394,8 @@ export function MobileEmployeeAttendancePage() {
                 </p>
                 <p className="text-lg font-bold">
                   {formatTime(pendingAction === 'check_in'
-                    ? (todayAttendance?.attendance?.check_in_time || todayAttendance?.attendance?.check_in)
-                    : (todayAttendance?.attendance?.check_out_time || todayAttendance?.attendance?.check_out))}
+                    ? (todayAttendance?.attendance?.check_in_time || todayAttendance?.attendance?.check_in || null)
+                    : (todayAttendance?.attendance?.check_out_time || todayAttendance?.attendance?.check_out || null))}
                 </p>
                 <p className="text-sm text-muted-foreground mt-2">
                   Apakah Anda ingin absen ulang? Data absensi lama akan diganti dengan yang baru.

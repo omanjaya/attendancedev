@@ -102,7 +102,7 @@ export function DesktopProfilePage() {
     const deleteFaceMutation = useDeleteFace();
     const {
         videoRef,
-        cameraStatus,
+        cameraStatus: _cameraStatus,
         errorMessage,
         startCamera,
         stopCamera,
@@ -354,6 +354,8 @@ export function DesktopProfilePage() {
                                     className="hidden"
                                     accept="image/*"
                                     onChange={handleAvatarUpload}
+                                    title="Upload Avatar"
+                                    aria-label="Upload Avatar"
                                 />
                                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
                                     <Button

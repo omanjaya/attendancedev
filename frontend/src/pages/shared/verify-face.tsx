@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { Loader2, CheckCircle2, XCircle, Camera, User, AlertTriangle } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, User, AlertTriangle, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { verifyFaceDeepFace } from '@/lib/api/face-recognition';
 import { checkIn, checkOut } from '@/lib/api/attendance';
 import { useAuthStore } from '@/stores';
-import { useCameraCapture } from '@/hooks/use-camera-capture';
+import { AutoCaptureFace } from '@/components/attendance/auto-capture-face';
 import type { CheckRequest } from '@/types/attendance';
 
 interface FaceVerificationState {
@@ -32,133 +32,114 @@ export function VerifyFacePage() {
   const type = search.type || 'check-in';
   const overwrite = search.overwrite;
 
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [faceState, setFaceState] = useState<FaceVerificationState>({
     status: 'camera',
     message: 'Mengaktifkan kamera...',
   });
 
-  const {
-    videoRef,
-    errorMessage,
-    startCamera,
-    stopCamera,
-    captureImage,
-  } = useCameraCapture();
-
   const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
 
-  // Initialize and start camera
+  // Auto-submit effect
   useEffect(() => {
-    const init = async () => {
-      try {
-        await startCamera();
-        setFaceState({ status: 'ready', message: 'Siap! Tekan tombol untuk verifikasi wajah' });
-      } catch (error) {
-        console.error('Camera error:', error);
-        setFaceState({
-          status: 'failed',
-          message: 'Gagal mengakses kamera',
-          error: errorMessage || 'Tidak dapat mengakses kamera',
-        });
-      }
-    };
-
-    init();
-
-    return () => {
-      stopCamera();
-    };
-  }, []);
+    let timer: NodeJS.Timeout;
+    if (faceState.status === 'verified' && !showOverwriteConfirm) {
+      timer = setTimeout(() => {
+        handleConfirm();
+      }, 2000); // 2 seconds delay
+    }
+    return () => clearTimeout(timer);
+  }, [faceState.status, showOverwriteConfirm]);
 
   const handleCancel = () => {
-    stopCamera();
     const isAdmin = user?.role === 'admin' || user?.role === 'super-admin' || user?.role === 'kepala-sekolah';
     navigate({ to: isAdmin ? '/admin/attendance' : '/employee/attendance' });
   };
 
-  const handleRetry = async () => {
-    setCapturedImage(null);
+  const handleRetry = () => {
     setFaceState({
-      status: 'ready',
-      message: 'Siap! Tekan tombol untuk verifikasi wajah',
+      status: 'camera',
+      message: 'Mengaktifkan kamera...',
     });
-    await startCamera();
   };
 
-  const handleCapture = async () => {
-    if (faceState.status !== 'ready') return;
+  const onFaceCaptured = async (videoElement: HTMLVideoElement) => {
+    setFaceState({
+      status: 'verifying',
+      message: 'Memverifikasi wajah (DeepFace ArcFace)...',
+    });
 
-    try {
-      setFaceState({
-        status: 'capturing',
-        message: 'Mengambil gambar...',
-      });
+    // Capture image from video
+    const canvas = document.createElement('canvas');
+    canvas.width = videoElement.videoWidth;
+    canvas.height = videoElement.videoHeight;
+    const ctx = canvas.getContext('2d');
 
-      // Capture image from video
-      const imageFile = await captureImage();
+    if (!ctx) {
+      setFaceState({ status: 'failed', message: 'Gagal memproses gambar', error: 'Canvas context error' });
+      return;
+    }
 
-      // Convert to data URL for preview
-      const reader = new FileReader();
-      reader.onload = () => {
-        setCapturedImage(reader.result as string);
-      };
-      reader.readAsDataURL(imageFile);
+    ctx.drawImage(videoElement, 0, 0);
 
-      setFaceState({
-        status: 'verifying',
-        message: 'Memverifikasi dengan DeepFace ArcFace...',
-      });
+    // Convert to file
+    canvas.toBlob(async (blob) => {
+      if (!blob) {
+        setFaceState({ status: 'failed', message: 'Gagal mengambil gambar', error: 'Blob conversion failed' });
+        return;
+      }
 
-      // Verify face with DeepFace (includes liveness detection)
-      const result = await verifyFaceDeepFace(imageFile);
+      const imageFile = new File([blob], "capture.jpg", { type: "image/jpeg" });
 
-      // Extract data from nested response or top-level (fallback)
-      const resultData = result.data || result;
-      const employee = result.employee || resultData.employee || resultData.employee_data;
-      const confidence = result.confidence || resultData.confidence;
-      const distance = result.distance || resultData.distance;
-      const similarity = result.similarity || resultData.similarity;
-      const livenessPassed = result.liveness_passed || resultData.liveness_passed;
-      const isMatched = result.matched || resultData.matched;
+      try {
+        // Verify face with DeepFace (includes liveness detection)
+        const result = await verifyFaceDeepFace(imageFile);
 
-      if (result.success && isMatched && employee) {
-        setFaceState({
-          status: 'verified',
-          message: 'Wajah terverifikasi dengan DeepFace!',
-          employeeName: employee.name || employee.full_name,
-          employeeCode: employee.employee_code || employee.employee_id,
-          similarity: similarity,
-          distance: distance,
-          confidence: confidence,
-          liveness_passed: livenessPassed,
-        });
+        // Extract data from nested response or top-level (fallback)
+        const resultData = result.data || result;
+        const employee = result.employee || resultData.employee || resultData.employee_data;
+        const confidence = result.confidence || resultData.confidence;
+        const distance = result.distance || resultData.distance;
+        const similarity = result.similarity || resultData.similarity;
+        const livenessPassed = result.liveness_passed || resultData.liveness_passed;
+        const isMatched = result.matched || resultData.matched;
 
-        stopCamera();
-      } else {
-        let errorMessage = result.message || 'Silakan coba lagi atau hubungi admin untuk registrasi wajah';
-        let statusMessage = 'Wajah tidak dikenali';
+        if (result.success && isMatched && employee) {
+          setFaceState({
+            status: 'verified',
+            message: 'Wajah terverifikasi dengan DeepFace!',
+            employeeName: employee.name || employee.full_name,
+            employeeCode: employee.employee_code || employee.employee_id,
+            similarity: similarity,
+            distance: distance,
+            confidence: confidence,
+            liveness_passed: livenessPassed,
+          });
+        } else {
+          let errorMessage = result.message || 'Silakan coba lagi atau hubungi admin untuk registrasi wajah';
+          let statusMessage = 'Wajah tidak dikenali';
 
-        // Handle case where face is matched but employee data is missing in response
-        if (isMatched && !employee) {
-          statusMessage = 'Data Karyawan Tidak Ditemukan';
-          errorMessage = 'Wajah dikenali di sistem tetapi data karyawan terkait tidak ditemukan.';
+          // Handle case where face is matched but employee data is missing in response
+          if (isMatched && !employee) {
+            statusMessage = 'Data Karyawan Tidak Ditemukan';
+            errorMessage = 'Wajah dikenali di sistem tetapi data karyawan terkait tidak ditemukan.';
+          }
+
+          setFaceState({
+            status: 'failed',
+            message: statusMessage,
+            error: errorMessage,
+          });
         }
-
+      } catch (error: any) {
+        console.error('DeepFace verification error:', error);
         setFaceState({
           status: 'failed',
-          message: statusMessage,
-          error: errorMessage,
+          message: 'Gagal memverifikasi wajah',
+          error: error.response?.data?.message || error.message || 'Terjadi kesalahan saat verifikasi',
         });
       }
-    } catch (error: any) {
-      console.error('DeepFace verification error:', error);
-      setFaceState({
-        status: 'failed',
-        message: 'Gagal memverifikasi wajah',
-        error: error.response?.data?.message || error.message || 'Terjadi kesalahan saat verifikasi',
-      });
-    }
+
+    }, 'image/jpeg', 0.95);
   };
 
   const getCurrentLocation = (): Promise<{ latitude: number; longitude: number }> => {
@@ -219,7 +200,7 @@ export function VerifyFacePage() {
           longitude: location.longitude,
         },
         type: type === 'check-in' ? 'check_in' : 'check_out',
-        face_confidence: Number(faceState.confidence || faceState.similarity || 0),
+        face_confidence: faceState.confidence ?? faceState.similarity ?? 0,
         latitude: location.latitude,
         longitude: location.longitude,
         notes: `${type === 'check-in' ? 'Check-in' : 'Check-out'} via server-side face recognition`,
@@ -294,125 +275,48 @@ export function VerifyFacePage() {
     handleCancel();
   };
 
-  // ... (existing handleCancel, handleRetry)
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-muted/30 via-background to-background dark:from-gray-950 dark:via-gray-900 dark:to-gray-900">
-      {/* ... (existing header) */}
 
       {/* Content */}
-      <div className="px-4 pb-4">
-        <div className="bg-card rounded-3xl p-6 shadow-xl border border-border/50 space-y-6">
-          {/* Camera/Captured Image View */}
+      <div className="px-4 py-8">
+        <div className="bg-card rounded-3xl p-6 shadow-xl border border-border/50 space-y-6 max-w-lg mx-auto">
+
+          <div className="text-center space-y-2">
+            <h1 className="text-2xl font-bold">Verifikasi Wajah</h1>
+            <p className="text-muted-foreground text-sm">Validasi kehadiran Anda</p>
+          </div>
+
+          {/* Camera/Active Verification */}
           {(faceState.status === 'camera' || faceState.status === 'ready' || faceState.status === 'capturing' || faceState.status === 'verifying') && (
-            <div className="relative">
-              <div className="relative rounded-2xl overflow-hidden bg-black aspect-[4/3]">
-                {!capturedImage ? (
-                  <>
-                    <video
-                      ref={videoRef}
-                      className="w-full h-full object-cover"
-                      autoPlay
-                      muted
-                      playsInline
-                    />
-
-                    {/* Camera Loading Overlay */}
-                    {faceState.status === 'camera' && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-10">
-                        <div className="text-center text-white">
-                          <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin" />
-                          <p className="text-sm">{faceState.message}</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Ready State - Show Capture Button Hint */}
-                    {faceState.status === 'ready' && (
-                      <div className="absolute top-4 left-0 right-0 flex justify-center z-20">
-                        <div className="bg-emerald-500/90 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg">
-                          Siap - Tekan tombol di bawah
-                        </div>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <img
-                    src={capturedImage}
-                    alt="Captured"
-                    className="w-full h-full object-cover"
-                  />
-                )}
-              </div>
-
-              {/* Status message */}
-              {(faceState.status === 'capturing' || faceState.status === 'verifying') && (
-                <div className="absolute bottom-4 left-0 right-0 flex justify-center z-20">
-                  <div className="bg-black/70 backdrop-blur-sm px-4 py-2 rounded-full flex items-center gap-2">
-                    <Loader2 className="h-3 w-3 animate-spin text-white" />
-                    <p className="text-white text-xs text-center">
-                      {faceState.message}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Capture Button - Only show when ready */}
-          {faceState.status === 'ready' && (
-            <Button
-              onClick={handleCapture}
-              className="w-full bg-emerald-600 hover:bg-emerald-700"
-              size="lg"
-            >
-              <Camera className="h-5 w-5 mr-2" />
-              Verifikasi Wajah Sekarang
-            </Button>
+            <AutoCaptureFace
+              onCapture={onFaceCaptured}
+              onError={(err) => setFaceState({ status: 'failed', message: 'Gagal kamera', error: err })}
+              autoCapture={true}
+              stabilityDuration={1000}
+              className="w-full"
+            />
           )}
 
           {/* Success State */}
           {faceState.status === 'verified' && !showOverwriteConfirm && (
             <div className="text-center py-8">
-              {/* ... (existing success UI) */}
-              <div className="bg-emerald-50 dark:bg-emerald-950/50 rounded-full p-4 w-fit mx-auto mb-4 border-4 border-emerald-100 dark:border-emerald-900">
+              <div className="bg-emerald-50 dark:bg-emerald-950/50 rounded-full p-4 w-fit mx-auto mb-4 border-4 border-emerald-100 dark:border-emerald-900 animate-in zoom-in spin-in-3">
                 <CheckCircle2 className="h-16 w-16 text-emerald-600 dark:text-emerald-400" />
               </div>
-              <h2 className="text-xl font-bold mb-2">Wajah Ditemukan!</h2>
-              <p className="text-sm text-muted-foreground mb-4">{faceState.message}</p>
+              <h2 className="text-xl font-bold mb-1">Identitas Terverifikasi!</h2>
+              <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium mb-4 animate-pulse">
+                Mengirim absen otomatis...
+              </p>
 
               {faceState.employeeName && (
                 <div className="bg-muted/30 rounded-xl p-4 mt-6 space-y-3">
-                  {/* ... (existing employee info) */}
                   <div className="flex items-center gap-3 justify-center">
                     <User className="h-5 w-5 text-primary" />
                     <div className="text-left">
-                      <p className="text-xs text-muted-foreground">Nama Karyawan</p>
+                      <p className="text-xs text-muted-foreground">Karyawan</p>
                       <p className="text-sm font-semibold">{faceState.employeeName}</p>
-                      {faceState.employeeCode && (
-                        <p className="text-xs text-muted-foreground">{faceState.employeeCode}</p>
-                      )}
                     </div>
-                  </div>
-
-                  {/* Verification metrics */}
-                  <div className="pt-3 border-t border-border/50 space-y-2">
-                    {faceState.similarity !== undefined && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs text-muted-foreground">Similarity</span>
-                        <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                          {(faceState.similarity * 100).toFixed(1)}%
-                        </span>
-                      </div>
-                    )}
-                    {faceState.confidence !== undefined && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs text-muted-foreground">Confidence</span>
-                        <span className="text-sm font-semibold">
-                          {(faceState.confidence * 100).toFixed(0)}%
-                        </span>
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
@@ -427,7 +331,7 @@ export function VerifyFacePage() {
               </div>
               <h2 className="text-xl font-bold mb-2">Sudah Absen</h2>
               <p className="text-sm text-muted-foreground mb-6">
-                Anda sudah melakukan absensi {type === 'check-in' ? 'datang' : 'pulang'} hari ini. Apakah Anda ingin melakukan absen ulang?
+                Anda sudah absen. Absen ulang?
               </p>
 
               <div className="flex gap-3">
@@ -441,7 +345,7 @@ export function VerifyFacePage() {
             </div>
           )}
 
-          {/* ... (existing failed state) */}
+          {/* Failed State */}
           {faceState.status === 'failed' && !showOverwriteConfirm && (
             <div className="text-center py-12">
               <div className="bg-destructive/10 rounded-full p-4 w-fit mx-auto mb-4">
@@ -449,7 +353,7 @@ export function VerifyFacePage() {
               </div>
               <p className="text-sm font-semibold mb-2">{faceState.message}</p>
               {faceState.error && (
-                <p className="text-xs text-muted-foreground mb-6">{faceState.error}</p>
+                <p className="text-xs text-muted-foreground mb-6 max-w-[250px] mx-auto overflow-hidden text-ellipsis">{faceState.error}</p>
               )}
               <Button onClick={handleRetry} variant="outline">
                 <Camera className="h-4 w-4 mr-2" />
@@ -458,7 +362,7 @@ export function VerifyFacePage() {
             </div>
           )}
 
-          {/* ... (existing submitting state) */}
+          {/* Loading State (Submitting) */}
           {faceState.status === 'submitting' && (
             <div className="text-center py-12">
               <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
@@ -474,19 +378,20 @@ export function VerifyFacePage() {
               </Button>
               <Button onClick={handleConfirm} className="flex-1 bg-emerald-600 hover:bg-emerald-700">
                 <CheckCircle2 className="h-4 w-4 mr-2" />
-                Konfirmasi Kehadiran
+                Konfirmasi
               </Button>
             </div>
           )}
 
-          {/* ... (existing failed actions) */}
+          {/* Failed Actions */}
           {faceState.status === 'failed' && !showOverwriteConfirm && (
             <div className="flex gap-3 pt-4">
               <Button onClick={handleCancel} variant="outline" className="flex-1">
-                Batal
+                Kembali
               </Button>
             </div>
           )}
+
         </div>
       </div>
     </div>

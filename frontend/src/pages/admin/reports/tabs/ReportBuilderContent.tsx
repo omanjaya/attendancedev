@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { LoadingState } from '@/components/states';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -114,12 +114,14 @@ export function ReportBuilderContent() {
     }
 
     generateReportMutation.mutate({
-      report_type: reportType,
+      type: reportType,
       format: outputFormat,
       start_date: dateRange.start,
       end_date: dateRange.end,
-      department_id: department !== 'all' ? department : undefined,
-      columns: selectedColumns,
+      filters: {
+        department_id: department !== 'all' ? department : undefined,
+        columns: selectedColumns,
+      },
     });
   };
 
@@ -276,19 +278,7 @@ export function ReportBuilderContent() {
                 <p className="text-xs text-muted-foreground">Spreadsheet yang dapat diedit</p>
               </div>
             </button>
-            <button
-              onClick={() => setOutputFormat('csv')}
-              className={`
-                w-full flex items-center gap-3 p-3 rounded-lg border transition-colors
-                ${outputFormat === 'csv' ? 'bg-primary/10 border-primary' : 'bg-background hover:bg-muted'}
-              `}
-            >
-              <FileText className="h-5 w-5 text-primary" />
-              <div className="text-left">
-                <p className="font-medium">CSV</p>
-                <p className="text-xs text-muted-foreground">Data mentah untuk import</p>
-              </div>
-            </button>
+
           </CardContent>
         </Card>
 

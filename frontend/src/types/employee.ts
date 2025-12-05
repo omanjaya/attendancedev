@@ -2,10 +2,11 @@
 export type EmployeeStatus = 'active' | 'inactive' | 'on_leave' | 'terminated';
 
 import type { Location } from './location';
+import type { EmployeeType } from './master-data';
 
 // Employee interface
 export interface Employee {
-  id: number;
+  id: string;
   employee_id: string;
   user_id?: number;
   name: string;
@@ -13,6 +14,8 @@ export interface Employee {
   phone?: string;
   position: string;
   department: string;
+  employee_type_id?: string;
+  employee_type?: EmployeeType;
   status: EmployeeStatus;
   join_date: string;
   avatar?: string;
@@ -34,6 +37,7 @@ export interface EmployeeFormData {
   phone?: string;
   position: string;
   department: string;
+  employee_type_id?: string;
   status: EmployeeStatus;
   join_date: string;
   address?: string;

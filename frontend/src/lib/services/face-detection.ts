@@ -81,15 +81,16 @@ class FaceDetectionService {
         }
     }
 
-    async detectFaces(videoElement: HTMLVideoElement): Promise<FaceDetectionResult[]> {
+    async detectFaces(inputElement: HTMLVideoElement | HTMLImageElement): Promise<FaceDetectionResult[]> {
         if (!this.isInitialized) throw new Error('Service not initialized');
 
         const detections = await faceapi
-            .detectAllFaces(videoElement, this.options)
+            .detectAllFaces(inputElement as any, this.options)
             .withFaceLandmarks()
-            .withFaceExpressions();
+            .withFaceExpressions()
+            .withFaceDescriptors();
 
-        return detections.map((d) => ({
+        return detections.map((d: any) => ({
             detection: {
                 box: d.detection.box,
                 score: d.detection.score,
@@ -100,7 +101,7 @@ class FaceDetectionService {
             expressions: {
                 asSortedArray: () => d.expressions.asSortedArray(),
             },
-            descriptor: undefined, // detectAllFaces doesn't return descriptor by default here unless chained
+            descriptor: d.descriptor ? new Float32Array(d.descriptor) : undefined,
         }));
     }
 

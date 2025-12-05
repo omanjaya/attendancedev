@@ -2,9 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import type {
   Holiday,
-  HolidayType,
   HolidayFormData,
-  HolidayStatistics,
 } from '@/types/holiday';
 import {
   getHolidays as fetchHolidaysApi,
@@ -163,6 +161,11 @@ export function useHolidays(filters?: HolidayFilters) {
     });
   };
 
+  // Get statistics (imperative)
+  const getStatistics = useCallback(async (year?: number) => {
+    return await getHolidayStatistics(year);
+  }, []);
+
   return {
     // State
     isLoading: isLoading || createHolidayMutation.isPending || updateHolidayMutation.isPending || deleteHolidayMutation.isPending,
@@ -179,6 +182,13 @@ export function useHolidays(filters?: HolidayFilters) {
     getHolidaysInRange,
     isHoliday,
     useStatistics,
+    getStatistics,
+    bulkImport: async (holidays: any[]) => {
+      // We don't use mutation here to keep it simple, but we could
+      const result = await import('@/lib/api/holidays').then(m => m.bulkImportHolidays(holidays));
+      await refetch();
+      return result;
+    },
     refetch,
   };
 }

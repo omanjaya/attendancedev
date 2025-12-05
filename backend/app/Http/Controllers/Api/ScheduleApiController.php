@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\WeeklySchedule;
 use App\Models\MonthlySchedule;
+use App\Models\TeachingSchedule;
 use App\Models\TimeSlot;
 use App\Models\Subject;
 use App\Models\AcademicClass;
 use App\Models\Employee;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ScheduleApiController extends BaseApiController
 {
@@ -79,12 +81,83 @@ class ScheduleApiController extends BaseApiController
             'room' => 'nullable|string',
         ]);
 
-        $schedule = WeeklySchedule::create(array_merge($validated, [
-            'is_active' => true,
-            'effective_from' => now(),
-        ]));
+        return DB::transaction(function () use ($validated) {
+            // Create the weekly schedule
+            $schedule = WeeklySchedule::create(array_merge($validated, [
+                'is_active' => true,
+                'effective_from' => now(),
+            ]));
 
-        return $this->apiResponse($schedule->load(['employee', 'subject', 'timeSlot']), 'Schedule created', 201);
+            // Auto-sync to TeachingSchedule for the teacher
+            $this->syncToTeachingSchedule($schedule);
+
+            return $this->apiResponse($schedule->load(['employee', 'subject', 'timeSlot']), 'Schedule created', 201);
+        });
+    }
+
+    /**
+     * Sync WeeklySchedule to TeachingSchedule
+     * This ensures teacher's working hours are automatically updated
+     */
+    private function syncToTeachingSchedule(WeeklySchedule $schedule): void
+    {
+        $employee = Employee::with('employeeTypeRelation')->find($schedule->employee_id);
+        
+        if (!$employee) {
+            return;
+        }
+
+        // Check if employee type is flexible (Guru Honor) - they need TeachingSchedule
+        $employeeType = $employee->employeeTypeRelation;
+        $isFlexible = $employeeType?->isFlexible() ?? ($employee->employee_type === 'guru_honorer');
+        $canOverrideByTeaching = $employeeType?->can_override_by_teaching ?? ($employee->employee_type === 'guru_honorer');
+
+        // Get time slot for start/end times
+        $timeSlot = TimeSlot::find($schedule->time_slot_id);
+        $academicClass = AcademicClass::find($schedule->academic_class_id);
+
+        if (!$timeSlot) {
+            return;
+        }
+
+        // Update or create TeachingSchedule
+        // Match by teacher, day, and time range (since TeachingSchedule doesn't have time_slot_id)
+        TeachingSchedule::updateOrCreate(
+            [
+                'teacher_id' => $schedule->employee_id,
+                'day_of_week' => $schedule->day_of_week,
+                'teaching_start_time' => $timeSlot->start_time,
+                'teaching_end_time' => $timeSlot->end_time,
+            ],
+            [
+                'subject_id' => $schedule->subject_id,
+                'class_id' => $schedule->academic_class_id,
+                'class_name' => $academicClass?->name ?? 'Unknown',
+                'room' => $schedule->room,
+                'override_attendance' => $isFlexible && $canOverrideByTeaching, // Only override for flexible types
+                'is_active' => true,
+                'effective_from' => now(),
+                'status' => 'scheduled',
+            ]
+        );
+    }
+
+    /**
+     * Remove TeachingSchedule when WeeklySchedule is deleted
+     */
+    private function removeTeachingSchedule(WeeklySchedule $schedule): void
+    {
+        $timeSlot = TimeSlot::find($schedule->time_slot_id);
+        
+        if (!$timeSlot) {
+            return;
+        }
+
+        TeachingSchedule::where('teacher_id', $schedule->employee_id)
+            ->where('day_of_week', $schedule->day_of_week)
+            ->where('teaching_start_time', $timeSlot->start_time)
+            ->where('teaching_end_time', $timeSlot->end_time)
+            ->delete();
     }
 
     public function update(Request $request, $id)
@@ -104,14 +177,41 @@ class ScheduleApiController extends BaseApiController
             'status' => 'sometimes|in:active,inactive',
         ]);
 
-        if (isset($validated['status'])) {
-            $validated['is_active'] = $validated['status'] === 'active';
-            unset($validated['status']);
-        }
+        return DB::transaction(function () use ($schedule, $validated) {
+            // Store old values for potential TeachingSchedule cleanup
+            $oldEmployeeId = $schedule->employee_id;
+            $oldDayOfWeek = $schedule->day_of_week;
+            $oldTimeSlotId = $schedule->time_slot_id;
+            $oldTimeSlot = TimeSlot::find($oldTimeSlotId);
 
-        $schedule->update($validated);
+            if (isset($validated['status'])) {
+                $validated['is_active'] = $validated['status'] === 'active';
+                unset($validated['status']);
+            }
 
-        return $this->apiResponse($schedule->fresh()->load(['employee', 'subject', 'timeSlot']), 'Schedule updated');
+            $schedule->update($validated);
+            $schedule = $schedule->fresh();
+
+            // If employee, day, or time changed, remove old TeachingSchedule
+            if (
+                $oldEmployeeId !== $schedule->employee_id ||
+                $oldDayOfWeek !== $schedule->day_of_week ||
+                $oldTimeSlotId !== $schedule->time_slot_id
+            ) {
+                if ($oldTimeSlot) {
+                    TeachingSchedule::where('teacher_id', $oldEmployeeId)
+                        ->where('day_of_week', $oldDayOfWeek)
+                        ->where('teaching_start_time', $oldTimeSlot->start_time)
+                        ->where('teaching_end_time', $oldTimeSlot->end_time)
+                        ->delete();
+                }
+            }
+
+            // Re-sync the updated schedule
+            $this->syncToTeachingSchedule($schedule);
+
+            return $this->apiResponse($schedule->load(['employee', 'subject', 'timeSlot']), 'Schedule updated');
+        });
     }
 
     public function destroy($id)
@@ -122,9 +222,14 @@ class ScheduleApiController extends BaseApiController
             return $this->errorResponse('Schedule not found', 404);
         }
 
-        $schedule->delete();
+        return DB::transaction(function () use ($schedule) {
+            // Remove associated TeachingSchedule first
+            $this->removeTeachingSchedule($schedule);
+            
+            $schedule->delete();
 
-        return $this->apiResponse(null, 'Schedule deleted');
+            return $this->apiResponse(null, 'Schedule deleted');
+        });
     }
 
     public function lock(Request $request, $id)

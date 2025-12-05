@@ -1,8 +1,7 @@
 import { Link, useLocation } from '@tanstack/react-router';
-import { Home, Clock, Users, Calendar, MoreHorizontal, FileText, Plane, Wallet, UserCircle } from 'lucide-react';
+import { Home, Clock, Users, MoreHorizontal, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores';
-import { getDefaultRedirect } from '@/lib/auth';
 
 interface NavItem {
   icon: typeof Home;

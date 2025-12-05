@@ -42,7 +42,7 @@ export function DesktopEmployeeDashboard() {
       value: (stats?.schedule.today.shift || '-') as any,
       description: stats?.schedule.today.time || 'Tidak ada jadwal',
       icon: Calendar,
-      color: 'primary' as const,
+      color: (stats?.schedule.today.can_attend ? 'primary' : 'default') as 'primary' | 'default',
     },
     {
       label: 'Gaji Terakhir',
@@ -80,15 +80,27 @@ export function DesktopEmployeeDashboard() {
           <div className="space-y-4">
             {!stats?.attendance.todayStatus ? (
               <div className="text-center py-8">
-                <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-3" />
-                <p className="text-sm font-medium">Belum absen hari ini</p>
-                <p className="text-xs text-muted-foreground mt-1">Klik tombol di bawah untuk check-in</p>
-                <button
-                  onClick={() => window.location.href = '/employee/attendance'}
-                  className="mt-4 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
-                >
-                  Check-In Sekarang
-                </button>
+                {stats?.schedule.today.can_attend ? (
+                  <>
+                    <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-3" />
+                    <p className="text-sm font-medium">Belum absen hari ini</p>
+                    <p className="text-xs text-muted-foreground mt-1">Klik tombol di bawah untuk check-in</p>
+                    <button
+                      onClick={() => window.location.href = '/employee/attendance'}
+                      className="mt-4 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+                    >
+                      Check-In Sekarang
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-sm font-medium">{stats?.schedule.today.message || 'Tidak ada jadwal absensi'}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {stats?.schedule.today.schedule_type === 'holiday' ? 'Selamat berlibur!' : 'Anda tidak perlu melakukan absensi hari ini'}
+                    </p>
+                  </>
+                )}
               </div>
             ) : (
               <div className="space-y-3">

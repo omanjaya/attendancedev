@@ -173,17 +173,35 @@ class HolidayApiController extends BaseApiController
     public function statistics(Request $request)
     {
         $year = $request->get('year', now()->year);
+        $now = now();
 
-        $holidays = Holiday::whereYear('date', $year)
+        // Base query for the requested year
+        $holidaysThisYear = Holiday::whereYear('date', $year)->get();
+        
+        // Active holidays this year
+        $activeHolidays = $holidaysThisYear->where('status', 'active');
+
+        // Holidays this month (current calendar month)
+        $holidaysThisMonth = Holiday::whereYear('date', $now->year)
+            ->whereMonth('date', $now->month)
             ->where('status', 'active')
-            ->get();
+            ->count();
+
+        // Upcoming holiday
+        $upcomingHoliday = Holiday::where('date', '>=', $now->toDateString())
+            ->where('status', 'active')
+            ->orderBy('date')
+            ->first();
 
         $stats = [
-            'total' => $holidays->count(),
-            'by_type' => $holidays->groupBy('type')->map->count(),
-            'by_month' => $holidays->groupBy(fn($h) => Carbon::parse($h->date)->format('n'))->map->count(),
-            'is_paid_count' => $holidays->where('is_paid', true)->count(),
-            'is_unpaid_count' => $holidays->where('is_paid', false)->count(),
+            'total_holidays' => Holiday::count(),
+            'active_holidays' => Holiday::where('status', 'active')->count(),
+            'holidays_this_month' => $holidaysThisMonth,
+            'holidays_this_year' => $activeHolidays->count(),
+            'paid_holidays' => $activeHolidays->where('is_paid', true)->count(),
+            'unpaid_holidays' => $activeHolidays->where('is_paid', false)->count(),
+            'recurring_holidays' => $activeHolidays->where('is_recurring', true)->count(),
+            'upcoming_holiday' => $upcomingHoliday,
         ];
 
         return $this->apiResponse($stats, 'Holiday statistics retrieved');

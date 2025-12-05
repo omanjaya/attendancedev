@@ -29,7 +29,7 @@ import * as employeesApi from '@/lib/api/employees';
 
 const mockEmployees = [
   {
-    id: 1,
+    id: '1',
     employee_id: 'EMP001',
     name: 'Ahmad Rizki',
     email: 'ahmad.rizki@company.com',
@@ -43,7 +43,7 @@ const mockEmployees = [
     updated_at: '2023-01-15T00:00:00',
   },
   {
-    id: 2,
+    id: '2',
     employee_id: 'EMP002',
     name: 'Siti Nurhaliza',
     email: 'siti.nurhaliza@company.com',
@@ -87,7 +87,7 @@ describe('useEmployees Hook', () => {
       expect(employeeKeys.lists()).toEqual(['employees', 'list']);
       expect(employeeKeys.list({ department: 'IT' })).toEqual(['employees', 'list', { department: 'IT' }]);
       expect(employeeKeys.details()).toEqual(['employees', 'detail']);
-      expect(employeeKeys.detail(1)).toEqual(['employees', 'detail', 1]);
+      expect(employeeKeys.detail('1')).toEqual(['employees', 'detail', '1']);
       expect(employeeKeys.search('ahmad')).toEqual(['employees', 'search', 'ahmad']);
       expect(employeeKeys.statistics()).toEqual(['employees', 'statistics']);
     });
@@ -152,7 +152,7 @@ describe('useEmployees Hook', () => {
     it('should fetch single employee', async () => {
       vi.mocked(employeesApi.getEmployee).mockResolvedValueOnce(mockEmployees[0]);
 
-      const { result } = renderHook(() => useEmployee(1), {
+      const { result } = renderHook(() => useEmployee('1'), {
         wrapper: createWrapper(),
       });
 
@@ -161,11 +161,11 @@ describe('useEmployees Hook', () => {
       });
 
       expect(result.current.data).toEqual(mockEmployees[0]);
-      expect(employeesApi.getEmployee).toHaveBeenCalledWith(1);
+      expect(employeesApi.getEmployee).toHaveBeenCalledWith('1');
     });
 
-    it('should not fetch when id is 0', async () => {
-      const { result } = renderHook(() => useEmployee(0), {
+    it('should not fetch when id is empty', async () => {
+      const { result } = renderHook(() => useEmployee(''), {
         wrapper: createWrapper(),
       });
 

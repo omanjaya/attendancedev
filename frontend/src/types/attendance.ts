@@ -35,6 +35,8 @@ export interface TodayAttendance {
   attendance?: Attendance;
   has_checked_in: boolean;
   has_checked_out: boolean;
+  check_in_time?: string;
+  check_out_time?: string;
 }
 
 // Attendance filters
@@ -42,6 +44,8 @@ export interface AttendanceFilters {
   employee_id?: number;
   date_from?: string;
   date_to?: string;
+  month?: string;
+  search?: string;
   status?: AttendanceStatus;
   department?: string;
   page?: number;
@@ -51,7 +55,7 @@ export interface AttendanceFilters {
 // Check-in/out request
 // Check-in/out request
 export interface CheckRequest {
-  employee_id?: number;
+  employee_id?: string | number;
   action?: 'check_in' | 'check_out';
   location?: {
     latitude: number;
@@ -75,6 +79,11 @@ export interface AttendanceStatistics {
   absent: number;
   on_leave: number;
   attendance_rate: number;
+  // Additional fields used by admin dashboard
+  present_today?: number;
+  late_today?: number;
+  absent_today?: number;
+  pending_approvals?: number;
 }
 
 // Attendance trends

@@ -16,7 +16,6 @@ import { Card } from '@/components/ui/card';
 import { useAuthStore } from '@/stores';
 import { useQuery } from '@tanstack/react-query';
 import { getTodayAttendance } from '@/lib/api/attendance';
-import { cn } from '@/lib/utils';
 
 export function MobileAttendancePage() {
   const navigate = useNavigate();
@@ -25,7 +24,7 @@ export function MobileAttendancePage() {
   const [currentDate, setCurrentDate] = useState('');
 
   // Fetch today's attendance
-  const { data: todayAttendance, refetch } = useQuery({
+  const { data: todayAttendance } = useQuery({
     queryKey: ['attendance-today', user?.id],
     queryFn: getTodayAttendance,
     enabled: !!user?.id,
@@ -59,14 +58,14 @@ export function MobileAttendancePage() {
 
   const handleCheckIn = () => {
     navigate({
-      to: '/attendance/verify-location',
+      to: '/shared/verify-location',
       search: { type: 'check-in' },
     });
   };
 
   const handleCheckOut = () => {
     navigate({
-      to: '/attendance/verify-location',
+      to: '/shared/verify-location',
       search: { type: 'check-out' },
     });
   };
@@ -201,7 +200,7 @@ export function MobileAttendancePage() {
 
               {/* Cuti - Vertical Layout */}
               <Card
-                onClick={() => navigate({ to: '/leave' })}
+                onClick={() => navigate({ to: '/employee/leave' })}
                 className="p-2.5 hover:shadow-lg dark:hover:shadow-rose-500/5 hover:border-rose-200 dark:hover:border-rose-800 transition-all cursor-pointer active:scale-95 border-border/50 rounded-xl"
               >
                 <div className="space-y-2">
@@ -219,7 +218,7 @@ export function MobileAttendancePage() {
 
               {/* Dinas/Diklat - Horizontal Compact */}
               <Card
-                onClick={() => navigate({ to: '/leave' })}
+                onClick={() => navigate({ to: '/employee/leave' })}
                 className="p-2 hover:shadow-lg hover:border-muted-foreground/20 transition-all cursor-pointer active:scale-95 border-border/50 rounded-xl"
               >
                 <div className="flex items-center gap-2">
@@ -236,7 +235,7 @@ export function MobileAttendancePage() {
 
               {/* Jadwal Saya - Horizontal Compact */}
               <Card
-                onClick={() => navigate({ to: '/schedules' })}
+                onClick={() => navigate({ to: '/employee/schedule' })}
                 className="p-2 hover:shadow-lg hover:border-muted-foreground/20 transition-all cursor-pointer active:scale-95 border-border/50 rounded-xl"
               >
                 <div className="flex items-center gap-2">

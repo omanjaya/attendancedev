@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,8 +11,6 @@ import {
   Save,
   Shield,
   CreditCard,
-  Upload,
-  X,
   Check,
   Copy,
   CheckCheck,
@@ -32,7 +30,6 @@ import {
 } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
@@ -46,12 +43,14 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCreateEmployee } from '@/hooks';
 import { useLocations } from '@/hooks/use-locations';
 import { useNotificationStore } from '@/stores';
+import { useEmployeeTypes } from '@/hooks/use-master-data';
 
 // Quick mode schema - minimal required fields
 const quickEmployeeSchema = z.object({
   name: z.string().min(2, 'Nama minimal 2 karakter'),
   email: z.string().email('Email tidak valid'),
-  department_id: z.string().min(1, 'Pilih departemen'),
+  employee_type_id: z.string().min(1, 'Pilih jenis pegawai'),
+  department_id: z.string().optional(),
   position: z.string().min(2, 'Posisi minimal 2 karakter'),
   role: z.enum(['pegawai', 'guru', 'admin', 'kepala-sekolah'], { message: 'Pilih role' }),
   location_id: z.string().min(1, 'Pilih lokasi'),
@@ -133,6 +132,10 @@ export default function EmployeeCreatePage() {
   // Fetch locations for dropdown
   const { locations, fetchLocations } = useLocations();
 
+  // Employee Types hook
+  const { data: employeeTypesData } = useEmployeeTypes({ is_active: true });
+  const employeeTypes = employeeTypesData?.data || [];
+
   // Load locations on mount
   useEffect(() => {
     fetchLocations({ is_active: true });
@@ -144,7 +147,7 @@ export default function EmployeeCreatePage() {
     setValue,
     watch,
     formState: { errors },
-  } = useForm<FullEmployeeForm>({
+  } = useForm<FullEmployeeForm | QuickEmployeeForm>({
     resolver: zodResolver(isFullMode ? fullEmployeeSchema : quickEmployeeSchema),
     defaultValues: {
       employment_type: 'permanent',
@@ -170,11 +173,13 @@ export default function EmployeeCreatePage() {
       : `EMP${new Date().getFullYear()}${Math.floor(Math.random() * 9000) + 1000}`;
 
     const apiData = {
+      employee_code: nip, // Send NIP/Employee ID
       full_name: data.name, // Backend expects full_name not name
       email: data.email,
       phone: isFullMode && 'phone' in data ? data.phone : undefined, // Use undefined instead of empty string
       position: data.position,
       department: department?.name || data.department_id,
+      employee_type_id: data.employee_type_id,
       hire_date: isFullMode && 'join_date' in data ? data.join_date : new Date().toISOString().split('T')[0],
       is_active: true,
       password: password, // Send auto-generated password
@@ -184,7 +189,7 @@ export default function EmployeeCreatePage() {
 
     try {
       // Create employee record (user account is created automatically by backend)
-      await createEmployeeMutation.mutateAsync(apiData);
+      await createEmployeeMutation.mutateAsync(apiData as any);
 
       // Success - show password dialog
       setCreatedEmployeeData({
@@ -364,7 +369,7 @@ Password harus diganti saat login pertama kali.`;
                           Auto
                         </Button>
                       </div>
-                      {errors.nip && <p className="text-xs text-destructive mt-1">{errors.nip.message}</p>}
+                      {(errors as any).nip && <p className="text-xs text-destructive mt-1">{(errors as any).nip.message}</p>}
                     </div>
                   )}
 
@@ -411,8 +416,8 @@ Password harus diganti saat login pertama kali.`;
                       <div className="mb-2.5 text-sm font-medium">
                         <label htmlFor="phone">No. Telepon *</label>
                       </div>
-                      <Input id="phone" placeholder="08123456789" {...register('phone')} />
-                      {errors.phone && <p className="text-xs text-destructive mt-1">{errors.phone.message}</p>}
+                      <Input id="phone" placeholder="08123456789" {...register('phone' as any)} />
+                      {(errors as any).phone && <p className="text-xs text-destructive mt-1">{(errors as any).phone.message}</p>}
                     </div>
                   )}
 
@@ -423,8 +428,8 @@ Password harus diganti saat login pertama kali.`;
                         <div className="mb-2.5 text-sm font-medium">
                           <label htmlFor="birth_date">Tanggal Lahir *</label>
                         </div>
-                        <Input id="birth_date" type="date" {...register('birth_date')} />
-                        {errors.birth_date && <p className="text-xs text-destructive mt-1">{errors.birth_date.message}</p>}
+                        <Input id="birth_date" type="date" {...register('birth_date' as any)} />
+                        {(errors as any).birth_date && <p className="text-xs text-destructive mt-1">{(errors as any).birth_date.message}</p>}
                       </div>
 
                       <div>
@@ -445,7 +450,7 @@ Password harus diganti saat login pertama kali.`;
                             <Label htmlFor="female" className="font-normal">Perempuan</Label>
                           </div>
                         </RadioGroup>
-                        {errors.gender && <p className="text-xs text-destructive mt-1">{errors.gender.message}</p>}
+                        {(errors as any).gender && <p className="text-xs text-destructive mt-1">{(errors as any).gender.message}</p>}
                       </div>
                     </div>
                   )}
@@ -456,7 +461,7 @@ Password harus diganti saat login pertama kali.`;
                       <div className="mb-2.5 text-sm font-medium">
                         <label htmlFor="address">Alamat <span className="text-muted-foreground">(Opsional)</span></label>
                       </div>
-                      <Textarea id="address" placeholder="Masukkan alamat lengkap" {...register('address')} />
+                      <Textarea id="address" placeholder="Masukkan alamat lengkap" {...register('address' as any)} />
                     </div>
                   )}
                 </div>
@@ -469,10 +474,28 @@ Password harus diganti saat login pertama kali.`;
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2">
-                    {/* Department - Always Required */}
+                    {/* Employee Type - Always Required */}
                     <div>
                       <div className="mb-2.5 text-sm font-medium">
-                        <label htmlFor="department">Departemen *</label>
+                        <label htmlFor="employee_type">Jenis Pegawai *</label>
+                      </div>
+                      <Select onValueChange={(v) => setValue('employee_type_id', v)}>
+                        <SelectTrigger id="employee_type">
+                          <SelectValue placeholder="Pilih jenis pegawai" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {employeeTypes.map((type) => (
+                            <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.employee_type_id && <p className="text-xs text-destructive mt-1">{errors.employee_type_id.message}</p>}
+                    </div>
+
+                    {/* Department - Optional */}
+                    <div>
+                      <div className="mb-2.5 text-sm font-medium">
+                        <label htmlFor="department">Departemen</label>
                       </div>
                       <Select onValueChange={(v) => setValue('department_id', v)}>
                         <SelectTrigger id="department">
@@ -543,8 +566,8 @@ Password harus diganti saat login pertama kali.`;
                         <div className="mb-2.5 text-sm font-medium">
                           <label htmlFor="join_date">Tanggal Bergabung *</label>
                         </div>
-                        <Input id="join_date" type="date" {...register('join_date')} />
-                        {errors.join_date && <p className="text-xs text-destructive mt-1">{errors.join_date.message}</p>}
+                        <Input id="join_date" type="date" {...register('join_date' as any)} />
+                        {(errors as any).join_date && <p className="text-xs text-destructive mt-1">{(errors as any).join_date.message}</p>}
                       </div>
                     </div>
                   )}
@@ -564,19 +587,19 @@ Password harus diganti saat login pertama kali.`;
                         <div className="mb-2.5 text-sm font-medium">
                           <label htmlFor="emergency_name">Nama</label>
                         </div>
-                        <Input id="emergency_name" placeholder="Nama kontak" {...register('emergency_name')} />
+                        <Input id="emergency_name" placeholder="Nama kontak" {...register('emergency_name' as any)} />
                       </div>
                       <div>
                         <div className="mb-2.5 text-sm font-medium">
                           <label htmlFor="emergency_phone">No. Telepon</label>
                         </div>
-                        <Input id="emergency_phone" placeholder="08xxx" {...register('emergency_phone')} />
+                        <Input id="emergency_phone" placeholder="08xxx" {...register('emergency_phone' as any)} />
                       </div>
                       <div>
                         <div className="mb-2.5 text-sm font-medium">
                           <label htmlFor="emergency_relation">Hubungan</label>
                         </div>
-                        <Select onValueChange={(v) => setValue('emergency_relation', v)}>
+                        <Select onValueChange={(v) => setValue('emergency_relation' as any, v)}>
                           <SelectTrigger id="emergency_relation">
                             <SelectValue placeholder="Pilih" />
                           </SelectTrigger>
@@ -606,7 +629,7 @@ Password harus diganti saat login pertama kali.`;
                         <div className="mb-2.5 text-sm font-medium">
                           <label htmlFor="bank_name">Nama Bank</label>
                         </div>
-                        <Select onValueChange={(v) => setValue('bank_name', v)}>
+                        <Select onValueChange={(v) => setValue('bank_name' as any, v)}>
                           <SelectTrigger id="bank_name">
                             <SelectValue placeholder="Pilih bank" />
                           </SelectTrigger>
@@ -621,13 +644,13 @@ Password harus diganti saat login pertama kali.`;
                         <div className="mb-2.5 text-sm font-medium">
                           <label htmlFor="bank_account">No. Rekening</label>
                         </div>
-                        <Input id="bank_account" placeholder="Nomor rekening" {...register('bank_account')} />
+                        <Input id="bank_account" placeholder="Nomor rekening" {...register('bank_account' as any)} />
                       </div>
                       <div>
                         <div className="mb-2.5 text-sm font-medium">
                           <label htmlFor="bank_holder">Nama Pemilik</label>
                         </div>
-                        <Input id="bank_holder" placeholder="Nama di rekening" {...register('bank_holder')} />
+                        <Input id="bank_holder" placeholder="Nama di rekening" {...register('bank_holder' as any)} />
                       </div>
                     </div>
                   </div>

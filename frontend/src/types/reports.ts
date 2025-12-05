@@ -111,3 +111,11 @@ export interface ReportFilters {
   department_id?: string;
   employee_id?: string;
 }
+
+// Response from generate report API
+export interface GenerateReportResponse {
+  report: GeneratedReport;
+  download_url?: string;
+  generated_sync?: boolean;
+  message?: string;
+}

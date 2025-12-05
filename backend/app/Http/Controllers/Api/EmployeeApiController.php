@@ -89,7 +89,7 @@ class EmployeeApiController extends BaseApiController
             'employee_code' => 'nullable|string|unique:employees,employee_id',
             'department' => 'sometimes|string|max:100',
             'position' => 'sometimes|string|max:100',
-            'employment_type' => 'sometimes|in:permanent,contract,part_time,honorary',
+            'employee_type_id' => 'required|exists:employee_types,id',
             'salary_type' => 'sometimes|in:monthly,hourly',
             'base_salary' => 'sometimes|numeric|min:0',
             'hire_date' => 'sometimes|date',
@@ -131,8 +131,9 @@ class EmployeeApiController extends BaseApiController
                     'employee_id' => $validated['employee_code'] ?? 'EMP' . str_pad(Employee::count() + 1, 4, '0', STR_PAD_LEFT),
                     'full_name' => $validated['full_name'],
                     'phone' => $validated['phone'] ?? null,
-                    'employee_type' => $validated['employment_type'] ?? 'staff',
-                    'salary_type' => $validated['salary_type'] ?? 'monthly',
+                    'employee_type_id' => $validated['employee_type_id'],
+                    // 'employee_type' => $validated['employment_type'] ?? 'staff', // Deprecated
+                    'salary_type' => $validated['salary_type'] ?? 'monthly', // Deprecated
                     'salary_amount' => $validated['base_salary'] ?? 0,
                     'hire_date' => $validated['hire_date'] ?? ($request->get('join_date') ?? now()),
                     'is_active' => $validated['is_active'] ?? true,
@@ -226,7 +227,7 @@ class EmployeeApiController extends BaseApiController
             'phone' => 'nullable|string|max:20',
             'department' => 'sometimes|string|max:100',
             'position' => 'sometimes|string|max:100',
-            'employment_type' => 'sometimes|in:permanent,contract,part_time,honorary',
+            'employee_type_id' => 'sometimes|exists:employee_types,id',
             'salary_type' => 'sometimes|in:monthly,hourly',
             'base_salary' => 'sometimes|numeric|min:0',
             'hire_date' => 'sometimes|date',
@@ -238,7 +239,7 @@ class EmployeeApiController extends BaseApiController
             $employee->update([
                 'full_name' => $validated['full_name'] ?? $employee->full_name,
                 'phone' => $validated['phone'] ?? $employee->phone,
-                'employee_type' => $validated['employment_type'] ?? $employee->employee_type,
+                'employee_type_id' => $validated['employee_type_id'] ?? $employee->employee_type_id,
                 'salary_type' => $validated['salary_type'] ?? $employee->salary_type,
                 'salary_amount' => $validated['base_salary'] ?? $employee->salary_amount,
                 'hire_date' => $validated['hire_date'] ?? $employee->hire_date,
@@ -367,17 +368,42 @@ class EmployeeApiController extends BaseApiController
 
         // 3. Schedule
         $todaySchedule = $employee->getEffectiveScheduleForDate($today);
+        
+        $todayShift = 'Tidak Ada Jadwal';
+        $todayTime = '-';
+        $canAttend = $todaySchedule['can_attend'] ?? false;
+        
+        if ($todaySchedule['schedule_type'] === 'holiday') {
+            $todayShift = 'Libur: ' . ($todaySchedule['holiday_name'] ?? 'Hari Libur');
+            $todayTime = 'Libur';
+        } elseif ($todaySchedule['schedule_type'] === 'teaching_override') {
+            $todayShift = 'Mengajar';
+            $todayTime = ($todaySchedule['start_time'] ? $todaySchedule['start_time']->format('H:i') : '-') . ' - ' . ($todaySchedule['end_time'] ? $todaySchedule['end_time']->format('H:i') : '-');
+        } elseif ($todaySchedule['schedule_type'] === 'base_schedule') {
+            $todayShift = 'Regular';
+            $todayTime = ($todaySchedule['start_time'] ? $todaySchedule['start_time']->format('H:i') : '-') . ' - ' . ($todaySchedule['end_time'] ? $todaySchedule['end_time']->format('H:i') : '-');
+        } elseif ($todaySchedule['schedule_type'] === 'no_teaching') {
+             $todayShift = 'Tidak Ada Jadwal Mengajar';
+             $todayTime = '-';
+        }
+
         $nextShift = null;
 
         // Find next working day
         for ($i = 1; $i <= 7; $i++) {
             $nextDate = $today->copy()->addDays($i);
             $schedule = $employee->getEffectiveScheduleForDate($nextDate);
-            if ($schedule['working_hours'] > 0) {
+            
+            if (($schedule['can_attend'] ?? false) && ($schedule['working_hours'] > 0 || $schedule['schedule_type'] === 'teaching_override')) {
+                $shiftName = 'Regular';
+                if ($schedule['schedule_type'] === 'teaching_override') {
+                    $shiftName = 'Mengajar';
+                }
+                
                 $nextShift = [
                     'date' => $nextDate->isoFormat('dddd, D MMMM'),
-                    'shift' => 'Regular', // Or derive from time
-                    'time' => ($schedule['start_time'] ? $schedule['start_time']->format('H:i') : '08:00') . ' - ' . ($schedule['end_time'] ? $schedule['end_time']->format('H:i') : '17:00'),
+                    'shift' => $shiftName,
+                    'time' => ($schedule['start_time'] ? $schedule['start_time']->format('H:i') : '-') . ' - ' . ($schedule['end_time'] ? $schedule['end_time']->format('H:i') : '-'),
                 ];
                 break;
             }
@@ -385,9 +411,12 @@ class EmployeeApiController extends BaseApiController
 
         $scheduleData = [
             'today' => [
-                'shift' => 'Regular',
-                'time' => ($todaySchedule['start_time'] ? $todaySchedule['start_time']->format('H:i') : '08:00') . ' - ' . ($todaySchedule['end_time'] ? $todaySchedule['end_time']->format('H:i') : '17:00'),
+                'shift' => $todayShift,
+                'time' => $todayTime,
                 'location' => $employee->location->name ?? 'Office',
+                'can_attend' => $canAttend,
+                'message' => $todaySchedule['message'] ?? '',
+                'schedule_type' => $todaySchedule['schedule_type'] ?? 'none',
             ],
             'nextShift' => $nextShift,
         ];
