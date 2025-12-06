@@ -13,12 +13,16 @@ import {
     Edit,
     Trash2,
     Eye,
+    KeyRound,
+    Copy,
+    EyeOff,
 } from 'lucide-react';
 import { useEmployees, useDeleteEmployee } from '@/hooks/use-employees';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { LoadingState } from '@/components/states';
 import {
     Drawer,
@@ -39,14 +43,31 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { resetEmployeePassword, type ResetPasswordResponse } from '@/lib/api/employees';
+import { toast } from 'sonner';
 
 
 export function MobileEmployeesPage() {
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedEmployee, setSelectedEmployee] = useState<{ id: string; name: string } | null>(null);
+    const [selectedEmployee, setSelectedEmployee] = useState<{ id: string; name: string; email?: string } | null>(null);
     const [employeeToDelete, setEmployeeToDelete] = useState<{ id: string; name: string } | null>(null);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+    // Reset password states
+    const [employeeToReset, setEmployeeToReset] = useState<{ id: string; name: string; email?: string } | null>(null);
+    const [isResetting, setIsResetting] = useState(false);
+    const [resetResult, setResetResult] = useState<ResetPasswordResponse | null>(null);
+    const [showPassword, setShowPassword] = useState(false);
+    const [customPassword, setCustomPassword] = useState('');
 
     const deleteEmployeeMutation = useDeleteEmployee();
 
@@ -61,7 +82,40 @@ export function MobileEmployeesPage() {
         }
     };
 
-    const openOptions = (e: React.MouseEvent, employee: { id: string; name: string }) => {
+    const handleResetPassword = async () => {
+        if (!employeeToReset) return;
+
+        setIsResetting(true);
+        try {
+            const result = await resetEmployeePassword(
+                employeeToReset.id,
+                customPassword || undefined
+            );
+            setResetResult(result);
+            toast.success('Password berhasil direset!');
+        } catch (error) {
+            console.error('Failed to reset password:', error);
+            toast.error('Gagal mereset password');
+        } finally {
+            setIsResetting(false);
+        }
+    };
+
+    const handleCopyPassword = () => {
+        if (resetResult?.temporary_password) {
+            navigator.clipboard.writeText(resetResult.temporary_password);
+            toast.success('Password disalin');
+        }
+    };
+
+    const handleCloseResetDialog = () => {
+        setEmployeeToReset(null);
+        setResetResult(null);
+        setCustomPassword('');
+        setShowPassword(false);
+    };
+
+    const openOptions = (e: React.MouseEvent, employee: { id: string; name: string; email?: string }) => {
         e.stopPropagation();
         setSelectedEmployee(employee);
         setIsDrawerOpen(true);
@@ -166,7 +220,7 @@ export function MobileEmployeesPage() {
                                                 variant="ghost"
                                                 size="icon"
                                                 className="h-8 w-8 -mt-1 -mr-2 text-muted-foreground hover:text-foreground shrink-0"
-                                                onClick={(e) => openOptions(e, { id: employee.id, name: employee.name })}
+                                                onClick={(e) => openOptions(e, { id: employee.id, name: employee.name, email: employee.email })}
                                                 title="Opsi"
                                             >
                                                 <MoreVertical className="h-4 w-4" />
@@ -241,6 +295,19 @@ export function MobileEmployeesPage() {
                         </Button>
                         <Button
                             variant="outline"
+                            className="w-full justify-start h-12 text-base"
+                            onClick={() => {
+                                if (selectedEmployee) {
+                                    setEmployeeToReset(selectedEmployee);
+                                    setIsDrawerOpen(false);
+                                }
+                            }}
+                        >
+                            <KeyRound className="mr-3 h-5 w-5 text-purple-500" />
+                            Reset Password
+                        </Button>
+                        <Button
+                            variant="outline"
                             className="w-full justify-start h-12 text-base text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20"
                             onClick={() => {
                                 if (selectedEmployee) {
@@ -283,6 +350,115 @@ export function MobileEmployeesPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Reset Password Dialog */}
+            <Dialog open={!!employeeToReset} onOpenChange={(open) => !open && handleCloseResetDialog()}>
+                <DialogContent className="max-w-[90vw] rounded-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <KeyRound className="h-5 w-5 text-primary" />
+                            Reset Password
+                        </DialogTitle>
+                        <DialogDescription>
+                            Reset password untuk <strong>{employeeToReset?.name}</strong>
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {resetResult ? (
+                        // Show result after reset
+                        <div className="space-y-4 py-4">
+                            <div className="rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-4">
+                                <p className="text-sm text-green-800 dark:text-green-200 mb-3">
+                                    Password berhasil direset!
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    <div className="flex-1 relative">
+                                        <Input
+                                            type={showPassword ? 'text' : 'password'}
+                                            value={resetResult.temporary_password}
+                                            readOnly
+                                            className="pr-20 font-mono text-sm"
+                                        />
+                                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-7 w-7"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                            >
+                                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-7 w-7"
+                                                onClick={handleCopyPassword}
+                                            >
+                                                <Copy className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                ⚠️ User harus mengubah password saat login berikutnya.
+                            </p>
+                        </div>
+                    ) : (
+                        // Show form before reset
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="custom-password-mobile">Password Baru (Opsional)</Label>
+                                <div className="relative">
+                                    <Input
+                                        id="custom-password-mobile"
+                                        type={showPassword ? 'text' : 'password'}
+                                        placeholder="Kosongkan untuk otomatis..."
+                                        value={customPassword}
+                                        onChange={(e) => setCustomPassword(e.target.value)}
+                                        className="pr-10"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                    >
+                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </Button>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Minimal 8 karakter.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    <DialogFooter className="flex-col gap-2 sm:flex-row">
+                        {resetResult ? (
+                            <Button onClick={handleCloseResetDialog} className="w-full">
+                                Selesai
+                            </Button>
+                        ) : (
+                            <>
+                                <Button variant="outline" onClick={handleCloseResetDialog} disabled={isResetting} className="w-full sm:w-auto">
+                                    Batal
+                                </Button>
+                                <Button
+                                    onClick={handleResetPassword}
+                                    disabled={isResetting || (customPassword.length > 0 && customPassword.length < 8)}
+                                    className="w-full sm:w-auto"
+                                >
+                                    {isResetting ? 'Mereset...' : 'Reset Password'}
+                                </Button>
+                            </>
+                        )}
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* FAB */}
             <motion.div

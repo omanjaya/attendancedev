@@ -1,14 +1,15 @@
-import { useState } from 'react';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, Eye, EyeOff, KeyRound, CheckCircle } from 'lucide-react';
+import { Loader2, Eye, EyeOff, KeyRound, CheckCircle, AlertCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { LoadingState } from '@/components/states';
 import { Input } from '@/components/ui/input';
-import { useNotificationStore } from '@/stores';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { resetPassword } from '@/lib/api/auth';
+import { toast } from 'sonner';
 
 const resetPasswordSchema = z.object({
   email: z.string().email('Email tidak valid'),
@@ -21,38 +22,127 @@ const resetPasswordSchema = z.object({
 
 type ResetPasswordForm = z.infer<typeof resetPasswordSchema>;
 
+interface SearchParams {
+  token?: string;
+  email?: string;
+}
+
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
-  const { success } = useNotificationStore();
+  const search = useSearch({ strict: false }) as SearchParams;
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Get token and email from URL query params
+  const token = search?.token || '';
+  const emailFromUrl = search?.email || '';
 
   const {
     register,
     handleSubmit,
     formState: { errors },
+    setValue,
   } = useForm<ResetPasswordForm>({
     resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      email: emailFromUrl,
+    },
   });
 
-  const onSubmit = async () => {
+  // Pre-fill email from URL if available
+  useEffect(() => {
+    if (emailFromUrl) {
+      setValue('email', emailFromUrl);
+    }
+  }, [emailFromUrl, setValue]);
+
+  const onSubmit = async (data: ResetPasswordForm) => {
+    if (!token) {
+      setError('Token reset password tidak ditemukan. Silakan gunakan link dari email Anda.');
+      return;
+    }
+
     setIsLoading(true);
+    setError(null);
+
     try {
-      // Demo mode - simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setIsSuccess(true);
-      success('Password Direset', 'Password Anda berhasil diubah.');
-      setTimeout(() => {
-        navigate({ to: '/login' });
-      }, 2000);
-    } catch {
-      // Handle error
+      const response = await resetPassword({
+        token,
+        email: data.email,
+        password: data.password,
+        password_confirmation: data.password_confirmation,
+      });
+
+      if (response.success) {
+        setIsSuccess(true);
+        toast.success('Password Berhasil Direset', {
+          description: 'Silakan login dengan password baru Anda.',
+        });
+        setTimeout(() => {
+          navigate({ to: '/login' });
+        }, 2000);
+      } else {
+        setError(response.message || 'Gagal mereset password.');
+      }
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error
+        ? err.message
+        : 'Terjadi kesalahan. Silakan coba lagi.';
+      setError(errorMessage);
+      toast.error('Gagal mereset password', {
+        description: errorMessage,
+      });
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Show error if no token
+  if (!token) {
+    return (
+      <section className="bg-muted min-h-screen flex items-center justify-center p-6">
+        <div className="w-full max-w-md">
+          <div className="flex flex-col items-center gap-6">
+            <div className="flex flex-col items-center gap-2">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 shadow-lg">
+                <AlertCircle className="h-7 w-7 text-destructive" />
+              </div>
+              <div className="text-center">
+                <h1 className="text-2xl font-bold text-foreground">Link Tidak Valid</h1>
+                <p className="text-sm text-muted-foreground">
+                  Token reset password tidak ditemukan
+                </p>
+              </div>
+            </div>
+
+            <div className="w-full border border-border bg-background rounded-xl px-6 py-8 shadow-lg">
+              <div className="text-center space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Link reset password tidak valid atau sudah kadaluarsa.
+                  Silakan minta link reset password baru.
+                </p>
+                <div className="flex flex-col gap-2">
+                  <Button asChild className="w-full">
+                    <Link to="/auth/forgot-password">
+                      Minta Link Baru
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" className="w-full">
+                    <Link to="/login">
+                      Kembali ke Login
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="bg-muted min-h-screen flex items-center justify-center p-6">
@@ -89,6 +179,14 @@ export default function ResetPasswordPage() {
               </div>
             ) : (
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                {/* Error Alert */}
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+
                 {/* Email */}
                 <div className="space-y-2">
                   <label htmlFor="email" className="text-sm font-medium text-foreground">
@@ -99,6 +197,7 @@ export default function ResetPasswordPage() {
                     type="email"
                     placeholder="nama@email.com"
                     className="h-11"
+                    disabled={isLoading}
                     {...register('email')}
                   />
                   {errors.email && (
@@ -117,6 +216,7 @@ export default function ResetPasswordPage() {
                       type={showPassword ? 'text' : 'password'}
                       placeholder="Buat password baru"
                       className="h-11 pr-11"
+                      disabled={isLoading}
                       {...register('password')}
                     />
                     <button
@@ -143,6 +243,7 @@ export default function ResetPasswordPage() {
                       type={showConfirmPassword ? 'text' : 'password'}
                       placeholder="Ulangi password baru"
                       className="h-11 pr-11"
+                      disabled={isLoading}
                       {...register('password_confirmation')}
                     />
                     <button

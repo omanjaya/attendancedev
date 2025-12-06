@@ -102,6 +102,7 @@ export function MobileReportsPage() {
                         <button
                             onClick={() => navigate({ to: '/admin/dashboard' })}
                             className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
+                            aria-label="Kembali ke dashboard"
                         >
                             <ChevronLeft className="h-5 w-5 text-white" />
                         </button>

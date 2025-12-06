@@ -511,28 +511,32 @@ export function DesktopAdminAttendancePage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">
+                  <label htmlFor="manual-checkout" className="block text-sm font-medium mb-2">
                     Check-Out
                   </label>
                   <input
+                    id="manual-checkout"
                     type="time"
                     value={manualCheckOut}
                     onChange={(e) => setManualCheckOut(e.target.value)}
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    title="Check-Out Time"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label htmlFor="manual-notes" className="block text-sm font-medium mb-2">
                   Catatan
                 </label>
                 <textarea
+                  id="manual-notes"
                   value={manualNotes}
                   onChange={(e) => setManualNotes(e.target.value)}
                   className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                   rows={3}
                   placeholder="Catatan tambahan (opsional)"
+                  title="Catatan tambahan"
                 />
               </div>
 

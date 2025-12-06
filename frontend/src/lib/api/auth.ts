@@ -1,7 +1,7 @@
 import apiClient from './client';
 import type { User, LoginCredentials, ApiResponse } from '@/types/auth';
 
-// Auth API endpoints
+// Auth API endpoints (v1 API)
 const AUTH_ENDPOINTS = {
   login: 'auth/login',
   logout: 'auth/logout',

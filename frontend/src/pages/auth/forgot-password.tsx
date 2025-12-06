@@ -3,12 +3,13 @@ import { Link } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, Mail, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Loader2, Mail, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { LoadingState } from '@/components/states';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { forgotPassword } from '@/lib/api/auth';
+import { toast } from 'sonner';
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Email tidak valid'),
@@ -19,27 +20,56 @@ type ForgotPasswordForm = z.infer<typeof forgotPasswordSchema>;
 export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     getValues,
+    reset,
   } = useForm<ForgotPasswordForm>({
     resolver: zodResolver(forgotPasswordSchema),
   });
 
-  const onSubmit = async () => {
+  const onSubmit = async (data: ForgotPasswordForm) => {
     setIsLoading(true);
+    setError(null);
+
     try {
-      // Demo mode - simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setIsEmailSent(true);
-    } catch {
-      // Handle error
+      const response = await forgotPassword(data.email);
+
+      if (response.success) {
+        setIsEmailSent(true);
+        toast.success('Email terkirim!', {
+          description: 'Silakan periksa inbox email Anda.',
+        });
+      } else {
+        setError(response.message || 'Gagal mengirim email reset password.');
+      }
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error
+        ? err.message
+        : 'Terjadi kesalahan. Silakan coba lagi.';
+      setError(errorMessage);
+      toast.error('Gagal mengirim email', {
+        description: errorMessage,
+      });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleResend = () => {
+    setIsEmailSent(false);
+    setError(null);
+    // Keep the email for resending
+  };
+
+  const handleReset = () => {
+    setIsEmailSent(false);
+    setError(null);
+    reset();
   };
 
   return (
@@ -78,15 +108,33 @@ export default function ForgotPasswordPage() {
                 <Alert>
                   <AlertDescription className="text-sm">
                     Periksa folder spam jika email tidak ditemukan di inbox Anda.
+                    Link reset password akan kadaluarsa dalam 60 menit.
                   </AlertDescription>
                 </Alert>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setIsEmailSent(false)}
-                >
-                  Kirim Ulang Email
-                </Button>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleResend}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Mengirim...
+                      </>
+                    ) : (
+                      'Kirim Ulang Email'
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="w-full"
+                    onClick={handleReset}
+                  >
+                    Gunakan Email Lain
+                  </Button>
+                </div>
               </div>
             ) : (
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -94,6 +142,14 @@ export default function ForgotPasswordPage() {
                   Lupa password? Tidak masalah. Masukkan email Anda dan kami akan mengirimkan
                   link untuk membuat password baru.
                 </p>
+
+                {/* Error Alert */}
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
 
                 {/* Email */}
                 <div className="space-y-2">
@@ -106,6 +162,7 @@ export default function ForgotPasswordPage() {
                     placeholder="nama@email.com"
                     className="h-11"
                     {...register('email')}
+                    disabled={isLoading}
                   />
                   {errors.email && (
                     <p className="text-xs text-destructive">{errors.email.message}</p>

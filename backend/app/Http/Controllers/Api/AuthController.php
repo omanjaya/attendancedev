@@ -7,8 +7,12 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Validation\Rules;
 
 class AuthController extends Controller
 {
@@ -189,5 +193,83 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Akun berhasil dihapus',
         ]);
+    }
+
+    /**
+     * Handle a forgot password request (send reset link email).
+     */
+    public function forgotPassword(Request $request)
+    {
+        $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        // We will send the password reset link to this user.
+        $status = Password::sendResetLink(
+            $request->only('email')
+        );
+
+        if ($status === Password::RESET_LINK_SENT) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Link reset password telah dikirim ke email Anda.',
+            ]);
+        }
+
+        // Handle different error statuses
+        $messages = [
+            Password::INVALID_USER => 'Email tidak ditemukan dalam sistem kami.',
+            Password::RESET_THROTTLED => 'Terlalu banyak permintaan. Silakan tunggu beberapa menit.',
+        ];
+
+        return response()->json([
+            'success' => false,
+            'message' => $messages[$status] ?? 'Gagal mengirim link reset password.',
+        ], 400);
+    }
+
+    /**
+     * Handle password reset (verify token and update password).
+     */
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'token' => ['required'],
+            'email' => ['required', 'email'],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ]);
+
+        // Attempt to reset the user's password
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function (User $user, string $password) {
+                $user->forceFill([
+                    'password' => Hash::make($password),
+                    'remember_token' => Str::random(60),
+                    'password_changed_at' => now(),
+                    'force_password_change' => false,
+                ])->save();
+
+                event(new PasswordReset($user));
+            }
+        );
+
+        if ($status === Password::PASSWORD_RESET) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Password berhasil direset. Silakan login dengan password baru Anda.',
+            ]);
+        }
+
+        // Handle different error statuses
+        $messages = [
+            Password::INVALID_USER => 'Email tidak ditemukan.',
+            Password::INVALID_TOKEN => 'Token reset password tidak valid atau sudah kadaluarsa.',
+        ];
+
+        return response()->json([
+            'success' => false,
+            'message' => $messages[$status] ?? 'Gagal mereset password.',
+        ], 400);
     }
 }

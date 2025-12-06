@@ -519,6 +519,7 @@ class AttendanceController extends Controller
      */
     private function canAccessEmployee(Employee $employee): bool
     {
+        /** @var \App\Models\User|null $user */
         $user = Auth::user();
         
         if (!$user) {

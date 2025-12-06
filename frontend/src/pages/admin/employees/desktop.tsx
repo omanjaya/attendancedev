@@ -13,6 +13,10 @@ import {
     UserPlus,
     UserCheck,
     UserX,
+    KeyRound,
+    Copy,
+    Eye,
+    EyeOff,
 } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 import { motion } from 'framer-motion';
@@ -45,10 +49,21 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PageHeader } from '@/components/shared';
 import { useEmployees, useDeleteEmployee } from '@/hooks/use-employees';
 import { LoadingState } from '@/components/states';
+import { resetEmployeePassword, type ResetPasswordResponse } from '@/lib/api/employees';
+import { toast } from 'sonner';
+import { Label } from '@/components/ui/label';
 
 export function DesktopEmployeesPage() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -59,6 +74,13 @@ export function DesktopEmployeesPage() {
     const deleteEmployeeMutation = useDeleteEmployee();
     const [employeeToDelete, setEmployeeToDelete] = useState<{ id: string; name: string } | null>(null);
 
+    // Reset password states
+    const [employeeToReset, setEmployeeToReset] = useState<{ id: string; name: string; email: string } | null>(null);
+    const [isResetting, setIsResetting] = useState(false);
+    const [resetResult, setResetResult] = useState<ResetPasswordResponse | null>(null);
+    const [showPassword, setShowPassword] = useState(false);
+    const [customPassword, setCustomPassword] = useState('');
+
     const handleDelete = async () => {
         if (!employeeToDelete) return;
         try {
@@ -67,6 +89,43 @@ export function DesktopEmployeesPage() {
         } catch (error) {
             console.error('Failed to delete employee:', error);
         }
+    };
+
+    const handleResetPassword = async () => {
+        if (!employeeToReset) return;
+
+        setIsResetting(true);
+        try {
+            const result = await resetEmployeePassword(
+                employeeToReset.id,
+                customPassword || undefined
+            );
+            setResetResult(result);
+            toast.success('Password berhasil direset!', {
+                description: 'Password baru telah dibuat.',
+            });
+        } catch (error) {
+            console.error('Failed to reset password:', error);
+            toast.error('Gagal mereset password', {
+                description: error instanceof Error ? error.message : 'Terjadi kesalahan.',
+            });
+        } finally {
+            setIsResetting(false);
+        }
+    };
+
+    const handleCopyPassword = () => {
+        if (resetResult?.temporary_password) {
+            navigator.clipboard.writeText(resetResult.temporary_password);
+            toast.success('Password disalin ke clipboard');
+        }
+    };
+
+    const handleCloseResetDialog = () => {
+        setEmployeeToReset(null);
+        setResetResult(null);
+        setCustomPassword('');
+        setShowPassword(false);
     };
 
     const employees = employeesData?.data || [];
@@ -326,6 +385,18 @@ export function DesktopEmployeesPage() {
                                                         </DropdownMenuItem>
                                                         <DropdownMenuSeparator />
                                                         <DropdownMenuItem
+                                                            className="cursor-pointer"
+                                                            onClick={() => setEmployeeToReset({
+                                                                id: employee.id,
+                                                                name: employee.name,
+                                                                email: employee.email
+                                                            })}
+                                                        >
+                                                            <KeyRound className="mr-2 h-4 w-4" />
+                                                            Reset Password
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem
                                                             className="text-destructive focus:text-destructive cursor-pointer"
                                                             onClick={() => setEmployeeToDelete({ id: employee.id, name: employee.name })}
                                                         >
@@ -344,6 +415,7 @@ export function DesktopEmployeesPage() {
                 </Card>
             </motion.div>
 
+            {/* Delete Confirmation Dialog */}
             <AlertDialog open={!!employeeToDelete} onOpenChange={(open) => !open && setEmployeeToDelete(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -365,6 +437,127 @@ export function DesktopEmployeesPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Reset Password Dialog */}
+            <Dialog open={!!employeeToReset} onOpenChange={(open) => !open && handleCloseResetDialog()}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <KeyRound className="h-5 w-5 text-primary" />
+                            Reset Password
+                        </DialogTitle>
+                        <DialogDescription>
+                            Reset password untuk karyawan <strong>{employeeToReset?.name}</strong>
+                            {employeeToReset?.email && (
+                                <span className="block text-xs text-muted-foreground mt-1">
+                                    ({employeeToReset.email})
+                                </span>
+                            )}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {resetResult ? (
+                        // Show result after reset
+                        <div className="space-y-4 py-4">
+                            <div className="rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-4">
+                                <p className="text-sm text-green-800 dark:text-green-200 mb-3">
+                                    Password berhasil direset! Berikut adalah password sementara:
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    <div className="flex-1 relative">
+                                        <Input
+                                            type={showPassword ? 'text' : 'password'}
+                                            value={resetResult.temporary_password}
+                                            readOnly
+                                            className="pr-20 font-mono bg-white dark:bg-gray-900"
+                                        />
+                                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-7 w-7"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                            >
+                                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-7 w-7"
+                                                onClick={handleCopyPassword}
+                                            >
+                                                <Copy className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-4">
+                                <p className="text-sm text-amber-800 dark:text-amber-200">
+                                    ⚠️ <strong>Penting:</strong> User akan diminta untuk mengubah password saat login berikutnya.
+                                    Pastikan Anda mencatat atau menyalin password ini sebelum menutup dialog.
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        // Show form before reset
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="custom-password">Password Baru (Opsional)</Label>
+                                <div className="relative">
+                                    <Input
+                                        id="custom-password"
+                                        type={showPassword ? 'text' : 'password'}
+                                        placeholder="Kosongkan untuk generate otomatis..."
+                                        value={customPassword}
+                                        onChange={(e) => setCustomPassword(e.target.value)}
+                                        className="pr-10"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                    >
+                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </Button>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Minimal 8 karakter. Jika dikosongkan, password akan di-generate secara otomatis.
+                                </p>
+                            </div>
+                            <div className="rounded-lg bg-muted/50 p-4">
+                                <p className="text-sm text-muted-foreground">
+                                    Setelah reset, user harus mengubah password saat login berikutnya.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    <DialogFooter>
+                        {resetResult ? (
+                            <Button onClick={handleCloseResetDialog} className="w-full">
+                                Selesai
+                            </Button>
+                        ) : (
+                            <>
+                                <Button variant="outline" onClick={handleCloseResetDialog} disabled={isResetting}>
+                                    Batal
+                                </Button>
+                                <Button
+                                    onClick={handleResetPassword}
+                                    disabled={isResetting || (customPassword.length > 0 && customPassword.length < 8)}
+                                >
+                                    {isResetting ? 'Mereset...' : 'Reset Password'}
+                                </Button>
+                            </>
+                        )}
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

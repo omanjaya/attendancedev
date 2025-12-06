@@ -95,3 +95,23 @@ export async function uploadEmployeeAvatar(
 export async function deleteEmployeeAvatar(employeeId: string): Promise<void> {
   await apiClient.delete(`/employees/${employeeId}/avatar`);
 }
+
+// Reset employee password (Admin only)
+export interface ResetPasswordResponse {
+  employee_id: string;
+  email: string;
+  temporary_password: string;
+  force_password_change: boolean;
+  message: string;
+}
+
+export async function resetEmployeePassword(
+  employeeId: string,
+  newPassword?: string
+): Promise<ResetPasswordResponse> {
+  const response = await apiClient.post<{ data: ResetPasswordResponse }>(
+    `/employees/${employeeId}/reset-password`,
+    newPassword ? { new_password: newPassword } : {}
+  );
+  return response.data.data;
+}

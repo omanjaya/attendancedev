@@ -1,317 +1,339 @@
-# VPS Deployment Guide - Attendance Management System
+# 🚀 VPS Deployment Guide
 
-Complete deployment guide for deploying the attendance management system on VPS IP **168.231.121.98** with domain **absensi.manufac.id**.
+Panduan lengkap deploy Attendance System ke VPS.
 
-## 🚀 Quick Start
+## Quick Deploy (One Command!)
 
-### Step 1: Upload Files to VPS
+Setelah clone repository ke VPS:
+
 ```bash
-# Upload all project files to your VPS
-scp -r /path/to/attendancedev/* root@168.231.121.98:/root/
+# Clone repository
+git clone https://github.com/your-repo/attendance-system.git
+cd attendance-system
+
+# Run installation script
+sudo DOMAIN=absensi.yourdomain.com bash scripts/install-vps.sh
 ```
 
-### Step 2: Run VPS Setup Script
+Script ini akan menginstall dan mengkonfigurasi **SEMUA** yang dibutuhkan secara otomatis!
+
+---
+
+## VPS Requirements
+
+### Minimum Specs
+
+| Resource | Minimum | Recommended |
+|----------|---------|-------------|
+| CPU | 2 vCPU | 4 vCPU |
+| RAM | 2 GB | 4 GB |
+| Storage | 20 GB SSD | 40 GB SSD |
+| OS | Ubuntu 22.04 LTS | Ubuntu 22.04 LTS |
+
+### Estimated Cost
+
+- **Budget**: $10-15/month (DigitalOcean, Vultr, Linode)
+- **Recommended**: $20-30/month
+
+---
+
+## What Gets Installed
+
+Script `install-vps.sh` akan menginstall:
+
+| Component | Version | Purpose |
+|-----------|---------|---------|
+| PHP | 8.2 + FPM | Backend runtime |
+| PostgreSQL | 15 | Database (optimized) |
+| Redis | 7 | Cache, Session, Queue |
+| Nginx | Latest | Web server |
+| Node.js | 20 | Build frontend |
+| Python | 3.10+ | DeepFace service |
+| Supervisor | Latest | Process manager |
+| Certbot | Latest | SSL certificates |
+| UFW | Latest | Firewall |
+| Fail2ban | Latest | Brute-force protection |
+
+---
+
+## Step-by-Step Manual Installation
+
+Jika ingin install manual:
+
+### 1. Prepare VPS
+
 ```bash
-# Connect to VPS
-ssh root@168.231.121.98
+# Login ke VPS
+ssh root@your-vps-ip
 
-# Navigate to project directory
-cd /root/attendancedev
+# Update system
+apt update && apt upgrade -y
 
-# Make setup script executable
-chmod +x setup-vps.sh
-
-# Run complete VPS setup (this will take 15-20 minutes)
-./setup-vps.sh
+# Install essential tools
+apt install -y curl git wget unzip
 ```
 
-### Step 3: Deploy Application
+### 2. Clone Repository
+
 ```bash
-# Switch to deploy user
-su - deploy
+# Create directory
+mkdir -p /var/www
+cd /var/www
 
-# Navigate to application directory
-cd /var/www/attendance-system
-
-# Copy your application files here
-cp -r /root/attendancedev/* .
-
-# Run deployment script
-./deploy.sh
+# Clone
+git clone https://github.com/your-repo/attendance-system.git
+cd attendance-system
 ```
 
-### Step 4: Configure SSL Certificate
+### 3. Run Installation Script
+
 ```bash
-# Exit from deploy user back to root
-exit
+# Set domain (optional, can be changed later)
+export DOMAIN="absensi.yourdomain.com"
 
-# Configure SSL with Let's Encrypt
-certbot --nginx -d absensi.manufac.id
-
-# Verify SSL is working
-curl -I https://absensi.manufac.id
+# Run script
+sudo bash scripts/install-vps.sh
 ```
 
-## 📋 What the Setup Script Installs
+### 4. Configure SSL
 
-### System Components
-- ✅ **Ubuntu 22.04 LTS** with latest updates
-- ✅ **PHP 8.2** with all required extensions
-- ✅ **PostgreSQL 15** with optimized configuration
-- ✅ **Redis 7** for caching and session management
-- ✅ **Nginx** with security headers and optimized configuration
-- ✅ **Node.js 20** for frontend asset compilation
-- ✅ **Composer** for PHP dependency management
-- ✅ **Supervisor** for queue worker management
-
-### Security Features
-- ✅ **UFW Firewall** with restricted access
-- ✅ **Fail2ban** for intrusion prevention
-- ✅ **SSL/TLS** ready with Certbot
-- ✅ **Security headers** in Nginx configuration
-- ✅ **Deploy user** with restricted permissions
-- ✅ **Secure file permissions** for application
-
-### Database Configuration
-- 📊 **Database Name**: `attendance_system`
-- 👤 **Database User**: `attendance_user`
-- 🔑 **Auto-generated secure passwords** for database and Redis
-- 🏗️ **Optimized PostgreSQL settings** for performance
-
-### Application Configuration
-- 📁 **App Directory**: `/var/www/attendance-system`
-- 🌐 **Domain**: `absensi.manufac.id`
-- 📍 **VPS IP**: `168.231.121.98`
-- 🔄 **Queue Workers**: 2 processes with auto-restart
-- ⏰ **Scheduled Tasks**: Laravel scheduler via cron
-- 📝 **Logs**: Centralized logging in `/var/log/attendance-system`
-
-## 🔧 Manual Configuration Steps
-
-### 1. Environment Configuration
-After running the setup script, you may need to configure:
+Setelah DNS pointing ke VPS:
 
 ```bash
-# Edit production environment file
-nano /var/www/attendance-system/.env.production
+sudo certbot --nginx -d your-domain.com
+```
 
-# Configure email settings
+### 5. Verify Installation
+
+```bash
+# Check all services
+sudo systemctl status nginx php8.2-fpm postgresql redis-server
+
+# Check workers
+sudo supervisorctl status
+
+# Test API
+curl https://your-domain.com/api/health
+```
+
+---
+
+## Post-Installation
+
+### 1. Create Admin User
+
+```bash
+cd /var/www/attendance-system/backend
+php artisan db:seed
+```
+
+### 2. Configure Email (Optional)
+
+Edit `/var/www/attendance-system/backend/.env`:
+
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
 MAIL_USERNAME=your-email@gmail.com
 MAIL_PASSWORD=your-app-password
-
-# Configure any additional settings as needed
+MAIL_ENCRYPTION=tls
 ```
 
-### 2. Database Seeding (Optional)
+### 3. Configure Pusher (Optional)
+
+Untuk real-time notifications:
+
+```env
+BROADCAST_DRIVER=pusher
+PUSHER_APP_ID=your-app-id
+PUSHER_APP_KEY=your-app-key
+PUSHER_APP_SECRET=your-app-secret
+PUSHER_APP_CLUSTER=ap1
+```
+
+---
+
+## Updating Application
+
+### Quick Update
+
 ```bash
-# Switch to deploy user
-su - deploy
 cd /var/www/attendance-system
 
-# Seed initial data
-php artisan db:seed
+# Pull latest code
+git pull origin main
 
-# Create admin user
-php artisan make:user --admin
+# Update dependencies
+cd backend && composer install --no-dev --optimize-autoloader
+cd ../frontend && npm ci && npm run build
+
+# Clear caches
+cd ../backend
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+# Restart services
+sudo systemctl restart php8.2-fpm nginx
+sudo supervisorctl restart all
 ```
 
-### 3. Queue Worker Monitoring
-```bash
-# Check queue worker status
-sudo supervisorctl status attendance-queue-worker:*
+### With Maintenance Mode
 
-# View queue logs
+```bash
+cd /var/www/attendance-system/backend
+
+# Enable maintenance
+php artisan down
+
+# ... do updates ...
+
+# Disable maintenance  
+php artisan up
+```
+
+---
+
+## Backup & Restore
+
+### Manual Backup
+
+```bash
+# Database
+sudo -u postgres pg_dump attendance_system > backup.sql
+
+# Full backup
+tar -czf backup.tar.gz /var/www/attendance-system
+```
+
+### Automatic Backup
+
+Cron job sudah dikonfigurasi untuk backup harian jam 2 pagi.
+
+Lokasi backup: `/var/backups/attendance-system/`
+
+### Restore
+
+```bash
+# Restore database
+sudo -u postgres psql attendance_system < backup.sql
+
+# Restore files
+tar -xzf backup.tar.gz -C /
+```
+
+---
+
+## Monitoring
+
+### Check Logs
+
+```bash
+# Laravel logs
+tail -f /var/www/attendance-system/backend/storage/logs/laravel.log
+
+# Nginx logs
+tail -f /var/log/nginx/attendance.error.log
+
+# Queue worker logs
 tail -f /var/log/attendance-system/queue.log
 
-# Restart queue workers if needed
-sudo supervisorctl restart attendance-queue-worker:*
+# DeepFace logs
+tail -f /var/log/attendance-system/deepface-*.log
 ```
-
-## 🔍 Verification Checklist
-
-After deployment, verify these components are working:
 
 ### System Health
-- [ ] **Web Server**: Visit `http://168.231.121.98` or `http://absensi.manufac.id`
-- [ ] **Database**: Check PostgreSQL connection
-- [ ] **Redis**: Verify caching is working
-- [ ] **Queue Workers**: Confirm background jobs are processing
-- [ ] **SSL Certificate**: HTTPS is properly configured
 
-### Application Features
-- [ ] **User Login**: Admin panel accessible
-- [ ] **Face Recognition**: Camera access working
-- [ ] **Database Migrations**: All tables created
-- [ ] **File Uploads**: Storage directory writable
-- [ ] **Email Notifications**: SMTP configured correctly
-
-### Performance
-- [ ] **Page Load Times**: Under 2 seconds
-- [ ] **Database Queries**: Optimized and cached
-- [ ] **Static Assets**: Properly cached
-- [ ] **Memory Usage**: Under 512MB for PHP processes
-
-## 🛠️ Maintenance Commands
-
-### Application Updates
 ```bash
-# Switch to deploy user
-su - deploy
-cd /var/www/attendance-system
+# All services
+sudo systemctl status nginx php8.2-fpm postgresql redis-server
 
-# Update application
-git pull origin main
-./deploy.sh
+# Workers
+sudo supervisorctl status
+
+# Disk usage
+df -h
+
+# Memory
+free -h
+
+# CPU
+top -bn1 | head -20
 ```
 
-### Database Backup
+---
+
+## Troubleshooting
+
+### 500 Internal Server Error
+
 ```bash
-# Create database backup
-sudo -u postgres pg_dump attendance_system > /var/backups/attendance-system/db_backup_$(date +%Y%m%d).sql
-
-# Restore from backup
-sudo -u postgres psql attendance_system < /var/backups/attendance-system/db_backup_20240101.sql
-```
-
-### Log Management
-```bash
-# View application logs
-tail -f /var/log/nginx/absensi.manufac.id.access.log
-tail -f /var/log/nginx/absensi.manufac.id.error.log
-tail -f /var/www/attendance-system/storage/logs/laravel.log
-
-# Clear old logs
-find /var/log/attendance-system -name "*.log" -mtime +30 -delete
-```
-
-### Service Management
-```bash
-# Restart all services
-sudo systemctl restart nginx php8.2-fpm postgresql redis-server
-sudo supervisorctl restart all
-
-# Check service status
-sudo systemctl status nginx
-sudo systemctl status php8.2-fpm
-sudo systemctl status postgresql
-sudo systemctl status redis-server
-```
-
-## 🔒 Security Best Practices
-
-### Server Hardening
-1. **Change default SSH port**
-2. **Disable root SSH login** after setup
-3. **Enable automatic security updates**
-4. **Regular security audits**
-5. **Monitor access logs**
-
-### Application Security
-1. **Regular updates** of dependencies
-2. **Strong password policies**
-3. **Two-factor authentication** enabled
-4. **Regular database backups**
-5. **Monitor for suspicious activity**
-
-## 🆘 Troubleshooting
-
-### Common Issues
-
-#### 1. Permission Errors
-```bash
-# Fix file permissions
+# Check permissions
 sudo chown -R deploy:www-data /var/www/attendance-system
-sudo chmod -R 755 /var/www/attendance-system
-sudo chmod -R 775 /var/www/attendance-system/storage
-sudo chmod -R 775 /var/www/attendance-system/bootstrap/cache
+sudo chmod -R 775 /var/www/attendance-system/backend/storage
+
+# Check logs
+tail -50 /var/www/attendance-system/backend/storage/logs/laravel.log
 ```
 
-#### 2. Database Connection Issues
-```bash
-# Check PostgreSQL status
-sudo systemctl status postgresql
+### Queue Not Processing
 
-# Verify database credentials
-sudo -u postgres psql -c "\l"
+```bash
+sudo supervisorctl restart attendance-queue:*
+```
+
+### SSL Certificate Issues
+
+```bash
+# Renew certificate
+sudo certbot renew
+
+# Check certificate
+sudo certbot certificates
+```
+
+### Database Connection Error
+
+```bash
+# Check PostgreSQL
+sudo systemctl status postgresql
 
 # Test connection
-sudo -u deploy psql -h localhost -U attendance_user -d attendance_system
+sudo -u postgres psql -d attendance_system
 ```
 
-#### 3. Nginx Configuration Issues
+---
+
+## Security Checklist
+
+- [ ] SSL certificate installed (HTTPS)
+- [ ] Firewall enabled (UFW)
+- [ ] Fail2ban configured
+- [ ] Strong database passwords (auto-generated)
+- [ ] Redis password set
+- [ ] `.env` file secured (chmod 600)
+- [ ] Regular backups enabled
+- [ ] SSH key authentication only
+
+---
+
+## Credentials Location
+
+Semua credentials disimpan di:
+
 ```bash
-# Test Nginx configuration
-sudo nginx -t
-
-# Reload Nginx
-sudo systemctl reload nginx
-
-# Check error logs
-tail -f /var/log/nginx/error.log
+sudo cat /root/attendance-credentials.txt
 ```
 
-#### 4. PHP-FPM Issues
-```bash
-# Check PHP-FPM status
-sudo systemctl status php8.2-fpm
+⚠️ **SIMPAN CREDENTIALS INI DI TEMPAT YANG AMAN!**
 
-# Restart PHP-FPM
-sudo systemctl restart php8.2-fpm
+---
 
-# Check PHP error logs
-tail -f /var/log/php8.2-fpm.log
-```
+## Support
 
-### Performance Issues
+Jika ada masalah:
 
-#### 1. High Memory Usage
-```bash
-# Check memory usage
-free -h
-htop
-
-# Optimize PHP-FPM settings
-sudo nano /etc/php/8.2/fpm/pool.d/www.conf
-```
-
-#### 2. Slow Database Queries
-```bash
-# Enable PostgreSQL query logging
-sudo nano /etc/postgresql/15/main/postgresql.conf
-
-# Add these lines:
-# log_statement = 'all'
-# log_duration = on
-# log_min_duration_statement = 1000
-
-# Restart PostgreSQL
-sudo systemctl restart postgresql
-```
-
-## 📞 Support Information
-
-### Generated Credentials
-The setup script generates secure passwords that are displayed at the end of installation. **Make sure to save these credentials:**
-
-- **Database Password**: Auto-generated 32-character password
-- **Redis Password**: Auto-generated 32-character password
-- **SSL Certificate**: Auto-configured with Let's Encrypt
-
-### Important File Locations
-- **Application**: `/var/www/attendance-system`
-- **Nginx Config**: `/etc/nginx/sites-available/absensi.manufac.id`
-- **Environment File**: `/var/www/attendance-system/.env.production`
-- **Queue Config**: `/etc/supervisor/conf.d/attendance-queue.conf`
-- **Logs**: `/var/log/attendance-system/`
-- **Backups**: `/var/backups/attendance-system/`
-
-### System Requirements Met
-- ✅ **PHP 8.2+** with all required extensions
-- ✅ **PostgreSQL 15+** for production database
-- ✅ **Redis** for caching and sessions
-- ✅ **Node.js 20+** for frontend builds
-- ✅ **Nginx** as web server
-- ✅ **SSL Certificate** for HTTPS
-- ✅ **Supervisor** for background processes
-
-This deployment setup provides a production-ready environment with enterprise-grade security, performance optimization, and monitoring capabilities for the attendance management system.
+1. Check logs terlebih dahulu
+2. Lihat [Troubleshooting Guide](TROUBLESHOOTING.md)
+3. Buat issue di GitHub

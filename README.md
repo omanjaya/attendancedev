@@ -1,149 +1,113 @@
-# Attendance Management System - Monorepo
+# 📋 Sistem Absensi Modern
 
-Modern attendance management system with face recognition, GPS verification, and payroll calculation.
+**Attendance Management System** dengan Face Recognition, GPS Verification, dan Payroll Calculation.
 
-## Architecture
+[![Laravel](https://img.shields.io/badge/Laravel-12.x-red.svg)](https://laravel.com)
+[![React](https://img.shields.io/badge/React-19.x-blue.svg)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue.svg)](https://www.postgresql.org)
 
-This is a monorepo containing:
-
-```
-attendancedev/
-├── backend/              # Laravel 12 API
-├── frontend/             # React + TypeScript SPA
-└── shared/               # Shared types and constants
-```
-
-## Tech Stack
-
-- **Backend**: Laravel 12 (PHP 8.2+), Sanctum, SQLite/PostgreSQL
-- **Frontend**: React 19, TypeScript, TanStack Router, TanStack Query
-- **UI**: Tailwind CSS 4, shadcn/ui, Radix UI
-- **Testing**: PHPUnit, Vitest, Playwright
-- **Face Recognition**: Face-API.js, TensorFlow.js
-
-## Quick Start
+## 🚀 Quick Start (Development)
 
 ### Prerequisites
 
 - PHP 8.2+
 - Composer
-- Node.js 18+
-- npm 9+
+- Node.js 20+
+- PostgreSQL 15+ (atau SQLite untuk development cepat)
 
 ### Installation
 
 ```bash
+# Clone repository
+git clone https://github.com/your-repo/attendance-system.git
+cd attendance-system
+
 # Install all dependencies
 npm install
-
-# Install backend dependencies
-cd backend && composer install
+cd backend && composer install && cd ..
 
 # Setup environment
 cp backend/.env.example backend/.env
 php backend/artisan key:generate
-touch backend/database/database.sqlite
 
-# Run migrations
+# Database (SQLite untuk development cepat)
+touch backend/database/database.sqlite
 php backend/artisan migrate --seed
 ```
 
-### Development
+### Start Development (Satu Command!)
 
 ```bash
-# Start all services (from root)
+# Start SEMUA services sekaligus (Backend + Frontend + DeepFace)
+./scripts/start-all.sh
+
+# Atau gunakan npm
 npm run dev
-
-# Or start individually
-npm run dev:backend    # Laravel server on :8000
-npm run dev:frontend   # Vite dev server on :5173
 ```
 
-### Building
+**Commands lainnya:**
 
 ```bash
-# Build all packages
-npm run build
-
-# Build individually
-npm run build:frontend
-npm run build:backend
-npm run build:shared
+./scripts/start-all.sh stop     # Stop semua services
+./scripts/start-all.sh status   # Cek status services
+./scripts/start-all.sh restart  # Restart semua
+./scripts/start-all.sh logs     # Lihat semua logs
 ```
 
-### Testing
+**Access:**
+
+- 🌐 Frontend: <http://localhost:5173>
+- 🔧 API: <http://localhost:8000>
+- 📚 API Docs: <http://localhost:8000/api/documentation>
+
+## 🖥️ VPS Deployment (Production)
+
+Untuk deploy ke VPS, lihat [📘 Deployment Guide](docs/DEPLOYMENT.md) atau jalankan:
 
 ```bash
-# Run all tests
-npm run test
-
-# Backend tests
-npm run test:backend
-
-# Frontend tests
-npm run test:frontend
-
-# E2E tests
-npm run test:e2e
+# Di VPS setelah clone repository
+sudo bash scripts/install-vps.sh
 ```
 
-## Project Structure
+## 📁 Project Structure
 
-### Backend (`/backend`)
+```
+attendance-system/
+├── backend/          # Laravel 12 API
+├── frontend/         # React 19 SPA
+├── python-services/  # DeepFace Recognition Service
+├── shared/           # Shared TypeScript types
+├── scripts/          # Automation scripts
+└── docs/             # Documentation
+```
 
-Laravel API following service layer pattern:
+## ✨ Features
 
-- `app/Http/Controllers/` - Thin controllers
-- `app/Services/` - Business logic
-- `app/Repositories/` - Data access
-- `app/Models/` - Eloquent models
-- `routes/` - API routes
+| Feature | Description |
+|---------|-------------|
+| 🔐 **Authentication** | Multi-role auth dengan 2FA |
+| 👤 **Face Recognition** | DeepFace ArcFace (99.82% accuracy) |
+| 📍 **GPS Verification** | Radius-based location check |
+| 📅 **Schedule Management** | Dynamic scheduling system |
+| 💰 **Payroll** | Automatic calculation dengan tax brackets |
+| 📊 **Reports** | Excel/PDF export |
+| 🔔 **Notifications** | Real-time dengan Pusher |
 
-### Frontend (`/frontend`)
+## 📚 Documentation
 
-React SPA with modern patterns:
+- [🛠️ Development Guide](docs/DEVELOPMENT.md)
+- [🚀 Deployment Guide](docs/DEPLOYMENT.md)
+- [🏗️ Architecture](docs/ARCHITECTURE.md)
+- [🔧 API Reference](docs/API.md)
+- [❓ Troubleshooting](docs/TROUBLESHOOTING.md)
 
-- `src/pages/` - Route pages
-- `src/components/` - Reusable components
-- `src/lib/` - Utilities and API clients
-- `src/stores/` - Zustand stores
-- `src/hooks/` - Custom hooks
+## 🔑 Default Accounts
 
-### Shared (`/shared`)
+| Role | Email | Password |
+|------|-------|----------|
+| Super Admin | <admin@admin.com> | password |
 
-TypeScript types and constants shared between frontend and backend:
+## 📄 License
 
-- `types/` - Shared TypeScript interfaces
-- `constants/` - Shared constants and enums
-
-## Features
-
-- ✅ Face recognition check-in/out
-- ✅ GPS location verification
-- ✅ Schedule management
-- ✅ Employee management
-- ✅ Payroll calculation
-- ✅ Leave management
-- ✅ Real-time notifications (Pusher)
-- ✅ 2FA authentication
-- ✅ Role-based access control
-
-## Environment Variables
-
-See `backend/.env.example` for all available configuration options.
-
-Key variables:
-- `DB_CONNECTION` - Database type (sqlite/pgsql)
-- `ENABLE_FACE_RECOGNITION` - Enable/disable face recognition
-- `ENABLE_GPS_VERIFICATION` - Enable/disable GPS checks
-- `PAYROLL_*` - Payroll calculation settings
-
-## Documentation
-
-- See `CLAUDE.md` for development guidelines
-- See `backend/README.md` for backend-specific docs
-- See `frontend/README.md` for frontend-specific docs
-
-## License
-
-MIT
+MIT License - lihat [LICENSE](LICENSE) untuk detail.

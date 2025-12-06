@@ -30,8 +30,10 @@ Route::middleware('auth')->group(function () {
 
 // API v1 routes
 Route::prefix('v1')->group(function () {
-    // Auth routes
+    // Auth routes (public - no authentication required)
     Route::post('/auth/login', [App\Http\Controllers\Api\AuthController::class, 'login']);
+    Route::post('/auth/forgot-password', [App\Http\Controllers\Api\AuthController::class, 'forgotPassword']);
+    Route::post('/auth/reset-password', [App\Http\Controllers\Api\AuthController::class, 'resetPassword']);
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/auth/logout', [App\Http\Controllers\Api\AuthController::class, 'logout']);
@@ -59,6 +61,8 @@ Route::prefix('v1')->group(function () {
             // Avatar management
             Route::post('/{id}/avatar', [App\Http\Controllers\Api\EmployeeApiController::class, 'uploadAvatar']);
             Route::delete('/{id}/avatar', [App\Http\Controllers\Api\EmployeeApiController::class, 'deleteAvatar']);
+            // Admin password reset for employee users
+            Route::post('/{id}/reset-password', [App\Http\Controllers\Api\EmployeeApiController::class, 'resetPassword']);
         });
 
         // User account management endpoints (for admin creating user accounts)

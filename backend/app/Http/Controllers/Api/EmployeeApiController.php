@@ -503,4 +503,57 @@ class EmployeeApiController extends BaseApiController
             return $this->errorResponse('Failed to delete avatar: ' . $e->getMessage(), 500);
         }
     }
+
+    /**
+     * Reset password for an employee's user account (Admin only)
+     */
+    public function resetPassword(Request $request, $id)
+    {
+        $employee = Employee::with('user')->find($id);
+
+        if (!$employee) {
+            return $this->errorResponse('Employee not found', 404);
+        }
+
+        if (!$employee->user) {
+            return $this->errorResponse('User account not found for this employee', 404);
+        }
+
+        // Check if current user has permission (optional extra check)
+        $currentUser = $request->user();
+        if (!$currentUser->hasRole(['admin', 'super-admin', 'kepala-sekolah'])) {
+            return $this->errorResponse('Unauthorized. Only admins can reset passwords.', 403);
+        }
+
+        $validated = $request->validate([
+            'new_password' => 'sometimes|string|min:8',
+            'send_email' => 'boolean',
+        ]);
+
+        try {
+            // Generate a random password if not provided
+            $newPassword = $validated['new_password'] ?? \Illuminate\Support\Str::random(12);
+            
+            $employee->user->update([
+                'password' => Hash::make($newPassword),
+                'force_password_change' => true, // Force user to change password on next login
+                'password_changed_at' => null, // Reset password change date
+            ]);
+
+            // TODO: Optionally send email notification with new password
+            // if ($validated['send_email'] ?? false) {
+            //     Mail::to($employee->user->email)->send(new PasswordResetNotification($newPassword));
+            // }
+
+            return $this->apiResponse([
+                'employee_id' => $employee->id,
+                'email' => $employee->user->email,
+                'temporary_password' => $newPassword, // Only show this once
+                'force_password_change' => true,
+                'message' => 'Password berhasil direset. User harus mengubah password saat login berikutnya.',
+            ], 'Password reset successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to reset password: ' . $e->getMessage(), 500);
+        }
+    }
 }
