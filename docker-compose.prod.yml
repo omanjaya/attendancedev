@@ -139,6 +139,8 @@ services:
       - face_data:/app/face_data
     environment:
       - FLASK_ENV=production
+      - DEEPFACE_MODEL=${DEEPFACE_MODEL:-ArcFace}
+      - DEEPFACE_DETECTOR=${DEEPFACE_DETECTOR:-retinaface}
       - DEEPFACE_THRESHOLD=${DEEPFACE_THRESHOLD:-0.68}
       - DEEPFACE_LIVENESS_ENABLED=true
     healthcheck:
@@ -168,6 +170,8 @@ services:
       - face_data:/app/face_data
     environment:
       - FLASK_ENV=production
+      - DEEPFACE_MODEL=${DEEPFACE_MODEL:-ArcFace}
+      - DEEPFACE_DETECTOR=${DEEPFACE_DETECTOR:-retinaface}
       - DEEPFACE_THRESHOLD=${DEEPFACE_THRESHOLD:-0.68}
       - DEEPFACE_LIVENESS_ENABLED=true
     healthcheck:

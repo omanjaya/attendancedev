@@ -125,6 +125,8 @@ services:
       - "8001:8001"
     environment:
       - FLASK_ENV=${FLASK_ENV:-development}
+      - DEEPFACE_MODEL=${DEEPFACE_MODEL:-ArcFace}
+      - DEEPFACE_DETECTOR=${DEEPFACE_DETECTOR:-retinaface}
       - DEEPFACE_THRESHOLD=${DEEPFACE_THRESHOLD:-0.68}
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8001/health" ]

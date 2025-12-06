@@ -33,13 +33,36 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+import os
+
 # Configuration
+# Default recommended: ArcFace (accurate but heavy)
+# Alternative lightweight: VGG-Face (fast, lighter)
+model_name = os.environ.get("DEEPFACE_MODEL", "ArcFace")
+detector_backend = os.environ.get("DEEPFACE_DETECTOR", "retinaface")
+
+# Model configurations (Dimension, Threshold)
+MODEL_CONFIGS = {
+    "VGG-Face": {"dim": 2622, "threshold": 0.40},
+    "Facenet": {"dim": 128, "threshold": 0.40},
+    "Facenet512": {"dim": 512, "threshold": 0.30},
+    "OpenFace": {"dim": 128, "threshold": 0.10},
+    "DeepFace": {"dim": 4096, "threshold": 0.23},
+    "DeepID": {"dim": 160, "threshold": 0.015},
+    "ArcFace": {"dim": 512, "threshold": 0.68},
+    "SFace": {"dim": 128, "threshold": 0.593},
+    "GhostFaceNet": {"dim": 512, "threshold": 0.65},
+}
+
+# Get config using ArcFace as fallback defaults if model not found
+current_config = MODEL_CONFIGS.get(model_name, MODEL_CONFIGS["ArcFace"])
+
 CONFIG = {
-    "model_name": "ArcFace",  # 99.82% accuracy, 512-d embeddings
-    "detector_backend": "retinaface",  # Best detector
+    "model_name": model_name,
+    "detector_backend": detector_backend,
     "distance_metric": "cosine",
-    "threshold": 0.68,  # ArcFace threshold (lower = stricter)
-    "embedding_dimension": 512,
+    "threshold": float(os.environ.get("DEEPFACE_THRESHOLD", current_config["threshold"])),
+    "embedding_dimension": current_config["dim"],
 }
 
 class KnownFace(BaseModel):
