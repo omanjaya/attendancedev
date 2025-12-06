@@ -403,3 +403,130 @@ export async function getMySchedule(params?: {
   }>(`${V1_ENDPOINTS.monthlySchedules}/my-schedule`, { params });
   return response.data.data;
 }
+
+// ====================================
+// Teaching Schedule API (for Excel Import Integration)
+// ====================================
+
+export interface TeacherFromExcel {
+  code: string;
+  name: string;
+  subject?: string;
+}
+
+export interface ScheduleFromExcel {
+  day: string;
+  period: number;
+  className: string;
+  teacherCode: string;
+  subject?: string;
+}
+
+export interface BulkImportRequest {
+  teachers: TeacherFromExcel[];
+  schedules: ScheduleFromExcel[];
+  effective_from: string; // YYYY-MM-DD
+  effective_until?: string; // YYYY-MM-DD
+  semester?: 1 | 2;
+  academic_year?: string; // e.g., "2024/2025"
+}
+
+export interface TeacherMatchResult {
+  code: string;
+  excel_name: string;
+  subject?: string;
+  matched: boolean;
+  employee_id?: string;
+  employee_name?: string;
+  employee_nip?: string;
+}
+
+export interface BulkImportResult {
+  matched_teachers: {
+    code: string;
+    excel_name: string;
+    employee_id: string;
+    employee_name: string;
+  }[];
+  unmatched_teachers: {
+    code: string;
+    name: string;
+    subject?: string;
+  }[];
+  created_schedules: number;
+  skipped_schedules: number;
+  created_subjects: string[];
+  errors: {
+    schedule: ScheduleFromExcel;
+    error: string;
+  }[];
+}
+
+const TEACHING_ENDPOINTS = {
+  list: '/schedules/teaching',
+  bulkImport: '/schedules/teaching/bulk-import',
+  matchTeachers: '/schedules/teaching/match-teachers',
+  clear: '/schedules/teaching/clear',
+} as const;
+
+// Match teachers from Excel to existing employees
+export async function matchTeachersFromExcel(
+  teachers: TeacherFromExcel[]
+): Promise<TeacherMatchResult[]> {
+  const response = await apiClient.post<{ data: TeacherMatchResult[] }>(
+    TEACHING_ENDPOINTS.matchTeachers,
+    { teachers }
+  );
+  return response.data.data;
+}
+
+// Bulk import teaching schedules from Excel data
+export async function bulkImportTeachingSchedules(
+  data: BulkImportRequest
+): Promise<BulkImportResult> {
+  const response = await apiClient.post<{ data: BulkImportResult }>(
+    TEACHING_ENDPOINTS.bulkImport,
+    data
+  );
+  return response.data.data;
+}
+
+// Get teaching schedules
+export async function getTeachingSchedules(params?: {
+  teacher_id?: string;
+  day_of_week?: string;
+  effective_from?: string;
+  effective_until?: string;
+  active_only?: boolean;
+  per_page?: number;
+}): Promise<PaginatedResponse<{
+  id: string;
+  teacher_id: string;
+  teacher?: { id: string; employee_id: string; full_name: string };
+  subject_id?: string;
+  subject?: { id: string; name: string };
+  day_of_week: string;
+  teaching_start_time: string;
+  teaching_end_time: string;
+  class_name?: string;
+  effective_from: string;
+  effective_until?: string;
+  is_active: boolean;
+}>> {
+  const response = await apiClient.get(TEACHING_ENDPOINTS.list, { params });
+  return response.data;
+}
+
+// Clear teaching schedules for a period
+export async function clearTeachingSchedules(params: {
+  effective_from: string;
+  effective_until?: string;
+  teacher_id?: string;
+}): Promise<{ deleted_count: number }> {
+  const response = await apiClient.delete<{ data: { deleted_count: number } }>(
+    TEACHING_ENDPOINTS.clear,
+    { data: params }
+  );
+  return response.data.data;
+}
+

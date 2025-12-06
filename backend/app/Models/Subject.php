@@ -15,11 +15,18 @@ class Subject extends Model
         'name',
         'code',
         'description',
+        'category',
+        'weekly_hours',
+        'max_meetings_per_week',
+        'requires_lab',
         'is_active',
         'color',
+        'metadata',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'requires_lab' => 'boolean',
+        'metadata' => 'array',
     ];
 }

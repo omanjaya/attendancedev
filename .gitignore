@@ -95,3 +95,10 @@ temp_*.js
 # Temporary and test directories
 /tmp/
 load-testing/venv/
+
+# Docker
+.env
+!.env.docker.example
+backups/*.sql
+docker/nginx/ssl/
+docker/nginx/certbot/

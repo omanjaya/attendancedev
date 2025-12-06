@@ -1,0 +1,71 @@
+# ============================================
+# Docker Build Context Ignore
+# ============================================
+
+# Git
+.git
+.gitignore
+.github
+
+# Documentation
+docs
+*.md
+!README.md
+
+# Development files
+.vscode
+.idea
+*.log
+*.tmp
+*.temp
+
+# Backend
+backend/node_modules
+backend/vendor
+backend/.env
+backend/.env.*
+backend/storage/framework/cache/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+backend/storage/logs/*
+backend/bootstrap/cache/*
+backend/database/*.sqlite
+backend/database/*.sqlite-journal
+backend/.phpunit*
+backend/tests
+
+# Frontend
+frontend/node_modules
+frontend/dist
+frontend/playwright-report
+frontend/test-results
+frontend/.env*
+
+# Python
+python-services/venv
+python-services/__pycache__
+python-services/*.pyc
+python-face-service/venv
+python-face-service/__pycache__
+
+# Testing
+load-testing
+*.test.*
+*.spec.*
+
+# Docker
+docker-compose*.yml
+.dockerignore
+Dockerfile*
+
+# Backups
+backups
+
+# Temporary
+tmp
+*.tar.gz
+*.zip
+
+# Large model files (will be downloaded at runtime)
+frontend/public/models/*.bin
+frontend/public/models/*-shard*

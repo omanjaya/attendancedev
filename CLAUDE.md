@@ -98,3 +98,66 @@ Project skills in `.claude/skills/`:
 - `face-recognition` - Face detection patterns
 - `laravel-patterns` - Service layer patterns
 - `tailwind-components` - UI patterns
+
+## 🚀 Deployment
+
+### Quick Deploy (Recommended)
+
+**Option 1: Script Installation (No Docker)**
+
+```bash
+# Clone repo
+git clone https://github.com/omanjaya/attendancedev.git /var/www/attendancedev
+cd /var/www/attendancedev
+
+# Run installation script
+sudo DOMAIN=yourdomain.com bash scripts/install-vps.sh
+
+# Setup SSL
+sudo certbot --nginx -d yourdomain.com
+```
+
+**Option 2: Docker Deployment**
+
+```bash
+# Clone repo
+git clone https://github.com/omanjaya/attendancedev.git /opt/attendancedev
+cd /opt/attendancedev
+
+# Setup environment
+cp .env.docker.example .env
+# Edit .env with your config
+
+# Start services
+docker compose -f docker-compose.prod.yml up -d
+
+# Run migrations
+docker compose exec backend php artisan migrate --seed
+```
+
+### Documentation Files
+
+| File | Purpose |
+|------|---------|
+| `docs/DEPLOYMENT.md` | Manual deployment guide |
+| `docs/DOCKER.md` | Docker deployment guide |
+| `docs/PERFORMANCE.md` | Performance optimization |
+| `docs/VPS_DEPLOY_PROMPT.md` | Prompt templates for Claude |
+| `.env.docker.example` | Environment variables template |
+
+### Default Credentials
+
+After deployment:
+
+- **Admin**: <admin@school.edu> / password
+- **Super Admin**: <superadmin@school.edu> / password
+
+### Required Ports
+
+| Port | Service |
+|------|---------|
+| 80 | HTTP (Nginx) |
+| 443 | HTTPS (Nginx) |
+| 5432 | PostgreSQL (internal) |
+| 6379 | Redis (internal) |
+| 8001 | DeepFace (internal) |

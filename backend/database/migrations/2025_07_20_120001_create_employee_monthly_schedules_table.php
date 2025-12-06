@@ -64,8 +64,8 @@ return new class extends Migration
             $table->foreign('attendance_id')->references('id')->on('attendances')->onDelete('set null');
             
             // Audit fields
-            $table->uuid('assigned_by')->nullable(); // Who assigned this schedule
-            $table->uuid('modified_by')->nullable(); // Who last modified
+            $table->unsignedBigInteger('assigned_by')->nullable(); // Who assigned this schedule
+            $table->unsignedBigInteger('modified_by')->nullable(); // Who last modified
             $table->timestamps();
             $table->softDeletes();
             

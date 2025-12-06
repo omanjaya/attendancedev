@@ -32,9 +32,9 @@ return new class extends Migration
 
         // Employees table indexes
         Schema::table('employees', function (Blueprint $table) {
-            // Employee code for lookups
-            if (!$this->indexExists('employees', 'employees_code_index')) {
-                $table->index('employee_code', 'employees_code_index');
+            // Employee ID for lookups
+            if (!$this->indexExists('employees', 'employees_employee_id_index')) {
+                $table->index('employee_id', 'employees_employee_id_index');
             }
 
             // User ID for joins
@@ -85,8 +85,8 @@ return new class extends Migration
                 $table->index(['date', 'employee_id', 'status'], 'attendances_date_employee_status_index');
             }
 
-            // Location verification queries
-            if (!$this->indexExists('attendances', 'attendances_location_id_index')) {
+            // Location verification queries (only if location_id column exists)
+            if (Schema::hasColumn('attendances', 'location_id') && !$this->indexExists('attendances', 'attendances_location_id_index')) {
                 $table->index('location_id', 'attendances_location_id_index');
             }
         });
@@ -147,26 +147,23 @@ return new class extends Migration
         if (Schema::hasTable('holidays')) {
             Schema::table('holidays', function (Blueprint $table) {
                 // Date queries
-                if (!$this->indexExists('holidays', 'holidays_date_index')) {
+                if (Schema::hasColumn('holidays', 'date') && !$this->indexExists('holidays', 'holidays_date_index')) {
                     $table->index('date', 'holidays_date_index');
                 }
 
                 // Active holidays
-                if (!$this->indexExists('holidays', 'holidays_active_index')) {
+                if (Schema::hasColumn('holidays', 'is_active') && !$this->indexExists('holidays', 'holidays_active_index')) {
                     $table->index('is_active', 'holidays_active_index');
                 }
 
                 // Year filtering
-                if (Schema::hasColumn('holidays', 'year')) {
-                    if (!$this->indexExists('holidays', 'holidays_year_index')) {
-                        $table->index('year', 'holidays_year_index');
-                    }
+                if (Schema::hasColumn('holidays', 'year') && !$this->indexExists('holidays', 'holidays_year_index')) {
+                    $table->index('year', 'holidays_year_index');
                 }
             });
         }
 
-        // Log completion
-        DB::statement("-- Performance indexes added successfully");
+        // Log completion - performance indexes added successfully
     }
 
     /**
@@ -204,17 +201,17 @@ return new class extends Migration
         });
 
         Schema::table('attendances', function (Blueprint $table) {
-            $table->dropIndex('attendances_employee_id_index');
-            $table->dropIndex('attendances_date_index');
-            $table->dropIndex('attendances_check_in_time_index');
-            $table->dropIndex('attendances_status_index');
-            $table->dropIndex('attendances_employee_date_index');
-            $table->dropIndex('attendances_date_employee_status_index');
-            $table->dropIndex('attendances_location_id_index');
+            try { $table->dropIndex('attendances_employee_id_index'); } catch (\Exception $e) {}
+            try { $table->dropIndex('attendances_date_index'); } catch (\Exception $e) {}
+            try { $table->dropIndex('attendances_check_in_time_index'); } catch (\Exception $e) {}
+            try { $table->dropIndex('attendances_status_index'); } catch (\Exception $e) {}
+            try { $table->dropIndex('attendances_employee_date_index'); } catch (\Exception $e) {}
+            try { $table->dropIndex('attendances_date_employee_status_index'); } catch (\Exception $e) {}
+            try { $table->dropIndex('attendances_location_id_index'); } catch (\Exception $e) {}
         });
 
         Schema::table('employees', function (Blueprint $table) {
-            $table->dropIndex('employees_code_index');
+            $table->dropIndex('employees_employee_id_index');
             $table->dropIndex('employees_user_id_index');
             $table->dropIndex('employees_active_index');
             $table->dropIndex('employees_user_active_index');

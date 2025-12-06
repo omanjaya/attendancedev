@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->boolean('is_active')->default(true)->after('email');
-            $table->timestamp('last_login_at')->nullable()->after('updated_at');
+            $table->boolean('is_active')->default(true);
+            $table->timestamp('last_login_at')->nullable();
 
             // Add indexes for better performance
             $table->index('is_active');

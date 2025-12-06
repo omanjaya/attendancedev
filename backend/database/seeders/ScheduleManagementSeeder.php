@@ -263,7 +263,6 @@ class ScheduleManagementSeeder extends Seeder
         // Get all active teachers (permanent and honorary)
         $teachers = Employee::where('is_active', true)
             ->whereIn('employee_type', ['permanent', 'honorary'])
-            ->whereIn('department', ['Exact Sciences', 'Language', 'Social Sciences', 'Arts', 'Physical'])
             ->get();
 
         if ($teachers->isEmpty()) {

@@ -14,28 +14,28 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             // Check and add missing fields only
             if (! Schema::hasColumn('users', 'last_login_ip')) {
-                $table->string('last_login_ip', 45)->nullable()->after('last_login_at');
+                $table->string('last_login_ip', 45)->nullable();
             }
             if (! Schema::hasColumn('users', 'password_changed_at')) {
-                $table->timestamp('password_changed_at')->nullable()->after('last_login_ip');
+                $table->timestamp('password_changed_at')->nullable();
             }
             if (! Schema::hasColumn('users', 'failed_login_attempts')) {
-                $table->integer('failed_login_attempts')->default(0)->after('password_changed_at');
+                $table->integer('failed_login_attempts')->default(0);
             }
             if (! Schema::hasColumn('users', 'locked_until')) {
-                $table->timestamp('locked_until')->nullable()->after('failed_login_attempts');
+                $table->timestamp('locked_until')->nullable();
             }
             if (! Schema::hasColumn('users', 'phone')) {
-                $table->string('phone', 20)->nullable()->after('email');
+                $table->string('phone', 20)->nullable();
             }
             if (! Schema::hasColumn('users', 'security_preferences')) {
-                $table->json('security_preferences')->nullable()->after('locked_until');
+                $table->json('security_preferences')->nullable();
             }
             if (! Schema::hasColumn('users', 'force_password_change')) {
-                $table->boolean('force_password_change')->default(false)->after('security_preferences');
+                $table->boolean('force_password_change')->default(false);
             }
             if (! Schema::hasColumn('users', 'account_locked')) {
-                $table->boolean('account_locked')->default(false)->after('force_password_change');
+                $table->boolean('account_locked')->default(false);
             }
         });
     }

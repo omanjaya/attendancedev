@@ -18,7 +18,7 @@ return new class extends Migration
 
         Schema::table('employees', function (Blueprint $table) {
             // Add foreign key to employee_types
-            $table->uuid('employee_type_id')->nullable()->after('employee_type');
+            $table->uuid('employee_type_id')->nullable();
             
             // SQLite doesn't support adding foreign key constraints to existing tables
             // We'll skip foreign key for SQLite
@@ -94,6 +94,7 @@ return new class extends Migration
                 WHERE ems.deleted_at IS NULL
             ");
         } else {
+            // PostgreSQL version
             DB::statement("
                 CREATE VIEW effective_employee_schedules AS
                 SELECT 
@@ -106,7 +107,7 @@ return new class extends Migration
                     ems.status,
                     CASE 
                         WHEN ts.id IS NOT NULL THEN 'teaching_override'
-                        WHEN ems.is_holiday = 1 THEN 'holiday'
+                        WHEN ems.is_holiday = true THEN 'holiday'
                         ELSE 'base_schedule'
                     END as schedule_type,
                     ts.id as teaching_schedule_id,
@@ -116,9 +117,9 @@ return new class extends Migration
                 LEFT JOIN employees e ON e.id = ems.employee_id
                 LEFT JOIN teaching_schedules ts ON 
                     ts.teacher_id = ems.employee_id 
-                    AND ts.is_active = 1
-                    AND ts.override_attendance = 1
-                    AND LOWER(DAYNAME(ems.effective_date)) = ts.day_of_week
+                    AND ts.is_active = true
+                    AND ts.override_attendance = true
+                    AND LOWER(TO_CHAR(ems.effective_date, 'day')) = ts.day_of_week
                     AND ems.effective_date >= ts.effective_from
                     AND (ts.effective_until IS NULL OR ems.effective_date <= ts.effective_until)
                 WHERE ems.deleted_at IS NULL

@@ -6,6 +6,7 @@ import {
   CalendarRange,
   Download,
   Users,
+  Grid3X3,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ import { ScheduleListContent } from './tabs/ScheduleListContent';
 import { ScheduleBuilderContent } from './tabs/ScheduleBuilderContent';
 import { ScheduleAssignContent } from './tabs/ScheduleAssignContent';
 import { TeacherScheduleContent } from './tabs/TeacherScheduleContent';
+import { TeacherScheduleGridContent } from './tabs/TeacherScheduleGridContent';
 import { MonthlyScheduleList } from './monthly/index';
 
 // Desktop version (original implementation)
@@ -38,7 +40,7 @@ export function DesktopSchedulesPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-flex">
           <TabsTrigger value="monthly" className="gap-2">
             <CalendarRange className="h-4 w-4" />
             <span className="hidden sm:inline">Bulanan</span>
@@ -53,6 +55,11 @@ export function DesktopSchedulesPage() {
             <Layers className="h-4 w-4" />
             <span className="hidden sm:inline">Builder</span>
             <span className="sm:hidden">Builder</span>
+          </TabsTrigger>
+          <TabsTrigger value="grid" className="gap-2">
+            <Grid3X3 className="h-4 w-4" />
+            <span className="hidden sm:inline">Susun Guru</span>
+            <span className="sm:hidden">Grid</span>
           </TabsTrigger>
           <TabsTrigger value="teacher" className="gap-2">
             <Users className="h-4 w-4" />
@@ -76,6 +83,10 @@ export function DesktopSchedulesPage() {
 
         <TabsContent value="builder" className="mt-6">
           <ScheduleBuilderContent />
+        </TabsContent>
+
+        <TabsContent value="grid" className="mt-6">
+          <TeacherScheduleGridContent />
         </TabsContent>
 
         <TabsContent value="teacher" className="mt-6">

@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('employee_types', function (Blueprint $table) {
-            $table->json('work_days')->nullable()->after('default_end_time');
+            $table->json('work_days')->nullable();
         });
     }
 

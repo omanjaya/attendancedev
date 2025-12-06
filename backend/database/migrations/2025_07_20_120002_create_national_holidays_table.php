@@ -55,8 +55,8 @@ return new class extends Migration
             $table->json('metadata')->nullable(); // Additional holiday data
             
             // Audit fields
-            $table->uuid('created_by')->nullable();
-            $table->uuid('updated_by')->nullable();
+            $table->unsignedBigInteger('created_by')->nullable();
+            $table->unsignedBigInteger('updated_by')->nullable();
             $table->timestamps();
             $table->softDeletes();
             
@@ -67,8 +67,8 @@ return new class extends Migration
             $table->index(['is_recurring', 'is_active']); // Recurring holiday management
             $table->index(['holiday_date', 'type', 'location_id']); // Complex queries
             
-            // Year-based partitioning helper (SQLite compatible)
-            $table->integer('holiday_year')->storedAs("CAST(strftime('%Y', holiday_date) AS INTEGER)");
+            // Year-based partitioning helper (PostgreSQL compatible)
+            $table->integer('holiday_year')->nullable();
             $table->index(['holiday_year', 'type']); // Year-based queries
             
             // Foreign keys for audit

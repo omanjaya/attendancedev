@@ -12,10 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('attendances', function (Blueprint $table) {
-            $table->boolean('is_manual_entry')->default(false)->after('notes');
-            $table->text('manual_entry_reason')->nullable()->after('is_manual_entry');
-            $table->uuid('manual_entry_by')->nullable()->after('manual_entry_reason');
-            $table->uuid('updated_by')->nullable()->after('manual_entry_by');
+            $table->boolean('is_manual_entry')->default(false);
+            $table->text('manual_entry_reason')->nullable();
+            $table->unsignedBigInteger('manual_entry_by')->nullable();
+            $table->unsignedBigInteger('updated_by')->nullable();
             
             $table->foreign('manual_entry_by')->references('id')->on('users')->onDelete('set null');
             $table->foreign('updated_by')->references('id')->on('users')->onDelete('set null');

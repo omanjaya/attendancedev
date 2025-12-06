@@ -79,8 +79,8 @@ return new class extends Migration
             $table->text('substitution_reason')->nullable();
             
             // Audit fields
-            $table->uuid('created_by')->nullable();
-            $table->uuid('updated_by')->nullable();
+            $table->unsignedBigInteger('created_by')->nullable();
+            $table->unsignedBigInteger('updated_by')->nullable();
             $table->timestamps();
             $table->softDeletes();
             

@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('attendances', function (Blueprint $table) {
-            $table->json('time_verification')->nullable()->after('metadata')->comment('Time accuracy verification data');
+            $table->json('time_verification')->nullable()->comment('Time accuracy verification data');
         });
     }
 

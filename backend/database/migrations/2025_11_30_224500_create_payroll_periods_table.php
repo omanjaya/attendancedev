@@ -31,7 +31,7 @@ return new class extends Migration {
         });
 
         Schema::table('payrolls', function (Blueprint $table) {
-            $table->uuid('payroll_period_id')->nullable()->after('employee_id');
+            $table->uuid('payroll_period_id')->nullable();
             $table->foreign('payroll_period_id')->references('id')->on('payroll_periods')->onDelete('cascade');
         });
     }

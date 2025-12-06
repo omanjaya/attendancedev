@@ -1,0 +1,101 @@
+# ============================================
+# Performance Optimized Production Config
+# ============================================
+# This extends docker-compose.prod.yml with performance tuning
+# Usage: docker-compose -f docker-compose.prod.yml -f docker-compose.perf.yml up -d
+# ============================================
+
+version: '3.8'
+
+services:
+  # ==========================================
+  # PostgreSQL with Custom Config
+  # ==========================================
+  postgres:
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
+        reservations:
+          memory: 1G
+    sysctls:
+      - net.core.somaxconn=1024
+
+  # ==========================================
+  # Redis with Custom Config
+  # ==========================================
+  redis:
+    command: redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 512M
+    sysctls:
+      - net.core.somaxconn=1024
+
+  # ==========================================
+  # Backend with OPcache Preloading
+  # ==========================================
+  backend:
+    environment:
+      - PHP_OPCACHE_PRELOAD=/var/www/html/preload.php
+      - PHP_OPCACHE_PRELOAD_USER=www-data
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+          cpus: '1.5'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+  # ==========================================
+  # DeepFace with GPU Support (if available)
+  # ==========================================
+  deepface-1:
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+          cpus: '2'
+        reservations:
+          memory: 2G
+          cpus: '1'
+    # Uncomment for GPU support (requires nvidia-docker)
+    # runtime: nvidia
+    # environment:
+    #   - NVIDIA_VISIBLE_DEVICES=all
+
+  deepface-2:
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+          cpus: '2'
+        reservations:
+          memory: 2G
+          cpus: '1'
+
+  # ==========================================
+  # Nginx with Performance Tuning
+  # ==========================================
+  nginx:
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+    sysctls:
+      - net.core.somaxconn=65535
+      - net.ipv4.tcp_tw_reuse=1

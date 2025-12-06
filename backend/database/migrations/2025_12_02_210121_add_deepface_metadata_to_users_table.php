@@ -19,25 +19,25 @@ return new class extends Migration
             // Options: 'face-api.js', 'deepface-arcface', 'deepface-buffalo_l', etc.
             $table->string('face_model', 50)
                 ->nullable()
-                ->after('face_descriptor')
+                
                 ->comment('Face recognition model used (face-api.js, deepface-arcface, etc.)');
 
             // Track embedding dimension (128 for face-api.js, 512 for ArcFace)
             $table->unsignedSmallInteger('face_embedding_dimension')
                 ->nullable()
-                ->after('face_model')
+                
                 ->comment('Dimension of face embedding (128, 512, etc.)');
 
             // Confidence score from face detection/extraction
             $table->decimal('face_confidence', 5, 4)
                 ->nullable()
-                ->after('face_embedding_dimension')
+                
                 ->comment('Confidence score from face detection (0.0000 to 1.0000)');
 
             // Image quality metrics
             $table->json('face_quality_metrics')
                 ->nullable()
-                ->after('face_confidence')
+                
                 ->comment('Quality metrics: blur_score, brightness, etc.');
         });
     }

@@ -1,410 +1,155 @@
 ---
-description: Plan untuk sistem jadwal dinamis yang terintegrasi dengan attendance
+description: Sistem jadwal dinamis terintegrasi dengan absensi - Import Excel, semester support
 ---
 
-# 📋 Dynamic Schedule System Plan
+# Dynamic Schedule System (Terintegrasi Absensi)
 
-## 🎯 Ringkasan Eksekutif
+Sistem ini memungkinkan import jadwal mengajar dari Excel ke database yang terintegrasi dengan sistem absensi.
 
-Sistem ini adalah **Attendance Management System** berbasis jadwal untuk institusi pendidikan (sekolah) dengan berbagai tipe pegawai. Core dari sistem ini adalah **Schedule Engine** yang menentukan kapan pegawai harus hadir, kapan libur, dan bagaimana validasi absensi bekerja.
-
----
-
-## 📊 Analisis Struktur Saat Ini
-
-### Model-Model Kunci
-
-| Model | Fungsi | Status |
-|-------|--------|--------|
-| `EmployeeType` | Definisi tipe pegawai (mode jadwal, default jam kerja) | ✅ Lengkap |
-| `MonthlySchedule` | Template jadwal bulanan | ✅ Lengkap |
-| `EmployeeMonthlySchedule` | Jadwal harian per pegawai | ✅ Lengkap |
-| `TeachingSchedule` | Jadwal mengajar (untuk Guru Honor) | ✅ Lengkap |
-| `WeeklySchedule` | Jadwal mingguan untuk sistem akademik | ✅ Lengkap |
-| `Holiday` | Hari libur nasional/lokal | ✅ Baru diintegrasikan |
-| `Employee.getEffectiveScheduleForDate()` | Engine utama penentuan jadwal | ✅ Baru diperbaiki |
-
-### Alur Kerja Saat Ini
+## Arsitektur
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Pegawai Ingin Absen                           │
-└───────────────────────────┬─────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│           getEffectiveScheduleForDate($date)                     │
+│                    FRONTEND                                      │
 ├─────────────────────────────────────────────────────────────────┤
-│ 1. Cek EmployeeMonthlySchedule (override spesifik)               │
-│ 2. Cek Holiday (libur global)                                    │
-│ 3. Cek TeachingSchedule (untuk flexible employee)                │
-│ 4. Fallback ke EmployeeType default                              │
-└───────────────────────────┬─────────────────────────────────────┘
-                            │
-                            ▼
+│  Excel Upload → Parse → Preview → Pilih Semester → Import API   │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│  Return: schedule_type, can_attend, start_time, end_time, etc   │
+│                    BACKEND API                                   │
+├─────────────────────────────────────────────────────────────────┤
+│  POST /api/v1/schedules/teaching/match-teachers                 │
+│  POST /api/v1/schedules/teaching/bulk-import                    │
+│  GET  /api/v1/schedules/teaching                                │
+│  DELETE /api/v1/schedules/teaching/clear                        │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                    DATABASE                                      │
+├─────────────────────────────────────────────────────────────────┤
+│  teaching_schedules → employees, subjects                       │
+│  (effective_from, effective_until untuk semester)               │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                    ATTENDANCE INTEGRATION                        │
+├─────────────────────────────────────────────────────────────────┤
+│  Employee.getEffectiveScheduleForDate()                         │
+│  → Guru Tetap: Jadwal bulanan                                   │
+│  → Guru Honor: Override dari TeachingSchedule                   │
+│    - Check-in: Jam mengajar PERTAMA                             │
+│    - Check-out: Jam mengajar TERAKHIR                           │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
----
+## Logika Absensi
 
-## 🆕 Saran Peningkatan Sistem Dinamis
+### Pegawai Tetap
 
-### 1. **Schedule Priority Engine** (Recommended)
+- Jadwal mengikuti jadwal bulanan (misal: 07:30-15:30)
+- Telat = check-in setelah jam masuk jadwal bulanan
 
-Buat sistem prioritas yang lebih jelas:
+### Pegawai Honor/Kontrak
+
+- Di-assign jadwal bulanan (07:30-15:30)
+- **OVERRIDE** oleh jadwal mengajar dari TeachingSchedule
+- Contoh:
+  - Jadwal bulanan: 07:30-15:30
+  - Jadwal mengajar:
+    - Sesi 1: 08:00-09:30 (Kelas 7A)
+    - Sesi 2: 11:00-12:30 (Kelas 8B)
+    - Sesi 3: 14:00-15:30 (Kelas 9C)
+  - **Hasil:**
+    - Check-in jam 07:45 → ✅ TIDAK TELAT (sesi pertama 08:00)
+    - Check-in jam 08:15 → ❌ TELAT (sudah lewat 08:00)
+    - Check-out ≥ 15:30 → ✅ OK (sesi terakhir 15:30)
+
+## Format Excel yang Didukung
+
+### Sheet "KODE GURU"
+
+| No | Nama Guru | Jabatan/Mapel |
+|----|-----------|---------------|
+| 1  | Ahmad, S.Pd | Matematika |
+| 2  | Budi Santoso | IPA |
+| ... | ... | ... |
+
+### Sheet "Kelas 7" / "Kelas 8" / "Kelas 9"
+
+Grid jadwal dengan format sel: `{KODE}-{MAPEL}`
+
+Contoh: `6-IPA`, `27-Seni Rupa`
+
+## Cara Penggunaan
+
+1. Buka `/admin/schedules`
+2. Klik tab **"Susun Guru"**
+3. Klik tombol **"Import Excel"**
+4. Upload file Excel dengan format yang sesuai
+5. Pilih **Periode Semester** (preset atau custom)
+6. Review preview matching guru
+7. Klik **"Import ke Database"**
+
+## API Endpoints
+
+### Match Teachers
 
 ```
-Priority Level:
-1. [HIGHEST] Manual Override (admin set khusus hari ini)
-2. [HIGH]    Leave/Cuti (pegawai cuti)
-3. [MEDIUM]  Holiday (libur nasional/lokal)
-4. [LOW]     Teaching Schedule (untuk guru fleksibel)
-5. [LOWEST]  EmployeeType Default (jam kerja standar)
+POST /api/v1/schedules/teaching/match-teachers
+Body: {
+  teachers: [{ code: "1", name: "Ahmad, S.Pd", subject: "Matematika" }]
+}
+Response: [{ code: "1", matched: true, employee_id: "uuid", employee_name: "Ahmad" }]
 ```
 
-**Implementasi:**
+### Bulk Import
 
-```php
-// backend/app/Services/ScheduleEngine.php (NEW)
-
-class ScheduleEngine
-{
-    const PRIORITY_MANUAL_OVERRIDE = 100;
-    const PRIORITY_LEAVE = 90;
-    const PRIORITY_HOLIDAY = 80;
-    const PRIORITY_TEACHING = 70;
-    const PRIORITY_DEFAULT = 10;
-
-    public function getEffectiveSchedule(Employee $employee, Carbon $date): ScheduleResult
-    {
-        $scheduleSources = collect([
-            $this->checkManualOverride($employee, $date),
-            $this->checkLeave($employee, $date),
-            $this->checkHoliday($date),
-            $this->checkTeachingSchedule($employee, $date),
-            $this->getDefaultSchedule($employee, $date),
-        ])->filter()->sortByDesc('priority');
-
-        return $scheduleSources->first() ?? ScheduleResult::noSchedule();
-    }
+```
+POST /api/v1/schedules/teaching/bulk-import
+Body: {
+  teachers: [...],
+  schedules: [...],
+  effective_from: "2024-07-15",
+  effective_until: "2024-12-20",
+  semester: 1,
+  academic_year: "2024/2025"
+}
+Response: {
+  matched_teachers: [...],
+  unmatched_teachers: [...],
+  created_schedules: 150,
+  skipped_schedules: 10,
+  created_subjects: ["Seni Rupa"],
+  errors: []
 }
 ```
 
-### 2. **Schedule Template System** (Recommended)
+## File Terkait
 
-Buat template yang bisa di-reuse:
+### Backend
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                   Schedule Templates                             │
-├─────────────────────────────────────────────────────────────────┤
-│ 1. Template "Standard Office"                                    │
-│    - Mon-Fri: 08:00 - 16:00                                      │
-│    - Sat-Sun: OFF                                                │
-│                                                                  │
-│ 2. Template "Shift Pagi"                                         │
-│    - Mon-Sat: 06:00 - 14:00                                      │
-│    - Sun: OFF                                                    │
-│                                                                  │
-│ 3. Template "Guru Honor"                                         │
-│    - Based on TeachingSchedule                                   │
-│    - Flexible per day                                            │
-└─────────────────────────────────────────────────────────────────┘
-```
+- `backend/app/Http/Controllers/Api/ScheduleApiController.php` - Bulk import controller
+- `backend/app/Models/TeachingSchedule.php` - Teaching schedule model
+- `backend/app/Models/Employee.php` - getEffectiveScheduleForDate()
 
-**Database Schema:**
+### Frontend
 
-```sql
-CREATE TABLE schedule_templates (
-    id UUID PRIMARY KEY,
-    name VARCHAR(255),
-    type ENUM('fixed', 'shift', 'flexible'),
-    config JSON, -- { work_days: [...], start_time, end_time, break_duration, etc }
-    is_default BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP,
-    updated_at TIMESTAMP
-);
+- `frontend/src/pages/admin/schedules/tabs/TeacherScheduleGridContent.tsx` - Main UI
+- `frontend/src/pages/admin/schedules/tabs/ExcelScheduleImporterIntegrated.tsx` - Import component
+- `frontend/src/lib/api/schedules.ts` - API functions
 
--- Penggunaan: employee_types.schedule_template_id
-```
+## Periode Semester (Preset)
 
-### 3. **Auto-Sync Holiday to Schedule** (Recommended)
+| Semester | Periode |
+|----------|---------|
+| Semester 1 | 15 Juli - 20 Desember |
+| Semester 2 | 5 Januari - 20 Juni |
 
-Ketika libur ditambahkan, otomatis update semua jadwal terkait:
+## Notes
 
-```php
-// In Holiday model boot()
-
-protected static function boot()
-{
-    parent::boot();
-
-    static::created(function ($holiday) {
-        // Dispatch job to update all schedules
-        SyncHolidayToSchedules::dispatch($holiday);
-    });
-}
-```
-
-**Job `SyncHolidayToSchedules`:**
-
-```php
-class SyncHolidayToSchedules implements ShouldQueue
-{
-    public function handle()
-    {
-        // Get all EmployeeMonthlySchedule for this date
-        EmployeeMonthlySchedule::whereDate('effective_date', $this->holiday->date)
-            ->where('status', '!=', 'overridden') // Don't override manual overrides
-            ->update([
-                'status' => 'holiday',
-                'is_holiday' => true,
-                'override_metadata' => [
-                    'holiday_id' => $this->holiday->id,
-                    'holiday_name' => $this->holiday->name,
-                    'synced_at' => now()
-                ]
-            ]);
-    }
-}
-```
-
-### 4. **Schedule Conflict Detection** (Important)
-
-Deteksi konflik jadwal secara real-time:
-
-```
-Conflict Types:
-1. Double Booking - Guru dijadwalkan di 2 tempat bersamaan
-2. Overtime Violation - Melebihi jam kerja maksimal
-3. Rest Period Violation - Kurang istirahat antar shift
-4. Holiday Conflict - Dijadwalkan kerja di hari libur
-```
-
-**API Endpoint:**
-
-```
-POST /api/v1/schedules/validate
-{
-    "employee_id": "xxx",
-    "date": "2025-12-25",
-    "start_time": "08:00",
-    "end_time": "16:00"
-}
-
-Response:
-{
-    "valid": false,
-    "conflicts": [
-        {
-            "type": "holiday_conflict",
-            "message": "Hari Raya Natal - Libur Nasional",
-            "severity": "warning", // warning = bisa di-override, error = tidak bisa
-            "can_override": true
-        }
-    ]
-}
-```
-
-### 5. **Bulk Schedule Operations** (Productivity)
-
-Operasi massal untuk efisiensi:
-
-```
-Features:
-1. Generate jadwal untuk 1 bulan ke depan
-2. Copy jadwal bulan lalu ke bulan ini
-3. Apply template ke banyak pegawai sekaligus
-4. Import jadwal dari CSV/Excel
-5. Sync dengan kalender akademik
-```
-
-**API Endpoint:**
-
-```
-POST /api/v1/schedules/bulk-generate
-{
-    "month": 12,
-    "year": 2025,
-    "employee_ids": ["all"] atau ["id1", "id2"],
-    "template_id": "xxx" (optional),
-    "exclude_holidays": true,
-    "auto_apply_leave": true
-}
-```
-
-### 6. **Real-time Schedule Dashboard** (UX)
-
-Dashboard yang menampilkan:
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  📅 Schedule Overview - Desember 2025                            │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┐                     │
-│  │ Sen │ Sel │ Rab │ Kam │ Jum │ Sab │ Min │                     │
-│  ├─────┼─────┼─────┼─────┼─────┼─────┼─────┤                     │
-│  │  1  │  2  │  3  │  4  │  5  │  6  │  7  │                     │
-│  │ 50👷│ 50👷│ 50👷│ 50👷│ 50👷│ 25👷│ 🔴  │                     │
-│  ├─────┼─────┼─────┼─────┼─────┼─────┼─────┤                     │
-│  │ 25  │     │     │     │     │     │     │ ◀ Hari Raya Natal   │
-│  │ 🔴  │     │     │     │     │     │     │                     │
-│  └─────┴─────┴─────┴─────┴─────┴─────┴─────┘                     │
-│                                                                  │
-│  Legend: 👷 = Jumlah pegawai terjadwal, 🔴 = Libur               │
-│                                                                  │
-│  ⚠️ Conflicts: 3    📋 Pending Approvals: 5                      │
-└─────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 🛠️ Roadmap Implementasi
-
-### Phase 1: Foundation ✅ (Sudah Selesai)
-
-- [x] EmployeeType dengan schedule_mode
-- [x] getEffectiveScheduleForDate logic
-- [x] Holiday integration
-- [x] Generate Holiday dari API publik
-- [x] Real-time holiday check di schedule engine
-
-### Phase 2: Automation (Recommended Next)
-
-- [ ] Auto-sync Holiday ke EmployeeMonthlySchedule
-- [ ] Schedule Template system
-- [ ] Bulk schedule generation
-- [ ] Schedule validation API
-
-### Phase 3: Advanced Features
-
-- [ ] Conflict detection engine
-- [ ] Schedule suggestion/optimization
-- [ ] Integration dengan Leave Management
-- [ ] Notification untuk perubahan jadwal
-
-### Phase 4: Analytics & Reporting
-
-- [ ] Schedule compliance report
-- [ ] Overtime tracking
-- [ ] Attendance vs Schedule correlation
-- [ ] Predictive scheduling
-
----
-
-## 📝 Database Schema Updates Needed
-
-### New Tables
-
-```sql
--- 1. Schedule Templates
-CREATE TABLE schedule_templates (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
-    code VARCHAR(50) UNIQUE,
-    type ENUM('fixed', 'shift', 'flexible', 'custom') DEFAULT 'fixed',
-    work_days JSON, -- ["Mon", "Tue", ...]
-    start_time TIME,
-    end_time TIME,
-    break_start TIME,
-    break_end TIME,
-    late_tolerance_minutes INT DEFAULT 15,
-    early_leave_tolerance_minutes INT DEFAULT 15,
-    overtime_eligible BOOLEAN DEFAULT FALSE,
-    is_default BOOLEAN DEFAULT FALSE,
-    is_active BOOLEAN DEFAULT TRUE,
-    metadata JSON,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP
-);
-
--- 2. Schedule Sync Log
-CREATE TABLE schedule_sync_logs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    sync_type ENUM('holiday', 'template', 'bulk', 'manual') NOT NULL,
-    source_id UUID, -- holiday_id, template_id, etc
-    affected_count INT DEFAULT 0,
-    status ENUM('pending', 'processing', 'completed', 'failed') DEFAULT 'pending',
-    error_message TEXT,
-    metadata JSON,
-    initiated_by UUID REFERENCES users(id),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    completed_at TIMESTAMP
-);
-
--- 3. Schedule Conflicts
-CREATE TABLE schedule_conflicts (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    employee_id UUID REFERENCES employees(id) ON DELETE CASCADE,
-    conflict_date DATE NOT NULL,
-    conflict_type ENUM('double_booking', 'overtime', 'rest_violation', 'holiday') NOT NULL,
-    severity ENUM('info', 'warning', 'error') DEFAULT 'warning',
-    schedule_1_id UUID,
-    schedule_2_id UUID,
-    description TEXT,
-    is_resolved BOOLEAN DEFAULT FALSE,
-    resolved_by UUID REFERENCES users(id),
-    resolved_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-### Updates to Existing Tables
-
-```sql
--- Add to employee_types
-ALTER TABLE employee_types ADD COLUMN schedule_template_id UUID REFERENCES schedule_templates(id);
-
--- Add to holidays
-ALTER TABLE holidays ADD COLUMN auto_sync_schedules BOOLEAN DEFAULT TRUE;
-ALTER TABLE holidays ADD COLUMN sync_status ENUM('pending', 'synced', 'failed') DEFAULT 'pending';
-ALTER TABLE holidays ADD COLUMN synced_at TIMESTAMP;
-```
-
----
-
-## 🔧 Service Layer Architecture
-
-```
-app/
-├── Services/
-│   ├── Schedule/
-│   │   ├── ScheduleEngine.php          # Core logic
-│   │   ├── ScheduleValidator.php       # Conflict detection
-│   │   ├── ScheduleGenerator.php       # Bulk generation
-│   │   ├── ScheduleSync.php            # Sync operations
-│   │   └── ScheduleTemplateManager.php # Template CRUD
-│   └── Holiday/
-│       └── HolidaySyncService.php      # Holiday to schedule sync
-├── Jobs/
-│   ├── SyncHolidayToSchedules.php
-│   ├── GenerateMonthlySchedules.php
-│   └── DetectScheduleConflicts.php
-└── Events/
-    ├── ScheduleCreated.php
-    ├── ScheduleUpdated.php
-    └── HolidayCreated.php
-```
-
----
-
-## 📌 Quick Wins (Bisa Langsung Dikerjakan)
-
-1. **Auto-sync Holiday** - Saat libur ditambahkan, update EmployeeMonthlySchedule
-2. **Schedule Preview API** - Endpoint untuk preview jadwal sebelum di-apply
-3. **Conflict Warning di UI** - Tampilkan warning jika ada konflik saat input jadwal
-4. **Bulk Delete Holiday** - Hapus semua libur untuk tahun tertentu
-5. **Copy Schedule** - Copy jadwal dari bulan lalu
-
----
-
-## ❓ Pertanyaan untuk User
-
-1. Apakah perlu fitur **Shift Rotation** (jadwal bergantian pagi/siang/malam)?
-2. Apakah ada **jam break** yang perlu ditrack (istirahat makan siang)?
-3. Apakah perlu **approval workflow** untuk perubahan jadwal?
-4. Berapa jumlah maksimal **jam lembur** yang diizinkan?
-5. Apakah perlu integrasi dengan **Google Calendar** atau kalender lain?
+- Guru yang tidak ter-match dengan database akan dilewati
+- Periode waktu mengajar default:
+  - Jam 1: 07:30-08:10
+  - Jam 2: 08:10-08:50
+  - ...dst
+- Subject baru akan dibuat otomatis jika belum ada

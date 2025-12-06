@@ -13,18 +13,18 @@ return new class extends Migration
     {
         Schema::table('monthly_schedules', function (Blueprint $table) {
             // Window absen masuk (check-in time window)
-            $table->time('checkin_start_time')->nullable()->after('default_end_time');
-            $table->time('checkin_end_time')->nullable()->after('checkin_start_time');
+            $table->time('checkin_start_time')->nullable();
+            $table->time('checkin_end_time')->nullable();
 
             // Window absen pulang (check-out time window)
-            $table->time('checkout_start_time')->nullable()->after('checkin_end_time');
-            $table->time('checkout_end_time')->nullable()->after('checkout_start_time');
+            $table->time('checkout_start_time')->nullable();
+            $table->time('checkout_end_time')->nullable();
 
             // Array tanggal hari kerja spesifik (e.g., ["2025-02-03", "2025-02-04", ...])
-            $table->json('working_days')->nullable()->after('checkout_end_time');
+            $table->json('working_days')->nullable();
 
             // Total hari kerja (calculated field)
-            $table->integer('total_working_days')->default(0)->after('working_days');
+            $table->integer('total_working_days')->default(0);
         });
     }
 

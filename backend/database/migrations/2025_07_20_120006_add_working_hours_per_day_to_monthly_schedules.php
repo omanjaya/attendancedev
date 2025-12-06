@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('monthly_schedules', function (Blueprint $table) {
-            $table->json('working_hours_per_day')->nullable()->after('default_end_time');
-            $table->string('working_hours_template')->nullable()->after('working_hours_per_day');
+            $table->json('working_hours_per_day')->nullable();
+            $table->string('working_hours_template')->nullable();
         });
     }
 

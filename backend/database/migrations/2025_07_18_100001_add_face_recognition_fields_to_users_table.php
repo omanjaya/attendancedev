@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->json('face_descriptor')->nullable()->after('password');
-            $table->timestamp('face_registered_at')->nullable()->after('face_descriptor');
+            $table->json('face_descriptor')->nullable();
+            $table->timestamp('face_registered_at')->nullable();
         });
     }
 

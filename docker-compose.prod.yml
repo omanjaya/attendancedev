@@ -1,0 +1,255 @@
+# ============================================
+# Attendance System - Docker Compose (Production)
+# ============================================
+# Usage: docker-compose -f docker-compose.prod.yml up -d
+# ============================================
+
+version: '3.8'
+
+services:
+  # ==========================================
+  # PostgreSQL Database
+  # ==========================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: attendance_postgres
+    restart: always
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - attendance_internal
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
+        reservations:
+          memory: 1G
+
+  # ==========================================
+  # Redis Cache & Session
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    container_name: attendance_redis
+    restart: always
+    command: redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - attendance_internal
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 512M
+
+  # ==========================================
+  # Laravel Backend (PHP-FPM)
+  # ==========================================
+  backend:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: attendance_backend
+    restart: always
+    working_dir: /var/www/html
+    volumes:
+      - backend_storage:/var/www/html/storage
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=${APP_URL}
+      - APP_KEY=${APP_KEY}
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - CACHE_DRIVER=redis
+      - SESSION_DRIVER=redis
+      - QUEUE_CONNECTION=database
+      - DEEPFACE_BASE_URL=http://deepface-1:8001
+      - DEEPFACE_PORTS=8001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - attendance_internal
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # ==========================================
+  # React Frontend (Production Build)
+  # ==========================================
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/node/Dockerfile
+      args:
+        - VITE_API_BASE_URL=${VITE_API_BASE_URL}
+        - VITE_DEEPFACE_URL=${VITE_DEEPFACE_URL}
+    container_name: attendance_frontend
+    restart: always
+    networks:
+      - attendance_internal
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  # ==========================================
+  # DeepFace Service 1 (Primary)
+  # ==========================================
+  deepface-1:
+    build:
+      context: .
+      dockerfile: docker/python/Dockerfile
+    container_name: attendance_deepface_1
+    restart: always
+    volumes:
+      - deepface_models:/app/.deepface
+      - face_data:/app/face_data
+    environment:
+      - FLASK_ENV=production
+      - DEEPFACE_THRESHOLD=${DEEPFACE_THRESHOLD:-0.68}
+      - DEEPFACE_LIVENESS_ENABLED=true
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8001/health" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    networks:
+      - attendance_internal
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  # ==========================================
+  # DeepFace Service 2 (Backup/Load Balance)
+  # ==========================================
+  deepface-2:
+    build:
+      context: .
+      dockerfile: docker/python/Dockerfile
+    container_name: attendance_deepface_2
+    restart: always
+    volumes:
+      - deepface_models:/app/.deepface
+      - face_data:/app/face_data
+    environment:
+      - FLASK_ENV=production
+      - DEEPFACE_THRESHOLD=${DEEPFACE_THRESHOLD:-0.68}
+      - DEEPFACE_LIVENESS_ENABLED=true
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8001/health" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    networks:
+      - attendance_internal
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  # ==========================================
+  # Nginx Reverse Proxy
+  # ==========================================
+  nginx:
+    image: nginx:alpine
+    container_name: attendance_nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - backend_storage:/var/www/html/storage:ro
+      - ssl_certs:/etc/nginx/ssl:ro
+      - ./docker/nginx/certbot:/var/www/certbot:ro
+    depends_on:
+      - backend
+      - frontend
+      - deepface-1
+    networks:
+      - attendance_internal
+      - attendance_external
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  # ==========================================
+  # Certbot (SSL Certificate Management)
+  # ==========================================
+  certbot:
+    image: certbot/certbot
+    container_name: attendance_certbot
+    volumes:
+      - ssl_certs:/etc/letsencrypt
+      - ./docker/nginx/certbot:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    networks:
+      - attendance_external
+    profiles:
+      - ssl
+
+# ==========================================
+# Volumes
+# ==========================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  backend_storage:
+    driver: local
+  deepface_models:
+    driver: local
+  face_data:
+    driver: local
+  ssl_certs:
+    driver: local
+  nginx_cache:
+    driver: local
+
+# ==========================================
+# Networks
+# ==========================================
+networks:
+  attendance_internal:
+    driver: bridge
+    internal: true
+  attendance_external:
+    driver: bridge

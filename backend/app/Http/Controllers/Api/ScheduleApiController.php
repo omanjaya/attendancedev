@@ -414,4 +414,357 @@ class ScheduleApiController extends BaseApiController
 
         return $this->apiResponse(null, 'Monthly schedule deleted');
     }
+
+    /**
+     * Bulk import teaching schedules from Excel data
+     * 
+     * This endpoint receives parsed Excel data and creates TeachingSchedule records
+     * for each teacher-class-period combination, linking to existing employees.
+     */
+    public function bulkImportTeachingSchedules(Request $request)
+    {
+        $validated = $request->validate([
+            'teachers' => 'required|array',
+            'teachers.*.code' => 'required|string',
+            'teachers.*.name' => 'required|string',
+            'teachers.*.subject' => 'nullable|string',
+            'schedules' => 'required|array',
+            'schedules.*.day' => 'required|string',
+            'schedules.*.period' => 'required|integer|min:1|max:12',
+            'schedules.*.className' => 'required|string',
+            'schedules.*.teacherCode' => 'required|string',
+            'schedules.*.subject' => 'nullable|string',
+            'effective_from' => 'required|date',
+            'effective_until' => 'nullable|date|after_or_equal:effective_from',
+            'semester' => 'nullable|in:1,2',
+            'academic_year' => 'nullable|string',
+        ]);
+
+        return DB::transaction(function () use ($validated) {
+            $results = [
+                'matched_teachers' => [],
+                'unmatched_teachers' => [],
+                'created_schedules' => 0,
+                'skipped_schedules' => 0,
+                'created_subjects' => [],
+                'errors' => [],
+            ];
+
+            // Day mapping from Indonesian to English
+            $dayMapping = [
+                'Senin' => 'monday',
+                'Selasa' => 'tuesday',
+                'Rabu' => 'wednesday',
+                'Kamis' => 'thursday',
+                'Jumat' => 'friday',
+                'Sabtu' => 'saturday',
+                'Minggu' => 'sunday',
+            ];
+
+            // Period to time mapping (default school times, format 24-hour)
+            $periodTimes = [
+                1 => ['start' => '07:30', 'end' => '08:10'],
+                2 => ['start' => '08:10', 'end' => '08:50'],
+                3 => ['start' => '08:50', 'end' => '09:30'],
+                4 => ['start' => '09:30', 'end' => '10:10'],
+                5 => ['start' => '10:30', 'end' => '11:10'],
+                6 => ['start' => '11:10', 'end' => '11:50'],
+                7 => ['start' => '11:50', 'end' => '12:30'],
+                8 => ['start' => '12:30', 'end' => '13:10'],
+                9 => ['start' => '13:20', 'end' => '14:00'],
+                10 => ['start' => '14:00', 'end' => '14:40'],
+                11 => ['start' => '14:40', 'end' => '15:20'],
+                12 => ['start' => '15:20', 'end' => '16:00'],
+            ];
+
+            // Step 1: Match teachers to employees
+            $teacherMap = []; // code => employee_id
+            
+            foreach ($validated['teachers'] as $teacher) {
+                $code = $teacher['code'];
+                $name = $teacher['name'];
+                
+                // Try to find employee by name (fuzzy match)
+                $employee = $this->findEmployeeByName($name);
+                
+                if ($employee) {
+                    $teacherMap[$code] = $employee->id;
+                    $results['matched_teachers'][] = [
+                        'code' => $code,
+                        'excel_name' => $name,
+                        'employee_id' => $employee->id,
+                        'employee_name' => $employee->full_name,
+                    ];
+                    
+                    // Store teacher code in employee metadata
+                    $metadata = $employee->metadata ?? [];
+                    $metadata['teacher_code'] = $code;
+                    $metadata['subject'] = $teacher['subject'] ?? null;
+                    $employee->update(['metadata' => $metadata]);
+                } else {
+                    $results['unmatched_teachers'][] = [
+                        'code' => $code,
+                        'name' => $name,
+                        'subject' => $teacher['subject'] ?? null,
+                    ];
+                }
+            }
+
+            // Step 2: Get or create subjects
+            $subjectMap = []; // name => subject_id
+            
+            foreach ($validated['schedules'] as $schedule) {
+                $subjectName = $schedule['subject'] ?? null;
+                if ($subjectName && !isset($subjectMap[$subjectName])) {
+                    $subject = Subject::firstOrCreate(
+                        ['name' => $subjectName],
+                        [
+                            'code' => strtoupper(substr(preg_replace('/[^a-zA-Z]/', '', $subjectName), 0, 5)),
+                            'is_active' => true,
+                        ]
+                    );
+                    $subjectMap[$subjectName] = $subject->id;
+                    
+                    if ($subject->wasRecentlyCreated) {
+                        $results['created_subjects'][] = $subjectName;
+                    }
+                }
+            }
+
+            // Step 3: Create teaching schedules
+            foreach ($validated['schedules'] as $schedule) {
+                $teacherCode = $schedule['teacherCode'];
+                
+                // Skip if teacher not matched
+                if (!isset($teacherMap[$teacherCode])) {
+                    $results['skipped_schedules']++;
+                    continue;
+                }
+
+                $employeeId = $teacherMap[$teacherCode];
+                $dayEnglish = $dayMapping[$schedule['day']] ?? strtolower($schedule['day']);
+                $period = $schedule['period'];
+                $times = $periodTimes[$period] ?? ['start' => '08:00', 'end' => '08:40'];
+                $subjectId = $subjectMap[$schedule['subject']] ?? null;
+
+                try {
+                    // Check if employee is flexible (honor/contract) to set override_attendance
+                    $employee = Employee::with('employeeTypeRelation')->find($employeeId);
+                    $isFlexible = $employee?->employeeTypeRelation?->isFlexible() ?? 
+                                  ($employee?->employee_type === 'guru_honorer');
+
+                    TeachingSchedule::updateOrCreate(
+                        [
+                            'teacher_id' => $employeeId,
+                            'day_of_week' => $dayEnglish,
+                            'teaching_start_time' => $times['start'],
+                        ],
+                        [
+                            'teaching_end_time' => $times['end'],
+                            'subject_id' => $subjectId,
+                            'class_name' => $schedule['className'],
+                            'effective_from' => $validated['effective_from'],
+                            'effective_until' => $validated['effective_until'],
+                            'is_active' => true,
+                            'status' => 'scheduled',
+                            'override_attendance' => $isFlexible, // Only honor teachers override
+                            'strict_timing' => true,
+                            'late_threshold_minutes' => 15,
+                            'metadata' => [
+                                'imported_from' => 'excel',
+                                'import_date' => now()->toDateTimeString(),
+                                'semester' => $validated['semester'] ?? null,
+                                'academic_year' => $validated['academic_year'] ?? null,
+                                'period_number' => $period,
+                                'teacher_code' => $teacherCode,
+                            ],
+                        ]
+                    );
+
+                    $results['created_schedules']++;
+                } catch (\Exception $e) {
+                    $results['errors'][] = [
+                        'schedule' => $schedule,
+                        'error' => $e->getMessage(),
+                    ];
+                    $results['skipped_schedules']++;
+                }
+            }
+
+            return $this->apiResponse($results, 'Bulk import completed', 200);
+        });
+    }
+
+    /**
+     * Match teachers from Excel to existing employees by name
+     */
+    public function matchTeachers(Request $request)
+    {
+        $validated = $request->validate([
+            'teachers' => 'required|array',
+            'teachers.*.code' => 'required|string',
+            'teachers.*.name' => 'required|string',
+            'teachers.*.subject' => 'nullable|string',
+        ]);
+
+        $results = [];
+
+        foreach ($validated['teachers'] as $teacher) {
+            $employee = $this->findEmployeeByName($teacher['name']);
+            
+            $results[] = [
+                'code' => $teacher['code'],
+                'excel_name' => $teacher['name'],
+                'subject' => $teacher['subject'] ?? null,
+                'matched' => $employee !== null,
+                'employee_id' => $employee?->id,
+                'employee_name' => $employee?->full_name,
+                'employee_nip' => $employee?->employee_id,
+            ];
+        }
+
+        return $this->apiResponse($results, 'Teacher matching completed');
+    }
+
+    /**
+     * Find employee by name using fuzzy matching
+     */
+    private function findEmployeeByName(string $name): ?Employee
+    {
+        // Clean the name
+        $cleanName = $this->cleanName($name);
+        
+        // Try exact match first
+        $employee = Employee::where('full_name', 'LIKE', "%{$cleanName}%")
+            ->where('is_active', true)
+            ->first();
+        
+        if ($employee) {
+            return $employee;
+        }
+
+        // Try matching without titles
+        $nameWithoutTitles = $this->removeNameTitles($name);
+        $employee = Employee::where('full_name', 'LIKE', "%{$nameWithoutTitles}%")
+            ->where('is_active', true)
+            ->first();
+        
+        if ($employee) {
+            return $employee;
+        }
+
+        // Try matching first two words only
+        $nameParts = explode(' ', $nameWithoutTitles);
+        if (count($nameParts) >= 2) {
+            $shortName = $nameParts[0] . ' ' . $nameParts[1];
+            $employee = Employee::where('full_name', 'LIKE', "%{$shortName}%")
+                ->where('is_active', true)
+                ->first();
+        }
+
+        return $employee;
+    }
+
+    /**
+     * Clean name for matching
+     */
+    private function cleanName(string $name): string
+    {
+        // Remove extra whitespace
+        $name = preg_replace('/\s+/', ' ', trim($name));
+        
+        // Remove common punctuation
+        $name = str_replace([',', '.', '-', '_'], ' ', $name);
+        
+        return trim($name);
+    }
+
+    /**
+     * Remove academic titles from name
+     */
+    private function removeNameTitles(string $name): string
+    {
+        $titles = [
+            'Dr.', 'Drs.', 'Dra.', 'Prof.', 'Ir.',
+            'S.Pd', 'S.Ag', 'S.Sn', 'S.Si', 'S.Sos', 'S.Th', 'S.Pdi', 'S.Ak', 'S.ST', 'S.Pd.H',
+            'M.Pd', 'M.Si', 'M.Ag', 'M.A', 'M.M',
+            'B.A', 'BA', 'SS', 'ST', 'SE',
+            'S. Pd', 'S. Si', 'S. Ag', 'S. Sn', 'S. Sos', 'S. Th', 'S. Psi', 'S. Ak',
+        ];
+
+        $name = str_replace($titles, '', $name);
+        $name = preg_replace('/\s+/', ' ', trim($name));
+        
+        return $name;
+    }
+
+    /**
+     * Get teaching schedules for a specific period
+     */
+    public function getTeachingSchedules(Request $request)
+    {
+        $query = TeachingSchedule::query()
+            ->with(['teacher:id,employee_id,full_name', 'subject:id,name']);
+
+        if ($teacherId = $request->get('teacher_id')) {
+            $query->where('teacher_id', $teacherId);
+        }
+
+        if ($day = $request->get('day_of_week')) {
+            $query->where('day_of_week', strtolower($day));
+        }
+
+        if ($effectiveFrom = $request->get('effective_from')) {
+            $query->where('effective_from', '>=', $effectiveFrom);
+        }
+
+        if ($effectiveUntil = $request->get('effective_until')) {
+            $query->where(function($q) use ($effectiveUntil) {
+                $q->whereNull('effective_until')
+                  ->orWhere('effective_until', '<=', $effectiveUntil);
+            });
+        }
+
+        if ($request->get('active_only', true)) {
+            $query->where('is_active', true);
+        }
+
+        $perPage = $request->get('per_page', 50);
+        $schedules = $query->orderBy('day_of_week')
+            ->orderBy('teaching_start_time')
+            ->paginate($perPage);
+
+        return $this->paginatedResponse($schedules, 'Teaching schedules retrieved');
+    }
+
+    /**
+     * Clear teaching schedules for a specific period
+     */
+    public function clearTeachingSchedules(Request $request)
+    {
+        $validated = $request->validate([
+            'effective_from' => 'required|date',
+            'effective_until' => 'nullable|date',
+            'teacher_id' => 'nullable|uuid',
+        ]);
+
+        $query = TeachingSchedule::where('effective_from', '>=', $validated['effective_from']);
+
+        if (!empty($validated['effective_until'])) {
+            $query->where(function($q) use ($validated) {
+                $q->whereNull('effective_until')
+                  ->orWhere('effective_until', '<=', $validated['effective_until']);
+            });
+        }
+
+        if (!empty($validated['teacher_id'])) {
+            $query->where('teacher_id', $validated['teacher_id']);
+        }
+
+        $count = $query->count();
+        $query->delete();
+
+        return $this->apiResponse(['deleted_count' => $count], 'Teaching schedules cleared');
+    }
 }
+

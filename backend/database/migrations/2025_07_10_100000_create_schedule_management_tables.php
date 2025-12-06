@@ -97,8 +97,8 @@ return new class extends Migration
             $table->boolean('is_locked')->default(false); // Kunci jadwal
             $table->boolean('is_active')->default(true);
             $table->json('metadata')->nullable(); // Notes, special requirements
-            $table->uuid('created_by')->nullable();
-            $table->uuid('updated_by')->nullable();
+            $table->unsignedBigInteger('created_by')->nullable();
+            $table->unsignedBigInteger('updated_by')->nullable();
             $table->timestamps();
 
             // Constraints
@@ -133,7 +133,7 @@ return new class extends Migration
             $table->json('template_data'); // JSON structure of the schedule
             $table->enum('template_type', ['weekly', 'semester', 'yearly']);
             $table->boolean('is_public')->default(false); // Dapat digunakan user lain
-            $table->uuid('created_by');
+            $table->unsignedBigInteger('created_by');
             $table->timestamps();
 
             $table->foreign('created_by')->references('id')->on('users')->onDelete('cascade');
@@ -148,7 +148,7 @@ return new class extends Migration
             $table->json('old_data')->nullable();
             $table->json('new_data')->nullable();
             $table->text('reason')->nullable();
-            $table->uuid('user_id');
+            $table->unsignedBigInteger('user_id');
             $table->ipAddress('ip_address')->nullable();
             $table->timestamp('action_timestamp');
             $table->json('metadata')->nullable(); // Browser info, bulk operation details
@@ -181,7 +181,7 @@ return new class extends Migration
             $table->boolean('is_resolved')->default(false);
             $table->timestamp('detected_at');
             $table->timestamp('resolved_at')->nullable();
-            $table->uuid('resolved_by')->nullable();
+            $table->unsignedBigInteger('resolved_by')->nullable();
             $table->text('resolution_notes')->nullable();
 
             $table
@@ -208,9 +208,9 @@ return new class extends Migration
             $table->text('reason');
             $table->timestamp('locked_at');
             $table->timestamp('locked_until')->nullable(); // null = permanent
-            $table->uuid('locked_by');
+            $table->unsignedBigInteger('locked_by');
             $table->timestamp('unlocked_at')->nullable();
-            $table->uuid('unlocked_by')->nullable();
+            $table->unsignedBigInteger('unlocked_by')->nullable();
             $table->text('unlock_reason')->nullable();
             $table->boolean('is_active')->default(true);
 

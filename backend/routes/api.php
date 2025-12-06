@@ -129,6 +129,14 @@ Route::prefix('v1')->group(function () {
             Route::get('/classes', [App\Http\Controllers\Api\ScheduleApiController::class, 'classes']);
             Route::get('/available-teachers', [App\Http\Controllers\Api\ScheduleApiController::class, 'availableTeachers']);
             Route::get('/class/{classId}', [App\Http\Controllers\Api\ScheduleApiController::class, 'byClass']);
+            
+            // Teaching Schedule routes (for Excel import integration)
+            Route::get('/teaching', [App\Http\Controllers\Api\ScheduleApiController::class, 'getTeachingSchedules']);
+            Route::post('/teaching/bulk-import', [App\Http\Controllers\Api\ScheduleApiController::class, 'bulkImportTeachingSchedules']);
+            Route::post('/teaching/match-teachers', [App\Http\Controllers\Api\ScheduleApiController::class, 'matchTeachers']);
+            Route::delete('/teaching/clear', [App\Http\Controllers\Api\ScheduleApiController::class, 'clearTeachingSchedules']);
+            
+            // Monthly schedule routes
             Route::get('/monthly', [App\Http\Controllers\Api\ScheduleApiController::class, 'monthlySchedules']);
             Route::post('/monthly', [App\Http\Controllers\Api\ScheduleApiController::class, 'storeMonthly']);
             Route::get('/monthly/{id}', [App\Http\Controllers\Api\ScheduleApiController::class, 'showMonthly']);

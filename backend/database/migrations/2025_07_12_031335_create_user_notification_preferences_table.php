@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('user_notification_preferences', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignUuid('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
 
             // Security notification preferences
             $table->boolean('new_device_login_email')->default(true);
