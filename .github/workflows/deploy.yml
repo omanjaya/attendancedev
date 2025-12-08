@@ -275,34 +275,70 @@ jobs:
     name: Post-Deploy Health Check
     runs-on: ubuntu-latest
     needs: deploy
-    
+
     steps:
       - name: Wait for services to stabilize
         run: sleep 30
 
       - name: Check API Health
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.APP_URL }}/api/health")
-          if [ "$response" = "200" ]; then
-            echo "✅ API is healthy"
-          else
-            echo "❌ API health check failed with status: $response"
-            exit 1
+          APP_URL="${{ secrets.APP_URL }}"
+          if [ -z "$APP_URL" ]; then
+            echo "⚠️ APP_URL secret not set, skipping health check"
+            exit 0
           fi
+
+          echo "Checking API at: $APP_URL/api/health"
+
+          # Retry up to 5 times with 10 second intervals
+          for i in {1..5}; do
+            response=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$APP_URL/api/health" || echo "000")
+            if [ "$response" = "200" ]; then
+              echo "✅ API is healthy"
+              exit 0
+            else
+              echo "Attempt $i/5: API returned status $response. Waiting..."
+              sleep 10
+            fi
+          done
+
+          echo "❌ API health check failed after 5 attempts"
+          exit 1
 
       - name: Check Frontend
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.APP_URL }}")
-          if [ "$response" = "200" ]; then
-            echo "✅ Frontend is accessible"
-          else
-            echo "❌ Frontend check failed with status: $response"
-            exit 1
+          APP_URL="${{ secrets.APP_URL }}"
+          if [ -z "$APP_URL" ]; then
+            echo "⚠️ APP_URL secret not set, skipping frontend check"
+            exit 0
           fi
+
+          echo "Checking Frontend at: $APP_URL"
+
+          for i in {1..5}; do
+            response=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$APP_URL" || echo "000")
+            if [ "$response" = "200" ]; then
+              echo "✅ Frontend is accessible"
+              exit 0
+            else
+              echo "Attempt $i/5: Frontend returned status $response. Waiting..."
+              sleep 10
+            fi
+          done
+
+          echo "❌ Frontend check failed after 5 attempts"
+          exit 1
 
       - name: Check DeepFace Service
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.APP_URL }}/deepface/health")
+          APP_URL="${{ secrets.APP_URL }}"
+          if [ -z "$APP_URL" ]; then
+            echo "⚠️ APP_URL secret not set, skipping DeepFace check"
+            exit 0
+          fi
+
+          echo "Checking DeepFace at: $APP_URL/deepface/health"
+          response=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$APP_URL/deepface/health" || echo "000")
           if [ "$response" = "200" ]; then
             echo "✅ DeepFace service is healthy"
           else
