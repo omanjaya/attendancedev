@@ -227,8 +227,8 @@ jobs:
             docker tag ${{ env.IMAGE_PREFIX }}-frontend:${{ steps.version.outputs.VERSION }} attendancedev-frontend:latest
             docker tag ${{ env.IMAGE_PREFIX }}-deepface:${{ steps.version.outputs.VERSION }} attendancedev-deepface:latest
             
-            # Backup database before deployment
-            docker exec attendancedev-postgres pg_dump -U \$DB_USERNAME \$DB_DATABASE > /tmp/backup_$(date +%Y%m%d_%H%M%S).sql || true
+            # Backup database before deployment (use POSTGRES_USER and POSTGRES_DB from container env)
+            docker exec attendancedev-postgres sh -c 'pg_dump -U $POSTGRES_USER $POSTGRES_DB' > /tmp/backup_$(date +%Y%m%d_%H%M%S).sql || true
             
             # Deploy with zero-downtime
             docker compose -f docker-compose.prod.yml up -d --no-build --remove-orphans
