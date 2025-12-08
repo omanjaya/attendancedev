@@ -83,7 +83,7 @@ const daysOfWeek = [
 ];
 
 export default function MonthlyScheduleEditPage() {
-  const { id } = useParams({ from: '/admin/schedules/monthly/$id/edit' });
+  const { id } = useParams({ strict: false });
   const navigate = useNavigate();
   const { success, error: showError } = useNotificationStore();
   const [selectedDayPattern, setSelectedDayPattern] = useState<string[]>([]);
@@ -108,7 +108,7 @@ export default function MonthlyScheduleEditPage() {
   // Fetch existing schedule
   const { data: schedule, isLoading: isLoadingSchedule } = useQuery({
     queryKey: ['monthly-schedule', id],
-    queryFn: () => getMonthlyAttendanceSchedule(id),
+    queryFn: () => getMonthlyAttendanceSchedule(id!),
   });
 
   // Fetch locations
@@ -197,7 +197,7 @@ export default function MonthlyScheduleEditPage() {
 
   const updateScheduleMutation = useMutation({
     mutationFn: (data: Partial<MonthlyAttendanceScheduleFormData>) =>
-      updateMonthlyAttendanceSchedule(id, data),
+      updateMonthlyAttendanceSchedule(id!, data),
     onSuccess: () => {
       success('Berhasil', 'Jadwal bulanan berhasil diupdate');
       navigate({ to: '/admin/schedules/monthly' });
@@ -594,8 +594,8 @@ export default function MonthlyScheduleEditPage() {
                             ${day.isHoliday
                               ? 'bg-red-100 text-red-700 cursor-not-allowed opacity-50'
                               : day.isSelected
-                              ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                              : 'bg-muted hover:bg-muted/70'
+                                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                                : 'bg-muted hover:bg-muted/70'
                             }
                           `}
                           disabled={day.isHoliday}

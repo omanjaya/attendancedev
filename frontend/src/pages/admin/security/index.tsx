@@ -25,7 +25,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { PageHeader, StatsGrid, type StatItem } from '@/components/shared';
-import { LoadingState } from '@/components/states';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -410,7 +410,7 @@ export default function SecurityPage() {
       />
 
       {/* Stats */}
-      {overview && <StatsGrid items={securityStats} columns={4} variant="cards" />}
+      {overview && <StatsGrid stats={securityStats} columns={4} variant="cards" />}
 
       {/* Security Alerts */}
       {alerts.filter((a) => !a.resolved_at).length > 0 && (

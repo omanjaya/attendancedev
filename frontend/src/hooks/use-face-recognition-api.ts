@@ -15,7 +15,7 @@ import {
   type LivenessCheckRequest,
   type FaceDataResponse,
   verifyFaceDeepFace,
-  type DeepFaceVerifyResponse,
+
 } from '@/lib/api/face-recognition';
 import { useNotificationStore } from '@/stores';
 

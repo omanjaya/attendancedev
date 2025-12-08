@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Camera, CameraOff, CheckCircle2, XCircle, Loader2, AlertTriangle, Smile } from 'lucide-react';
+import { CameraOff, CheckCircle2, XCircle, Loader2, Smile } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
@@ -174,7 +174,7 @@ export function AutoCaptureFace({
 
             if (detections.length > 0) {
                 const expressions = detections[0].expressions;
-                const happyScore = expressions.asSortedArray().find(e => e.expression === 'happy')?.probability || 0;
+                const happyScore = expressions?.asSortedArray().find(e => e.expression === 'happy')?.probability || 0;
                 setSmileScore(happyScore);
 
                 if (happyScore > 0.7) {

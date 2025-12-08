@@ -115,3 +115,30 @@ export async function resetEmployeePassword(
   );
   return response.data.data;
 }
+
+// Bulk action types
+export type BulkAction = 'delete' | 'reset_password' | 'activate' | 'deactivate';
+
+export interface BulkActionResult {
+  success: number;
+  failed: number;
+  errors: string[];
+  reset_passwords?: {
+    employee_id: string;
+    name: string;
+    email: string;
+    temporary_password: string;
+  }[];
+}
+
+// Execute bulk action on multiple employees
+export async function bulkEmployeeAction(
+  action: BulkAction,
+  employeeIds: string[]
+): Promise<BulkActionResult> {
+  const response = await apiClient.post<{ data: BulkActionResult }>(
+    '/employees/bulk',
+    { action, employee_ids: employeeIds }
+  );
+  return response.data.data;
+}

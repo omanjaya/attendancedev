@@ -71,9 +71,13 @@ class EmployeeTypeApiController extends BaseApiController
      */
     public function store(Request $request)
     {
-        // Check authorization (super admin only)
-        if (!auth()->user()?->hasRole('super-admin')) {
-            return $this->errorResponse('Unauthorized. Only super admin can manage employee types.', 403);
+        // Check authorization (super admin or admin)
+        $user = auth()->user();
+        $userRoles = $user ? $user->load('roles')->roles->pluck('name')->toArray() : [];
+        $allowedRoles = ['super-admin', 'Super Admin', 'admin', 'Admin'];
+
+        if (empty(array_intersect($userRoles, $allowedRoles))) {
+            return $this->errorResponse('Unauthorized. Only admins can manage employee types.', 403);
         }
 
         $validated = $request->validate([
@@ -81,14 +85,7 @@ class EmployeeTypeApiController extends BaseApiController
             'code' => 'required|string|max:50|unique:employee_types,code',
             'description' => 'nullable|string|max:500',
             'schedule_mode' => 'required|in:fixed,flexible',
-            'default_start_time' => 'nullable|date_format:H:i',
-            'default_end_time' => 'nullable|date_format:H:i',
-            'late_tolerance_minutes' => 'integer|min:0|max:120',
-            'require_schedule_for_attendance' => 'boolean',
-            'can_override_by_teaching' => 'boolean',
-            'features' => 'nullable|array',
-            'features.*' => 'string',
-            'sort_order' => 'integer|min:0',
+            'is_active' => 'boolean',
         ]);
 
         try {
@@ -116,9 +113,9 @@ class EmployeeTypeApiController extends BaseApiController
      */
     public function update(Request $request, string $id)
     {
-        // Check authorization (super admin only)
-        if (!auth()->user()?->hasRole('super-admin')) {
-            return $this->errorResponse('Unauthorized. Only super admin can manage employee types.', 403);
+        // Check authorization (super admin or admin)
+        if (!auth()->user()?->hasAnyRole(['super-admin', 'Super Admin', 'admin', 'Admin'])) {
+            return $this->errorResponse('Unauthorized. Only admins can manage employee types.', 403);
         }
 
         $type = EmployeeType::find($id);
@@ -132,15 +129,7 @@ class EmployeeTypeApiController extends BaseApiController
             'code' => 'sometimes|string|max:50|unique:employee_types,code,' . $id,
             'description' => 'nullable|string|max:500',
             'schedule_mode' => 'sometimes|in:fixed,flexible',
-            'default_start_time' => 'nullable|date_format:H:i',
-            'default_end_time' => 'nullable|date_format:H:i',
-            'late_tolerance_minutes' => 'sometimes|integer|min:0|max:120',
-            'require_schedule_for_attendance' => 'sometimes|boolean',
-            'can_override_by_teaching' => 'sometimes|boolean',
-            'features' => 'nullable|array',
-            'features.*' => 'string',
             'is_active' => 'sometimes|boolean',
-            'sort_order' => 'sometimes|integer|min:0',
         ]);
 
         try {
@@ -168,9 +157,9 @@ class EmployeeTypeApiController extends BaseApiController
      */
     public function destroy(string $id)
     {
-        // Check authorization (super admin only)
-        if (!auth()->user()?->hasRole('super-admin')) {
-            return $this->errorResponse('Unauthorized. Only super admin can manage employee types.', 403);
+        // Check authorization (super admin or admin)
+        if (!auth()->user()?->hasAnyRole(['super-admin', 'Super Admin', 'admin', 'Admin'])) {
+            return $this->errorResponse('Unauthorized. Only admins can manage employee types.', 403);
         }
 
         $type = EmployeeType::find($id);
@@ -221,9 +210,9 @@ class EmployeeTypeApiController extends BaseApiController
      */
     public function reorder(Request $request)
     {
-        // Check authorization (super admin only)
-        if (!auth()->user()?->hasRole('super-admin')) {
-            return $this->errorResponse('Unauthorized. Only super admin can manage employee types.', 403);
+        // Check authorization (super admin or admin)
+        if (!auth()->user()?->hasAnyRole(['super-admin', 'Super Admin', 'admin', 'Admin'])) {
+            return $this->errorResponse('Unauthorized. Only admins can manage employee types.', 403);
         }
 
         $validated = $request->validate([

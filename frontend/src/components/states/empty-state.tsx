@@ -79,9 +79,11 @@ export function EmptyState({
 
   return (
     <div className={cn('flex flex-col items-center justify-center text-center', styles.container, className)}>
-      <div className={cn('rounded-full bg-muted/50 mb-4 transition-all duration-300 hover:bg-muted', styles.iconBg)}>
-        <Icon className={cn('text-muted-foreground', styles.icon)} />
-      </div>
+      {Icon && (
+        <div className={cn('rounded-full bg-muted/50 mb-4 transition-all duration-300 hover:bg-muted', styles.iconBg)}>
+          <Icon className={cn('text-muted-foreground', styles.icon)} />
+        </div>
+      )}
       <h3 className={cn('text-foreground mb-1', styles.title)}>{title}</h3>
       {description && (
         <p className={cn('text-muted-foreground max-w-sm', styles.description)}>

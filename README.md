@@ -1,113 +1,127 @@
-# 📋 Sistem Absensi Modern
+# 📋 Sistem Absensi Modern (Attendance System)
 
 **Attendance Management System** dengan Face Recognition, GPS Verification, dan Payroll Calculation.
 
 [![Laravel](https://img.shields.io/badge/Laravel-12.x-red.svg)](https://laravel.com)
 [![React](https://img.shields.io/badge/React-19.x-blue.svg)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue.svg)](https://www.postgresql.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue.svg)](https://www.postgresql.org)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com)
 
-## 🚀 Quick Start (Development)
+## 🚀 Quick Start (Docker - Recommended)
 
 ### Prerequisites
 
-- PHP 8.2+
-- Composer
-- Node.js 20+
-- PostgreSQL 15+ (atau SQLite untuk development cepat)
+- Docker & Docker Compose
+- Git
 
 ### Installation
 
 ```bash
 # Clone repository
-git clone https://github.com/your-repo/attendance-system.git
-cd attendance-system
-
-# Install all dependencies
-npm install
-cd backend && composer install && cd ..
+git clone https://github.com/your-repo/attendancedev.git
+cd attendancedev
 
 # Setup environment
-cp backend/.env.example backend/.env
-php backend/artisan key:generate
+cp .env.docker.example .env
+# Edit .env sesuai kebutuhan
 
-# Database (SQLite untuk development cepat)
-touch backend/database/database.sqlite
-php backend/artisan migrate --seed
+# Start semua services
+docker compose up -d
+
+# Run migrations
+docker exec attendancedev-backend php artisan migrate --seed
 ```
 
-### Start Development (Satu Command!)
+### Access
+
+- 🌐 **Frontend**: <http://localhost:5173>
+- 🔧 **API**: <http://localhost/api>
+- 🗄️ **Adminer (DB)**: <http://localhost:8080>
+
+### Default Credentials
+
+| Role | Email | Password |
+|------|-------|----------|
+| Super Admin | <admin@school.edu> | password |
+
+## 🐳 Docker Commands
 
 ```bash
-# Start SEMUA services sekaligus (Backend + Frontend + DeepFace)
-./scripts/start-all.sh
+# Start development
+docker compose up -d
 
-# Atau gunakan npm
-npm run dev
+# Hot-reload development
+docker compose watch
+
+# View logs
+docker compose logs -f
+
+# Stop all
+docker compose down
+
+# Production build
+docker compose -f docker-compose.prod.yml up -d
 ```
 
-**Commands lainnya:**
+## 🖥️ VPS Deployment
+
+Untuk deploy ke VPS dengan CI/CD, lihat [📘 Deployment Guide](docs/DEPLOYMENT_GUIDE.md)
 
 ```bash
-./scripts/start-all.sh stop     # Stop semua services
-./scripts/start-all.sh status   # Cek status services
-./scripts/start-all.sh restart  # Restart semua
-./scripts/start-all.sh logs     # Lihat semua logs
-```
-
-**Access:**
-
-- 🌐 Frontend: <http://localhost:5173>
-- 🔧 API: <http://localhost:8000>
-- 📚 API Docs: <http://localhost:8000/api/documentation>
-
-## 🖥️ VPS Deployment (Production)
-
-Untuk deploy ke VPS, lihat [📘 Deployment Guide](docs/DEPLOYMENT.md) atau jalankan:
-
-```bash
-# Di VPS setelah clone repository
-sudo bash scripts/install-vps.sh
+# Quick VPS setup
+curl -sSL https://raw.githubusercontent.com/USER/attendancedev/main/scripts/vps-setup.sh | sudo bash
 ```
 
 ## 📁 Project Structure
 
 ```
-attendance-system/
-├── backend/          # Laravel 12 API
-├── frontend/         # React 19 SPA
-├── python-services/  # DeepFace Recognition Service
-├── shared/           # Shared TypeScript types
-├── scripts/          # Automation scripts
-└── docs/             # Documentation
+attendancedev/
+├── backend/           # Laravel 12 API
+├── frontend/          # React 19 SPA
+├── python-services/   # DeepFace Recognition Service
+├── docker/            # Docker configurations
+├── scripts/           # Automation scripts
+└── docs/              # Documentation
 ```
 
 ## ✨ Features
 
 | Feature | Description |
 |---------|-------------|
-| 🔐 **Authentication** | Multi-role auth dengan 2FA |
+| 🔐 **Multi-Role Auth** | Admin, Kepala Sekolah, Guru, Pegawai |
 | 👤 **Face Recognition** | DeepFace ArcFace (99.82% accuracy) |
 | 📍 **GPS Verification** | Radius-based location check |
-| 📅 **Schedule Management** | Dynamic scheduling system |
-| 💰 **Payroll** | Automatic calculation dengan tax brackets |
-| 📊 **Reports** | Excel/PDF export |
-| 🔔 **Notifications** | Real-time dengan Pusher |
+| 📅 **Schedule Management** | Monthly & weekly schedules |
+| 📊 **Reports** | Monthly recap, Excel/PDF export |
+| 🏖️ **Leave Management** | Request, approve, track balance |
 
 ## 📚 Documentation
 
-- [🛠️ Development Guide](docs/DEVELOPMENT.md)
-- [🚀 Deployment Guide](docs/DEPLOYMENT.md)
-- [🏗️ Architecture](docs/ARCHITECTURE.md)
-- [🔧 API Reference](docs/API.md)
-- [❓ Troubleshooting](docs/TROUBLESHOOTING.md)
+| Document | Description |
+|----------|-------------|
+| [Development Guide](docs/DEVELOPMENT.md) | Setup development environment |
+| [Deployment Guide](docs/DEPLOYMENT_GUIDE.md) | Deploy to VPS with Docker Hub CI/CD |
+| [Architecture](docs/ARCHITECTURE.md) | System architecture overview |
+| [API Reference](docs/API.md) | API endpoints documentation |
+| [System Flow](docs/SYSTEM_FLOW_ANALYSIS.md) | Complete system flow diagrams |
+| [Troubleshooting](docs/TROUBLESHOOTING.md) | Common issues & solutions |
 
-## 🔑 Default Accounts
+## 🔧 Scripts
 
-| Role | Email | Password |
-|------|-------|----------|
-| Super Admin | <admin@admin.com> | password |
+| Script | Description |
+|--------|-------------|
+| `scripts/deploy.sh` | Docker deployment helper |
+| `scripts/vps-setup.sh` | Quick VPS initial setup |
+| `scripts/install-vps-full.sh` | Full VPS installation (non-Docker) |
+
+## 🛡️ Tech Stack
+
+- **Backend**: Laravel 12, PHP 8.3, PostgreSQL 16, Redis 7
+- **Frontend**: React 19, TypeScript 5, TailwindCSS 4, TanStack Query
+- **Face Recognition**: Python DeepFace (ArcFace)
+- **Infrastructure**: Docker, Nginx, GitHub Actions
 
 ## 📄 License
 
-MIT License - lihat [LICENSE](LICENSE) untuk detail.
+MIT License

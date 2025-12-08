@@ -8,6 +8,7 @@ use App\Models\MonthlySchedule;
 use App\Models\EmployeeMonthlySchedule;
 use App\Repositories\AttendanceRepository;
 use App\Repositories\EmployeeRepository;
+use App\Services\AttendanceScheduleService;
 use App\Traits\ApiResponseTrait;
 use App\Imports\AttendanceImport;
 use App\Exports\AttendanceExportTemplate;
@@ -25,13 +26,17 @@ class AttendanceController extends Controller
     private AttendanceRepository $attendanceRepository;
 
     private EmployeeRepository $employeeRepository;
+    
+    private AttendanceScheduleService $scheduleService;
 
     public function __construct(
         AttendanceRepository $attendanceRepository,
-        EmployeeRepository $employeeRepository
+        EmployeeRepository $employeeRepository,
+        AttendanceScheduleService $scheduleService
     ) {
         $this->attendanceRepository = $attendanceRepository;
         $this->employeeRepository = $employeeRepository;
+        $this->scheduleService = $scheduleService;
     }
 
     /**
@@ -118,19 +123,19 @@ class AttendanceController extends Controller
 
             $schedule = $workingDayValidation['schedule'];
 
-            // ===== PHASE 2: Validate Time Window (if schedule exists) =====
-            $isLate = false;
-            $timeWindowMessage = null;
+            // ===== PHASE 2: Calculate Lateness using Schedule Service =====
+            $now = now('Asia/Makassar');
+            $latenessInfo = $this->scheduleService->calculateCheckInLateness($employee, $now);
+            
+            $isLate = $latenessInfo['is_late'];
+            $lateMinutes = $latenessInfo['late_minutes'];
+            $timeWindowMessage = $latenessInfo['message'];
+            $scheduleMode = $latenessInfo['schedule_mode'];
+            $scheduleSource = $latenessInfo['source'] ?? 'unknown';
 
-            if ($schedule) {
-                $timeValidation = $this->validateCheckInWindow($schedule);
-
-                if (!$timeValidation['valid']) {
-                    return $this->errorResponse($timeValidation['message'], 400);
-                }
-
-                $isLate = $timeValidation['is_late'];
-                $timeWindowMessage = $timeValidation['message'];
+            // For flexible employees without teaching schedule, prevent check-in
+            if ($scheduleMode === 'flexible' && $scheduleSource === 'no_teaching_schedule') {
+                return $this->errorResponse('Anda tidak memiliki jadwal mengajar hari ini. Tidak perlu absen.', 400);
             }
 
             // Verify location if provided
@@ -148,13 +153,18 @@ class AttendanceController extends Controller
 
             // Prepare metadata with schedule information
             $attendanceMetadata = array_merge($attendance->metadata ?? [], $validated['metadata'] ?? []);
+            
+            // Add schedule mode info to metadata
+            $attendanceMetadata['schedule_mode'] = $scheduleMode;
+            $attendanceMetadata['schedule_source'] = $scheduleSource;
+            $attendanceMetadata['is_late'] = $isLate;
+            $attendanceMetadata['late_minutes'] = $lateMinutes;
+            $attendanceMetadata['expected_start_time'] = $latenessInfo['expected_time'];
 
             if ($schedule) {
                 $attendanceMetadata['monthly_schedule_id'] = $schedule->id;
                 $attendanceMetadata['schedule_name'] = $schedule->name;
-                $attendanceMetadata['expected_start_time'] = $schedule->default_start_time;
                 $attendanceMetadata['expected_end_time'] = $schedule->default_end_time;
-                $attendanceMetadata['is_late'] = $isLate;
             }
 
             $attendance->update([
@@ -272,20 +282,15 @@ class AttendanceController extends Controller
 
             $schedule = $workingDayValidation['schedule'];
 
-            // ===== PHASE 2: Validate Time Window (if schedule exists) =====
-            $isEarly = false;
-            $timeWindowMessage = null;
-
-            if ($schedule) {
-                $timeValidation = $this->validateCheckOutWindow($schedule);
-
-                if (!$timeValidation['valid']) {
-                    return $this->errorResponse($timeValidation['message'], 400);
-                }
-
-                $isEarly = $timeValidation['is_early'];
-                $timeWindowMessage = $timeValidation['message'];
-            }
+            // ===== PHASE 2: Calculate Early Checkout using Schedule Service =====
+            $now = now('Asia/Makassar');
+            $earlinessInfo = $this->scheduleService->calculateCheckOutEarliness($employee, $now);
+            
+            $isEarly = $earlinessInfo['is_early'];
+            $earlyMinutes = $earlinessInfo['early_minutes'];
+            $timeWindowMessage = $earlinessInfo['message'];
+            $scheduleMode = $earlinessInfo['schedule_mode'];
+            $scheduleSource = $earlinessInfo['source'] ?? 'unknown';
 
             // Verify location if provided
             $locationVerified = $attendance->location_verified; // Keep previous verification
@@ -300,10 +305,13 @@ class AttendanceController extends Controller
 
             // Prepare metadata with schedule information
             $attendanceMetadata = array_merge($attendance->metadata ?? [], $validated['metadata'] ?? []);
-
-            if ($schedule) {
-                $attendanceMetadata['is_early'] = $isEarly;
-            }
+            
+            // Add checkout schedule info to metadata
+            $attendanceMetadata['is_early'] = $isEarly;
+            $attendanceMetadata['early_minutes'] = $earlyMinutes;
+            $attendanceMetadata['expected_end_time'] = $earlinessInfo['expected_time'];
+            $attendanceMetadata['checkout_schedule_mode'] = $scheduleMode;
+            $attendanceMetadata['checkout_schedule_source'] = $scheduleSource;
 
             // Update attendance record
             $attendance->update([

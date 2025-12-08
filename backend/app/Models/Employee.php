@@ -23,6 +23,7 @@ class Employee extends Model
         'user_id', 'employee_id', 'full_name', 'phone',
         'photo_path', 'employee_type', 'employee_type_id', 'hire_date', 'salary_type',
         'salary_amount', 'hourly_rate', 'location_id', 'metadata', 'is_active',
+        'subject_id', 'department_id', 'position_id',
     ];
 
     protected $casts = [
@@ -33,7 +34,23 @@ class Employee extends Model
         'metadata' => 'array',
     ];
 
-    protected $with = ['user']; // Always eager load user
+    // Attributes to append when serializing to JSON (from accessors)
+    protected $appends = [
+        'name',
+        'email',
+        'department',
+        'position',
+        'status',
+        'face_registered',
+        'photo_url',
+        'avatar',
+        'join_date',
+        'address',
+        'role',
+        'roles',
+    ];
+
+    protected $with = ['user', 'user.roles']; // Always eager load user and roles
 
     // ========== MODEL EVENTS ==========
     
@@ -112,6 +129,38 @@ class Employee extends Model
         return $this->belongsTo(EmployeeType::class, 'employee_type_id');
     }
 
+    /**
+     * Subject for teachers (Guru)
+     */
+    public function subject(): BelongsTo
+    {
+        return $this->belongsTo(Subject::class);
+    }
+
+    /**
+     * Department for staff (Unit Kerja)
+     */
+    public function departmentRelation(): BelongsTo
+    {
+        return $this->belongsTo(Department::class, 'department_id');
+    }
+
+    /**
+     * Position for staff (Jabatan)
+     */
+    public function positionRelation(): BelongsTo
+    {
+        return $this->belongsTo(Position::class, 'position_id');
+    }
+
+    /**
+     * Get the EmployeeType model (alias for easier access)
+     */
+    public function getEmployeeTypeModelAttribute(): ?EmployeeType
+    {
+        return $this->employeeTypeRelation;
+    }
+
     // ========== SCOPES ==========
 
     public function scopeActive($query)
@@ -136,11 +185,101 @@ class Employee extends Model
         return $this->full_name ?? '';
     }
 
+    public function getEmailAttribute(): ?string
+    {
+        return $this->user?->email ?? $this->metadata['email'] ?? null;
+    }
+
+    public function getDepartmentAttribute(): ?string
+    {
+        // First check from departmentRelation, then fallback to metadata
+        if ($this->departmentRelation) {
+            return $this->departmentRelation->name;
+        }
+        $metadata = $this->getDecodedMetadata();
+        return $metadata['department'] ?? null;
+    }
+
+    public function getPositionAttribute(): ?string
+    {
+        // First check from positionRelation, then fallback to metadata
+        if ($this->positionRelation) {
+            return $this->positionRelation->name;
+        }
+        $metadata = $this->getDecodedMetadata();
+        return $metadata['position'] ?? null;
+    }
+
+    public function getSubjectNameAttribute(): ?string
+    {
+        return $this->subject?->name;
+    }
+
+    /**
+     * Get decoded metadata (handles when metadata is stored as JSON string)
+     */
+    protected function getDecodedMetadata(): array
+    {
+        $metadata = $this->attributes['metadata'] ?? null;
+        
+        if ($metadata === null) {
+            return [];
+        }
+        
+        // If it's already an array, return it
+        if (is_array($metadata)) {
+            return $metadata;
+        }
+        
+        // If it's a string, decode it (may need to decode twice if double-encoded)
+        if (is_string($metadata)) {
+            $decoded = json_decode($metadata, true);
+            // Check if result is still a string (double-encoded JSON)
+            if (is_string($decoded)) {
+                $decoded = json_decode($decoded, true);
+            }
+            return is_array($decoded) ? $decoded : [];
+        }
+        
+        return [];
+    }
+
+    public function getStatusAttribute(): string
+    {
+        return $this->is_active ? 'active' : 'inactive';
+    }
+
+    public function getJoinDateAttribute(): ?string
+    {
+        return $this->hire_date?->toIso8601String();
+    }
+
+    public function getAddressAttribute(): ?string
+    {
+        $metadata = $this->getDecodedMetadata();
+        return $metadata['address'] ?? null;
+    }
+
+    public function getRoleAttribute(): ?string
+    {
+        return $this->user?->roles?->first()?->name;
+    }
+
+    public function getRolesAttribute(): array
+    {
+        return $this->user?->roles?->pluck('name')->toArray() ?? [];
+    }
+
+    public function getAvatarAttribute(): ?string
+    {
+        return $this->photo_url;
+    }
+
     public function getPhotoUrlAttribute(): string
     {
         return $this->photo_path
             ? asset("storage/{$this->photo_path}")
-            : 'https://ui-avatars.com/api/?name='.urlencode($this->full_name);
+            : 'https://ui-avatars.com/api/?name='.urlencode($this->full_name ?? 'User');
     }
 
     public function getFaceRegisteredAttribute(): bool

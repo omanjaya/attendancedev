@@ -135,3 +135,44 @@ export function useAcademicYears(params?: any) {
         queryFn: () => getAcademicYears(params),
     });
 }
+
+export function useDepartments(params?: any) {
+    return useQuery({
+        queryKey: ['departments', params],
+        queryFn: async () => {
+            const { getDepartments } = await import('@/lib/api/master-data');
+            return getDepartments(params);
+        },
+    });
+}
+
+export function usePositions(params?: any) {
+    return useQuery({
+        queryKey: ['positions', params],
+        queryFn: async () => {
+            const { getPositions } = await import('@/lib/api/master-data');
+            return getPositions(params);
+        },
+    });
+}
+
+export function useSubjects(params?: any) {
+    return useQuery({
+        queryKey: ['subjects', params],
+        queryFn: () => getSubjects(params),
+    });
+}
+
+export function useClassrooms(params?: any) {
+    return useQuery({
+        queryKey: ['classrooms', params],
+        queryFn: () => getClassrooms(params),
+    });
+}
+
+export function usePeriods(params?: any) {
+    return useQuery({
+        queryKey: ['periods', params],
+        queryFn: () => getPeriods(params),
+    });
+}

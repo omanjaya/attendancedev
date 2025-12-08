@@ -63,6 +63,9 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{id}/avatar', [App\Http\Controllers\Api\EmployeeApiController::class, 'deleteAvatar']);
             // Admin password reset for employee users
             Route::post('/{id}/reset-password', [App\Http\Controllers\Api\EmployeeApiController::class, 'resetPassword']);
+            
+            // Bulk actions (delete, reset password, etc.)
+            Route::post('/bulk', [App\Http\Controllers\Api\EmployeeApiController::class, 'bulk']);
         });
 
         // User account management endpoints (for admin creating user accounts)
@@ -193,6 +196,9 @@ Route::prefix('v1')->group(function () {
             Route::get('/departments', [App\Http\Controllers\Api\ReportsApiController::class, 'departmentStats']);
             Route::get('/leave', [App\Http\Controllers\Api\ReportsApiController::class, 'leaveStats']);
             
+            // Monthly recap with A/I/S/D/C breakdown
+            Route::get('/monthly-recap', [App\Http\Controllers\Api\ReportsApiController::class, 'monthlyRecap']);
+            
             // Admin-only: Export functionality
             Route::post('/generate', [App\Http\Controllers\Api\ReportsApiController::class, 'generate'])
                 ->middleware('throttle:report-export');
@@ -237,6 +243,14 @@ Route::prefix('v1')->group(function () {
             Route::apiResource('subjects', App\Http\Controllers\Api\SubjectApiController::class);
             Route::apiResource('classrooms', App\Http\Controllers\Api\ClassroomApiController::class);
             Route::apiResource('periods', App\Http\Controllers\Api\PeriodApiController::class);
+            
+            // Departments (Unit Kerja)
+            Route::apiResource('departments', App\Http\Controllers\Api\DepartmentApiController::class);
+            Route::post('departments-reorder', [App\Http\Controllers\Api\DepartmentApiController::class, 'reorder']);
+            
+            // Positions (Jabatan)
+            Route::apiResource('positions', App\Http\Controllers\Api\PositionApiController::class);
+            Route::post('positions-reorder', [App\Http\Controllers\Api\PositionApiController::class, 'reorder']);
         });
 
         // Two-Factor Authentication endpoints

@@ -74,6 +74,7 @@ export function MobileSettingsPage() {
     const resetSettings = useResetSettings();
     const exportSettings = useExportSettings();
 
+    const [activeTab, setActiveTab] = useState("appearance");
     const [resetDialog, setResetDialog] = useState(false);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -177,6 +178,8 @@ export function MobileSettingsPage() {
                         <button
                             onClick={() => navigate({ to: '/admin/dashboard' })}
                             className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
+                            title="Kembali ke Dashboard"
+                            aria-label="Kembali ke Dashboard"
                         >
                             <ChevronLeft className="h-5 w-5 text-white" />
                         </button>
@@ -186,6 +189,8 @@ export function MobileSettingsPage() {
                                 onClick={handleExportSettings}
                                 disabled={exportSettings.isPending}
                                 className="p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
+                                title="Ekspor Pengaturan"
+                                aria-label="Ekspor Pengaturan"
                             >
                                 {exportSettings.isPending ? (
                                     <Loader2 className="h-5 w-5 text-white animate-spin" />
@@ -196,6 +201,8 @@ export function MobileSettingsPage() {
                             <button
                                 onClick={() => setResetDialog(true)}
                                 className="p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
+                                title="Reset Pengaturan"
+                                aria-label="Reset Pengaturan"
                             >
                                 <RotateCcw className="h-5 w-5 text-white" />
                             </button>
@@ -215,7 +222,7 @@ export function MobileSettingsPage() {
             )}
 
             {/* Settings Tabs */}
-            <Tabs defaultValue="appearance" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <div className="px-4 mb-4 overflow-x-auto no-scrollbar">
                     <TabsList className="w-auto inline-flex h-10 items-center justify-center rounded-full bg-muted p-1 text-muted-foreground">
                         <TabsTrigger value="appearance" className="rounded-full px-4">

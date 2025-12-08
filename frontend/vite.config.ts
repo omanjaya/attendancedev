@@ -9,14 +9,21 @@ export default defineConfig({
   server: {
     host: '0.0.0.0', // Allow access from network
     port: 5173,
+    strictPort: true,
+    watch: {
+      usePolling: true, // Required for Docker file system watching
+      interval: 1000,
+    },
+    hmr: false, // Disable HMR in Docker (use manual refresh)
     allowedHosts: [
       'snuffiest-nydia-egregious.ngrok-free.dev',
       '.ngrok-free.dev',
       '.ngrok.io',
+      'localhost',
     ],
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://nginx',
         changeOrigin: true,
       },
     },

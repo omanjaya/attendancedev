@@ -4,15 +4,14 @@ import type {
     FaceData,
     RecognitionResult,
     KnownFaceDescriptor,
-    FaceBox,
-    FaceLandmark,
+
     FaceExpression,
 } from '@/types/face-recognition';
 
 class FaceDetectionService {
     private isInitialized = false;
     private stream: MediaStream | null = null;
-    private modelsLoaded = false;
+
     private options: faceapi.TinyFaceDetectorOptions;
 
     constructor() {
@@ -35,7 +34,7 @@ class FaceDetectionService {
                 faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL),
             ]);
 
-            this.modelsLoaded = true;
+
             this.isInitialized = true;
             console.log('Face detection models loaded');
         } catch (error) {
@@ -123,8 +122,6 @@ class FaceDetectionService {
 
     async captureFaceDescriptor(
         videoElement: HTMLVideoElement,
-        employeeId: string | number,
-        options: { requireLiveness?: boolean } = {}
     ): Promise<FaceData> {
         if (!this.isInitialized) throw new Error('Service not initialized');
 
@@ -192,7 +189,7 @@ class FaceDetectionService {
         const match = faceMatcher.findBestMatch(detection.descriptor);
 
         if (match.label !== 'unknown') {
-            const matchedFace = knownDescriptors.find((kd) => String(kd.employeeId) === match.label);
+
             return {
                 success: true,
                 employeeId: match.label,

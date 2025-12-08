@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -16,6 +16,7 @@ import {
   CheckCheck,
   Key,
   Zap,
+  BookOpen,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -43,15 +44,18 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCreateEmployee } from '@/hooks';
 import { useLocations } from '@/hooks/use-locations';
 import { useNotificationStore } from '@/stores';
-import { useEmployeeTypes } from '@/hooks/use-master-data';
+import { useEmployeeTypes, useDepartments, usePositions, useSubjects } from '@/hooks/use-master-data';
 
 // Quick mode schema - minimal required fields
 const quickEmployeeSchema = z.object({
   name: z.string().min(2, 'Nama minimal 2 karakter'),
   email: z.string().email('Email tidak valid'),
   employee_type_id: z.string().min(1, 'Pilih jenis pegawai'),
-  department_id: z.string().optional(),
-  position: z.string().min(2, 'Posisi minimal 2 karakter'),
+  // Dynamic fields based on employee type
+  subject_id: z.string().optional(), // For teachers (flexible schedule)
+  department_id: z.string().optional(), // For staff (fixed schedule)
+  position_id: z.string().optional(), // For staff (fixed schedule)
+  position: z.string().optional(), // Fallback text field
   role: z.enum(['pegawai', 'guru', 'admin', 'kepala-sekolah'], { message: 'Pilih role' }),
   location_id: z.string().min(1, 'Pilih lokasi'),
 });
@@ -75,15 +79,6 @@ const fullEmployeeSchema = quickEmployeeSchema.extend({
 
 type QuickEmployeeForm = z.infer<typeof quickEmployeeSchema>;
 type FullEmployeeForm = z.infer<typeof fullEmployeeSchema>;
-
-const departments = [
-  { id: '1', name: 'IT & Development' },
-  { id: '2', name: 'Human Resources' },
-  { id: '3', name: 'Finance & Accounting' },
-  { id: '4', name: 'Marketing' },
-  { id: '5', name: 'Operations' },
-  { id: '6', name: 'Academic' },
-];
 
 const banks = [
   { value: 'bca', label: 'Bank BCA' },
@@ -136,6 +131,18 @@ export default function EmployeeCreatePage() {
   const { data: employeeTypesData } = useEmployeeTypes({ is_active: true });
   const employeeTypes = employeeTypesData?.data || [];
 
+  // Departments hook (Unit Kerja)
+  const { data: departmentsData } = useDepartments({ is_active: true });
+  const departments = departmentsData?.data || [];
+
+  // Positions hook (Jabatan)
+  const { data: positionsData } = usePositions({ is_active: true });
+  const positions = positionsData?.data || [];
+
+  // Subjects hook (Mata Pelajaran)
+  const { data: subjectsData } = useSubjects({ is_active: true });
+  const subjects = subjectsData?.data || [];
+
   // Load locations on mount
   useEffect(() => {
     fetchLocations({ is_active: true });
@@ -158,11 +165,19 @@ export default function EmployeeCreatePage() {
   const watchGender = watch('gender');
   const watchEmploymentType = watch('employment_type');
   const watchRole = watch('role');
+  const watchEmployeeTypeId = watch('employee_type_id');
+
+  // Get selected employee type to determine schedule_mode
+  const selectedEmployeeType = useMemo(() => {
+    return employeeTypes.find((t: any) => t.id === watchEmployeeTypeId);
+  }, [employeeTypes, watchEmployeeTypeId]);
+
+  // Determine if this is a teacher type (flexible schedule) or staff type (fixed schedule)
+  const isTeacherType = selectedEmployeeType?.schedule_mode === 'flexible';
+  const isStaffType = selectedEmployeeType?.schedule_mode === 'fixed';
 
   const onSubmit = async (data: QuickEmployeeForm | FullEmployeeForm) => {
     // Map form data to API format
-    const department = departments.find(d => d.id === data.department_id);
-
     // Generate password
     const password = generatePassword();
     setGeneratedPassword(password);
@@ -176,10 +191,13 @@ export default function EmployeeCreatePage() {
       employee_code: nip, // Send NIP/Employee ID
       full_name: data.name, // Backend expects full_name not name
       email: data.email,
-      phone: isFullMode && 'phone' in data ? data.phone : undefined, // Use undefined instead of empty string
+      phone: isFullMode && 'phone' in data ? data.phone : undefined,
       position: data.position,
-      department: department?.name || data.department_id,
       employee_type_id: data.employee_type_id,
+      // Dynamic fields based on employee type
+      subject_id: data.subject_id || undefined, // For teachers
+      department_id: data.department_id || undefined, // For staff
+      position_id: data.position_id || undefined, // For staff
       hire_date: isFullMode && 'join_date' in data ? data.join_date : new Date().toISOString().split('T')[0],
       is_active: true,
       password: password, // Send auto-generated password
@@ -484,40 +502,103 @@ Password harus diganti saat login pertama kali.`;
                           <SelectValue placeholder="Pilih jenis pegawai" />
                         </SelectTrigger>
                         <SelectContent>
-                          {employeeTypes.map((type) => (
-                            <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
+                          {employeeTypes.map((type: any) => (
+                            <SelectItem key={type.id} value={type.id}>
+                              <div className="flex items-center gap-2">
+                                <span>{type.name}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  ({type.schedule_mode === 'flexible' ? 'Fleksibel' : 'Tetap'})
+                                </span>
+                              </div>
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                       {errors.employee_type_id && <p className="text-xs text-destructive mt-1">{errors.employee_type_id.message}</p>}
+                      {selectedEmployeeType && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Mode jadwal: {selectedEmployeeType.schedule_mode === 'flexible' ? 'Fleksibel (Guru)' : 'Tetap (Staff)'}
+                        </p>
+                      )}
                     </div>
 
-                    {/* Department - Optional */}
-                    <div>
-                      <div className="mb-2.5 text-sm font-medium">
-                        <label htmlFor="department">Departemen</label>
+                    {/* Dynamic Fields based on Employee Type */}
+                    {/* For Teachers (flexible schedule) - Show Mata Pelajaran */}
+                    {isTeacherType && (
+                      <div>
+                        <div className="mb-2.5 text-sm font-medium">
+                          <label htmlFor="subject">
+                            <BookOpen className="w-4 h-4 inline mr-1" />
+                            Mata Pelajaran *
+                          </label>
+                        </div>
+                        <Select onValueChange={(v) => setValue('subject_id', v)}>
+                          <SelectTrigger id="subject">
+                            <SelectValue placeholder="Pilih mata pelajaran" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {subjects.map((s: any) => (
+                              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Mata pelajaran utama yang diajarkan
+                        </p>
                       </div>
-                      <Select onValueChange={(v) => setValue('department_id', v)}>
-                        <SelectTrigger id="department">
-                          <SelectValue placeholder="Pilih departemen" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {departments.map((d) => (
-                            <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {errors.department_id && <p className="text-xs text-destructive mt-1">{errors.department_id.message}</p>}
-                    </div>
+                    )}
 
-                    {/* Position - Always Required */}
-                    <div>
-                      <div className="mb-2.5 text-sm font-medium">
-                        <label htmlFor="position">Posisi/Jabatan *</label>
+                    {/* For Staff (fixed schedule) - Show Unit Kerja */}
+                    {isStaffType && (
+                      <div>
+                        <div className="mb-2.5 text-sm font-medium">
+                          <label htmlFor="department">Unit Kerja</label>
+                        </div>
+                        <Select onValueChange={(v) => setValue('department_id', v)}>
+                          <SelectTrigger id="department">
+                            <SelectValue placeholder="Pilih unit kerja" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {departments.map((d: any) => (
+                              <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {errors.department_id && <p className="text-xs text-destructive mt-1">{errors.department_id.message}</p>}
                       </div>
-                      <Input id="position" placeholder="Contoh: Staff IT" {...register('position')} />
-                      {errors.position && <p className="text-xs text-destructive mt-1">{errors.position.message}</p>}
-                    </div>
+                    )}
+
+                    {/* For Staff (fixed schedule) - Show Jabatan from dropdown */}
+                    {isStaffType && (
+                      <div>
+                        <div className="mb-2.5 text-sm font-medium">
+                          <label htmlFor="position_dropdown">Jabatan</label>
+                        </div>
+                        <Select onValueChange={(v) => setValue('position_id', v)}>
+                          <SelectTrigger id="position_dropdown">
+                            <SelectValue placeholder="Pilih jabatan" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {positions.map((p: any) => (
+                              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {/* Fallback Position field if no employee type selected */}
+                    {!isTeacherType && !isStaffType && (
+                      <div>
+                        <div className="mb-2.5 text-sm font-medium">
+                          <label htmlFor="position">Posisi/Jabatan</label>
+                        </div>
+                        <Input id="position" placeholder="Pilih jenis pegawai terlebih dahulu" {...register('position')} disabled />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Pilih jenis pegawai untuk melihat opsi posisi
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Location - Always Required */}

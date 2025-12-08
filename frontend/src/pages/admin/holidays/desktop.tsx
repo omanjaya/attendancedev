@@ -416,6 +416,7 @@ export function DesktopHolidaysPage() {
     const [deletingHoliday, setDeletingHoliday] = useState<Holiday | null>(null);
     const [stats, setStats] = useState<HolidayStatistics | null>(null);
     const [currentMonth, setCurrentMonth] = useState(new Date());
+    const [activeTab, setActiveTab] = useState("list");
 
     useEffect(() => {
         fetchHolidays({ year: yearFilter });
@@ -529,7 +530,7 @@ export function DesktopHolidaysPage() {
             />
 
             {/* Tabs */}
-            <Tabs defaultValue="list">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
                     <TabsTrigger value="list">Daftar</TabsTrigger>
                     <TabsTrigger value="calendar">Kalender</TabsTrigger>

@@ -79,6 +79,7 @@ export function DesktopSettingsPage() {
     const resetSettings = useResetSettings();
     const exportSettings = useExportSettings();
 
+    const [activeTab, setActiveTab] = useState("master-data");
     const [resetDialog, setResetDialog] = useState(false);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -207,7 +208,7 @@ export function DesktopSettingsPage() {
             )}
 
             {/* Settings Tabs */}
-            <Tabs defaultValue="master-data" className="space-y-4">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
                 <TabsList className="grid w-full grid-cols-4 md:w-auto md:inline-flex">
                     <TabsTrigger value="master-data">
                         <Database className="h-4 w-4 mr-2" />
@@ -246,7 +247,7 @@ export function DesktopSettingsPage() {
                                     <div>
                                         <div className="font-medium">Jenis Pegawai</div>
                                         <div className="text-sm text-muted-foreground">
-                                            Kelola tipe pegawai dan aturan jadwal
+                                            Kelola jenis pegawai, unit kerja, dan jabatan
                                         </div>
                                     </div>
                                 </div>

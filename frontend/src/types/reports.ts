@@ -119,3 +119,54 @@ export interface GenerateReportResponse {
   generated_sync?: boolean;
   message?: string;
 }
+
+// Monthly Recap Employee Data
+export interface MonthlyRecapEmployee {
+  employee_id: string;
+  employee_code: string;
+  employee_name: string;
+  department: string;
+  hadir: number;      // H - Present on time
+  terlambat: number;  // T - Late
+  alpha: number;      // A - Absent without notice
+  izin: number;       // I - Permission
+  sakit: number;      // S - Sick
+  dinas: number;      // D - Official duty
+  cuti: number;       // C - Leave
+  working_days: number;
+  attendance_rate: number;
+}
+
+// Monthly Recap Response
+export interface MonthlyRecapData {
+  period: {
+    month: number;
+    year: number;
+    month_name: string;
+    start_date: string;
+    end_date: string;
+  };
+  working_days: number;
+  total_employees: number;
+  holidays_count: number;
+  data: MonthlyRecapEmployee[];
+  totals: {
+    hadir: number;
+    terlambat: number;
+    alpha: number;
+    izin: number;
+    sakit: number;
+    dinas: number;
+    cuti: number;
+    overall_attendance_rate: number;
+  };
+  legend: {
+    H: string;
+    T: string;
+    A: string;
+    I: string;
+    S: string;
+    D: string;
+    C: string;
+  };
+}

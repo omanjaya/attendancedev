@@ -35,6 +35,9 @@ export interface Subject {
     name: string;
     code: string;
     description?: string;
+    is_active: boolean;
+    sort_order?: number;
+    employees_count?: number;
     created_at: string;
     updated_at: string;
 }
@@ -42,10 +45,13 @@ export interface Subject {
 export interface Classroom {
     id: string;
     name: string;
-    grade_level: number;
+    grade_level: string;
     major?: string;
-    academic_year_id: string;
-    academic_year?: AcademicYear;
+    class_number: string;
+    capacity: number;
+    room?: string;
+    is_active: boolean;
+    metadata?: any;
     created_at: string;
     updated_at: string;
 }
@@ -55,8 +61,9 @@ export interface Period {
     name: string;
     start_time: string;
     end_time: string;
-    is_break: boolean;
-    order_index: number;
+    order: number;
+    is_active: boolean;
+    metadata?: any;
     created_at: string;
     updated_at: string;
 }
@@ -74,4 +81,28 @@ export interface PaginatedResponse<T> {
         to: number;
         has_more_pages: boolean;
     };
+}
+
+export interface Department {
+    id: string;
+    name: string;
+    code: string;
+    description?: string;
+    is_active: boolean;
+    sort_order: number;
+    employees_count?: number;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface Position {
+    id: string;
+    name: string;
+    code: string;
+    description?: string;
+    is_active: boolean;
+    sort_order: number;
+    employees_count?: number;
+    created_at: string;
+    updated_at: string;
 }

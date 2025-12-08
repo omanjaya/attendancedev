@@ -10,13 +10,11 @@ import {
     FileText,
     DollarSign,
     Bell,
-    Briefcase,
     Target,
-    Award,
     LogIn,
     LogOut,
 } from 'lucide-react';
-import { Card } from '@/components/ui/card';
+
 import { useAuthStore } from '@/stores';
 import { useDashboard } from '@/hooks';
 import { cn } from '@/lib/utils';
@@ -156,7 +154,12 @@ export function MobileDashboard() {
                                     {user?.name || 'User'}
                                 </p>
                             </div>
-                            <button className="h-10 w-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/20 transition-colors">
+                            <button
+                                type="button"
+                                title="Notifikasi"
+                                aria-label="Notifikasi"
+                                className="h-10 w-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+                            >
                                 <Bell className="h-5 w-5" />
                             </button>
                         </div>

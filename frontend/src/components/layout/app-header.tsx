@@ -12,7 +12,7 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ title }: AppHeaderProps) {
-  const { theme, toggleTheme } = useUIStore();
+  const { toggleTheme } = useUIStore();
 
   return (
     <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-2 border-b border-border/40 bg-gradient-to-r from-background/98 via-background/95 to-background/98 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 shadow-sm">

@@ -164,7 +164,7 @@ export function useFaceDetection(options: UseFaceDetectionOptions = {}): UseFace
 
   // Capture face descriptor
   const captureDescriptor = useCallback(
-    async (employeeId: string | number, requireLiveness = false): Promise<FaceData> => {
+    async (): Promise<FaceData> => {
       if (!videoRef.current) {
         throw new Error('Video not ready');
       }
@@ -172,9 +172,7 @@ export function useFaceDetection(options: UseFaceDetectionOptions = {}): UseFace
       setIsProcessing(true);
       try {
         const faceData = await faceDetectionService.captureFaceDescriptor(
-          videoRef.current,
-          employeeId,
-          { requireLiveness }
+          videoRef.current
         );
         return faceData;
       } finally {

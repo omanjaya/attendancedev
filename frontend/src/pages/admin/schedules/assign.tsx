@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { LoadingState } from '@/components/states';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -208,11 +208,10 @@ export default function ScheduleAssignPage() {
             {mockSchedules.map((schedule) => (
               <div
                 key={schedule.id}
-                className={`p-4 rounded-lg border cursor-pointer transition-colors ${
-                  selectedSchedule === schedule.id
+                className={`p-4 rounded-lg border cursor-pointer transition-colors ${selectedSchedule === schedule.id
                     ? 'border-primary bg-primary/5'
                     : 'border-border hover:bg-muted/50'
-                }`}
+                  }`}
                 onClick={() => setSelectedSchedule(schedule.id)}
               >
                 <div className="flex items-center justify-between mb-2">

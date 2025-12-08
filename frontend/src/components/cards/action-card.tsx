@@ -78,7 +78,7 @@ export function ActionCard({
           iconColorClasses[iconColor]
         )}
       >
-        <Icon className="h-4 w-4" />
+        {Icon && <Icon className="h-4 w-4" />}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-foreground truncate">{title}</p>

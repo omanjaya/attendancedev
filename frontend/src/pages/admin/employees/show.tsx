@@ -212,7 +212,7 @@ export default function EmployeeShowPage() {
             <Avatar className="relative h-32 w-32 border-4 border-background shadow-xl">
               <AvatarImage src={employee.avatar} className="object-cover" />
               <AvatarFallback className="text-4xl font-bold bg-primary/10 text-primary">
-                {employee.name.split(' ').map(n => n[0]).join('')}
+                {employee.name?.split(' ').map(n => n[0]).join('') || '??'}
               </AvatarFallback>
             </Avatar>
             <div className={`absolute bottom-2 right-2 h-6 w-6 rounded-full border-4 border-background ${employee.status === 'active' ? 'bg-success' : 'bg-muted-foreground'}`}></div>

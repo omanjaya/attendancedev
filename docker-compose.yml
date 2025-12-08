@@ -1,10 +1,15 @@
 # ============================================
 # Attendance System - Docker Compose (Development)
 # ============================================
-# Usage: docker-compose up -d
+# Usage: 
+#   docker compose up -d          # Start containers
+#   docker compose watch          # Start with auto-rebuild (dev)
+# ============================================
+# Project Name: attendancedev
+# All containers will be prefixed with: attendancedev-
 # ============================================
 
-version: '3.8'
+name: attendancedev
 
 services:
   # ==========================================
@@ -12,7 +17,7 @@ services:
   # ==========================================
   postgres:
     image: postgres:16-alpine
-    container_name: attendance_postgres
+    container_name: attendancedev-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_DATABASE:-attendance_system}
@@ -36,7 +41,7 @@ services:
   # ==========================================
   redis:
     image: redis:7-alpine
-    container_name: attendance_redis
+    container_name: attendancedev-redis
     restart: unless-stopped
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
@@ -58,7 +63,7 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
-    container_name: attendance_backend
+    container_name: attendancedev-backend
     restart: unless-stopped
     working_dir: /var/www/html
     volumes:
@@ -87,6 +92,23 @@ services:
         condition: service_healthy
     networks:
       - attendance_network
+    develop:
+      watch:
+        # Auto-sync PHP source code changes
+        - action: sync
+          path: ./backend/app
+          target: /var/www/html/app
+        - action: sync
+          path: ./backend/config
+          target: /var/www/html/config
+        - action: sync
+          path: ./backend/routes
+          target: /var/www/html/routes
+        # Rebuild when composer dependencies change
+        - action: rebuild
+          path: ./backend/composer.json
+        - action: rebuild
+          path: ./backend/composer.lock
 
   # ==========================================
   # React Frontend (Development)
@@ -95,7 +117,7 @@ services:
     build:
       context: .
       dockerfile: docker/node/Dockerfile.dev
-    container_name: attendance_frontend
+    container_name: attendancedev-frontend
     restart: unless-stopped
     volumes:
       - ./frontend:/app
@@ -107,6 +129,22 @@ services:
       - VITE_DEEPFACE_URL=${VITE_DEEPFACE_URL:-http://localhost:8001}
     networks:
       - attendance_network
+    develop:
+      watch:
+        # Auto-sync source code changes
+        - action: sync
+          path: ./frontend/src
+          target: /app/src
+        - action: sync
+          path: ./frontend/public
+          target: /app/public
+        # Rebuild when package.json changes
+        - action: rebuild
+          path: ./frontend/package.json
+        - action: rebuild
+          path: ./frontend/package-lock.json
+        - action: rebuild
+          path: ./frontend/vite.config.ts
 
   # ==========================================
   # Python DeepFace Service
@@ -115,10 +153,10 @@ services:
     build:
       context: .
       dockerfile: docker/python/Dockerfile
-    container_name: attendance_deepface
+    container_name: attendancedev-deepface
     restart: unless-stopped
     volumes:
-      - ./python-services:/app
+      - ./python-services/face-recognition:/app
       - deepface_models:/app/.deepface
       - face_data:/app/face_data
     ports:
@@ -142,7 +180,7 @@ services:
   # ==========================================
   nginx:
     image: nginx:alpine
-    container_name: attendance_nginx
+    container_name: attendancedev-nginx
     restart: unless-stopped
     ports:
       - "80:80"
@@ -163,7 +201,7 @@ services:
   # ==========================================
   adminer:
     image: adminer
-    container_name: attendance_adminer
+    container_name: attendancedev-adminer
     restart: unless-stopped
     ports:
       - "8080:8080"
@@ -194,4 +232,5 @@ volumes:
 # ==========================================
 networks:
   attendance_network:
+    name: attendancedev-network
     driver: bridge

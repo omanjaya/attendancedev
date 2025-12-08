@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LoadingState } from '@/components/states';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
@@ -33,7 +33,7 @@ type PayrollForm = z.infer<typeof payrollSchema>;
 export default function PayrollEditPage() {
   const navigate = useNavigate();
   const params = useParams({
-    from: '/authenticated/payroll/$periodId/employee/$employeeId/edit',
+    strict: false,
   }) as {
     periodId: string;
     employeeId: string;
@@ -55,12 +55,12 @@ export default function PayrollEditPage() {
     resolver: zodResolver(payrollSchema),
     values: payroll
       ? {
-          bonus: payroll.bonus,
-          other_allowances: payroll.other_allowances,
-          loan_deduction: payroll.loan_deduction,
-          other_deductions: payroll.other_deductions,
-          notes: payroll.notes || '',
-        }
+        bonus: payroll.bonus,
+        other_allowances: payroll.other_allowances,
+        loan_deduction: payroll.loan_deduction,
+        other_deductions: payroll.other_deductions,
+        notes: payroll.notes || '',
+      }
       : undefined,
   });
 
@@ -113,7 +113,7 @@ export default function PayrollEditPage() {
       },
       {
         onSuccess: () => {
-          navigate({ to: '/payroll' });
+          navigate({ to: '/admin/payroll' });
         },
       }
     );
@@ -389,7 +389,7 @@ export default function PayrollEditPage() {
                     type="button"
                     variant="outline"
                     className="w-full"
-                    onClick={() => navigate({ to: '/payroll' })}
+                    onClick={() => navigate({ to: '/admin/payroll' })}
                   >
                     Batal
                   </Button>

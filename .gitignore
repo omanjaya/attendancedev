@@ -85,20 +85,27 @@ temp_*.js
 /delete_*.php
 
 # Python
-/python-face-service/venv/
-/python-face-service/__pycache__/
-/python-face-service/*.pyc
-/python-face-service/.env
+/python-services/venv/
+/python-services/face-recognition/venv/
+/python-services/__pycache__/
+/python-services/**/__pycache__/
 *.py[cod]
 *$py.class
 
-# Temporary and test directories
+# DeepFace models & data (large files) 
+/python-services/.deepface/
+/python-services/face_data/
+
+# Temporary directories
 /tmp/
-load-testing/venv/
+/backups/
 
 # Docker
 .env
 !.env.docker.example
-backups/*.sql
 docker/nginx/ssl/
 docker/nginx/certbot/
+
+# Token files
+token.json
+

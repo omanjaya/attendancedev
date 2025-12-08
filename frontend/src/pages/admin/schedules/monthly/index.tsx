@@ -6,21 +6,13 @@ import {
   Calendar,
   Plus,
   Search,
-  Filter,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
+  Loader2,
+  UserPlus,
   Edit,
-  Copy,
   Trash2,
   MoreVertical,
   Users,
-  Clock,
   CalendarDays,
-  Download,
-  FileSpreadsheet,
-  Loader2,
-  UserPlus,
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -386,7 +378,7 @@ export function MonthlyScheduleList({ showHeader = true }: { showHeader?: boolea
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem asChild>
-                              <Link to={`/admin/schedules/monthly/${schedule.id}/edit`}>
+                              <Link to={`/admin/schedules/monthly/${schedule.id}/edit` as any}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit Jadwal
                               </Link>

@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { Lock, Loader2, Eye, EyeOff, Shield, ArrowLeft } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { LoadingState } from '@/components/states';
+
 import { Input } from '@/components/ui/input';
 import { useNotificationStore, useAuthStore } from '@/stores';
 import { getDefaultRedirect } from '@/lib/auth';
@@ -109,7 +109,7 @@ export default function ConfirmPasswordPage() {
           {/* Back Link */}
           <div className="mt-6 text-center">
             <Link
-              to="/dashboard"
+              to="/admin/dashboard"
               className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />

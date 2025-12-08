@@ -97,6 +97,10 @@ class EmployeeApiController extends BaseApiController
             'password' => 'nullable|string|min:8', // Accept password from frontend
             'role' => 'nullable|string|in:pegawai,guru,admin,kepala-sekolah', // Accept role
             'location_id' => 'nullable|uuid|exists:locations,id', // Accept location assignment
+            // Dynamic fields based on employee type
+            'subject_id' => 'nullable|uuid|exists:subjects,id', // For teachers (flexible schedule)
+            'department_id' => 'nullable|uuid|exists:departments,id', // For staff (fixed schedule) - Unit Kerja
+            'position_id' => 'nullable|uuid|exists:positions,id', // For staff (fixed schedule) - Jabatan
         ]);
 
         try {
@@ -116,7 +120,7 @@ class EmployeeApiController extends BaseApiController
                 // Assign role using Spatie
                 $user->assignRole($role);
 
-                // Prepare metadata for department and position
+                // Prepare metadata for department and position (legacy fallback)
                 $metadata = [];
                 if (isset($validated['department'])) {
                     $metadata['department'] = $validated['department'];
@@ -132,13 +136,16 @@ class EmployeeApiController extends BaseApiController
                     'full_name' => $validated['full_name'],
                     'phone' => $validated['phone'] ?? null,
                     'employee_type_id' => $validated['employee_type_id'],
-                    // 'employee_type' => $validated['employment_type'] ?? 'staff', // Deprecated
-                    'salary_type' => $validated['salary_type'] ?? 'monthly', // Deprecated
+                    'salary_type' => $validated['salary_type'] ?? 'monthly',
                     'salary_amount' => $validated['base_salary'] ?? 0,
                     'hire_date' => $validated['hire_date'] ?? ($request->get('join_date') ?? now()),
                     'is_active' => $validated['is_active'] ?? true,
                     'location_id' => $validated['location_id'] ?? null, // Assign location
-                    'metadata' => $metadata, // Store department and position in metadata
+                    // Dynamic fields based on employee type
+                    'subject_id' => $validated['subject_id'] ?? null, // For teachers
+                    'department_id' => $validated['department_id'] ?? null, // For staff - Unit Kerja
+                    'position_id' => $validated['position_id'] ?? null, // For staff - Jabatan
+                    'metadata' => $metadata, // Legacy fallback for department and position
                 ];
 
                 // Create employee
@@ -146,7 +153,7 @@ class EmployeeApiController extends BaseApiController
             });
 
             return $this->apiResponse(
-                $employee->load(['user', 'location']),
+                $employee->load(['user', 'location', 'subject', 'departmentRelation', 'positionRelation']),
                 'Employee created successfully',
                 201
             );
@@ -521,8 +528,16 @@ class EmployeeApiController extends BaseApiController
 
         // Check if current user has permission (optional extra check)
         $currentUser = $request->user();
-        if (!$currentUser->hasRole(['admin', 'super-admin', 'kepala-sekolah'])) {
-            return $this->errorResponse('Unauthorized. Only admins can reset passwords.', 403);
+        
+        $userRoles = $currentUser->getRoleNames()->map(function($role) {
+            return strtolower($role);
+        })->toArray();
+        
+        $allowedRoles = ['admin', 'super-admin', 'super admin', 'kepala-sekolah'];
+        $hasAccess = !empty(array_intersect($userRoles, $allowedRoles));
+
+        if (!$hasAccess) {
+             return $this->errorResponse('Unauthorized. Only admins can reset passwords.', 403);
         }
 
         $validated = $request->validate([
@@ -554,6 +569,148 @@ class EmployeeApiController extends BaseApiController
             ], 'Password reset successfully');
         } catch (\Exception $e) {
             return $this->errorResponse('Failed to reset password: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Bulk actions for employees (delete, reset password, etc.)
+     */
+    public function bulk(Request $request)
+    {
+        $validated = $request->validate([
+            'action' => 'required|string|in:delete,reset_password,activate,deactivate',
+            'employee_ids' => 'required|array|min:1',
+            'employee_ids.*' => 'required|exists:employees,id',
+        ]);
+
+        $action = $validated['action'];
+        $employeeIds = $validated['employee_ids'];
+        $currentUser = $request->user();
+        
+        // Manual case-insensitive role check
+        $userRoles = $currentUser->getRoleNames()->map(function($role) {
+            return strtolower($role);
+        })->toArray();
+        
+        $allowedRoles = ['admin', 'super-admin', 'super admin', 'kepala-sekolah'];
+        $hasAccess = !empty(array_intersect($userRoles, $allowedRoles));
+
+        if (!$hasAccess) {
+             \Illuminate\Support\Facades\Log::warning('Bulk Action Unauthorized: User ' . $currentUser->id . ' Roles: ' . implode(',', $userRoles));
+            return $this->errorResponse('Unauthorized. Only admins can perform bulk actions.', 403);
+        }
+
+        try {
+            $results = [
+                'success' => 0,
+                'failed' => 0,
+                'errors' => [],
+                'reset_passwords' => [], // Only for reset_password action
+            ];
+
+            DB::beginTransaction();
+
+            switch ($action) {
+                case 'delete':
+                    foreach ($employeeIds as $id) {
+                        try {
+                            $employee = Employee::find($id);
+                            if ($employee) {
+                                // Delete associated user account if exists
+                                if ($employee->user_id) {
+                                    \App\Models\User::where('id', $employee->user_id)->delete();
+                                }
+                                $employee->delete();
+                                $results['success']++;
+                            } else {
+                                $results['failed']++;
+                                $results['errors'][] = "Employee ID {$id} not found";
+                            }
+                        } catch (\Exception $e) {
+                            $results['failed']++;
+                            $results['errors'][] = "Failed to delete employee ID {$id}: " . $e->getMessage();
+                        }
+                    }
+                    break;
+
+                case 'reset_password':
+                    foreach ($employeeIds as $id) {
+                        try {
+                            $employee = Employee::with('user')->find($id);
+                            if ($employee && $employee->user) {
+                                $newPassword = \Illuminate\Support\Str::random(12);
+                                $employee->user->update([
+                                    'password' => Hash::make($newPassword),
+                                    'force_password_change' => true,
+                                    'password_changed_at' => null,
+                                ]);
+                                $results['success']++;
+                                $results['reset_passwords'][] = [
+                                    'employee_id' => $employee->id,
+                                    'name' => $employee->full_name,
+                                    'email' => $employee->user->email,
+                                    'temporary_password' => $newPassword,
+                                ];
+                            } elseif (!$employee) {
+                                $results['failed']++;
+                                $results['errors'][] = "Employee ID {$id} not found";
+                            } else {
+                                $results['failed']++;
+                                $results['errors'][] = "Employee ID {$id} has no user account";
+                            }
+                        } catch (\Exception $e) {
+                            $results['failed']++;
+                            $results['errors'][] = "Failed to reset password for employee ID {$id}: " . $e->getMessage();
+                        }
+                    }
+                    break;
+
+                case 'activate':
+                    foreach ($employeeIds as $id) {
+                        try {
+                            $employee = Employee::find($id);
+                            if ($employee) {
+                                $employee->update(['is_active' => true]);
+                                $results['success']++;
+                            } else {
+                                $results['failed']++;
+                                $results['errors'][] = "Employee ID {$id} not found";
+                            }
+                        } catch (\Exception $e) {
+                            $results['failed']++;
+                            $results['errors'][] = "Failed to activate employee ID {$id}: " . $e->getMessage();
+                        }
+                    }
+                    break;
+
+                case 'deactivate':
+                    foreach ($employeeIds as $id) {
+                        try {
+                            $employee = Employee::find($id);
+                            if ($employee) {
+                                $employee->update(['is_active' => false]);
+                                $results['success']++;
+                            } else {
+                                $results['failed']++;
+                                $results['errors'][] = "Employee ID {$id} not found";
+                            }
+                        } catch (\Exception $e) {
+                            $results['failed']++;
+                            $results['errors'][] = "Failed to deactivate employee ID {$id}: " . $e->getMessage();
+                        }
+                    }
+                    break;
+            }
+
+            DB::commit();
+
+            $message = "Bulk {$action} completed: {$results['success']} success, {$results['failed']} failed";
+            
+            return $this->apiResponse($results, $message);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->errorResponse('Bulk action failed: ' . $e->getMessage(), 500);
         }
     }
 }

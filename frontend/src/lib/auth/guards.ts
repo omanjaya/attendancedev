@@ -194,14 +194,14 @@ export function getDefaultRedirect(user: User | null): string {
 export function canAccessRoute(user: User | null, route: string): boolean {
   if (!user) return false;
 
-  // Admin routes
+  // Admin routes - allow all admin roles
   if (route.startsWith('/admin/')) {
-    return hasRole(user, 'admin');
+    return hasAnyRole(user, ['admin', 'super-admin', 'kepala-sekolah']);
   }
 
-  // Employee routes
+  // Employee routes - non-admin only
   if (route.startsWith('/employee/')) {
-    return !hasRole(user, 'admin'); // Non-admin only
+    return !hasAnyRole(user, ['admin', 'super-admin', 'kepala-sekolah']);
   }
 
   // Shared routes

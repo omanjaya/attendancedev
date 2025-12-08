@@ -27,6 +27,7 @@ class SubjectApiController extends BaseApiController
             'name' => 'required|string|max:255',
             'code' => 'required|string|max:50|unique:subjects,code',
             'description' => 'nullable|string',
+            'is_active' => 'boolean',
         ]);
 
         $subject = Subject::create($validated);
@@ -48,6 +49,7 @@ class SubjectApiController extends BaseApiController
             'name' => 'sometimes|string|max:255',
             'code' => 'sometimes|string|max:50|unique:subjects,code,' . $id,
             'description' => 'nullable|string',
+            'is_active' => 'boolean',
         ]);
 
         $subject->update($validated);

@@ -1,10 +1,13 @@
 # ============================================
 # Attendance System - Docker Compose (Production)
 # ============================================
-# Usage: docker-compose -f docker-compose.prod.yml up -d
+# Usage: docker compose -f docker-compose.prod.yml up -d
+# ============================================
+# Project Name: attendancedev
+# All containers will be prefixed with: attendancedev-
 # ============================================
 
-version: '3.8'
+name: attendancedev
 
 services:
   # ==========================================
@@ -12,7 +15,7 @@ services:
   # ==========================================
   postgres:
     image: postgres:16-alpine
-    container_name: attendance_postgres
+    container_name: attendancedev-postgres
     restart: always
     command: postgres -c config_file=/etc/postgresql/postgresql.conf
     environment:
@@ -42,7 +45,7 @@ services:
   # ==========================================
   redis:
     image: redis:7-alpine
-    container_name: attendance_redis
+    container_name: attendancedev-redis
     restart: always
     command: redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
     volumes:
@@ -69,7 +72,7 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
-    container_name: attendance_backend
+    container_name: attendancedev-backend
     restart: always
     working_dir: /var/www/html
     volumes:
@@ -116,7 +119,7 @@ services:
       args:
         - VITE_API_BASE_URL=${VITE_API_BASE_URL}
         - VITE_DEEPFACE_URL=${VITE_DEEPFACE_URL}
-    container_name: attendance_frontend
+    container_name: attendancedev-frontend
     restart: always
     networks:
       - attendance_internal
@@ -132,7 +135,7 @@ services:
     build:
       context: .
       dockerfile: docker/python/Dockerfile
-    container_name: attendance_deepface_1
+    container_name: attendancedev-deepface-1
     restart: always
     volumes:
       - deepface_models:/app/.deepface
@@ -163,7 +166,7 @@ services:
     build:
       context: .
       dockerfile: docker/python/Dockerfile
-    container_name: attendance_deepface_2
+    container_name: attendancedev-deepface-2
     restart: always
     volumes:
       - deepface_models:/app/.deepface
@@ -192,7 +195,7 @@ services:
   # ==========================================
   nginx:
     image: nginx:alpine
-    container_name: attendance_nginx
+    container_name: attendancedev-nginx
     restart: always
     ports:
       - "80:80"
@@ -219,7 +222,7 @@ services:
   # ==========================================
   certbot:
     image: certbot/certbot
-    container_name: attendance_certbot
+    container_name: attendancedev-certbot
     volumes:
       - ssl_certs:/etc/letsencrypt
       - ./docker/nginx/certbot:/var/www/certbot
@@ -253,7 +256,9 @@ volumes:
 # ==========================================
 networks:
   attendance_internal:
+    name: attendancedev-internal
     driver: bridge
     internal: true
   attendance_external:
+    name: attendancedev-external
     driver: bridge

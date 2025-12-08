@@ -5,6 +5,8 @@ import type {
     Subject,
     Classroom,
     Period,
+    Department,
+    Position,
     PaginatedResponse,
 } from '@/types/master-data';
 
@@ -136,5 +138,89 @@ export const updatePeriod = async (id: string, data: Partial<Period>) => {
 
 export const deletePeriod = async (id: string) => {
     const response = await apiClient.delete<{ success: boolean }>(`/admin/periods/${id}`);
+    return response.data;
+};
+
+// Departments (Unit Kerja)
+export const getDepartments = async (params?: any) => {
+    const response = await apiClient.get<PaginatedResponse<Department>>('/admin/departments', { params });
+    return response.data;
+};
+
+export const getDepartmentsAll = async () => {
+    const response = await apiClient.get<{ success: boolean; data: Department[] }>('/admin/departments', {
+        params: { all: true }
+    });
+    return response.data;
+};
+
+export const getDepartment = async (id: string) => {
+    const response = await apiClient.get<{ success: boolean; data: Department }>(`/admin/departments/${id}`);
+    return response.data;
+};
+
+export const createDepartment = async (data: Partial<Department>) => {
+    const response = await apiClient.post<{ success: boolean; data: Department }>('/admin/departments', data);
+    return response.data;
+};
+
+export const updateDepartment = async (id: string, data: Partial<Department>) => {
+    const response = await apiClient.put<{ success: boolean; data: Department }>(`/admin/departments/${id}`, data);
+    return response.data;
+};
+
+export const deleteDepartment = async (id: string) => {
+    const response = await apiClient.delete<{ success: boolean }>(`/admin/departments/${id}`);
+    return response.data;
+};
+
+export const reorderDepartments = async (order: { id: string; sort_order: number }[]) => {
+    const response = await apiClient.post<{ success: boolean }>('/admin/departments-reorder', { order });
+    return response.data;
+};
+
+// Positions (Jabatan)
+export const getPositions = async (params?: any) => {
+    const response = await apiClient.get<PaginatedResponse<Position>>('/admin/positions', { params });
+    return response.data;
+};
+
+export const getPositionsAll = async () => {
+    const response = await apiClient.get<{ success: boolean; data: Position[] }>('/admin/positions', {
+        params: { all: true }
+    });
+    return response.data;
+};
+
+export const getPosition = async (id: string) => {
+    const response = await apiClient.get<{ success: boolean; data: Position }>(`/admin/positions/${id}`);
+    return response.data;
+};
+
+export const createPosition = async (data: Partial<Position>) => {
+    const response = await apiClient.post<{ success: boolean; data: Position }>('/admin/positions', data);
+    return response.data;
+};
+
+export const updatePosition = async (id: string, data: Partial<Position>) => {
+    const response = await apiClient.put<{ success: boolean; data: Position }>(`/admin/positions/${id}`, data);
+    return response.data;
+};
+
+export const deletePosition = async (id: string) => {
+    const response = await apiClient.delete<{ success: boolean }>(`/admin/positions/${id}`);
+    return response.data;
+};
+
+export const reorderPositions = async (order: { id: string; sort_order: number }[]) => {
+    const response = await apiClient.post<{ success: boolean }>('/admin/positions-reorder', { order });
+    return response.data;
+};
+
+// Get all subjects for dropdowns (no pagination)
+export const getSubjectsAll = async () => {
+    const response = await apiClient.get<{ success: boolean; data: Subject[] }>('/admin/subjects', {
+        params: { all: true }
+    });
     return response.data;
 };

@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { MobileCardList } from './mobile-card-list';
 import type { MobileCardListProps } from './mobile-card-list';
 

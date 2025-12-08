@@ -5,6 +5,7 @@ import { Calendar, Clock, CheckCircle, XCircle, AlertCircle, Download, Filter } 
 import { PageLayout } from '@/components/shared/PageLayout';
 import { StatsGrid } from '@/components/shared/StatsGrid';
 import { ContentCard } from '@/components/shared/ContentCard';
+import { getAttendance, getAttendanceStatistics } from '@/lib/api/attendance';
 import { getEmployeeDashboardData } from '@/lib/api/employees';
 import { useAuthStore } from '@/stores';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from 'date-fns';
@@ -20,68 +21,41 @@ export function DesktopEmployeeAttendancePage() {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('list');
 
-  // Fetch employee's attendance data
-  const { data: attendanceData, isLoading: _isLoading } = useQuery({
+  // Fetch employee's attendance data from API
+  const { data: attendanceData, isLoading: attendanceLoading } = useQuery({
     queryKey: ['employee', 'attendance', user?.id, format(selectedMonth, 'yyyy-MM')],
     queryFn: async () => {
-      // TODO: Replace with actual API call
-      return {
-        stats: {
-          totalDays: 22,
-          present: 18,
-          late: 3,
-          absent: 1,
-          onLeave: 0,
-        },
-        records: [
-          {
-            id: 1,
-            date: '2025-12-01',
-            checkIn: '08:00:00',
-            checkOut: '17:00:00',
-            status: 'present',
-            location: 'Kantor Pusat',
-            notes: null,
-          },
-          {
-            id: 2,
-            date: '2025-11-30',
-            checkIn: '08:15:00',
-            checkOut: '17:00:00',
-            status: 'late',
-            location: 'Kantor Pusat',
-            notes: 'Terlambat 15 menit',
-          },
-          {
-            id: 3,
-            date: '2025-11-29',
-            checkIn: '08:00:00',
-            checkOut: '17:00:00',
-            status: 'present',
-            location: 'Kantor Pusat',
-            notes: null,
-          },
-          {
-            id: 4,
-            date: '2025-11-28',
-            checkIn: null,
-            checkOut: null,
-            status: 'absent',
-            location: null,
-            notes: 'Sakit (Tidak ada surat izin)',
-          },
-          {
-            id: 5,
-            date: '2025-11-27',
-            checkIn: '08:00:00',
-            checkOut: '17:00:00',
-            status: 'present',
-            location: 'Kantor Pusat',
-            notes: null,
-          },
-        ],
+      const [attendanceResponse, statsResponse] = await Promise.all([
+        getAttendance({
+          month: format(selectedMonth, 'yyyy-MM'),
+          employee_id: user?.employee_id ? Number(user.employee_id) : undefined,
+        }),
+        getAttendanceStatistics(format(selectedMonth, 'yyyy-MM-01')),
+      ]);
+
+      // Transform API response to component format
+      const records = attendanceResponse.data.map((record) => ({
+        id: record.id,
+        date: record.date,
+        checkIn: record.check_in_time || record.check_in || null,
+        checkOut: record.check_out_time || record.check_out || null,
+        status: record.status as 'present' | 'late' | 'absent' | 'leave',
+        location: typeof record.location === 'object' ? record.location?.address : undefined,
+        notes: record.notes || null,
+      }));
+
+      // Calculate stats from response
+      const stats = {
+        totalDays: statsResponse?.total_employees || 22, // Use as working days estimate
+        present: statsResponse?.present_today ?? statsResponse?.present ?? records.filter(r => r.status === 'present').length,
+        late: statsResponse?.late_today ?? statsResponse?.late ?? records.filter(r => r.status === 'late').length,
+        absent: statsResponse?.absent_today ?? statsResponse?.absent ?? records.filter(r => r.status === 'absent').length,
+        onLeave: statsResponse?.on_leave ?? records.filter(r => r.status === 'leave').length,
       };
+
+      return { stats, records };
     },
+    enabled: !!user?.id,
   });
 
   // Fetch dashboard stats for schedule info

@@ -7,7 +7,7 @@ import { DesktopPayrollShowPage } from './desktop-show';
 export default function PayrollShowPage() {
   const isMobile = useIsMobile();
   const params = useParams({
-    from: '/authenticated/payroll/$periodId/employee/$employeeId',
+    strict: false,
   }) as {
     periodId: string;
     employeeId: string;
@@ -21,7 +21,7 @@ export default function PayrollShowPage() {
   if (isMobile) {
     return (
       <MobilePayrollShowPage
-        payroll={payroll}
+        payroll={payroll || null}
         isLoading={isLoading}
         error={error}
       />
@@ -30,7 +30,7 @@ export default function PayrollShowPage() {
 
   return (
     <DesktopPayrollShowPage
-      payroll={payroll}
+      payroll={payroll || null}
       isLoading={isLoading}
       error={error}
     />

@@ -70,7 +70,7 @@ export function DesktopAdminAttendancePage() {
     }),
   });
 
-  const _attendanceRecords = attendanceData?.data || [];
+
 
   // Approve attendance mutation
   const approveAttendanceMutation = useMutation({

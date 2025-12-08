@@ -17,9 +17,13 @@ import {
     Copy,
     Eye,
     EyeOff,
+    CheckSquare,
+    Power,
+    PowerOff,
+    ChevronLeft,
+    ChevronRight,
 } from 'lucide-react';
-import { Link } from '@tanstack/react-router';
-import { motion } from 'framer-motion';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -61,15 +65,23 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PageHeader } from '@/components/shared';
 import { useEmployees, useDeleteEmployee } from '@/hooks/use-employees';
 import { LoadingState } from '@/components/states';
-import { resetEmployeePassword, type ResetPasswordResponse } from '@/lib/api/employees';
+import { resetEmployeePassword, bulkEmployeeAction, type ResetPasswordResponse, type BulkActionResult } from '@/lib/api/employees';
 import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useQueryClient } from '@tanstack/react-query';
 
 export function DesktopEmployeesPage() {
+    const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const [searchQuery, setSearchQuery] = useState('');
-    const { data: employeesData, isLoading } = useEmployees({
+    const [currentPage, setCurrentPage] = useState(1);
+    const perPage = 15;
+
+    const { data: employeesData, isLoading, refetch } = useEmployees({
         search: searchQuery,
-        per_page: 10,
+        per_page: perPage,
+        page: currentPage,
     });
     const deleteEmployeeMutation = useDeleteEmployee();
     const [employeeToDelete, setEmployeeToDelete] = useState<{ id: string; name: string } | null>(null);
@@ -80,6 +92,15 @@ export function DesktopEmployeesPage() {
     const [resetResult, setResetResult] = useState<ResetPasswordResponse | null>(null);
     const [showPassword, setShowPassword] = useState(false);
     const [customPassword, setCustomPassword] = useState('');
+
+    // Bulk selection states
+    const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
+    const [bulkActionDialog, setBulkActionDialog] = useState<{
+        open: boolean;
+        action: 'delete' | 'reset_password' | 'activate' | 'deactivate' | null;
+    }>({ open: false, action: null });
+    const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+    const [bulkResult, setBulkResult] = useState<BulkActionResult | null>(null);
 
     const handleDelete = async () => {
         if (!employeeToDelete) return;
@@ -128,8 +149,84 @@ export function DesktopEmployeesPage() {
         setShowPassword(false);
     };
 
+    // Bulk selection handlers
+    const handleSelectAll = (checked: boolean) => {
+        if (checked) {
+            setSelectedEmployees(employees.map(e => e.id));
+        } else {
+            setSelectedEmployees([]);
+        }
+    };
+
+    const handleSelectEmployee = (employeeId: string, checked: boolean) => {
+        if (checked) {
+            setSelectedEmployees(prev => [...prev, employeeId]);
+        } else {
+            setSelectedEmployees(prev => prev.filter(id => id !== employeeId));
+        }
+    };
+
+    const handleBulkAction = async () => {
+        if (!bulkActionDialog.action || selectedEmployees.length === 0) return;
+
+        setIsBulkProcessing(true);
+        try {
+            const result = await bulkEmployeeAction(bulkActionDialog.action, selectedEmployees);
+            setBulkResult(result);
+
+            if (result.success > 0) {
+                const actionLabel = {
+                    delete: 'dihapus',
+                    reset_password: 'password direset',
+                    activate: 'diaktifkan',
+                    deactivate: 'dinonaktifkan'
+                }[bulkActionDialog.action];
+
+                toast.success(`${result.success} karyawan berhasil ${actionLabel}`, {
+                    description: result.failed > 0 ? `${result.failed} gagal` : undefined,
+                });
+
+                // Refresh data and clear selection
+                await refetch();
+                queryClient.invalidateQueries({ queryKey: ['employees'] });
+
+                if (bulkActionDialog.action !== 'reset_password') {
+                    setSelectedEmployees([]);
+                    setBulkActionDialog({ open: false, action: null });
+                    setBulkResult(null);
+                }
+            }
+        } catch (error) {
+            console.error('Bulk action failed:', error);
+            toast.error('Gagal melakukan aksi massal', {
+                description: error instanceof Error ? error.message : 'Terjadi kesalahan.',
+            });
+            // Close dialog on error so user isn't stuck
+            setBulkActionDialog({ open: false, action: null });
+        } finally {
+            setIsBulkProcessing(false);
+        }
+    };
+
+    const handleCloseBulkDialog = () => {
+        setBulkActionDialog({ open: false, action: null });
+        setBulkResult(null);
+        if (bulkResult?.success && bulkResult.success > 0) {
+            setSelectedEmployees([]);
+        }
+    };
+
     const employees = employeesData?.data || [];
     const totalEmployees = employeesData?.meta?.total || 0;
+    const totalPages = employeesData?.meta?.last_page || 1;
+    const isAllSelected = employees.length > 0 && selectedEmployees.length === employees.length;
+    const isSomeSelected = selectedEmployees.length > 0 && selectedEmployees.length < employees.length;
+
+    // Pagination handlers
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+        setSelectedEmployees([]); // Clear selection when changing page
+    };
 
     const getInitials = (name: string) => {
         if (!name) return '??';
@@ -230,14 +327,9 @@ export function DesktopEmployeesPage() {
 
             {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {quickStats.map((stat, index) => (
-                    <motion.div
-                        key={stat.label}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                    >
-                        <Card className="border-none shadow-sm hover:shadow-md transition-all bg-card/50 backdrop-blur-sm">
+                {quickStats.map((stat) => (
+                    <div key={stat.label}>
+                        <Card className="border-none shadow-sm hover:shadow-md transition-shadow bg-card/50 backdrop-blur-sm">
                             <CardContent className="p-6 flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-medium text-muted-foreground mb-1">{stat.label}</p>
@@ -248,16 +340,12 @@ export function DesktopEmployeesPage() {
                                 </div>
                             </CardContent>
                         </Card>
-                    </motion.div>
+                    </div>
                 ))}
             </div>
 
             {/* Main Content Card */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-            >
+            <div>
                 <Card className="border-none shadow-lg bg-card/80 backdrop-blur-md overflow-hidden">
                     <CardHeader className="border-b bg-muted/30 px-6 py-4">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -284,6 +372,64 @@ export function DesktopEmployeesPage() {
                             </div>
                         </div>
                     </CardHeader>
+
+                    {/* Bulk Action Bar */}
+                    {selectedEmployees.length > 0 && (
+                        <div className="px-6 py-3 bg-primary/5 border-b flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <CheckSquare className="h-5 w-5 text-primary" />
+                                <span className="text-sm font-medium">
+                                    {selectedEmployees.length} karyawan dipilih
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="gap-2"
+                                    onClick={() => setBulkActionDialog({ open: true, action: 'reset_password' })}
+                                >
+                                    <KeyRound className="h-4 w-4" />
+                                    Reset Password
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="gap-2 text-green-600 hover:text-green-700"
+                                    onClick={() => setBulkActionDialog({ open: true, action: 'activate' })}
+                                >
+                                    <Power className="h-4 w-4" />
+                                    Aktifkan
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="gap-2 text-amber-600 hover:text-amber-700"
+                                    onClick={() => setBulkActionDialog({ open: true, action: 'deactivate' })}
+                                >
+                                    <PowerOff className="h-4 w-4" />
+                                    Nonaktifkan
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="gap-2 text-destructive hover:text-destructive"
+                                    onClick={() => setBulkActionDialog({ open: true, action: 'delete' })}
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                    Hapus
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setSelectedEmployees([])}
+                                >
+                                    Batal
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
                     <CardContent className="p-0">
                         {isLoading ? (
                             <div className="py-12">
@@ -305,7 +451,15 @@ export function DesktopEmployeesPage() {
                             <Table>
                                 <TableHeader>
                                     <TableRow className="bg-muted/30 hover:bg-muted/30">
-                                        <TableHead className="w-[300px] pl-6">Karyawan</TableHead>
+                                        <TableHead className="w-12 pl-6">
+                                            <Checkbox
+                                                checked={isAllSelected}
+                                                onCheckedChange={(checked) => handleSelectAll(checked === true)}
+                                                aria-label="Select all"
+                                                className={isSomeSelected ? "data-[state=checked]:bg-primary/50" : ""}
+                                            />
+                                        </TableHead>
+                                        <TableHead className="w-[280px]">Karyawan</TableHead>
                                         <TableHead>Kontak</TableHead>
                                         <TableHead>Departemen & Jabatan</TableHead>
                                         <TableHead>Status</TableHead>
@@ -313,15 +467,19 @@ export function DesktopEmployeesPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {employees.map((employee, index) => (
-                                        <motion.tr
+                                    {employees.map((employee) => (
+                                        <TableRow
                                             key={employee.id}
-                                            initial={{ opacity: 0, x: -20 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            transition={{ delay: index * 0.05 }}
-                                            className="group hover:bg-muted/40 transition-colors border-b last:border-0"
+                                            className={`group hover:bg-muted/40 transition-colors ${selectedEmployees.includes(employee.id) ? 'bg-primary/5' : ''}`}
                                         >
                                             <TableCell className="pl-6 py-4">
+                                                <Checkbox
+                                                    checked={selectedEmployees.includes(employee.id)}
+                                                    onCheckedChange={(checked) => handleSelectEmployee(employee.id, checked === true)}
+                                                    aria-label={`Select ${employee.name}`}
+                                                />
+                                            </TableCell>
+                                            <TableCell className="py-4">
                                                 <div className="flex items-center gap-4">
                                                     <Avatar className="h-10 w-10 border-2 border-background shadow-sm group-hover:scale-105 transition-transform">
                                                         <AvatarImage src={employee.avatar || undefined} alt={employee.name} className="object-cover" />
@@ -366,22 +524,24 @@ export function DesktopEmployeesPage() {
                                             <TableCell className="text-right pr-6">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8">
                                                             <MoreHorizontal className="h-4 w-4" />
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end" className="w-48">
-                                                        <DropdownMenuItem asChild>
-                                                            <Link to="/admin/employees/$id" params={{ id: employee.id.toString() }} className="cursor-pointer">
-                                                                <Users className="mr-2 h-4 w-4" />
-                                                                Lihat Detail
-                                                            </Link>
+                                                        <DropdownMenuItem
+                                                            className="cursor-pointer"
+                                                            onClick={() => navigate({ to: '/admin/employees/$id', params: { id: employee.id } })}
+                                                        >
+                                                            <Users className="mr-2 h-4 w-4" />
+                                                            Lihat Detail
                                                         </DropdownMenuItem>
-                                                        <DropdownMenuItem asChild>
-                                                            <Link to="/admin/employees/$id/edit" params={{ id: employee.id.toString() }} className="cursor-pointer">
-                                                                <UserPlus className="mr-2 h-4 w-4" />
-                                                                Edit Data
-                                                            </Link>
+                                                        <DropdownMenuItem
+                                                            className="cursor-pointer"
+                                                            onClick={() => navigate({ to: '/admin/employees/$id/edit', params: { id: employee.id } })}
+                                                        >
+                                                            <UserPlus className="mr-2 h-4 w-4" />
+                                                            Edit Data
                                                         </DropdownMenuItem>
                                                         <DropdownMenuSeparator />
                                                         <DropdownMenuItem
@@ -406,14 +566,68 @@ export function DesktopEmployeesPage() {
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </TableCell>
-                                        </motion.tr>
+                                        </TableRow>
                                     ))}
                                 </TableBody>
                             </Table>
                         )}
+
+                        {/* Pagination */}
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-between px-6 py-4 border-t">
+                                <div className="text-sm text-muted-foreground">
+                                    Menampilkan {((currentPage - 1) * perPage) + 1} - {Math.min(currentPage * perPage, totalEmployees)} dari {totalEmployees} karyawan
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handlePageChange(currentPage - 1)}
+                                        disabled={currentPage === 1}
+                                    >
+                                        <ChevronLeft className="h-4 w-4 mr-1" />
+                                        Sebelumnya
+                                    </Button>
+                                    <div className="flex items-center gap-1">
+                                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                            let pageNum: number;
+                                            if (totalPages <= 5) {
+                                                pageNum = i + 1;
+                                            } else if (currentPage <= 3) {
+                                                pageNum = i + 1;
+                                            } else if (currentPage >= totalPages - 2) {
+                                                pageNum = totalPages - 4 + i;
+                                            } else {
+                                                pageNum = currentPage - 2 + i;
+                                            }
+                                            return (
+                                                <Button
+                                                    key={pageNum}
+                                                    variant={currentPage === pageNum ? "default" : "outline"}
+                                                    size="sm"
+                                                    className="w-8 h-8 p-0"
+                                                    onClick={() => handlePageChange(pageNum)}
+                                                >
+                                                    {pageNum}
+                                                </Button>
+                                            );
+                                        })}
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handlePageChange(currentPage + 1)}
+                                        disabled={currentPage === totalPages}
+                                    >
+                                        Selanjutnya
+                                        <ChevronRight className="h-4 w-4 ml-1" />
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
-            </motion.div>
+            </div>
 
             {/* Delete Confirmation Dialog */}
             <AlertDialog open={!!employeeToDelete} onOpenChange={(open) => !open && setEmployeeToDelete(null)}>
@@ -558,6 +772,110 @@ export function DesktopEmployeesPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Bulk Action Confirmation Dialog */}
+            <AlertDialog open={bulkActionDialog.open} onOpenChange={(open) => !open && handleCloseBulkDialog()}>
+                <AlertDialogContent className="max-w-lg">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            {bulkActionDialog.action === 'delete' && 'Hapus Karyawan?'}
+                            {bulkActionDialog.action === 'reset_password' && 'Reset Password Karyawan?'}
+                            {bulkActionDialog.action === 'activate' && 'Aktifkan Karyawan?'}
+                            {bulkActionDialog.action === 'deactivate' && 'Nonaktifkan Karyawan?'}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {bulkActionDialog.action === 'delete' && (
+                                <>
+                                    Apakah Anda yakin ingin menghapus <strong>{selectedEmployees.length}</strong> karyawan?
+                                    Tindakan ini tidak dapat dibatalkan dan akan menghapus semua data terkait.
+                                </>
+                            )}
+                            {bulkActionDialog.action === 'reset_password' && (
+                                <>
+                                    Apakah Anda yakin ingin mereset password untuk <strong>{selectedEmployees.length}</strong> karyawan?
+                                    Password baru akan di-generate secara otomatis.
+                                </>
+                            )}
+                            {bulkActionDialog.action === 'activate' && (
+                                <>
+                                    Apakah Anda yakin ingin mengaktifkan <strong>{selectedEmployees.length}</strong> karyawan?
+                                </>
+                            )}
+                            {bulkActionDialog.action === 'deactivate' && (
+                                <>
+                                    Apakah Anda yakin ingin menonaktifkan <strong>{selectedEmployees.length}</strong> karyawan?
+                                </>
+                            )}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+
+                    {/* Show bulk reset password results */}
+                    {bulkResult?.reset_passwords && bulkResult.reset_passwords.length > 0 && (
+                        <div className="max-h-60 overflow-y-auto space-y-2 my-4">
+                            <p className="text-sm font-medium text-green-600 mb-2">
+                                ✓ Password berhasil direset untuk {bulkResult.success} karyawan:
+                            </p>
+                            <div className="space-y-2">
+                                {bulkResult.reset_passwords.map((item) => (
+                                    <div key={item.employee_id} className="p-3 bg-muted/50 rounded-lg text-sm">
+                                        <div className="flex justify-between items-center">
+                                            <div>
+                                                <span className="font-medium">{item.name}</span>
+                                                <span className="text-muted-foreground ml-2">({item.email})</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <code className="bg-background px-2 py-1 rounded font-mono text-xs">
+                                                    {item.temporary_password}
+                                                </code>
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className="h-6 w-6"
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(item.temporary_password);
+                                                        toast.success('Password disalin');
+                                                    }}
+                                                >
+                                                    <Copy className="h-3 w-3" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <p className="text-xs text-amber-600 mt-3">
+                                ⚠️ Simpan password ini! User harus mengubah password saat login berikutnya.
+                            </p>
+                        </div>
+                    )}
+
+                    <AlertDialogFooter>
+                        {bulkResult?.success && bulkResult.success > 0 ? (
+                            <AlertDialogAction onClick={handleCloseBulkDialog}>
+                                Selesai
+                            </AlertDialogAction>
+                        ) : (
+                            <>
+                                <AlertDialogCancel disabled={isBulkProcessing}>Batal</AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        handleBulkAction();
+                                    }}
+                                    className={
+                                        bulkActionDialog.action === 'delete'
+                                            ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+                                            : ''
+                                    }
+                                    disabled={isBulkProcessing}
+                                >
+                                    {isBulkProcessing ? 'Memproses...' : 'Ya, Lanjutkan'}
+                                </AlertDialogAction>
+                            </>
+                        )}
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

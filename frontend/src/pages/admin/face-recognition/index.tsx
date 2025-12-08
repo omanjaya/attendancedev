@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Camera,
   CameraOff,
@@ -17,7 +17,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { PageHeader, StatsGrid, type StatItem } from '@/components/shared';
-import { LoadingState } from '@/components/states';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';

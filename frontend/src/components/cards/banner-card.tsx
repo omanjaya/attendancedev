@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 
 import { cn } from '@/lib/utils';
 
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 
 interface BannerCardProps {
@@ -146,7 +146,7 @@ export function BannerCard({
                 styles.iconShadow
               )}
             >
-              <Icon className="h-6 w-6 sm:h-5 sm:w-5 text-primary-foreground" />
+              {Icon && <Icon className="h-6 w-6 sm:h-5 sm:w-5 text-primary-foreground" />}
             </div>
             <div className="min-w-0 flex-1">
               <p className="font-semibold text-foreground">{title}</p>

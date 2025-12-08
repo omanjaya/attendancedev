@@ -105,7 +105,7 @@ export function RoleSwitcher() {
 
   const handleRoleChange = (role: UserRole) => {
     const mockUser = mockUsers[role];
-    const Icon = mockUser.icon;
+
 
     setUser({
       id: Math.floor(Math.random() * 1000), // Random ID

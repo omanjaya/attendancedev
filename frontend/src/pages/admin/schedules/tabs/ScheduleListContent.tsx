@@ -19,7 +19,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { LoadingState } from '@/components/states';
+
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -131,9 +131,8 @@ function ScheduleCell({
 
   return (
     <td
-      className={`border border-border p-1 transition-colors ${
-        schedule.is_locked ? 'bg-destructive/5' : 'hover:bg-muted/20'
-      }`}
+      className={`border border-border p-1 transition-colors ${schedule.is_locked ? 'bg-destructive/5' : 'hover:bg-muted/20'
+        }`}
     >
       <div
         className="h-16 rounded-md p-2 text-xs cursor-pointer group relative"
@@ -193,6 +192,7 @@ export function ScheduleListContent() {
     time_slot_id: '',
     day_of_week: 'monday',
     room: '',
+    effective_from: new Date().toISOString().split('T')[0],
   });
 
   // Fetch data using React Query hooks
@@ -252,6 +252,7 @@ export function ScheduleListContent() {
         time_slot_id: schedule.time_slot_id,
         day_of_week: schedule.day_of_week,
         room: schedule.room || '',
+        effective_from: schedule.effective_from || new Date().toISOString().split('T')[0],
       });
     } else {
       setSelectedSchedule(null);
@@ -261,6 +262,7 @@ export function ScheduleListContent() {
         time_slot_id: timeSlotId || '',
         day_of_week: day || 'monday',
         room: '',
+        effective_from: new Date().toISOString().split('T')[0],
       });
     }
     setIsFormOpen(true);
@@ -544,11 +546,10 @@ export function ScheduleListContent() {
                       {daySchedules.map((schedule) => (
                         <Card
                           key={schedule.id}
-                          className={`cursor-pointer transition-colors ${
-                            schedule.is_locked
-                              ? 'bg-destructive/5 border-destructive/20'
-                              : 'hover:bg-muted/50'
-                          }`}
+                          className={`cursor-pointer transition-colors ${schedule.is_locked
+                            ? 'bg-destructive/5 border-destructive/20'
+                            : 'hover:bg-muted/50'
+                            }`}
                           onClick={() => !schedule.is_locked && setSelectedSchedule(schedule)}
                         >
                           <CardContent className="p-3">
@@ -654,7 +655,7 @@ export function ScheduleListContent() {
                   <SelectContent>
                     {employees.map((employee) => (
                       <SelectItem key={employee.id} value={employee.id}>
-                        {employee.full_name}
+                        {employee.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

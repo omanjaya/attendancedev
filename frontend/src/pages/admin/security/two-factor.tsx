@@ -70,7 +70,7 @@ export default function TwoFactorPage() {
       {/* Header */}
       <div className="mb-6">
         <Link
-          to="/security"
+          to="/admin/security"
           className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />

@@ -23,7 +23,6 @@ import {
     DialogDescription,
 } from '@/components/ui/dialog';
 import { AutoCaptureFace } from '@/components/attendance/auto-capture-face';
-import { useAuthStore } from '@/stores';
 import { useCheckIn, useCheckOut, useTodayAttendance } from '@/hooks';
 import { verifyLocation, type LocationVerificationResponse } from '@/lib/api/attendance';
 import { faceDetectionService } from '@/lib/services/face-detection';
@@ -61,13 +60,13 @@ export function CheckInFlow() {
     const [currentTime, setCurrentTime] = useState('');
     const [currentDate, setCurrentDate] = useState('');
 
-    const { user } = useAuthStore();
+    // const { user } = useAuthStore();
     const { data: registeredFaces } = useRegisteredFaces();
     const verifyFaceMutation = useVerifyFace();
     const { settings: faceSettings } = useFaceStore();
     const checkInMutation = useCheckIn();
     const checkOutMutation = useCheckOut();
-    const { data: todayAttendanceData, refetch: refetchTodayAttendance, isLoading: isLoadingAttendance } = useTodayAttendance();
+    const { data: todayAttendanceData, refetch: refetchTodayAttendance } = useTodayAttendance();
 
     // Update time
     useEffect(() => {
@@ -241,8 +240,7 @@ export function CheckInFlow() {
         try {
             // Capture face descriptor
             const faceData = await faceDetectionService.captureFaceDescriptor(
-                videoElement,
-                user?.id || 'unknown'
+                videoElement
             );
 
             if (faceData.confidence < 0.6) {

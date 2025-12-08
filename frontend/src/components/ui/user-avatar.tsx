@@ -1,7 +1,8 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { User } from 'lucide-react';
-import { StatusIndicator } from '@/components/status/status-badge';
+import React from 'react';
+
 
 interface UserAvatarProps {
   src?: string;

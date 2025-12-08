@@ -6,32 +6,29 @@ Development guidelines untuk Claude/AI assistant.
 
 **Monorepo** attendance management system dengan:
 
-- **Backend**: Laravel 12, PHP 8.2+, PostgreSQL, Redis
+- **Backend**: Laravel 12, PHP 8.3, PostgreSQL 16, Redis 7
 - **Frontend**: React 19, TypeScript, TanStack Router/Query, Tailwind CSS 4
 - **Face Service**: Python DeepFace (ArcFace)
 
-## Commands
+## Quick Commands
 
 ```bash
-# Development
-npm run dev                 # Start all services
-npm run dev:backend         # Laravel only (:8000)
-npm run dev:frontend        # React only (:5173)
+# Docker Development (Recommended)
+docker compose up -d                    # Start all services
+docker compose watch                    # Hot-reload mode
+docker compose logs -f                  # View logs
+docker compose down                     # Stop all
 
-# Testing
-npm run test               # All tests
-npm run test:backend       # PHPUnit
-npm run test:frontend      # Vitest
+# Artisan Commands (dalam container)
+docker exec attendancedev-backend php artisan migrate
+docker exec attendancedev-backend php artisan db:seed
+docker exec attendancedev-backend php artisan tinker
 
-# Building
-npm run build              # Build all
-npm run build:frontend     # Production build
+# Frontend Build
+cd frontend && npm run build
 
-# Database
-cd backend && php artisan migrate:fresh --seed
-
-# API Docs
-cd backend && php artisan l5-swagger:generate
+# Type Check
+cd frontend && npx tsc --noEmit
 ```
 
 ## Architecture
@@ -40,7 +37,7 @@ cd backend && php artisan l5-swagger:generate
 
 ```
 app/
-├── Http/Controllers/Api/   # API controllers
+├── Http/Controllers/Api/   # API controllers (thin)
 ├── Services/               # Business logic
 ├── Repositories/           # Data access
 ├── Models/                 # Eloquent models
@@ -66,98 +63,67 @@ app/
 5. **Zustand** → global state
 6. **TanStack Query** → server state
 
-## UI Components
+## Docker Structure
 
-Uses **shadcn/ui** (Tailwind CSS 4 + Radix UI):
+Project: **attendancedev**
 
-- CLI: `npx shadcn@latest add [component]` from `frontend/`
-- All components in `frontend/src/components/ui/`
-
-## Environment
-
-Key variables in `backend/.env`:
-
-- `DB_CONNECTION=pgsql` (production)
-- `DEEPFACE_ENABLED=true`
-- `CACHE_STORE=redis`
-- `QUEUE_CONNECTION=redis`
-
-## Face Recognition
-
-DeepFace service (Python) runs on ports 8001-8005:
-
-```bash
-cd python-services/face-recognition
-./start-cluster.sh
+```
+Services:
+├── attendancedev-postgres      # PostgreSQL 16
+├── attendancedev-redis         # Redis 7
+├── attendancedev-backend       # Laravel (PHP 8.3)
+├── attendancedev-frontend      # React (Vite)
+├── attendancedev-deepface      # Python DeepFace
+├── attendancedev-nginx         # Nginx
+└── attendancedev-adminer       # DB Admin
 ```
 
-## Skills
+## User Roles
 
-Project skills in `.claude/skills/`:
+| Role | Description |
+|------|-------------|
+| `super-admin` | Full access |
+| `admin` | Manage all except system settings |
+| `kepala-sekolah` | View reports, approve leave |
+| `guru` | Teaching schedules, own attendance |
+| `pegawai` | Own attendance only |
 
-- `face-recognition` - Face detection patterns
-- `laravel-patterns` - Service layer patterns
-- `tailwind-components` - UI patterns
+## API Endpoints
 
-## 🚀 Deployment
+Key prefixes:
 
-### Quick Deploy (Recommended)
+- `/api/v1/auth/*` - Authentication
+- `/api/v1/employees/*` - Employee management
+- `/api/v1/attendance/*` - Attendance
+- `/api/v1/schedules/*` - Schedules
+- `/api/v1/leave-requests/*` - Leave management
 
-**Option 1: Script Installation (No Docker)**
-
-```bash
-# Clone repo
-git clone https://github.com/omanjaya/attendancedev.git /var/www/attendancedev
-cd /var/www/attendancedev
-
-# Run installation script
-sudo DOMAIN=yourdomain.com bash scripts/install-vps.sh
-
-# Setup SSL
-sudo certbot --nginx -d yourdomain.com
-```
-
-**Option 2: Docker Deployment**
+## Deployment
 
 ```bash
-# Clone repo
-git clone https://github.com/omanjaya/attendancedev.git /opt/attendancedev
-cd /opt/attendancedev
+# CI/CD: Push to main branch triggers:
+# 1. Build Docker images
+# 2. Push to Docker Hub
+# 3. Deploy to VPS via SSH
 
-# Setup environment
-cp .env.docker.example .env
-# Edit .env with your config
-
-# Start services
-docker compose -f docker-compose.prod.yml up -d
-
-# Run migrations
-docker compose exec backend php artisan migrate --seed
+# Manual deployment:
+docker compose -f docker-compose.hub.yml pull
+docker compose -f docker-compose.hub.yml up -d
+docker exec attendancedev-backend php artisan migrate --force
 ```
 
-### Documentation Files
+## Documentation
 
-| File | Purpose |
-|------|---------|
-| `docs/DEPLOYMENT.md` | Manual deployment guide |
-| `docs/DOCKER.md` | Docker deployment guide |
-| `docs/PERFORMANCE.md` | Performance optimization |
-| `docs/VPS_DEPLOY_PROMPT.md` | Prompt templates for Claude |
-| `.env.docker.example` | Environment variables template |
+| File | Description |
+|------|-------------|
+| `docs/DEPLOYMENT_GUIDE.md` | Full VPS deployment with CI/CD |
+| `docs/SYSTEM_FLOW_ANALYSIS.md` | Complete system flow diagrams |
+| `docs/API.md` | API endpoints reference |
+| `docs/ARCHITECTURE.md` | System architecture |
 
-### Default Credentials
+## Default Credentials
 
-After deployment:
-
-- **Admin**: <admin@school.edu> / password
-- **Super Admin**: <superadmin@school.edu> / password
-
-### Required Ports
-
-| Port | Service |
-|------|---------|
-| 80 | HTTP (Nginx) |
-| 443 | HTTPS (Nginx) |
-| 5432 | PostgreSQL (internal) |
-| 6379 | Redis (internal) |
-| 8001 | DeepFace (internal) |
+| Role | Email | Password |
+|------|-------|----------|
+| Super Admin | <superadmin@school.edu> | password |
+| Admin | <admin@school.edu> | password |

@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LoadingState } from '@/components/states';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -107,7 +107,7 @@ export default function ScheduleEditPage() {
       console.log('Updating schedule:', { ...data, days: selectedDays, is_flexible: isFlexible });
       await new Promise(resolve => setTimeout(resolve, 1000));
       success('Berhasil', 'Jadwal berhasil diperbarui');
-      navigate({ to: '/schedules' });
+      navigate({ to: '/admin/schedules' });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Gagal memperbarui jadwal';
       showError('Error', message);
@@ -285,7 +285,7 @@ export default function ScheduleEditPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate({ to: '/schedules' })}
+              onClick={() => navigate({ to: '/admin/schedules' })}
             >
               Batal
             </Button>

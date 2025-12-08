@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import { Textarea } from '@/components/ui/textarea';
+
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -29,7 +29,7 @@ import {
   useRejectLeaveRequest,
   useCancelLeaveRequest,
 } from '@/hooks';
-import { leaveTypeLabels, leaveTypeColors, type LeaveType } from '@/types/leave';
+import { leaveTypeLabels, leaveTypeColors } from '@/types/leave';
 import { RejectDialog } from '@/components/leave/RejectDialog';
 
 // Loading skeleton
@@ -411,9 +411,9 @@ export default function LeaveShowPage() {
                   <div key={item.id} className="flex gap-3">
                     <div className="flex flex-col items-center">
                       <div className={`w-3 h-3 rounded-full ${item.type === 'created' ? 'bg-primary' :
-                          item.type === 'approved' ? 'bg-success' :
-                            item.type === 'rejected' ? 'bg-destructive' :
-                              'bg-warning'
+                        item.type === 'approved' ? 'bg-success' :
+                          item.type === 'rejected' ? 'bg-destructive' :
+                            'bg-warning'
                         }`} />
                       {index < timeline.length - 1 && (
                         <div className="w-px h-full bg-border mt-1" />

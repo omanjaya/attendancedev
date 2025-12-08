@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UserProfile, ProfileUpdateData, PasswordChangeData, ProfileStatistics } from '@/types/profile';
-import { getUser } from '@/lib/api/auth';
+
 import apiClient from '@/lib/api/client';
 
 // Transform User to UserProfile

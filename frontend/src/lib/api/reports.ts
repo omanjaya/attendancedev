@@ -11,6 +11,7 @@ import type {
   ReportTemplate,
   ReportFilters,
   GenerateReportResponse,
+  MonthlyRecapData,
 } from '@/types/reports';
 
 export interface ReportsFilters extends ReportFilters {
@@ -25,6 +26,7 @@ const ENDPOINTS = {
   weeklyTrend: '/reports/attendance/weekly',
   departmentStats: '/reports/departments',
   leaveStats: '/reports/leave',
+  monthlyRecap: '/reports/monthly-recap',
   generate: '/reports/generate',
   templates: '/reports/templates',
   templateDetail: (id: string) => `/reports/templates/${id}`,
@@ -79,6 +81,14 @@ export async function getDepartmentStats(filters?: ReportFilters): Promise<Depar
 // Get leave statistics
 export async function getLeaveStats(filters?: ReportFilters): Promise<LeaveStats[]> {
   const response = await apiClient.get<{ data: LeaveStats[] }>(ENDPOINTS.leaveStats, {
+    params: filters,
+  });
+  return response.data.data;
+}
+
+// Get monthly recap with A/I/S/D/C breakdown
+export async function getMonthlyRecap(filters?: { month?: number; year?: number; department?: string }): Promise<MonthlyRecapData> {
+  const response = await apiClient.get<{ data: MonthlyRecapData }>(ENDPOINTS.monthlyRecap, {
     params: filters,
   });
   return response.data.data;

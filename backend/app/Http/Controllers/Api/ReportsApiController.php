@@ -211,9 +211,11 @@ class ReportsApiController extends BaseApiController
         $totalEmployees = Employee::where('is_active', true)->count();
         $workDays = $this->calculateWorkDays($startDate, $endDate);
 
-        // SQLite compatible timestamp diff
-        $avgHoursQuery = "AVG((strftime('%s', check_out_time) - strftime('%s', check_in_time)) / 3600)";
-        if (DB::connection()->getDriverName() !== 'sqlite') {
+        // PostgreSQL compatible timestamp diff
+        $avgHoursQuery = "AVG(EXTRACT(EPOCH FROM (check_out_time::timestamp - check_in_time::timestamp)) / 3600)";
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            $avgHoursQuery = "AVG((strftime('%s', check_out_time) - strftime('%s', check_in_time)) / 3600)";
+        } elseif (DB::connection()->getDriverName() === 'mysql') {
             $avgHoursQuery = "AVG(TIMESTAMPDIFF(HOUR, check_in_time, check_out_time))";
         }
 
@@ -454,9 +456,11 @@ class ReportsApiController extends BaseApiController
     {
         $year = $request->get('year', now()->year);
 
-        // SQLite compatible datediff
-        $dateDiffQuery = "(julianday(end_date) - julianday(start_date) + 1)";
-        if (DB::connection()->getDriverName() !== 'sqlite') {
+        // PostgreSQL compatible datediff
+        $dateDiffQuery = "(end_date - start_date + 1)";
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            $dateDiffQuery = "(julianday(end_date) - julianday(start_date) + 1)";
+        } elseif (DB::connection()->getDriverName() === 'mysql') {
             $dateDiffQuery = "DATEDIFF(end_date, start_date) + 1";
         }
 
@@ -975,4 +979,249 @@ class ReportsApiController extends BaseApiController
 
         return $workDays;
     }
+
+    /**
+     * Get monthly attendance recap with A/I/S/D/C breakdown
+     * 
+     * H = Hadir (Present on time)
+     * T = Terlambat (Late)
+     * A = Alpha (Absent without notice)
+     * I = Izin (Permission)
+     * S = Sakit (Sick)
+     * D = Dinas (Official duty)
+     * C = Cuti (Leave/Vacation)
+     */
+    public function monthlyRecap(Request $request)
+    {
+        $month = $request->get('month', now()->month);
+        $year = $request->get('year', now()->year);
+        $departmentFilter = $request->get('department', null);
+
+        // Calculate date range
+        $startDate = Carbon::create($year, $month, 1)->startOfMonth();
+        $endDate = $startDate->copy()->endOfMonth();
+        
+        // Only count up to today if current month
+        if ($endDate->isFuture()) {
+            $endDate = Carbon::today();
+        }
+
+        // Calculate working days (exclude weekends and holidays)
+        $holidays = Holiday::whereBetween('date', [$startDate, $endDate])
+            ->pluck('date')
+            ->map(fn($d) => Carbon::parse($d)->format('Y-m-d'))
+            ->toArray();
+
+        $workingDays = 0;
+        $current = $startDate->copy();
+        while ($current <= $endDate) {
+            if (!$current->isWeekend() && !in_array($current->format('Y-m-d'), $holidays)) {
+                $workingDays++;
+            }
+            $current->addDay();
+        }
+
+        // Get employees
+        $employeesQuery = Employee::where('is_active', true)
+            ->orderBy('full_name');
+        
+        if ($departmentFilter) {
+            $employeesQuery->where('department', $departmentFilter);
+        }
+        
+        $employees = $employeesQuery->get();
+
+        // Define leave type codes mapping
+        // Map common leave type names/codes to our categories
+        $leaveTypeMapping = [
+            'izin' => 'I',
+            'permission' => 'I',
+            'sakit' => 'S',
+            'sick' => 'S',
+            'dinas' => 'D',
+            'duty' => 'D',
+            'official' => 'D',
+            'cuti' => 'C',
+            'leave' => 'C',
+            'annual' => 'C',
+            'vacation' => 'C',
+        ];
+
+        // Get all leave types for mapping
+        $leaveTypes = \App\Models\LeaveType::all();
+        $leaveTypeCategories = [];
+        foreach ($leaveTypes as $lt) {
+            $code = strtolower($lt->code ?? '');
+            $name = strtolower($lt->name ?? '');
+            
+            // Try to match to category
+            foreach ($leaveTypeMapping as $keyword => $category) {
+                if (str_contains($code, $keyword) || str_contains($name, $keyword)) {
+                    $leaveTypeCategories[$lt->id] = $category;
+                    break;
+                }
+            }
+            // Default to C (Cuti) if no match
+            if (!isset($leaveTypeCategories[$lt->id])) {
+                $leaveTypeCategories[$lt->id] = 'C';
+            }
+        }
+
+        $recapData = [];
+        $totals = [
+            'hadir' => 0,
+            'terlambat' => 0,
+            'alpha' => 0,
+            'izin' => 0,
+            'sakit' => 0,
+            'dinas' => 0,
+            'cuti' => 0,
+        ];
+
+        foreach ($employees as $employee) {
+            // Get attendance records for this employee in the month
+            $attendances = Attendance::where('employee_id', $employee->id)
+                ->whereBetween('date', [$startDate, $endDate])
+                ->get();
+
+            // Count by status
+            $hadir = $attendances->where('status', 'present')->count();
+            $terlambat = $attendances->where('status', 'late')->count();
+            $absent = $attendances->where('status', 'absent')->count();
+
+            // Get approved leaves for this employee in the month
+            $leaves = Leave::where('employee_id', $employee->id)
+                ->where('status', 'approved')
+                ->where(function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('start_date', [$startDate, $endDate])
+                      ->orWhereBetween('end_date', [$startDate, $endDate])
+                      ->orWhere(function ($q2) use ($startDate, $endDate) {
+                          $q2->where('start_date', '<=', $startDate)
+                             ->where('end_date', '>=', $endDate);
+                      });
+                })
+                ->with('leaveType')
+                ->get();
+
+            // Count leave days by category
+            $izin = 0;
+            $sakit = 0;
+            $dinas = 0;
+            $cuti = 0;
+
+            foreach ($leaves as $leave) {
+                // Calculate overlap days within the month
+                $leaveStart = Carbon::parse($leave->start_date);
+                $leaveEnd = Carbon::parse($leave->end_date);
+                
+                $overlapStart = $leaveStart->lt($startDate) ? $startDate->copy() : $leaveStart->copy();
+                $overlapEnd = $leaveEnd->gt($endDate) ? $endDate->copy() : $leaveEnd->copy();
+                
+                // Count working days in overlap period
+                $leaveDays = 0;
+                $checkDate = $overlapStart->copy();
+                while ($checkDate <= $overlapEnd) {
+                    if (!$checkDate->isWeekend() && !in_array($checkDate->format('Y-m-d'), $holidays)) {
+                        $leaveDays++;
+                    }
+                    $checkDate->addDay();
+                }
+
+                // Categorize
+                $category = $leaveTypeCategories[$leave->leave_type_id] ?? 'C';
+                switch ($category) {
+                    case 'I':
+                        $izin += $leaveDays;
+                        break;
+                    case 'S':
+                        $sakit += $leaveDays;
+                        break;
+                    case 'D':
+                        $dinas += $leaveDays;
+                        break;
+                    case 'C':
+                    default:
+                        $cuti += $leaveDays;
+                        break;
+                }
+            }
+
+            // Calculate alpha (days not accounted for)
+            $accountedDays = $hadir + $terlambat + $absent + $izin + $sakit + $dinas + $cuti;
+            $alpha = max(0, $workingDays - $accountedDays);
+
+            // Calculate attendance percentage
+            // (Hadir + Terlambat + Dinas) / Hari Kerja * 100
+            $attendanceRate = $workingDays > 0 
+                ? round((($hadir + $terlambat + $dinas) / $workingDays) * 100, 1) 
+                : 0;
+
+            $recapData[] = [
+                'employee_id' => $employee->id,
+                'employee_code' => $employee->employee_code,
+                'employee_name' => $employee->full_name,
+                'department' => $employee->department ?? '-',
+                'hadir' => $hadir,           // H
+                'terlambat' => $terlambat,   // T
+                'alpha' => $alpha,           // A
+                'izin' => $izin,             // I
+                'sakit' => $sakit,           // S
+                'dinas' => $dinas,           // D
+                'cuti' => $cuti,             // C
+                'working_days' => $workingDays,
+                'attendance_rate' => $attendanceRate,
+            ];
+
+            // Add to totals
+            $totals['hadir'] += $hadir;
+            $totals['terlambat'] += $terlambat;
+            $totals['alpha'] += $alpha;
+            $totals['izin'] += $izin;
+            $totals['sakit'] += $sakit;
+            $totals['dinas'] += $dinas;
+            $totals['cuti'] += $cuti;
+        }
+
+        // Calculate overall attendance rate
+        $totalEmployees = count($employees);
+        $totalPossibleDays = $workingDays * $totalEmployees;
+        $totalAttendedDays = $totals['hadir'] + $totals['terlambat'] + $totals['dinas'];
+        $overallRate = $totalPossibleDays > 0 
+            ? round(($totalAttendedDays / $totalPossibleDays) * 100, 1) 
+            : 0;
+
+        return $this->apiResponse([
+            'period' => [
+                'month' => (int) $month,
+                'year' => (int) $year,
+                'month_name' => Carbon::create($year, $month, 1)->translatedFormat('F'),
+                'start_date' => $startDate->format('Y-m-d'),
+                'end_date' => $endDate->format('Y-m-d'),
+            ],
+            'working_days' => $workingDays,
+            'total_employees' => $totalEmployees,
+            'holidays_count' => count($holidays),
+            'data' => $recapData,
+            'totals' => [
+                'hadir' => $totals['hadir'],
+                'terlambat' => $totals['terlambat'],
+                'alpha' => $totals['alpha'],
+                'izin' => $totals['izin'],
+                'sakit' => $totals['sakit'],
+                'dinas' => $totals['dinas'],
+                'cuti' => $totals['cuti'],
+                'overall_attendance_rate' => $overallRate,
+            ],
+            'legend' => [
+                'H' => 'Hadir (Tepat Waktu)',
+                'T' => 'Terlambat',
+                'A' => 'Alpha (Tanpa Keterangan)',
+                'I' => 'Izin',
+                'S' => 'Sakit',
+                'D' => 'Dinas Luar',
+                'C' => 'Cuti',
+            ],
+        ], 'Monthly attendance recap retrieved');
+    }
 }
+

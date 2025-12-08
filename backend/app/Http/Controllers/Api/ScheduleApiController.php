@@ -284,9 +284,9 @@ class ScheduleApiController extends BaseApiController
         $conflicts = WeeklySchedule::query()
             ->when($classId, fn($q) => $q->where('academic_class_id', $classId))
             ->select('day_of_week', 'time_slot_id')
-            ->selectRaw('count(*) as count')
+            ->selectRaw('count(*) as conflict_count')
             ->groupBy('day_of_week', 'time_slot_id')
-            ->having('count', '>', 1)
+            ->havingRaw('count(*) > 1')
             ->get();
 
         return $this->apiResponse($conflicts, 'Conflicts retrieved');

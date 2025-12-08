@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Employee;
 use App\Models\EmployeeSchedule;
 use App\Models\Period;
+use App\Models\TimeSlot;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
@@ -16,7 +17,7 @@ class ScheduleController extends Controller
      */
     public function index()
     {
-        $periods = Period::active()->orderBy('day_of_week')->orderBy('start_time')->get();
+        $periods = TimeSlot::active()->orderBy('order')->get();
         $employees = Employee::with('user')->where('is_active', true)->get();
 
         return view('pages.schedules.index', compact('periods', 'employees'));

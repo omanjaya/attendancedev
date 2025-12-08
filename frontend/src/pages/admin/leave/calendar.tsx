@@ -11,13 +11,13 @@ import {
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LeaveBadge } from '@/components/status';
+
 import { Button } from '@/components/ui/button';
-import { LeaveBadge } from '@/components/status';
+
 import { Badge } from '@/components/ui/badge';
-import { LeaveBadge } from '@/components/status';
+
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LeaveBadge } from '@/components/status';
+
 
 // Mock leave data
 const mockLeaves: Record<string, Array<{
@@ -225,10 +225,10 @@ export default function LeaveCalendarPage() {
                 <CalendarIcon className="h-4 w-4 text-primary" />
                 {selectedDate
                   ? new Date(selectedDate).toLocaleDateString('id-ID', {
-                      weekday: 'long',
-                      day: 'numeric',
-                      month: 'long',
-                    })
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                  })
                   : 'Pilih Tanggal'}
               </CardTitle>
             </CardHeader>

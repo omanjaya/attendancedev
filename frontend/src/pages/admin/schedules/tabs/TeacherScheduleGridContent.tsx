@@ -1,13 +1,12 @@
 /**
- * Teacher Schedule Grid Builder
+ * Teacher Schedule Grid Content
  * 
- * A grid-based teacher scheduling system integrated with the existing system:
- * - Fetches teachers from API
- * - Supports teacher code generation/assignment
- * - Interactive grid (Rows: Days, Cols: Classes x Periods)
+ * Grid-based teacher scheduling system with:
+ * - Select ONE class at a time
+ * - Rows: Days (Senin-Sabtu)
+ * - Columns: Periods (1-10)
  * - Validation: Max 1 per day, Max 2 per week
- * - Context menu: Lock cells, Swap cells
- * - JSON Save/Load, Excel Export
+ * - Features: Toggle input, Lock/Unlock, Swap, Save/Load JSON
  */
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
@@ -15,7 +14,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import {
     Dialog,
@@ -46,22 +44,28 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuItem,
+    ContextMenuTrigger,
+    ContextMenuSeparator,
+} from '@/components/ui/context-menu';
+import {
     Upload,
-    FileJson,
-    FileSpreadsheet,
+    Download,
     Lock,
     Unlock,
     ArrowRightLeft,
     Trash2,
-    CheckCircle2,
-    AlertTriangle,
     GripVertical,
     Users,
     Plus,
     Check,
     ChevronsUpDown,
-    Loader2,
     RefreshCw,
+    Calendar,
+    BookOpen,
+    Filter,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNotificationStore } from '@/stores/notification-store';
@@ -69,63 +73,40 @@ import { useEmployees } from '@/hooks/use-employees';
 import { useAcademicClasses } from '@/hooks/use-schedules';
 import type { Employee } from '@/types/employee';
 import type { AcademicClass } from '@/types/schedule';
-import { ExcelScheduleImporterIntegrated } from './ExcelScheduleImporterIntegrated';
 
-// Types for Excel import
-interface ParsedScheduleCell {
+// ============ TYPES ============
+interface ScheduleCell {
+    code: string | null;
+    isLocked: boolean;
+    teacherName?: string;
+    color?: string;
+}
+
+interface TeacherInfo {
+    id: string;
+    code: string;
+    name: string;
+    subject: string;
+    color: string;
+}
+
+interface SwapSource {
     day: string;
     period: number;
-    className: string;
-    teacherCode: string;
-    subject: string;
-    rawValue: string;
 }
 
-interface ParsedScheduleData {
-    teachers: { code: string; name: string; subject: string }[];
-    schedules: ParsedScheduleCell[];
-    classes: string[];
-    days: string[];
-    errors: string[];
-}
-
-// Types
-interface TeacherWithCode {
-    id: string;
-    name: string;
-    employeeId: string;
-    code: string;
-    color: string;
-}
-
-interface ScheduleCell {
-    teacherId: string;
-    teacherCode: string;
-    teacherName: string;
-    isLocked: boolean;
-    color: string;
-}
-
-type ScheduleData = {
-    [day: string]: {
-        [classKey: string]: {
-            [period: number]: ScheduleCell | null;
+type ScheduleGrid = {
+    [classKey: string]: {
+        [day: string]: {
+            [period: number]: ScheduleCell;
         };
     };
 };
 
-interface ContextMenuItem {
-    label: string;
-    icon: React.ReactNode;
-    onClick: () => void;
-    disabled?: boolean;
-}
-
-// Constants
+// ============ CONSTANTS ============
 const DAYS = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 const PERIODS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
-// Generate deterministic pastel color based on string
 const generateColor = (code: string): string => {
     let hash = 0;
     for (let i = 0; i < code.length; i++) {
@@ -135,998 +116,666 @@ const generateColor = (code: string): string => {
     return `hsl(${h}, 70%, 80%)`;
 };
 
-// Generate short code from name
-const generateCodeFromName = (name: string, existingCodes: string[]): string => {
-    // Get initials
-    const words = name.split(' ').filter(w => w.length > 0);
-    let code = '';
-
-    if (words.length >= 2) {
-        code = words[0][0].toUpperCase() + words[1][0].toUpperCase();
-    } else if (words.length === 1) {
-        code = words[0].substring(0, 2).toUpperCase();
-    }
-
-    // If code exists, add number suffix
-    let finalCode = code;
-    let counter = 1;
-    while (existingCodes.includes(finalCode)) {
-        finalCode = code + counter;
-        counter++;
-    }
-
-    return finalCode;
-};
-
-// Initialize empty schedule
-const initializeSchedule = (classes: string[]): ScheduleData => {
-    const schedule: ScheduleData = {};
-    DAYS.forEach(day => {
-        schedule[day] = {};
-        classes.forEach(classKey => {
-            schedule[day][classKey] = {};
-            PERIODS.forEach(period => {
-                schedule[day][classKey][period] = null;
-            });
-        });
-    });
-    return schedule;
-};
-
+// ============ COMPONENT ============
 export function TeacherScheduleGridContent() {
     const { success, error: showError, warning } = useNotificationStore();
 
-    // Fetch employees (teachers)
-    const { data: employeesData, isLoading: loadingEmployees, refetch: refetchEmployees } = useEmployees({
+    // Fetch data
+    const { data: employeesData, isLoading: loadingEmployees } = useEmployees({
         status: 'active',
         per_page: 200,
     });
-
-    // Fetch classes
     const { data: classesData, isLoading: loadingClasses } = useAcademicClasses();
 
-    // State
-    const [teacherCodes, setTeacherCodes] = useState<Map<string, TeacherWithCode>>(new Map());
-    const [schedule, setSchedule] = useState<ScheduleData>({});
-    const [activeTeacher, setActiveTeacher] = useState<TeacherWithCode | null>(null);
-    const [contextMenu, setContextMenu] = useState<{
-        x: number;
-        y: number;
-        day: string;
-        classKey: string;
-        period: number;
-    } | null>(null);
-    const [swapMode, setSwapMode] = useState<{
-        active: boolean;
-        source?: { day: string; classKey: string; period: number };
-    }>({ active: false });
-    const [showAddTeacherDialog, setShowAddTeacherDialog] = useState(false);
-    const [newTeacherData, setNewTeacherData] = useState<{
-        employeeId: string;
-        customCode: string;
-    }>({ employeeId: '', customCode: '' });
+    // ============ STATE ============
+    const [teachers, setTeachers] = useState<Map<string, TeacherInfo>>(new Map());
+    const [grid, setGrid] = useState<ScheduleGrid>({});
+    const [activeTeacher, setActiveTeacher] = useState<TeacherInfo | null>(null);
+    const [selectedClass, setSelectedClass] = useState<string>('');
+    const [swapSource, setSwapSource] = useState<SwapSource | null>(null);
     const [teacherSelectOpen, setTeacherSelectOpen] = useState(false);
-    const [classFilter, setClassFilter] = useState<string[]>([]);
-    const [showExcelImport, setShowExcelImport] = useState(false);
+    const [showAddTeacherDialog, setShowAddTeacherDialog] = useState(false);
+    const [newTeacherCode, setNewTeacherCode] = useState('');
+    const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
 
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const contextMenuRef = useRef<HTMLDivElement>(null);
 
-    // Process employees into teacher options
-    const employeeOptions = useMemo(() => {
-        if (!employeesData?.data) return [];
-        return employeesData.data
-            .filter((emp: Employee) =>
-                // Filter teachers - you can customize this condition
-                emp.position?.toLowerCase().includes('guru') ||
-                emp.department?.toLowerCase().includes('pengajar') ||
-                emp.employee_type_id // Has employee type assigned
-            )
-            .map((emp: Employee) => ({
-                id: emp.id,
-                name: emp.name,
-                employeeId: emp.employee_id,
-                position: emp.position,
-                department: emp.department,
-            }));
-    }, [employeesData]);
-
-    // Get class names from API or use defaults
+    // Get class list
     const classList = useMemo(() => {
         if (classesData && classesData.length > 0) {
             return classesData.map((c: AcademicClass) => c.name);
         }
-        // Default classes if API doesn't return any
-        return ['Kelas X', 'Kelas XI', 'Kelas XII'];
+        return ['VII-A', 'VII-B', 'VII-C', 'VII-D', 'VIII-A', 'VIII-B', 'VIII-C', 'VIII-D', 'IX-A', 'IX-B', 'IX-C', 'IX-D', 'IX-E'];
     }, [classesData]);
 
-    // Initialize schedule when classes load
+    // Filter employees to only show teachers
+    const teacherEmployees = useMemo(() => {
+        if (!employeesData?.data) return [];
+        return employeesData.data.filter((emp: Employee) => {
+            const roles = (emp as any).roles as string[] | undefined;
+            const role = (emp as any).role as string | undefined;
+            if (roles && Array.isArray(roles)) {
+                return roles.some(r => r.toLowerCase().includes('guru'));
+            }
+            if (role) {
+                return role.toLowerCase().includes('guru');
+            }
+            return emp.position?.toLowerCase().includes('guru');
+        });
+    }, [employeesData]);
+
+    // Set first class as default
     useEffect(() => {
-        if (classList.length > 0 && Object.keys(schedule).length === 0) {
-            setSchedule(initializeSchedule(classList));
+        if (classList.length > 0 && !selectedClass) {
+            setSelectedClass(classList[0]);
         }
-    }, [classList, schedule]);
+    }, [classList, selectedClass]);
 
-    // Filter classes based on selection
-    const displayedClasses = useMemo(() => {
-        if (classFilter.length === 0) return classList;
-        return classList.filter((c: string) => classFilter.includes(c));
-    }, [classList, classFilter]);
+    // Initialize grid
+    useEffect(() => {
+        if (classList.length > 0 && Object.keys(grid).length === 0) {
+            const newGrid: ScheduleGrid = {};
+            classList.forEach((classKey: string) => {
+                newGrid[classKey] = {};
+                DAYS.forEach(day => {
+                    newGrid[classKey][day] = {};
+                    PERIODS.forEach(period => {
+                        newGrid[classKey][day][period] = { code: null, isLocked: false };
+                    });
+                });
+            });
+            setGrid(newGrid);
+        }
+    }, [classList, grid]);
 
-    // Get teacher stats
-    const getTeacherStats = useCallback(() => {
-        const stats: { [id: string]: { total: number; byDay: { [day: string]: number } } } = {};
-
-        DAYS.forEach(day => {
-            displayedClasses.forEach((classKey: string) => {
+    // ============ VALIDATION ============
+    const getWeeklyCount = useCallback((teacherCode: string): number => {
+        let count = 0;
+        Object.values(grid).forEach(classData => {
+            DAYS.forEach(day => {
                 PERIODS.forEach(period => {
-                    const cell = schedule[day]?.[classKey]?.[period];
-                    if (cell?.teacherId) {
-                        if (!stats[cell.teacherId]) {
-                            stats[cell.teacherId] = { total: 0, byDay: {} };
-                        }
-                        stats[cell.teacherId].total++;
-                        stats[cell.teacherId].byDay[day] = (stats[cell.teacherId].byDay[day] || 0) + 1;
+                    if (classData[day]?.[period]?.code === teacherCode) {
+                        count++;
                     }
                 });
             });
         });
+        return count;
+    }, [grid]);
 
-        return stats;
-    }, [schedule, displayedClasses]);
+    const getDailyCount = useCallback((teacherCode: string, day: string): number => {
+        let count = 0;
+        Object.values(grid).forEach(classData => {
+            PERIODS.forEach(period => {
+                if (classData[day]?.[period]?.code === teacherCode) {
+                    count++;
+                }
+            });
+        });
+        return count;
+    }, [grid]);
 
-    // Validation
-    const validatePlacement = useCallback((day: string, teacherId: string): { valid: boolean; message?: string } => {
-        if (!teacherId) return { valid: false, message: 'Pilih guru terlebih dahulu' };
-
-        const stats = getTeacherStats();
-        const teacherStats = stats[teacherId] || { total: 0, byDay: {} };
-
-        // Rule 1: Max 1 per day
-        const currentDayCount = teacherStats.byDay[day] || 0;
-        if (currentDayCount >= 1) {
+    const validatePlacement = useCallback((teacherCode: string, day: string): { valid: boolean; message?: string } => {
+        const dailyCount = getDailyCount(teacherCode, day);
+        if (dailyCount >= 1) {
             return {
                 valid: false,
-                message: 'Validasi Gagal: Maksimal pertemuan guru dalam satu hari adalah satu kali.'
+                message: `Guru "${teacherCode}" sudah mengajar di hari ${day}. Maksimal 1 pertemuan per hari.`
             };
         }
 
-        // Rule 2: Max 2 per week
-        if (teacherStats.total >= 2) {
+        const weeklyCount = getWeeklyCount(teacherCode);
+        if (weeklyCount >= 2) {
             return {
                 valid: false,
-                message: 'Validasi Gagal: Maksimal pertemuan guru dalam satu minggu adalah dua kali.'
+                message: `Guru "${teacherCode}" sudah mengajar 2 kali minggu ini. Maksimal 2 pertemuan per minggu.`
             };
         }
 
         return { valid: true };
-    }, [getTeacherStats]);
+    }, [getDailyCount, getWeeklyCount]);
 
-    // Handle cell click
-    const handleCellClick = useCallback((day: string, classKey: string, period: number) => {
-        if (!activeTeacher) {
-            warning('Peringatan', 'Silakan pilih guru terlebih dahulu');
+    // ============ CELL CLICK ============
+    const handleCellClick = useCallback((day: string, period: number) => {
+        if (!selectedClass) return;
+
+        const cell = grid[selectedClass]?.[day]?.[period];
+
+        if (cell?.isLocked) {
+            warning('Sel Terkunci', 'Sel ini terkunci. Klik kanan untuk membuka kunci.');
             return;
         }
 
-        const currentCell = schedule[day]?.[classKey]?.[period];
+        // Handle swap
+        if (swapSource) {
+            const sourceCell = grid[selectedClass]?.[swapSource.day]?.[swapSource.period];
 
-        if (currentCell?.isLocked) {
-            warning('Peringatan', 'Sel ini terkunci. Klik kanan untuk membuka kunci.');
-            return;
-        }
+            setGrid(prev => {
+                const newGrid = { ...prev };
+                newGrid[selectedClass] = { ...newGrid[selectedClass] };
+                newGrid[selectedClass][swapSource.day] = { ...newGrid[selectedClass][swapSource.day] };
+                newGrid[selectedClass][day] = { ...newGrid[selectedClass][day] };
 
-        // Swap mode
-        if (swapMode.active && swapMode.source) {
-            const source = swapMode.source;
-            const sourceCell = schedule[source.day]?.[source.classKey]?.[source.period];
+                newGrid[selectedClass][swapSource.day][swapSource.period] = { ...cell! };
+                newGrid[selectedClass][day][period] = { ...sourceCell! };
 
-            setSchedule(prev => {
-                const newSchedule = { ...prev };
-                newSchedule[source.day] = { ...newSchedule[source.day] };
-                newSchedule[source.day][source.classKey] = { ...newSchedule[source.day][source.classKey] };
-                newSchedule[day] = { ...newSchedule[day] };
-                newSchedule[day][classKey] = { ...newSchedule[day][classKey] };
-
-                newSchedule[source.day][source.classKey][source.period] = currentCell;
-                newSchedule[day][classKey][period] = sourceCell;
-
-                return newSchedule;
+                return newGrid;
             });
 
-            setSwapMode({ active: false });
+            setSwapSource(null);
             success('Berhasil', 'Sel berhasil ditukar');
             return;
         }
 
-        // Toggle: If same teacher, clear. Otherwise, place.
-        if (currentCell?.teacherId === activeTeacher.id) {
-            setSchedule(prev => {
-                const newSchedule = { ...prev };
-                newSchedule[day] = { ...newSchedule[day] };
-                newSchedule[day][classKey] = { ...newSchedule[day][classKey] };
-                newSchedule[day][classKey][period] = null;
-                return newSchedule;
-            });
-        } else {
-            const validation = validatePlacement(day, activeTeacher.id);
+        if (!activeTeacher) {
+            warning('Pilih Guru', 'Silakan pilih guru terlebih dahulu');
+            return;
+        }
+
+        if (cell?.code === null) {
+            const validation = validatePlacement(activeTeacher.code, day);
             if (!validation.valid) {
-                showError('Validasi Gagal', validation.message || 'Tidak dapat menempatkan guru');
+                showError('Validasi Gagal', validation.message || '');
                 return;
             }
 
-            setSchedule(prev => {
-                const newSchedule = { ...prev };
-                newSchedule[day] = { ...newSchedule[day] };
-                newSchedule[day][classKey] = { ...newSchedule[day][classKey] };
-                newSchedule[day][classKey][period] = {
-                    teacherId: activeTeacher.id,
-                    teacherCode: activeTeacher.code,
-                    teacherName: activeTeacher.name,
+            setGrid(prev => {
+                const newGrid = { ...prev };
+                newGrid[selectedClass] = { ...newGrid[selectedClass] };
+                newGrid[selectedClass][day] = { ...newGrid[selectedClass][day] };
+                newGrid[selectedClass][day][period] = {
+                    code: activeTeacher.code,
                     isLocked: false,
-                    color: activeTeacher.color
+                    teacherName: activeTeacher.name,
+                    color: activeTeacher.color,
                 };
-                return newSchedule;
+                return newGrid;
             });
+        } else if (cell?.code === activeTeacher.code) {
+            setGrid(prev => {
+                const newGrid = { ...prev };
+                newGrid[selectedClass] = { ...newGrid[selectedClass] };
+                newGrid[selectedClass][day] = { ...newGrid[selectedClass][day] };
+                newGrid[selectedClass][day][period] = { code: null, isLocked: false };
+                return newGrid;
+            });
+        } else {
+            warning('Sel Terisi', `Sel ini sudah terisi oleh guru "${cell?.code}".`);
         }
-    }, [activeTeacher, schedule, swapMode, validatePlacement, success, showError, warning]);
+    }, [grid, selectedClass, swapSource, activeTeacher, validatePlacement, success, showError, warning]);
 
-    // Context menu handlers
-    const handleContextMenu = useCallback((
-        e: React.MouseEvent,
-        day: string,
-        classKey: string,
-        period: number
-    ) => {
-        e.preventDefault();
-        setContextMenu({ x: e.clientX, y: e.clientY, day, classKey, period });
-    }, []);
-
-    useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
-            if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
-                setContextMenu(null);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    const handleToggleLock = useCallback(() => {
-        if (!contextMenu) return;
-
-        const { day, classKey, period } = contextMenu;
-        setSchedule(prev => {
-            const newSchedule = { ...prev };
-            newSchedule[day] = { ...newSchedule[day] };
-            newSchedule[day][classKey] = { ...newSchedule[day][classKey] };
-
-            const currentCell = newSchedule[day][classKey][period];
-            if (currentCell) {
-                newSchedule[day][classKey][period] = {
-                    ...currentCell,
-                    isLocked: !currentCell.isLocked
-                };
-            }
-            return newSchedule;
+    // ============ CONTEXT MENU ============
+    const handleToggleLock = useCallback((day: string, period: number) => {
+        if (!selectedClass) return;
+        setGrid(prev => {
+            const newGrid = { ...prev };
+            newGrid[selectedClass] = { ...newGrid[selectedClass] };
+            newGrid[selectedClass][day] = { ...newGrid[selectedClass][day] };
+            const cell = newGrid[selectedClass][day][period];
+            newGrid[selectedClass][day][period] = { ...cell, isLocked: !cell.isLocked };
+            return newGrid;
         });
-        setContextMenu(null);
-    }, [contextMenu]);
+    }, [selectedClass]);
 
-    const handleStartSwap = useCallback(() => {
-        if (!contextMenu) return;
+    const handleStartSwap = useCallback((day: string, period: number) => {
+        setSwapSource({ day, period });
+        success('Mode Tukar', 'Klik sel lain untuk menukar');
+    }, [success]);
 
-        const { day, classKey, period } = contextMenu;
-        setSwapMode({
-            active: true,
-            source: { day, classKey, period }
+    const handleClearCell = useCallback((day: string, period: number) => {
+        if (!selectedClass) return;
+        const cell = grid[selectedClass]?.[day]?.[period];
+        if (cell?.isLocked) {
+            warning('Sel Terkunci', 'Buka kunci terlebih dahulu');
+            return;
+        }
+        setGrid(prev => {
+            const newGrid = { ...prev };
+            newGrid[selectedClass] = { ...newGrid[selectedClass] };
+            newGrid[selectedClass][day] = { ...newGrid[selectedClass][day] };
+            newGrid[selectedClass][day][period] = { code: null, isLocked: false };
+            return newGrid;
         });
-        setContextMenu(null);
-        success('Mode Tukar Aktif', 'Klik sel lain untuk menukar posisi');
-    }, [contextMenu, success]);
+    }, [grid, selectedClass, warning]);
 
-    const handleCancelSwap = useCallback(() => {
-        setSwapMode({ active: false });
-    }, []);
-
-    // Add teacher with code
+    // ============ TEACHER MANAGEMENT ============
     const handleAddTeacher = useCallback(() => {
-        const employee = employeeOptions.find(e => e.id === newTeacherData.employeeId);
-        if (!employee) {
-            showError('Error', 'Pilih guru dari daftar');
+        if (!newTeacherCode.trim()) {
+            showError('Error', 'Masukkan kode guru');
             return;
         }
 
-        const existingCodes = Array.from(teacherCodes.values()).map(t => t.code);
-        const code = newTeacherData.customCode.trim().toUpperCase() ||
-            generateCodeFromName(employee.name, existingCodes);
-
-        if (existingCodes.includes(code)) {
-            showError('Error', `Kode "${code}" sudah digunakan. Gunakan kode lain.`);
+        const code = newTeacherCode.trim().toUpperCase();
+        if (teachers.has(code)) {
+            showError('Error', `Kode "${code}" sudah digunakan`);
             return;
         }
 
-        const newTeacher: TeacherWithCode = {
-            id: employee.id,
-            name: employee.name,
-            employeeId: employee.employeeId,
-            code: code,
+        let name = code;
+        let subject = '';
+
+        if (selectedEmployeeId) {
+            const emp = teacherEmployees.find((e: Employee) => e.id === selectedEmployeeId);
+            if (emp) {
+                name = emp.name;
+                subject = emp.position || '';
+            }
+        }
+
+        const newTeacher: TeacherInfo = {
+            id: selectedEmployeeId || code,
+            code,
+            name,
+            subject,
             color: generateColor(code),
         };
 
-        setTeacherCodes(prev => new Map(prev).set(employee.id, newTeacher));
+        setTeachers(prev => new Map(prev).set(code, newTeacher));
         setActiveTeacher(newTeacher);
         setShowAddTeacherDialog(false);
-        setNewTeacherData({ employeeId: '', customCode: '' });
-        success('Berhasil', `Guru "${employee.name}" ditambahkan dengan kode "${code}"`);
-    }, [employeeOptions, newTeacherData, teacherCodes, success, showError]);
+        setNewTeacherCode('');
+        setSelectedEmployeeId('');
+        success('Berhasil', `Guru "${name}" ditambahkan`);
+    }, [newTeacherCode, selectedEmployeeId, teachers, teacherEmployees, success, showError]);
 
-    // Save/Load JSON
+    // ============ SAVE/LOAD ============
     const handleSaveJson = useCallback(() => {
-        const exportData = {
-            schedule,
-            teacherCodes: Array.from(teacherCodes.entries()),
+        const data = {
+            grid,
+            teachers: Array.from(teachers.entries()),
             exportedAt: new Date().toISOString(),
         };
-        const dataStr = JSON.stringify(exportData, null, 2);
-        const blob = new Blob([dataStr], { type: 'application/json' });
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `jadwal-mengajar-${new Date().toISOString().split('T')[0]}.json`;
+        link.download = `jadwal-${new Date().toISOString().split('T')[0]}.json`;
         link.click();
         URL.revokeObjectURL(url);
-        success('Berhasil', 'Jadwal berhasil disimpan sebagai JSON');
-    }, [schedule, teacherCodes, success]);
+        success('Berhasil', 'Jadwal disimpan');
+    }, [grid, teachers, success]);
 
-    const handleLoadJson = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
+    const handleLoadJson = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = (evt) => {
             try {
-                const content = e.target?.result as string;
-                const data = JSON.parse(content);
-
-                if (data.schedule) {
-                    setSchedule(data.schedule);
-                }
-                if (data.teacherCodes) {
-                    setTeacherCodes(new Map(data.teacherCodes));
-                }
-                success('Berhasil', 'Jadwal berhasil dimuat dari file');
-            } catch (err) {
-                showError('Error', 'Gagal memuat file JSON. Pastikan format file benar.');
+                const data = JSON.parse(evt.target?.result as string);
+                if (data.grid) setGrid(data.grid);
+                if (data.teachers) setTeachers(new Map(data.teachers));
+                success('Berhasil', 'Jadwal dimuat');
+            } catch {
+                showError('Error', 'Gagal memuat file');
             }
         };
         reader.readAsText(file);
-
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
+        if (fileInputRef.current) fileInputRef.current.value = '';
     }, [success, showError]);
 
-    // Export Excel
-    const handleExportExcel = useCallback(async () => {
-        try {
-            const XLSX = await import('xlsx');
-            const wb = XLSX.utils.book_new();
-
-            const data: (string | number | null)[][] = [];
-
-            const headerRow1: (string | null)[] = ['Hari'];
-            displayedClasses.forEach((classKey: string) => {
-                headerRow1.push(classKey);
-                for (let i = 1; i < PERIODS.length; i++) {
-                    headerRow1.push(null);
-                }
-            });
-            data.push(headerRow1);
-
-            const headerRow2: (string | number)[] = [''];
-            displayedClasses.forEach(() => {
-                PERIODS.forEach(period => {
-                    headerRow2.push(period);
-                });
-            });
-            data.push(headerRow2);
-
-            DAYS.forEach(day => {
-                const row: (string | number)[] = [day];
-                displayedClasses.forEach((classKey: string) => {
-                    PERIODS.forEach(period => {
-                        const cell = schedule[day]?.[classKey]?.[period];
-                        row.push(cell?.teacherCode || '');
-                    });
-                });
-                data.push(row);
-            });
-
-            const ws = XLSX.utils.aoa_to_sheet(data);
-            ws['!cols'] = [
-                { wch: 10 },
-                ...Array(displayedClasses.length * PERIODS.length).fill({ wch: 5 })
-            ];
-
-            ws['!merges'] = [];
-            displayedClasses.forEach((_: string, classIndex: number) => {
-                const startCol = 1 + classIndex * PERIODS.length;
-                const endCol = startCol + PERIODS.length - 1;
-                ws['!merges']!.push({
-                    s: { r: 0, c: startCol },
-                    e: { r: 0, c: endCol }
-                });
-            });
-
-            XLSX.utils.book_append_sheet(wb, ws, 'Jadwal Mengajar');
-            XLSX.writeFile(wb, `jadwal-mengajar-${new Date().toISOString().split('T')[0]}.xlsx`);
-            success('Berhasil', 'Jadwal berhasil diekspor ke Excel');
-        } catch (err) {
-            showError('Error', 'Gagal mengekspor ke Excel');
-            console.error(err);
-        }
-    }, [schedule, displayedClasses, success, showError]);
-
     const handleClearAll = useCallback(() => {
-        if (confirm('Apakah Anda yakin ingin menghapus semua jadwal?')) {
-            setSchedule(initializeSchedule(classList));
-            success('Berhasil', 'Semua jadwal berhasil dihapus');
-        }
+        if (!confirm('Hapus semua jadwal?')) return;
+        const newGrid: ScheduleGrid = {};
+        classList.forEach((classKey: string) => {
+            newGrid[classKey] = {};
+            DAYS.forEach(day => {
+                newGrid[classKey][day] = {};
+                PERIODS.forEach(period => {
+                    newGrid[classKey][day][period] = { code: null, isLocked: false };
+                });
+            });
+        });
+        setGrid(newGrid);
+        success('Berhasil', 'Jadwal dihapus');
     }, [classList, success]);
 
-    // Handle Excel Import
-    const handleExcelImport = useCallback((data: ParsedScheduleData) => {
-        // 1. Register teachers from Excel
-        const newTeacherCodes = new Map(teacherCodes);
+    // ============ STATS ============
+    const stats = useMemo(() => {
+        let filled = 0, locked = 0;
+        const teacherSet = new Set<string>();
 
-        data.teachers.forEach(teacher => {
-            if (!Array.from(newTeacherCodes.values()).some(t => t.code === teacher.code)) {
-                // Generate a unique ID for this teacher (will be replaced if matched to system employee)
-                const id = `excel-${teacher.code}`;
-                newTeacherCodes.set(id, {
-                    id: id,
-                    name: teacher.name,
-                    employeeId: '', // Will be empty for imported teachers
-                    code: teacher.code,
-                    color: generateColor(teacher.code),
+        if (selectedClass && grid[selectedClass]) {
+            DAYS.forEach(day => {
+                PERIODS.forEach(period => {
+                    const cell = grid[selectedClass]?.[day]?.[period];
+                    if (cell?.code) {
+                        filled++;
+                        teacherSet.add(cell.code);
+                    }
+                    if (cell?.isLocked) locked++;
                 });
-            }
-        });
-
-        setTeacherCodes(newTeacherCodes);
-
-        // 2. Build new schedule from imported data
-        // First, get unique classes from import
-        const importedClasses = data.classes;
-        const newSchedule = initializeSchedule(importedClasses.length > 0 ? importedClasses : classList);
-
-        // 3. Populate schedule cells
-        let placedCount = 0;
-        data.schedules.forEach(cell => {
-            const teacher = Array.from(newTeacherCodes.values()).find(t => t.code === cell.teacherCode);
-            if (teacher && newSchedule[cell.day]?.[cell.className]) {
-                newSchedule[cell.day][cell.className][cell.period] = {
-                    teacherId: teacher.id,
-                    teacherCode: teacher.code,
-                    teacherName: teacher.name,
-                    isLocked: false,
-                    color: teacher.color,
-                };
-                placedCount++;
-            }
-        });
-
-        setSchedule(newSchedule);
-
-        // Update class filter to show new classes if needed
-        if (importedClasses.length > 0) {
-            setClassFilter([]);
-        }
-
-        setShowExcelImport(false);
-        success('Import Berhasil', `${data.teachers.length} guru dan ${placedCount} jadwal berhasil diimport`);
-    }, [teacherCodes, classList, success]);
-
-    // Context menu items
-    const getContextMenuItems = useCallback((): ContextMenuItem[] => {
-        if (!contextMenu) return [];
-
-        const { day, classKey, period } = contextMenu;
-        const cell = schedule[day]?.[classKey]?.[period];
-
-        const items: ContextMenuItem[] = [];
-
-        if (cell) {
-            items.push({
-                label: cell.isLocked ? 'Buka Kunci' : 'Kunci Sel',
-                icon: cell.isLocked ? <Unlock className="h-4 w-4" /> : <Lock className="h-4 w-4" />,
-                onClick: handleToggleLock
             });
         }
 
-        if (!swapMode.active) {
-            items.push({
-                label: 'Mulai Proses Tukar',
-                icon: <ArrowRightLeft className="h-4 w-4" />,
-                onClick: handleStartSwap,
-                disabled: !cell
-            });
-        } else {
-            items.push({
-                label: 'Tukar dengan Sel Ini',
-                icon: <ArrowRightLeft className="h-4 w-4" />,
-                onClick: () => {
-                    handleCellClick(day, classKey, period);
-                    setContextMenu(null);
-                }
-            });
-        }
+        return { filled, locked, teachers: teacherSet.size, totalSlots: DAYS.length * PERIODS.length };
+    }, [grid, selectedClass]);
 
-        return items;
-    }, [contextMenu, schedule, swapMode, handleToggleLock, handleStartSwap, handleCellClick]);
-
-    const teacherStats = getTeacherStats();
-    const registeredTeachers = Array.from(teacherCodes.values());
+    const registeredTeachers = Array.from(teachers.values());
 
     if (loadingEmployees || loadingClasses) {
         return (
             <Card>
                 <CardContent className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <span className="ml-2">Memuat data...</span>
+                    <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+                    <span className="ml-2">Memuat...</span>
                 </CardContent>
             </Card>
         );
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             {/* Header */}
             <Card>
                 <CardHeader className="pb-3">
-                    <CardTitle className="text-xl flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2">
                         <GripVertical className="h-5 w-5 text-primary" />
-                        Penyusunan Jadwal Mengajar Guru
+                        Penyusunan Jadwal Mengajar
                     </CardTitle>
                     <CardDescription>
-                        Susun jadwal mengajar guru dengan sistem grid interaktif. Pilih atau tambahkan guru terlebih dahulu.
+                        Pilih kelas, pilih guru, lalu klik sel untuk mengisi. Klik kanan untuk opsi.
+                        <span className="block text-warning font-medium mt-1">
+                            Aturan: Max 1×/hari, Max 2×/minggu per guru.
+                        </span>
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {/* Teacher Selection */}
+                    {/* Class & Teacher Selection */}
                     <div className="flex flex-wrap items-center gap-4">
+                        {/* Class Selector */}
                         <div className="flex items-center gap-2">
-                            <Popover open={teacherSelectOpen} onOpenChange={setTeacherSelectOpen}>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        role="combobox"
-                                        aria-expanded={teacherSelectOpen}
-                                        className="w-[300px] justify-between"
-                                    >
-                                        {activeTeacher ? (
+                            <Filter className="h-4 w-4 text-muted-foreground" />
+                            <Select value={selectedClass} onValueChange={setSelectedClass}>
+                                <SelectTrigger className="w-[160px]">
+                                    <SelectValue placeholder="Pilih Kelas" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {classList.map((cls: string) => (
+                                        <SelectItem key={cls} value={cls}>
                                             <span className="flex items-center gap-2">
-                                                <div
-                                                    className="w-4 h-4 rounded"
-                                                    style={{ backgroundColor: activeTeacher.color }}
-                                                />
-                                                {activeTeacher.code} - {activeTeacher.name}
+                                                <BookOpen className="h-3 w-3" />
+                                                {cls}
                                             </span>
-                                        ) : (
-                                            "Pilih Guru..."
-                                        )}
-                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-[300px] p-0">
-                                    <Command>
-                                        <CommandInput placeholder="Cari guru..." />
-                                        <CommandList>
-                                            <CommandEmpty>Tidak ada guru ditemukan.</CommandEmpty>
-                                            <CommandGroup heading="Guru Terdaftar">
-                                                {registeredTeachers.map((teacher) => (
-                                                    <CommandItem
-                                                        key={teacher.id}
-                                                        value={teacher.name}
-                                                        onSelect={() => {
-                                                            setActiveTeacher(teacher);
-                                                            setTeacherSelectOpen(false);
-                                                        }}
-                                                    >
-                                                        <Check
-                                                            className={cn(
-                                                                "mr-2 h-4 w-4",
-                                                                activeTeacher?.id === teacher.id ? "opacity-100" : "opacity-0"
-                                                            )}
-                                                        />
-                                                        <div
-                                                            className="w-4 h-4 rounded mr-2"
-                                                            style={{ backgroundColor: teacher.color }}
-                                                        />
-                                                        <span className="font-mono mr-2">{teacher.code}</span>
-                                                        <span className="truncate">{teacher.name}</span>
-                                                    </CommandItem>
-                                                ))}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </PopoverContent>
-                            </Popover>
-
-                            <Button onClick={() => setShowAddTeacherDialog(true)} variant="outline">
-                                <Plus className="h-4 w-4 mr-2" />
-                                Tambah Guru
-                            </Button>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
 
-                        {activeTeacher && (
-                            <Badge
-                                className="text-sm py-1 px-3"
-                                style={{ backgroundColor: activeTeacher.color }}
-                            >
-                                Guru Aktif: <strong className="ml-1">{activeTeacher.code}</strong>
-                            </Badge>
-                        )}
-
-                        {swapMode.active && (
-                            <Badge variant="destructive" className="text-sm py-1 px-3 animate-pulse">
-                                <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                Mode Tukar Aktif
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="ml-2 h-5 px-1"
-                                    onClick={handleCancelSwap}
-                                >
-                                    Batal
+                        {/* Teacher Selector */}
+                        <Popover open={teacherSelectOpen} onOpenChange={setTeacherSelectOpen}>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" className="w-[220px] justify-between">
+                                    {activeTeacher ? (
+                                        <span className="flex items-center gap-2">
+                                            <div className="w-3 h-3 rounded" style={{ backgroundColor: activeTeacher.color }} />
+                                            <span className="font-mono font-bold">{activeTeacher.code}</span>
+                                            <span className="truncate">{activeTeacher.name}</span>
+                                        </span>
+                                    ) : "Pilih Guru..."}
+                                    <ChevronsUpDown className="h-4 w-4 opacity-50" />
                                 </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[220px] p-0">
+                                <Command>
+                                    <CommandInput placeholder="Cari..." />
+                                    <CommandList>
+                                        <CommandEmpty>Tidak ada guru.</CommandEmpty>
+                                        <CommandGroup>
+                                            {registeredTeachers.map(t => (
+                                                <CommandItem
+                                                    key={t.code}
+                                                    value={t.name}
+                                                    onSelect={() => {
+                                                        setActiveTeacher(t);
+                                                        setTeacherSelectOpen(false);
+                                                    }}
+                                                >
+                                                    <Check className={cn("mr-2 h-4 w-4", activeTeacher?.code === t.code ? "opacity-100" : "opacity-0")} />
+                                                    <div className="w-3 h-3 rounded mr-2" style={{ backgroundColor: t.color }} />
+                                                    <span className="font-mono font-bold mr-1">{t.code}</span>
+                                                    <span className="truncate">{t.name}</span>
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+
+                        <Button variant="outline" size="sm" onClick={() => setShowAddTeacherDialog(true)}>
+                            <Plus className="h-4 w-4 mr-1" />
+                            Tambah Guru
+                        </Button>
+
+                        {activeTeacher && (
+                            <Badge style={{ backgroundColor: activeTeacher.color }} className="text-foreground">
+                                Aktif: <strong className="font-mono ml-1">{activeTeacher.code}</strong>
+                            </Badge>
+                        )}
+
+                        {swapSource && (
+                            <Badge variant="destructive" className="animate-pulse">
+                                <ArrowRightLeft className="h-3 w-3 mr-1" />
+                                Mode Tukar
+                                <button className="ml-2 underline" onClick={() => setSwapSource(null)}>Batal</button>
                             </Badge>
                         )}
                     </div>
 
-                    {/* Class Filter */}
-                    <div className="flex flex-wrap items-center gap-2">
-                        <Label className="text-sm font-medium">Filter Kelas:</Label>
-                        {classList.map((cls: string) => (
-                            <Button
-                                key={cls}
-                                size="sm"
-                                variant={classFilter.includes(cls) || classFilter.length === 0 ? "default" : "outline"}
-                                onClick={() => {
-                                    if (classFilter.includes(cls)) {
-                                        setClassFilter(classFilter.filter(c => c !== cls));
-                                    } else {
-                                        setClassFilter([...classFilter, cls]);
-                                    }
-                                }}
-                            >
-                                {cls}
-                            </Button>
-                        ))}
-                        {classFilter.length > 0 && (
-                            <Button size="sm" variant="ghost" onClick={() => setClassFilter([])}>
-                                Tampilkan Semua
-                            </Button>
-                        )}
-                    </div>
-
-                    <Separator />
-
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap items-center gap-2">
-                        <Button variant="outline" onClick={handleSaveJson}>
-                            <FileJson className="h-4 w-4 mr-2" />
-                            Simpan (JSON)
+                    {/* Actions */}
+                    <div className="flex flex-wrap gap-2">
+                        <input type="file" ref={fileInputRef} onChange={handleLoadJson} accept=".json" className="hidden" />
+                        <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                            <Upload className="h-4 w-4 mr-1" />
+                            Muat
                         </Button>
-                        <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-                            <Upload className="h-4 w-4 mr-2" />
-                            Muat (JSON)
+                        <Button variant="outline" size="sm" onClick={handleSaveJson}>
+                            <Download className="h-4 w-4 mr-1" />
+                            Simpan
                         </Button>
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept=".json"
-                            onChange={handleLoadJson}
-                            className="hidden"
-                            title="Muat file jadwal JSON"
-                            aria-label="Muat file jadwal JSON"
-                        />
-                        <Button variant="outline" onClick={handleExportExcel}>
-                            <FileSpreadsheet className="h-4 w-4 mr-2" />
-                            Export Excel
-                        </Button>
-                        <Button variant="default" onClick={() => setShowExcelImport(true)}>
-                            <FileSpreadsheet className="h-4 w-4 mr-2" />
-                            Import Excel
-                        </Button>
-                        <Button variant="outline" onClick={() => refetchEmployees()}>
-                            <RefreshCw className="h-4 w-4 mr-2" />
-                            Refresh Data
-                        </Button>
-                        <Button variant="destructive" onClick={handleClearAll}>
-                            <Trash2 className="h-4 w-4 mr-2" />
+                        <Button variant="outline" size="sm" onClick={handleClearAll}>
+                            <Trash2 className="h-4 w-4 mr-1" />
                             Hapus Semua
                         </Button>
                     </div>
                 </CardContent>
             </Card>
 
-            {/* Registered Teachers */}
-            {registeredTeachers.length > 0 && (
+            {/* Stats */}
+            <div className="grid grid-cols-4 gap-3">
                 <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium flex items-center gap-2">
-                            <Users className="h-4 w-4" />
-                            Guru Terdaftar ({registeredTeachers.length})
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex flex-wrap gap-2">
-                            {registeredTeachers.map((teacher) => {
-                                const stat = teacherStats[teacher.id];
-                                const count = stat?.total || 0;
-                                return (
-                                    <Badge
-                                        key={teacher.id}
-                                        variant={activeTeacher?.id === teacher.id ? "default" : "outline"}
-                                        className={cn(
-                                            "cursor-pointer hover:opacity-80 transition-opacity",
-                                            count >= 2 && "border-destructive"
-                                        )}
-                                        style={{
-                                            backgroundColor: activeTeacher?.id === teacher.id ? teacher.color : undefined,
-                                            borderColor: count >= 2 ? 'hsl(var(--destructive))' : undefined
-                                        }}
-                                        onClick={() => setActiveTeacher(teacher)}
-                                    >
-                                        <span className="font-mono mr-1">{teacher.code}</span>
-                                        <span className="truncate max-w-[100px]">{teacher.name.split(' ')[0]}</span>
-                                        <span className="ml-2 text-xs opacity-75">{count}/2</span>
-                                        {count >= 2 && <AlertTriangle className="h-3 w-3 ml-1" />}
-                                    </Badge>
-                                );
-                            })}
+                    <CardContent className="p-3 flex items-center gap-2">
+                        <Calendar className="h-6 w-6 text-primary/40" />
+                        <div>
+                            <p className="text-xl font-bold">{stats.filled}</p>
+                            <p className="text-[10px] text-muted-foreground">Terisi</p>
                         </div>
                     </CardContent>
                 </Card>
-            )}
+                <Card>
+                    <CardContent className="p-3 flex items-center gap-2">
+                        <Users className="h-6 w-6 text-success/40" />
+                        <div>
+                            <p className="text-xl font-bold">{stats.teachers}</p>
+                            <p className="text-[10px] text-muted-foreground">Guru</p>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="p-3 flex items-center gap-2">
+                        <Lock className="h-6 w-6 text-warning/40" />
+                        <div>
+                            <p className="text-xl font-bold">{stats.locked}</p>
+                            <p className="text-[10px] text-muted-foreground">Terkunci</p>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="p-3 flex items-center gap-2">
+                        <GripVertical className="h-6 w-6 text-muted-foreground/40" />
+                        <div>
+                            <p className="text-xl font-bold">{stats.totalSlots}</p>
+                            <p className="text-[10px] text-muted-foreground">Total</p>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
 
-            {/* Schedule Grid */}
+            {/* Grid */}
             <Card>
-                <CardContent className="p-4 overflow-x-auto">
-                    <table className="w-full min-w-[1200px] border-collapse">
-                        <thead>
-                            <tr>
-                                <th className="border border-border bg-muted p-2 text-left font-semibold sticky left-0 z-10" rowSpan={2}>
-                                    Hari
-                                </th>
-                                {displayedClasses.map((classKey: string) => (
-                                    <th
-                                        key={classKey}
-                                        className="border border-border bg-muted p-2 text-center font-semibold"
-                                        colSpan={PERIODS.length}
-                                    >
-                                        {classKey}
-                                    </th>
-                                ))}
-                            </tr>
-                            <tr>
-                                {displayedClasses.map((classKey: string) =>
-                                    PERIODS.map(period => (
-                                        <th
-                                            key={`${classKey}-${period}`}
-                                            className="border border-border bg-muted/50 p-1 text-center text-xs font-medium w-10"
-                                        >
-                                            {period}
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                        <BookOpen className="h-4 w-4 text-primary" />
+                        Jadwal Kelas {selectedClass}
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="overflow-x-auto">
+                        <table className="w-full border-collapse">
+                            <thead>
+                                <tr>
+                                    <th className="border bg-muted/50 p-2 text-sm font-medium w-20">Hari</th>
+                                    {PERIODS.map(p => (
+                                        <th key={p} className="border bg-muted/50 p-2 text-sm font-medium w-12 text-center">
+                                            {p}
                                         </th>
-                                    ))
-                                )}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {DAYS.map(day => (
-                                <tr key={day}>
-                                    <td className="border border-border bg-muted p-2 font-medium sticky left-0 z-10">
-                                        {day}
-                                    </td>
-                                    {displayedClasses.map((classKey: string) =>
-                                        PERIODS.map(period => {
-                                            const cell = schedule[day]?.[classKey]?.[period];
-                                            const isSwapSource = swapMode.source?.day === day &&
-                                                swapMode.source?.classKey === classKey &&
-                                                swapMode.source?.period === period;
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {DAYS.map(day => (
+                                    <tr key={day}>
+                                        <td className="border bg-muted/30 p-2 text-sm font-medium">{day}</td>
+                                        {PERIODS.map(period => {
+                                            const cell = grid[selectedClass]?.[day]?.[period];
+                                            const isSwapSrc = swapSource?.day === day && swapSource?.period === period;
 
                                             return (
-                                                <td
-                                                    key={`${day}-${classKey}-${period}`}
-                                                    className={cn(
-                                                        "border border-border p-0 text-center cursor-pointer transition-all",
-                                                        "hover:bg-accent/50",
-                                                        cell?.isLocked && "bg-muted/80",
-                                                        isSwapSource && "ring-2 ring-primary ring-inset animate-pulse"
-                                                    )}
-                                                    style={{
-                                                        backgroundColor: cell?.color && !cell.isLocked ? cell.color : undefined
-                                                    }}
-                                                    onClick={() => handleCellClick(day, classKey, period)}
-                                                    onContextMenu={(e) => handleContextMenu(e, day, classKey, period)}
-                                                    title={cell ? `${cell.teacherName} (${cell.teacherCode})` : 'Klik untuk menambah'}
-                                                >
-                                                    <div className="relative w-10 h-8 flex items-center justify-center text-xs font-medium">
-                                                        {cell?.teacherCode || ''}
-                                                        {cell?.isLocked && (
-                                                            <Lock className="absolute top-0 right-0 h-3 w-3 text-muted-foreground" />
+                                                <ContextMenu key={period}>
+                                                    <ContextMenuTrigger asChild>
+                                                        <td
+                                                            className={cn(
+                                                                "border p-1 cursor-pointer transition-colors hover:bg-muted/30 text-center h-12",
+                                                                cell?.isLocked && "bg-muted/50",
+                                                                isSwapSrc && "ring-2 ring-primary"
+                                                            )}
+                                                            style={{ backgroundColor: cell?.color || undefined }}
+                                                            onClick={() => handleCellClick(day, period)}
+                                                        >
+                                                            <div className="relative flex items-center justify-center h-full">
+                                                                {cell?.code ? (
+                                                                    <span className="font-mono font-bold text-sm">{cell.code}</span>
+                                                                ) : (
+                                                                    <span className="text-muted-foreground/20">-</span>
+                                                                )}
+                                                                {cell?.isLocked && (
+                                                                    <Lock className="h-2.5 w-2.5 absolute top-0.5 right-0.5 text-muted-foreground" />
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </ContextMenuTrigger>
+                                                    <ContextMenuContent>
+                                                        <ContextMenuItem onClick={() => handleToggleLock(day, period)}>
+                                                            {cell?.isLocked ? <><Unlock className="h-4 w-4 mr-2" />Buka Kunci</> : <><Lock className="h-4 w-4 mr-2" />Kunci</>}
+                                                        </ContextMenuItem>
+                                                        <ContextMenuSeparator />
+                                                        {!swapSource ? (
+                                                            <ContextMenuItem onClick={() => handleStartSwap(day, period)} disabled={!cell?.code}>
+                                                                <ArrowRightLeft className="h-4 w-4 mr-2" />Mulai Tukar
+                                                            </ContextMenuItem>
+                                                        ) : (
+                                                            <ContextMenuItem onClick={() => handleCellClick(day, period)}>
+                                                                <ArrowRightLeft className="h-4 w-4 mr-2" />Tukar di Sini
+                                                            </ContextMenuItem>
                                                         )}
-                                                    </div>
-                                                </td>
+                                                        <ContextMenuSeparator />
+                                                        <ContextMenuItem onClick={() => handleClearCell(day, period)} disabled={!cell?.code || cell?.isLocked} className="text-destructive">
+                                                            <Trash2 className="h-4 w-4 mr-2" />Hapus
+                                                        </ContextMenuItem>
+                                                    </ContextMenuContent>
+                                                </ContextMenu>
                                             );
-                                        })
-                                    )}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                        })}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </CardContent>
             </Card>
 
             {/* Legend */}
             <Card>
-                <CardContent className="p-4">
-                    <div className="flex flex-wrap items-center gap-6 text-sm">
-                        <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 border rounded bg-blue-200" />
-                            <span>Sel Terisi (Warna berdasarkan guru)</span>
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Daftar Guru ({registeredTeachers.length})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {registeredTeachers.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">Belum ada guru. Klik "Tambah Guru".</p>
+                    ) : (
+                        <div className="flex flex-wrap gap-2">
+                            {registeredTeachers.map(t => (
+                                <Badge
+                                    key={t.code}
+                                    variant="outline"
+                                    className="cursor-pointer text-foreground text-xs"
+                                    style={{ backgroundColor: t.color }}
+                                    onClick={() => setActiveTeacher(t)}
+                                >
+                                    <span className="font-mono font-bold mr-1">{t.code}</span>
+                                    {t.name}
+                                    <span className="ml-1 opacity-70">({getWeeklyCount(t.code)}/2)</span>
+                                </Badge>
+                            ))}
                         </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 border rounded bg-muted/80 flex items-center justify-center">
-                                <Lock className="h-3 w-3" />
-                            </div>
-                            <span>Sel Terkunci</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 border rounded ring-2 ring-primary" />
-                            <span>Sel Sumber Tukar</span>
-                        </div>
-                    </div>
+                    )}
                 </CardContent>
             </Card>
-
-            {/* Context Menu */}
-            {contextMenu && (
-                <div
-                    ref={contextMenuRef}
-                    className="fixed bg-popover border rounded-md shadow-lg py-1 z-50 min-w-[180px]"
-                    style={{
-                        left: contextMenu.x,
-                        top: contextMenu.y,
-                        transform: 'translate(-50%, 0)'
-                    }}
-                >
-                    {getContextMenuItems().map((item, index) => (
-                        <button
-                            key={index}
-                            className={cn(
-                                "w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-accent",
-                                item.disabled && "opacity-50 cursor-not-allowed"
-                            )}
-                            onClick={item.onClick}
-                            disabled={item.disabled}
-                        >
-                            {item.icon}
-                            {item.label}
-                        </button>
-                    ))}
-                </div>
-            )}
 
             {/* Add Teacher Dialog */}
             <Dialog open={showAddTeacherDialog} onOpenChange={setShowAddTeacherDialog}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Tambah Guru ke Jadwal</DialogTitle>
-                        <DialogDescription>
-                            Pilih guru dari daftar karyawan dan berikan kode singkat (opsional).
-                        </DialogDescription>
+                        <DialogTitle>Tambah Guru</DialogTitle>
+                        <DialogDescription>Masukkan kode guru dan pilih data dari sistem.</DialogDescription>
                     </DialogHeader>
-
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                            <Label>Pilih Guru</Label>
-                            <Select
-                                value={newTeacherData.employeeId}
-                                onValueChange={(value) => setNewTeacherData(prev => ({ ...prev, employeeId: value }))}
-                            >
+                            <Label>Kode Guru</Label>
+                            <Input
+                                value={newTeacherCode}
+                                onChange={e => setNewTeacherCode(e.target.value.toUpperCase())}
+                                placeholder="Contoh: 1, 2, AB"
+                                className="font-mono"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Guru dari Sistem (Opsional)</Label>
+                            <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Pilih guru..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {employeeOptions
-                                        .filter(emp => !teacherCodes.has(emp.id))
-                                        .map(emp => (
-                                            <SelectItem key={emp.id} value={emp.id}>
-                                                {emp.name} - {emp.position || emp.department}
-                                            </SelectItem>
-                                        ))}
+                                    {teacherEmployees.map((emp: Employee) => (
+                                        <SelectItem key={emp.id} value={emp.id}>
+                                            {emp.name}
+                                        </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>
-
-                        <div className="space-y-2">
-                            <Label>Kode Guru (Opsional)</Label>
-                            <Input
-                                placeholder="Contoh: AB, G1, DSN"
-                                value={newTeacherData.customCode}
-                                onChange={(e) => setNewTeacherData(prev => ({
-                                    ...prev,
-                                    customCode: e.target.value.toUpperCase().slice(0, 4)
-                                }))}
-                                maxLength={4}
-                            />
-                            <p className="text-xs text-muted-foreground">
-                                Jika dikosongkan, kode akan dibuat otomatis dari nama guru.
-                            </p>
-                        </div>
                     </div>
-
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowAddTeacherDialog(false)}>
-                            Batal
-                        </Button>
-                        <Button onClick={handleAddTeacher} disabled={!newTeacherData.employeeId}>
-                            <CheckCircle2 className="h-4 w-4 mr-2" />
-                            Tambah Guru
+                        <Button variant="outline" onClick={() => setShowAddTeacherDialog(false)}>Batal</Button>
+                        <Button onClick={handleAddTeacher}>
+                            <Plus className="h-4 w-4 mr-1" />
+                            Tambah
                         </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-
-            {/* Excel Import Dialog */}
-            <Dialog open={showExcelImport} onOpenChange={setShowExcelImport}>
-                <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>Import Jadwal Mengajar dari Excel</DialogTitle>
-                        <DialogDescription>
-                            Import jadwal dari file Excel. Data akan tersimpan di database dan terintegrasi dengan sistem absensi.
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <ExcelScheduleImporterIntegrated
-                        onImportComplete={(result) => {
-                            // Close dialog and refresh data
-                            setShowExcelImport(false);
-                            // Apply to local grid as well for preview
-                            handleExcelImport({
-                                teachers: result.matched_teachers.map(t => ({
-                                    code: t.code,
-                                    name: t.employee_name,
-                                    subject: ''
-                                })),
-                                schedules: [],
-                                classes: [],
-                                days: [],
-                                errors: []
-                            });
-                        }}
-                    />
-                </DialogContent>
-            </Dialog>
-
-            {/* Instructions */}
-            <Card>
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Petunjuk Penggunaan</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground space-y-2">
-                    <p>1. Klik "Tambah Guru" untuk mendaftarkan guru dari database sistem dengan kode singkat</p>
-                    <p>2. Atau gunakan "Import Excel" untuk import jadwal dari file Excel</p>
-                    <p>3. Pilih guru dari dropdown, lalu klik sel kosong untuk menempatkan</p>
-                    <p>4. Klik sel yang sudah terisi dengan guru yang sama untuk menghapus</p>
-                    <p>5. Klik kanan pada sel untuk membuka menu konteks (Kunci/Tukar)</p>
-                    <p>6. Validasi: Maksimal 1x per hari, Maksimal 2x per minggu untuk setiap guru</p>
-                    <p>7. Gunakan "Simpan (JSON)" untuk menyimpan progres yang bisa dilanjutkan nanti</p>
-                </CardContent>
-            </Card>
         </div>
     );
 }

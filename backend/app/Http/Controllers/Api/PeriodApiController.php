@@ -2,67 +2,67 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\Period;
+use App\Models\TimeSlot;
 use Illuminate\Http\Request;
 
 class PeriodApiController extends BaseApiController
 {
     public function index(Request $request)
     {
-        $query = Period::query();
+        $query = TimeSlot::query();
 
         if ($request->has('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
         }
 
-        $periods = $query->orderBy('order_index')->paginate($request->get('per_page', 15));
+        $periods = $query->orderBy('order')->paginate($request->get('per_page', 15));
 
-        return $this->paginatedResponse($periods, 'Periods retrieved successfully');
+        return $this->paginatedResponse($periods, 'Time slots retrieved successfully');
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|max:50',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
-            'is_break' => 'boolean',
-            'order_index' => 'integer',
+            'order' => 'required|integer',
+            'is_active' => 'boolean',
         ]);
 
-        $period = Period::create($validated);
+        $timeSlot = TimeSlot::create($validated);
 
-        return $this->apiResponse($period, 'Period created successfully', 201);
+        return $this->apiResponse($timeSlot, 'Time slot created successfully', 201);
     }
 
     public function show($id)
     {
-        $period = Period::findOrFail($id);
-        return $this->apiResponse($period, 'Period retrieved successfully');
+        $timeSlot = TimeSlot::findOrFail($id);
+        return $this->apiResponse($timeSlot, 'Time slot retrieved successfully');
     }
 
     public function update(Request $request, $id)
     {
-        $period = Period::findOrFail($id);
+        $timeSlot = TimeSlot::findOrFail($id);
 
         $validated = $request->validate([
-            'name' => 'sometimes|string|max:255',
+            'name' => 'sometimes|string|max:50',
             'start_time' => 'sometimes|date_format:H:i',
             'end_time' => 'sometimes|date_format:H:i|after:start_time',
-            'is_break' => 'boolean',
-            'order_index' => 'integer',
+            'order' => 'sometimes|integer',
+            'is_active' => 'boolean',
         ]);
 
-        $period->update($validated);
+        $timeSlot->update($validated);
 
-        return $this->apiResponse($period, 'Period updated successfully');
+        return $this->apiResponse($timeSlot, 'Time slot updated successfully');
     }
 
     public function destroy($id)
     {
-        $period = Period::findOrFail($id);
-        $period->delete();
+        $timeSlot = TimeSlot::findOrFail($id);
+        $timeSlot->delete();
 
-        return $this->apiResponse(null, 'Period deleted successfully');
+        return $this->apiResponse(null, 'Time slot deleted successfully');
     }
 }

@@ -3,7 +3,7 @@ import {
     ChevronLeft,
     Download,
     DollarSign,
-    Calendar,
+
     Clock,
     TrendingUp,
     TrendingDown,
@@ -49,7 +49,7 @@ export function MobilePayrollShowPage({ payroll, isLoading, error }: MobilePayro
                 <p className="text-muted-foreground text-sm mb-6">
                     {error?.message || 'Detail slip gaji tidak tersedia.'}
                 </p>
-                <Button onClick={() => navigate({ to: '/payroll' })}>
+                <Button onClick={() => navigate({ to: '/admin/payroll' })}>
                     Kembali
                 </Button>
             </div>
@@ -72,13 +72,21 @@ export function MobilePayrollShowPage({ payroll, isLoading, error }: MobilePayro
                 <div className="bg-card/80 dark:bg-card/60 backdrop-blur-md rounded-3xl p-1.5 shadow-xl border border-border/40 dark:border-border/30">
                     <div className="bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-900 dark:to-teal-800 px-4 py-3 rounded-[20px] flex items-center gap-3 shadow-lg">
                         <button
-                            onClick={() => navigate({ to: '/payroll' })}
+                            type="button"
+                            title="Kembali"
+                            aria-label="Kembali"
+                            onClick={() => navigate({ to: '/admin/payroll' })}
                             className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
                         >
                             <ChevronLeft className="h-5 w-5 text-white" />
                         </button>
                         <h1 className="text-base font-bold text-white flex-1">Detail Gaji</h1>
-                        <button className="p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95">
+                        <button
+                            type="button"
+                            title="Bagikan"
+                            aria-label="Bagikan"
+                            className="p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
+                        >
                             <Share2 className="h-5 w-5 text-white" />
                         </button>
                     </div>
@@ -195,6 +203,9 @@ export function MobilePayrollShowPage({ payroll, isLoading, error }: MobilePayro
             {/* Floating Download Button */}
             <div className="fixed bottom-6 right-6 z-30">
                 <Button
+                    type="button"
+                    title="Download PDF"
+                    aria-label="Download PDF"
                     className="h-14 w-14 rounded-full shadow-xl bg-primary hover:bg-primary/90 text-primary-foreground p-0 flex items-center justify-center"
                     onClick={() => {
                         alert('Download PDF feature coming soon!');

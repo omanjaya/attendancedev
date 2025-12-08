@@ -188,7 +188,7 @@ export function DesktopPayrollPage() {
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
                                                     <DropdownMenuItem asChild>
-                                                        <Link to={`/ payroll / ${period.id} `}>
+                                                        <Link to={`/admin/payroll/${period.id}` as any}>
                                                             Detail Periode
                                                         </Link>
                                                     </DropdownMenuItem>

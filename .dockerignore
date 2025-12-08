@@ -42,9 +42,11 @@ frontend/test-results
 frontend/.env*
 
 # Python
-python-services/venv
-python-services/__pycache__
-python-services/*.pyc
+python-services/**/venv
+python-services/**/__pycache__
+python-services/**/*.pyc
+python-services/**/logs
+python-services/**/*.log
 python-face-service/venv
 python-face-service/__pycache__
 

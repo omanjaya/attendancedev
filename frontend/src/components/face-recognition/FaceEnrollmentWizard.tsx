@@ -177,11 +177,7 @@ export function FaceEnrollmentWizard({
     setCountdown(null);
 
     try {
-      const faceData = await faceDetectionService.captureFaceDescriptor(
-        videoRef.current,
-        employeeId,
-        { requireLiveness: requireLiveness && currentStepIndex === 0 }
-      );
+      const faceData = await faceDetectionService.captureFaceDescriptor(videoRef.current);
 
       if (faceData.confidence < 0.6) {
         setError('Kualitas deteksi kurang baik. Pastikan pencahayaan cukup dan wajah terlihat jelas.');

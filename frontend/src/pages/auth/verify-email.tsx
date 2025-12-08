@@ -3,7 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { Mail, RefreshCw, CheckCircle, ArrowLeft, Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { LoadingState } from '@/components/states';
+
 import { useNotificationStore } from '@/stores';
 
 export default function VerifyEmailPage() {

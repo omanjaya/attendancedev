@@ -3,7 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\Employee;
-use App\Models\Period;
+use App\Models\TimeSlot;
 use App\Models\ScheduleConflict;
 use App\Models\Subject;
 use App\Models\WeeklySchedule;
@@ -33,7 +33,7 @@ class WeeklyScheduleRepository extends BaseRepository
         return cache()->remember($cacheKey, 1800, function () use ($weekStart, $employeeId, $locationId) {
             $query = $this->model
                 ->where('week_start', $weekStart)
-                ->with(['employee.user', 'employee.location', 'subject', 'period']);
+                ->with(['employee.user', 'employee.location', 'subject', 'timeSlot']);
 
             if ($employeeId) {
                 $query->where('employee_id', $employeeId);
@@ -46,7 +46,7 @@ class WeeklyScheduleRepository extends BaseRepository
             }
 
             return $query->orderBy('day_of_week')
-                ->orderBy('period_id')
+                ->orderBy('time_slot_id')
                 ->get();
         });
     }
@@ -62,9 +62,9 @@ class WeeklyScheduleRepository extends BaseRepository
             return $this->model
                 ->where('employee_id', $employeeId)
                 ->where('week_start', $weekStart)
-                ->with(['subject', 'period'])
+                ->with(['subject', 'timeSlot'])
                 ->orderBy('day_of_week')
-                ->orderBy('period_id')
+                ->orderBy('time_slot_id')
                 ->get();
         });
     }
@@ -80,7 +80,7 @@ class WeeklyScheduleRepository extends BaseRepository
             return ScheduleConflict::where('week_start', $weekStart)
                 ->with(['employee', 'schedules'])
                 ->orderBy('day_of_week')
-                ->orderBy('period_id')
+                ->orderBy('time_slot_id')
                 ->get();
         });
     }
@@ -106,7 +106,7 @@ class WeeklyScheduleRepository extends BaseRepository
                     ->where('week_start', $weekStart)
                     ->where('employee_id', $template->employee_id)
                     ->where('day_of_week', $template->day_of_week)
-                    ->where('period_id', $template->period_id)
+                    ->where('time_slot_id', $template->time_slot_id)
                     ->exists();
 
                 if (! $exists) {
@@ -114,7 +114,7 @@ class WeeklyScheduleRepository extends BaseRepository
                         'week_start' => $weekStart,
                         'employee_id' => $template->employee_id,
                         'subject_id' => $template->subject_id,
-                        'period_id' => $template->period_id,
+                        'time_slot_id' => $template->time_slot_id,
                         'day_of_week' => $template->day_of_week,
                         'class_id' => $template->class_id,
                         'room' => $template->room,
@@ -146,8 +146,8 @@ class WeeklyScheduleRepository extends BaseRepository
             $employeeConflicts = $this->model
                 ->where('week_start', $weekStart)
                 ->where('is_active', true)
-                ->select('employee_id', 'day_of_week', 'period_id', DB::raw('COUNT(*) as conflict_count'))
-                ->groupBy('employee_id', 'day_of_week', 'period_id')
+                ->select('employee_id', 'day_of_week', 'time_slot_id', DB::raw('COUNT(*) as conflict_count'))
+                ->groupBy('employee_id', 'day_of_week', 'time_slot_id')
                 ->having('conflict_count', '>', 1)
                 ->get();
 
@@ -156,16 +156,16 @@ class WeeklyScheduleRepository extends BaseRepository
                     ->where('week_start', $weekStart)
                     ->where('employee_id', $conflict->employee_id)
                     ->where('day_of_week', $conflict->day_of_week)
-                    ->where('period_id', $conflict->period_id)
+                    ->where('time_slot_id', $conflict->time_slot_id)
                     ->where('is_active', true)
-                    ->with(['employee', 'subject', 'period'])
+                    ->with(['employee', 'subject', 'timeSlot'])
                     ->get();
 
                 $conflicts[] = [
                     'type' => 'employee_double_booking',
                     'employee_id' => $conflict->employee_id,
                     'day_of_week' => $conflict->day_of_week,
-                    'period_id' => $conflict->period_id,
+                    'time_slot_id' => $conflict->time_slot_id,
                     'conflict_count' => $conflict->conflict_count,
                     'schedules' => $schedules,
                 ];
@@ -176,8 +176,8 @@ class WeeklyScheduleRepository extends BaseRepository
                 ->where('week_start', $weekStart)
                 ->where('is_active', true)
                 ->whereNotNull('room')
-                ->select('room', 'day_of_week', 'period_id', DB::raw('COUNT(*) as conflict_count'))
-                ->groupBy('room', 'day_of_week', 'period_id')
+                ->select('room', 'day_of_week', 'time_slot_id', DB::raw('COUNT(*) as conflict_count'))
+                ->groupBy('room', 'day_of_week', 'time_slot_id')
                 ->having('conflict_count', '>', 1)
                 ->get();
 
@@ -186,16 +186,16 @@ class WeeklyScheduleRepository extends BaseRepository
                     ->where('week_start', $weekStart)
                     ->where('room', $conflict->room)
                     ->where('day_of_week', $conflict->day_of_week)
-                    ->where('period_id', $conflict->period_id)
+                    ->where('time_slot_id', $conflict->time_slot_id)
                     ->where('is_active', true)
-                    ->with(['employee', 'subject', 'period'])
+                    ->with(['employee', 'subject', 'timeSlot'])
                     ->get();
 
                 $conflicts[] = [
                     'type' => 'room_conflict',
                     'room' => $conflict->room,
                     'day_of_week' => $conflict->day_of_week,
-                    'period_id' => $conflict->period_id,
+                    'time_slot_id' => $conflict->time_slot_id,
                     'conflict_count' => $conflict->conflict_count,
                     'schedules' => $schedules,
                 ];
@@ -216,7 +216,7 @@ class WeeklyScheduleRepository extends BaseRepository
             $schedules = $this->model
                 ->where('week_start', $weekStart)
                 ->where('is_active', true)
-                ->with(['employee', 'subject', 'period'])
+                ->with(['employee', 'subject', 'timeSlot'])
                 ->get();
 
             $totalSchedules = $schedules->count();
@@ -286,7 +286,7 @@ class WeeklyScheduleRepository extends BaseRepository
             $query = $this->model
                 ->where('week_start', $weekStart)
                 ->where('is_active', true)
-                ->with(['employee.user', 'subject', 'period']);
+                ->with(['employee.user', 'subject', 'timeSlot']);
 
             if ($locationId) {
                 $query->whereHas('employee', function ($q) use ($locationId) {
@@ -296,25 +296,25 @@ class WeeklyScheduleRepository extends BaseRepository
 
             $schedules = $query->get();
 
-            // Get all periods for the grid
-            $periods = Period::where('is_active', true)
+            // Get all time slots for the grid
+            $timeSlots = TimeSlot::where('is_active', true)
                 ->orderBy('start_time')
                 ->get();
 
             // Build grid structure
             $grid = [];
 
-            foreach ($periods as $period) {
-                $grid[$period->id] = [
-                    'period' => $period,
+            foreach ($timeSlots as $timeSlot) {
+                $grid[$timeSlot->id] = [
+                    'time_slot' => $timeSlot,
                     'days' => [],
                 ];
 
                 for ($day = 1; $day <= 7; $day++) {
                     $daySchedules = $schedules->where('day_of_week', $day)
-                        ->where('period_id', $period->id);
+                        ->where('time_slot_id', $timeSlot->id);
 
-                    $grid[$period->id]['days'][$day] = $daySchedules->map(function ($schedule) {
+                    $grid[$timeSlot->id]['days'][$day] = $daySchedules->map(function ($schedule) {
                         return [
                             'id' => $schedule->id,
                             'employee_name' => $schedule->employee->full_name,
@@ -335,15 +335,15 @@ class WeeklyScheduleRepository extends BaseRepository
     /**
      * Get available teachers for a time slot
      */
-    public function getAvailableTeachers(string $weekStart, int $dayOfWeek, string $periodId): Collection
+    public function getAvailableTeachers(string $weekStart, int $dayOfWeek, string $timeSlotId): Collection
     {
-        $cacheKey = $this->getCacheKey('available_teachers', [$weekStart, $dayOfWeek, $periodId]);
+        $cacheKey = $this->getCacheKey('available_teachers', [$weekStart, $dayOfWeek, $timeSlotId]);
 
-        return cache()->remember($cacheKey, 1800, function () use ($weekStart, $dayOfWeek, $periodId) {
+        return cache()->remember($cacheKey, 1800, function () use ($weekStart, $dayOfWeek, $timeSlotId) {
             $busyEmployeeIds = $this->model
                 ->where('week_start', $weekStart)
                 ->where('day_of_week', $dayOfWeek)
-                ->where('period_id', $periodId)
+                ->where('time_slot_id', $timeSlotId)
                 ->where('is_active', true)
                 ->pluck('employee_id');
 
@@ -367,7 +367,7 @@ class WeeklyScheduleRepository extends BaseRepository
                 ->where('week_start', $data['week_start'])
                 ->where('employee_id', $data['employee_id'])
                 ->where('day_of_week', $data['day_of_week'])
-                ->where('period_id', $data['period_id'])
+                ->where('time_slot_id', $data['time_slot_id'])
                 ->where('is_active', true)
                 ->first();
 
@@ -381,7 +381,7 @@ class WeeklyScheduleRepository extends BaseRepository
                     ->where('week_start', $data['week_start'])
                     ->where('room', $data['room'])
                     ->where('day_of_week', $data['day_of_week'])
-                    ->where('period_id', $data['period_id'])
+                    ->where('time_slot_id', $data['time_slot_id'])
                     ->where('is_active', true)
                     ->first();
 
@@ -410,16 +410,16 @@ class WeeklyScheduleRepository extends BaseRepository
             $schedule = $this->findOrFail($scheduleId);
 
             // Check for conflicts if key fields are being updated
-            if (isset($data['employee_id']) || isset($data['day_of_week']) || isset($data['period_id'])) {
+            if (isset($data['employee_id']) || isset($data['day_of_week']) || isset($data['time_slot_id'])) {
                 $employeeId = $data['employee_id'] ?? $schedule->employee_id;
                 $dayOfWeek = $data['day_of_week'] ?? $schedule->day_of_week;
-                $periodId = $data['period_id'] ?? $schedule->period_id;
+                $timeSlotId = $data['time_slot_id'] ?? $schedule->time_slot_id;
 
                 $existingSchedule = $this->model
                     ->where('week_start', $schedule->week_start)
                     ->where('employee_id', $employeeId)
                     ->where('day_of_week', $dayOfWeek)
-                    ->where('period_id', $periodId)
+                    ->where('time_slot_id', $timeSlotId)
                     ->where('is_active', true)
                     ->where('id', '!=', $scheduleId)
                     ->first();
@@ -435,7 +435,7 @@ class WeeklyScheduleRepository extends BaseRepository
                     ->where('week_start', $schedule->week_start)
                     ->where('room', $data['room'])
                     ->where('day_of_week', $data['day_of_week'] ?? $schedule->day_of_week)
-                    ->where('period_id', $data['period_id'] ?? $schedule->period_id)
+                    ->where('time_slot_id', $data['time_slot_id'] ?? $schedule->time_slot_id)
                     ->where('is_active', true)
                     ->where('id', '!=', $scheduleId)
                     ->first();
@@ -497,7 +497,7 @@ class WeeklyScheduleRepository extends BaseRepository
                     ->where('week_start', $targetWeek)
                     ->where('employee_id', $sourceSchedule->employee_id)
                     ->where('day_of_week', $sourceSchedule->day_of_week)
-                    ->where('period_id', $sourceSchedule->period_id)
+                    ->where('time_slot_id', $sourceSchedule->time_slot_id)
                     ->where('is_active', true)
                     ->exists();
 
@@ -506,7 +506,7 @@ class WeeklyScheduleRepository extends BaseRepository
                         'week_start' => $targetWeek,
                         'employee_id' => $sourceSchedule->employee_id,
                         'subject_id' => $sourceSchedule->subject_id,
-                        'period_id' => $sourceSchedule->period_id,
+                        'time_slot_id' => $sourceSchedule->time_slot_id,
                         'day_of_week' => $sourceSchedule->day_of_week,
                         'class_id' => $sourceSchedule->class_id,
                         'room' => $sourceSchedule->room,
@@ -535,12 +535,12 @@ class WeeklyScheduleRepository extends BaseRepository
             $schedules = $this->model
                 ->where('week_start', $weekStart)
                 ->where('is_active', true)
-                ->with(['employee', 'subject', 'period'])
+                ->with(['employee', 'subject', 'timeSlot'])
                 ->get();
 
-            $totalPeriods = Period::where('is_active', true)->count();
+            $totalTimeSlots = TimeSlot::where('is_active', true)->count();
             $totalDays = 7;
-            $totalSlots = $totalPeriods * $totalDays;
+            $totalSlots = $totalTimeSlots * $totalDays;
 
             $activeEmployees = Employee::where('is_active', true)
                 ->where('employee_type', 'teacher')
