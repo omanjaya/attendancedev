@@ -188,9 +188,9 @@ return new class extends Migration
         
         // Recreate views after table alterations
         try {
-            DB::statement('
-                CREATE VIEW IF NOT EXISTS effective_employee_schedules AS
-                SELECT 
+            DB::statement("
+                CREATE OR REPLACE VIEW effective_employee_schedules AS
+                SELECT
                     ems.id,
                     ems.employee_id,
                     ems.effective_date,
@@ -204,30 +204,30 @@ return new class extends Migration
                     e.full_name,
                     e.employee_type,
                     l.name as location_name,
-                    CASE 
-                        WHEN nh.id IS NOT NULL THEN "holiday"
-                        WHEN ems.status = "active" THEN "working"
+                    CASE
+                        WHEN nh.id IS NOT NULL THEN 'holiday'
+                        WHEN ems.status = 'active' THEN 'working'
                         ELSE ems.status
                     END as computed_status
                 FROM employee_monthly_schedules ems
                 JOIN monthly_schedules ms ON ems.monthly_schedule_id = ms.id
                 JOIN employees e ON ems.employee_id = e.id
                 JOIN locations l ON ems.location_id = l.id
-                LEFT JOIN national_holidays nh ON nh.holiday_date = ems.effective_date 
+                LEFT JOIN national_holidays nh ON nh.holiday_date = ems.effective_date
                     AND (nh.location_id = ems.location_id OR nh.location_id IS NULL)
-                    AND nh.is_active = 1
-                WHERE ems.deleted_at IS NULL 
-                    AND ms.deleted_at IS NULL 
+                    AND nh.is_active = true
+                WHERE ems.deleted_at IS NULL
+                    AND ms.deleted_at IS NULL
                     AND e.deleted_at IS NULL
-            ');
+            ");
         } catch (\Exception $e) {
             // View creation failed, continue
         }
-        
+
         try {
-            DB::statement('
-                CREATE VIEW IF NOT EXISTS teaching_schedule_overrides AS
-                SELECT 
+            DB::statement("
+                CREATE OR REPLACE VIEW teaching_schedule_overrides AS
+                SELECT
                     ts.id,
                     ts.teacher_id,
                     ts.day_of_week,
@@ -243,18 +243,18 @@ return new class extends Migration
                     s.name as subject_name,
                     e.full_name,
                     e.employee_type,
-                    CASE 
-                        WHEN e.employee_type = "guru_honorer" AND ts.override_attendance = 1 
-                        THEN "override_applicable"
-                        ELSE "override_not_applicable"
+                    CASE
+                        WHEN e.employee_type = 'guru_honorer' AND ts.override_attendance = true
+                        THEN 'override_applicable'
+                        ELSE 'override_not_applicable'
                     END as override_status
                 FROM teaching_schedules ts
                 JOIN employees e ON ts.teacher_id = e.id
                 JOIN subjects s ON ts.subject_id = s.id
-                WHERE ts.deleted_at IS NULL 
-                    AND ts.is_active = 1
+                WHERE ts.deleted_at IS NULL
+                    AND ts.is_active = true
                     AND e.deleted_at IS NULL
-            ');
+            ");
         } catch (\Exception $e) {
             // View creation failed, continue
         }

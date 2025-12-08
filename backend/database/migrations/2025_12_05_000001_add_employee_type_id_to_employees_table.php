@@ -66,7 +66,7 @@ return new class extends Migration
         if (DB::getDriverName() === 'sqlite') {
             DB::statement("
                 CREATE VIEW IF NOT EXISTS effective_employee_schedules AS
-                SELECT 
+                SELECT
                     ems.id,
                     ems.employee_id,
                     ems.effective_date,
@@ -74,7 +74,7 @@ return new class extends Migration
                     COALESCE(ts.teaching_end_time, ems.end_time) as effective_end_time,
                     ems.location_id,
                     ems.status,
-                    CASE 
+                    CASE
                         WHEN ts.id IS NOT NULL THEN 'teaching_override'
                         WHEN ems.is_holiday = 1 THEN 'holiday'
                         ELSE 'base_schedule'
@@ -84,8 +84,8 @@ return new class extends Migration
                     ems.monthly_schedule_id
                 FROM employee_monthly_schedules ems
                 LEFT JOIN employees e ON e.id = ems.employee_id
-                LEFT JOIN teaching_schedules ts ON 
-                    ts.teacher_id = ems.employee_id 
+                LEFT JOIN teaching_schedules ts ON
+                    ts.teacher_id = ems.employee_id
                     AND ts.is_active = 1
                     AND ts.override_attendance = 1
                     AND LOWER(strftime('%A', ems.effective_date)) = ts.day_of_week
@@ -96,8 +96,8 @@ return new class extends Migration
         } else {
             // PostgreSQL version
             DB::statement("
-                CREATE VIEW effective_employee_schedules AS
-                SELECT 
+                CREATE OR REPLACE VIEW effective_employee_schedules AS
+                SELECT
                     ems.id,
                     ems.employee_id,
                     ems.effective_date,
@@ -105,7 +105,7 @@ return new class extends Migration
                     COALESCE(ts.teaching_end_time, ems.end_time) as effective_end_time,
                     ems.location_id,
                     ems.status,
-                    CASE 
+                    CASE
                         WHEN ts.id IS NOT NULL THEN 'teaching_override'
                         WHEN ems.is_holiday = true THEN 'holiday'
                         ELSE 'base_schedule'
@@ -115,8 +115,8 @@ return new class extends Migration
                     ems.monthly_schedule_id
                 FROM employee_monthly_schedules ems
                 LEFT JOIN employees e ON e.id = ems.employee_id
-                LEFT JOIN teaching_schedules ts ON 
-                    ts.teacher_id = ems.employee_id 
+                LEFT JOIN teaching_schedules ts ON
+                    ts.teacher_id = ems.employee_id
                     AND ts.is_active = true
                     AND ts.override_attendance = true
                     AND LOWER(TO_CHAR(ems.effective_date, 'day')) = ts.day_of_week

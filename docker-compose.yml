@@ -186,13 +186,14 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./docker/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/nginx.ssl.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
       - ./backend/public:/var/www/html/public:ro
       - ./backend/storage/app/public:/var/www/html/storage/app/public:ro
+      - ./certbot/www:/var/www/certbot:ro
     depends_on:
       - backend
       - frontend
-      - deepface
     networks:
       - attendance_network
 
