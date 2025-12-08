@@ -22,7 +22,7 @@ export function DesktopEmployeeAttendancePage() {
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('list');
 
   // Fetch employee's attendance data from API
-  const { data: attendanceData, isLoading: attendanceLoading } = useQuery({
+  const { data: attendanceData } = useQuery({
     queryKey: ['employee', 'attendance', user?.id, format(selectedMonth, 'yyyy-MM')],
     queryFn: async () => {
       const [attendanceResponse, statsResponse] = await Promise.all([
