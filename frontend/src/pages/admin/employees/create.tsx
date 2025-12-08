@@ -172,9 +172,12 @@ export default function EmployeeCreatePage() {
     return employeeTypes.find((t: any) => t.id === watchEmployeeTypeId);
   }, [employeeTypes, watchEmployeeTypeId]);
 
-  // Determine if this is a teacher type (flexible schedule) or staff type (fixed schedule)
-  const isTeacherType = selectedEmployeeType?.schedule_mode === 'flexible';
-  const isStaffType = selectedEmployeeType?.schedule_mode === 'fixed';
+  // Determine if this is a teacher type (flexible schedule OR name contains 'guru') or staff type
+  const isTeacherType = selectedEmployeeType?.schedule_mode === 'flexible' ||
+    (selectedEmployeeType?.name?.toLowerCase().includes('guru') ?? false);
+
+  // Staff type is explicitly NOT a teacher type, but has a selected type
+  const isStaffType = !!selectedEmployeeType && !isTeacherType;
 
   const onSubmit = async (data: QuickEmployeeForm | FullEmployeeForm) => {
     // Map form data to API format
@@ -187,22 +190,30 @@ export default function EmployeeCreatePage() {
       ? data.nip
       : `EMP${new Date().getFullYear()}${Math.floor(Math.random() * 9000) + 1000}`;
 
+    // Get schedule mode from selected type to condition fields
+    const typeInfo = employeeTypes.find((t: any) => t.id === data.employee_type_id);
+    const isTeacher = typeInfo?.schedule_mode === 'flexible' ||
+      (typeInfo?.name?.toLowerCase().includes('guru') ?? false);
+
     const apiData = {
       employee_code: nip, // Send NIP/Employee ID
       full_name: data.name, // Backend expects full_name not name
       email: data.email,
       phone: isFullMode && 'phone' in data ? data.phone : undefined,
-      position: data.position,
+      position: data.position || undefined,
       employee_type_id: data.employee_type_id,
-      // Dynamic fields based on employee type
-      subject_id: data.subject_id || undefined, // For teachers
-      department_id: data.department_id || undefined, // For staff
-      position_id: data.position_id || undefined, // For staff
+
+      // Dynamic fields based on CONFIRMED employee type
+      // Ensure we send undefined (not empty string) and only relevant fields
+      subject_id: isTeacher && data.subject_id && data.subject_id.length > 0 ? data.subject_id : undefined,
+      department_id: !isTeacher && data.department_id && data.department_id.length > 0 ? data.department_id : undefined,
+      position_id: !isTeacher && data.position_id && data.position_id.length > 0 ? data.position_id : undefined,
+
       hire_date: isFullMode && 'join_date' in data ? data.join_date : new Date().toISOString().split('T')[0],
       is_active: true,
       password: password, // Send auto-generated password
       role: data.role, // Use selected role from form
-      location_id: data.location_id, // Send location assignment
+      location_id: data.location_id && data.location_id.length > 0 ? data.location_id : undefined, // Ensure valid UUID or undefined
     };
 
     try {

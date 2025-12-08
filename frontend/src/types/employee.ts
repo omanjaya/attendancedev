@@ -13,7 +13,10 @@ export interface Employee {
   email: string;
   phone?: string;
   position: string;
-  department: string;
+  department?: string;
+  department_id?: string;
+  subject_id?: string;
+  position_id?: string;
   employee_type_id?: string;
   employee_type?: EmployeeType;
   status: EmployeeStatus;
@@ -26,17 +29,51 @@ export interface Employee {
   location_id?: string | number;
   location_name?: string;
   location?: Location;
+
+  // Extended profile fields (from metadata)
+  metadata?: {
+    birth_place?: string;
+    nik?: string;
+    npwp?: string;
+    marital_status?: 'single' | 'married' | 'divorced' | 'widowed';
+    religion?: string;
+    emergency_contact?: {
+      name: string;
+      relation: string;
+      phone: string;
+    };
+    education?: {
+      level: string;
+      institution: string;
+      major: string;
+      year: string;
+    };
+    bank_account?: {
+      bank_name: string;
+      account_number: string;
+      account_holder: string;
+    };
+    [key: string]: any;
+  };
+
   created_at: string;
   updated_at: string;
 }
 
+// Employee form data for create/update
 // Employee form data for create/update
 export interface EmployeeFormData {
   name: string;
   email: string;
   phone?: string;
   position: string;
-  department: string;
+  department?: string;
+
+  // Dynamic linking fields
+  subject_id?: string;
+  department_id?: string;
+  position_id?: string;
+
   employee_type_id?: string;
   status: EmployeeStatus;
   join_date: string;
@@ -44,6 +81,29 @@ export interface EmployeeFormData {
   birth_date?: string;
   gender?: 'male' | 'female';
   location_id?: string;
+
+  // Extended fields
+  birth_place?: string;
+  nik?: string;
+  npwp?: string;
+  marital_status?: 'single' | 'married' | 'divorced' | 'widowed';
+  religion?: string;
+  emergency_contact?: {
+    name: string;
+    relation: string;
+    phone: string;
+  };
+  education?: {
+    level: string;
+    institution: string;
+    major: string;
+    year: string;
+  };
+  bank_account?: {
+    bank_name: string;
+    account_number: string;
+    account_holder: string;
+  };
 }
 
 // Employee filters

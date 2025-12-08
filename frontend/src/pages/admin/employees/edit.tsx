@@ -20,6 +20,7 @@ import {
   Briefcase,
   MapPin,
   Shield,
+  BookOpen, // Added
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -48,7 +49,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useNotificationStore } from '@/stores';
 import { useEmployee, useUpdateEmployee } from '@/hooks';
 import { useLocations } from '@/hooks/use-locations';
-import { useEmployeeTypes } from '@/hooks/use-master-data';
+import { useEmployeeTypes, useDepartments, usePositions, useSubjects } from '@/hooks/use-master-data';
 import { FaceEnrollmentFromPhoto, FaceEnrollmentWizard } from '@/components/face-recognition';
 import { useFaceData, useDeleteFace } from '@/hooks/use-face-recognition-api';
 
@@ -57,8 +58,16 @@ const employeeSchema = z.object({
   email: z.string().email('Email tidak valid'),
   phone: z.string().min(10, 'Nomor telepon minimal 10 digit'),
   employee_type_id: z.string().min(1, 'Pilih jenis pegawai'),
+
+  // Dynamic fields
+  subject_id: z.string().optional(),
+  department_id: z.string().optional(),
+  position_id: z.string().optional(),
+
+  // Legacy/Text fields
   department: z.string().optional(),
-  position: z.string().min(2, 'Posisi minimal 2 karakter'),
+  position: z.string().optional(),
+
   join_date: z.string().min(1, 'Pilih tanggal bergabung'),
   address: z.string().optional(),
   location_id: z.string().min(1, 'Pilih lokasi'),
@@ -132,6 +141,18 @@ export default function EmployeeEditPage() {
   const { data: employeeTypesData } = useEmployeeTypes({ is_active: true });
   const employeeTypes = employeeTypesData?.data || [];
 
+  // Departments hook (Unit Kerja)
+  const { data: departmentsData } = useDepartments({ is_active: true });
+  const departments = departmentsData?.data || [];
+
+  // Positions hook (Jabatan)
+  const { data: positionsData } = usePositions({ is_active: true });
+  const positions = positionsData?.data || [];
+
+  // Subjects hook (Mata Pelajaran)
+  const { data: subjectsData } = useSubjects({ is_active: true });
+  const subjects = subjectsData?.data || [];
+
   // Load locations on mount
   useEffect(() => {
     fetchLocations({ is_active: true });
@@ -152,6 +173,18 @@ export default function EmployeeEditPage() {
   });
 
   const isActive = watch('is_active');
+  const watchEmployeeTypeId = watch('employee_type_id');
+
+  // Get selected employee type to determine schedule_mode
+  // Use find method safely
+  const selectedEmployeeType = employeeTypes.find((t: any) => t.id === watchEmployeeTypeId);
+
+  // Determine if this is a teacher type (flexible schedule OR name contains 'guru') or staff type
+  const isTeacherType = selectedEmployeeType?.schedule_mode === 'flexible' ||
+    (selectedEmployeeType?.name?.toLowerCase().includes('guru') ?? false);
+
+  // Staff type is explicitly NOT a teacher type, but has a selected type
+  const isStaffType = !!selectedEmployeeType && !isTeacherType;
 
   // Populate form when employee data loads
   useEffect(() => {
@@ -161,8 +194,16 @@ export default function EmployeeEditPage() {
         email: employee.email,
         phone: employee.phone || '',
         employee_type_id: employee.employee_type_id || '',
+
+        // Populate IDs if available (cast to any as these might be new fields)
+        subject_id: (employee as any).subject_id || '',
+        department_id: (employee as any).department_id || '',
+        position_id: (employee as any).position_id || '',
+
+        // Fallback or text values
         department: employee.department || '',
-        position: employee.position,
+        position: employee.position || '',
+
         join_date: employee.join_date,
         address: employee.address || '',
         location_id: employee.location?.id || '',
@@ -194,6 +235,10 @@ export default function EmployeeEditPage() {
         id: id,
         data: {
           ...data,
+          // Ensure we send IDs if they are selected
+          subject_id: data.subject_id || undefined,
+          department_id: data.department_id || undefined,
+          position_id: data.position_id || undefined,
           location_id: data.location_id,
           status: data.is_active ? 'active' : 'inactive',
         },
@@ -484,23 +529,86 @@ export default function EmployeeEditPage() {
                         </SelectContent>
                       </Select>
                       {errors.employee_type_id && <p className="text-xs text-destructive">{errors.employee_type_id.message}</p>}
-                      <p className="text-xs text-muted-foreground">Menentukan aturan jadwal dan absensi karyawan</p>
+                      {selectedEmployeeType && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {isTeacherType ? 'Mode: Guru (Mata Pelajaran)' : 'Mode: Staff (Unit Kerja)'}
+                        </p>
+                      )}
                     </div>
 
+                    {/* DYNAMIC FIELD: Subject for Teachers */}
+                    {isTeacherType && (
+                      <div className="space-y-2">
+                        <Label htmlFor="subject">
+                          <BookOpen className="w-4 h-4 inline mr-1" />
+                          Mata Pelajaran <span className="text-destructive">*</span>
+                        </Label>
+                        <Select
+                          onValueChange={(v) => setValue('subject_id', v)}
+                          defaultValue={(employee as any).subject_id}
+                        >
+                          <SelectTrigger id="subject">
+                            <SelectValue placeholder="Pilih mata pelajaran" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {subjects.map((s: any) => (
+                              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">Mata pelajaran utama yang diajarkan</p>
+                      </div>
+                    )}
+
+                    {/* DYNAMIC FIELD: Department for Staff */}
+                    {isStaffType && (
+                      <div className="space-y-2">
+                        <Label htmlFor="department">Unit Kerja</Label>
+                        <Select
+                          onValueChange={(v) => setValue('department_id', v)}
+                          defaultValue={(employee as any).department_id}
+                        >
+                          <SelectTrigger id="department">
+                            <SelectValue placeholder="Pilih unit kerja" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {departments.map((d: any) => (
+                              <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {errors.department_id && <p className="text-xs text-destructive">{errors.department_id.message}</p>}
+                      </div>
+                    )}
+
+                    {/* POSITION FIELD */}
                     <div className="space-y-2">
                       <Label htmlFor="position">Posisi/Jabatan <span className="text-destructive">*</span></Label>
-                      <Input id="position" placeholder="Contoh: Guru Matematika" {...register('position')} />
+                      {isStaffType ? (
+                        <Select
+                          onValueChange={(v) => setValue('position_id', v)}
+                          defaultValue={(employee as any).position_id}
+                        >
+                          <SelectTrigger id="position">
+                            <SelectValue placeholder="Pilih jabatan" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {positions.map((p: any) => (
+                              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input id="position" placeholder="Contoh: Guru Matematika" {...register('position')} />
+                      )}
+
                       {errors.position && <p className="text-xs text-destructive">{errors.position.message}</p>}
                     </div>
+
+                    {/* Location Field - moved here to balance grid if needed, or keep below */}
                   </div>
 
                   <div className="grid gap-6 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="department">Departemen/Unit</Label>
-                      <Input id="department" placeholder="Contoh: Bagian Akademik" {...register('department')} />
-                      <p className="text-xs text-muted-foreground">Opsional, untuk pengelompokan internal</p>
-                    </div>
-
                     <div className="space-y-2">
                       <Label htmlFor="location">Lokasi Kerja <span className="text-destructive">*</span></Label>
                       <Select defaultValue={employee.location?.id} onValueChange={(value) => setValue('location_id', value)}>

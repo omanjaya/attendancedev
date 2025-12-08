@@ -35,6 +35,7 @@ export interface Subject {
     name: string;
     code: string;
     description?: string;
+    category?: string;
     is_active: boolean;
     sort_order?: number;
     employees_count?: number;

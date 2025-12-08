@@ -22,8 +22,12 @@ class Employee extends Model
     protected $fillable = [
         'user_id', 'employee_id', 'full_name', 'phone',
         'photo_path', 'employee_type', 'employee_type_id', 'hire_date', 'salary_type',
-        'salary_amount', 'hourly_rate', 'location_id', 'metadata', 'is_active',
+        'salary_amount', 'hourly_rate', 'location_id', 'metadata', 'sensitive_data', 'is_active',
         'subject_id', 'department_id', 'position_id',
+    ];
+
+    protected $hidden = [
+        'sensitive_data'
     ];
 
     protected $casts = [
@@ -32,7 +36,34 @@ class Employee extends Model
         'hourly_rate' => 'decimal:2',
         'is_active' => 'boolean',
         'metadata' => 'array',
+        'sensitive_data' => 'encrypted:array',
     ];
+
+    /**
+     * Accessor to merge metadata and sensitive_data seamlessly.
+     * Use getRawOriginal('metadata') to get raw DB value if needed.
+     */
+    public function getMetadataAttribute($value)
+    {
+        // Get public metadata (decoded)
+        $publicData = isset($this->attributes['metadata']) 
+            ? json_decode($this->attributes['metadata'], true) 
+            : [];
+            
+        // Handle double-encoding edge case
+        if (is_string($publicData)) {
+            $publicData = json_decode($publicData, true) ?? [];
+        }
+
+        // Get sensitive data (auto-decrypted by cast)
+        // Check array key first to avoid recursion or missing key issues
+        $sensitiveData = $this->sensitive_data ?? [];
+
+        if (!is_array($publicData)) $publicData = [];
+        if (!is_array($sensitiveData)) $sensitiveData = [];
+
+        return array_merge($publicData, $sensitiveData);
+    }
 
     // Attributes to append when serializing to JSON (from accessors)
     protected $appends = [
@@ -220,7 +251,9 @@ class Employee extends Model
      */
     protected function getDecodedMetadata(): array
     {
-        $metadata = $this->attributes['metadata'] ?? null;
+        // Use getRawOriginal to bypass the getMetadataAttribute accessor interaction
+        $metadata = $this->getRawOriginal('metadata'); // isset check removed as getRawOriginal handles it safely enough or returns null? no, returns mixed.
+
         
         if ($metadata === null) {
             return [];

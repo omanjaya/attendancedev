@@ -130,22 +130,31 @@ class EmployeeApiController extends BaseApiController
                 }
 
                 // Prepare employee data
+                // Determine legacy employee_type based on role or employee_type_id
+                $legacyEmployeeType = 'staff'; // Default to staff
+                if ($role === 'guru') {
+                    $legacyEmployeeType = 'honorary'; // Teachers are typically honorary
+                } elseif (in_array($role, ['admin', 'kepala-sekolah'])) {
+                    $legacyEmployeeType = 'permanent'; // Admin/Principal are permanent
+                }
+
                 $employeeData = [
                     'user_id' => $user->id,
                     'employee_id' => $validated['employee_code'] ?? 'EMP' . str_pad(Employee::count() + 1, 4, '0', STR_PAD_LEFT),
                     'full_name' => $validated['full_name'],
                     'phone' => $validated['phone'] ?? null,
+                    'employee_type' => $legacyEmployeeType, // Legacy enum column (NOT NULL)
                     'employee_type_id' => $validated['employee_type_id'],
                     'salary_type' => $validated['salary_type'] ?? 'monthly',
                     'salary_amount' => $validated['base_salary'] ?? 0,
                     'hire_date' => $validated['hire_date'] ?? ($request->get('join_date') ?? now()),
                     'is_active' => $validated['is_active'] ?? true,
-                    'location_id' => $validated['location_id'] ?? null, // Assign location
+                    'location_id' => $validated['location_id'] ?? null,
                     // Dynamic fields based on employee type
-                    'subject_id' => $validated['subject_id'] ?? null, // For teachers
-                    'department_id' => $validated['department_id'] ?? null, // For staff - Unit Kerja
-                    'position_id' => $validated['position_id'] ?? null, // For staff - Jabatan
-                    'metadata' => $metadata, // Legacy fallback for department and position
+                    'subject_id' => $validated['subject_id'] ?? null,
+                    'department_id' => $validated['department_id'] ?? null,
+                    'position_id' => $validated['position_id'] ?? null,
+                    'metadata' => $metadata,
                 ];
 
                 // Create employee
@@ -239,20 +248,104 @@ class EmployeeApiController extends BaseApiController
             'base_salary' => 'sometimes|numeric|min:0',
             'hire_date' => 'sometimes|date',
             'is_active' => 'boolean',
-            'location_id' => 'nullable|uuid|exists:locations,id', // Allow location update
+            'location_id' => 'nullable|uuid|exists:locations,id',
+            'subject_id' => 'nullable|exists:subjects,id',
+            'department_id' => 'nullable|exists:departments,id',
+            'position_id' => 'nullable|exists:positions,id',
+            
+            // Extended Profile Fields (stored in metadata)
+            'birth_date' => 'nullable|date',
+            'birth_place' => 'nullable|string|max:100',
+            'gender' => 'nullable|in:male,female',
+            'nik' => 'nullable|string|max:20',
+            'npwp' => 'nullable|string|max:25',
+            'marital_status' => 'nullable|string|in:single,married,divorced,widowed',
+            'religion' => 'nullable|string|max:50',
+            'address' => 'nullable|string|max:500',
+            
+            // JSON fields
+            'emergency_contact' => 'nullable|array',
+            'emergency_contact.name' => 'nullable|string|max:100',
+            'emergency_contact.relation' => 'nullable|string|max:50',
+            'emergency_contact.phone' => 'nullable|string|max:20',
+            
+            'education' => 'nullable|array',
+            'education.level' => 'nullable|string|max:20',
+            'education.institution' => 'nullable|string|max:100',
+            'education.major' => 'nullable|string|max:100',
+            'education.year' => 'nullable|numeric|digits:4',
+            
+            'bank_account' => 'nullable|array',
+            'bank_account.bank_name' => 'nullable|string|max:50',
+            'bank_account.account_number' => 'nullable|string|max:50',
+            'bank_account.account_holder' => 'nullable|string|max:100',
         ]);
 
         try {
-            $employee->update([
+            // Prepare update data
+            $updateData = [
                 'full_name' => $validated['full_name'] ?? $employee->full_name,
                 'phone' => $validated['phone'] ?? $employee->phone,
                 'employee_type_id' => $validated['employee_type_id'] ?? $employee->employee_type_id,
                 'salary_type' => $validated['salary_type'] ?? $employee->salary_type,
                 'salary_amount' => $validated['base_salary'] ?? $employee->salary_amount,
                 'hire_date' => $validated['hire_date'] ?? $employee->hire_date,
-                'is_active' => $validated['is_active'] ?? $employee->is_active,
-                'location_id' => $validated['location_id'] ?? $employee->location_id, // Update location if provided
-            ]);
+                'is_active' => $request->has('is_active') ? $validated['is_active'] : $employee->is_active,
+                'location_id' => $request->has('location_id') ? $validated['location_id'] : $employee->location_id,
+                'subject_id' => $request->has('subject_id') ? $validated['subject_id'] : $employee->subject_id,
+                'department_id' => $request->has('department_id') ? $validated['department_id'] : $employee->department_id,
+                'position_id' => $request->has('position_id') ? $validated['position_id'] : $employee->position_id,
+            ];
+
+            // Handle metadata updates
+            // 1. Prepare Public Metadata (Searchable)
+            $publicMetadata = isset($employee->attributes['metadata']) 
+                ? json_decode($employee->attributes['metadata'], true) 
+                : [];
+            if (is_string($publicMetadata)) $publicMetadata = json_decode($publicMetadata, true) ?? [];
+
+            // 2. Prepare Sensitive Data (Encrypted)
+            $sensitiveData = $employee->sensitive_data ?? [];
+            
+            // Define keys for each bucket
+            $sensitiveKeys = [
+                'birth_date', 'birth_place', 'gender', 'nik', 'npwp', 
+                'marital_status', 'religion', 'address',
+                'emergency_contact', 'education', 'bank_account'
+            ];
+
+            $publicKeys = ['department', 'position', 'face_recognition']; // face_recognition stays in public meta for performance? or easy access
+
+            $isSensitiveUpdated = false;
+            $isPublicUpdated = false;
+
+            // Process validated data
+            foreach ($sensitiveKeys as $key) {
+                if (array_key_exists($key, $validated)) {
+                    $sensitiveData[$key] = $validated[$key];
+                    $isSensitiveUpdated = true;
+                }
+            }
+
+            // Handle legacy department/position overrides in metadata
+            if (isset($validated['department'])) {
+                $publicMetadata['department'] = $validated['department'];
+                $isPublicUpdated = true;
+            }
+            if (isset($validated['position'])) {
+                $publicMetadata['position'] = $validated['position'];
+                $isPublicUpdated = true;
+            }
+
+            if ($isPublicUpdated) {
+                $updateData['metadata'] = $publicMetadata;
+            }
+            
+            if ($isSensitiveUpdated) {
+                $updateData['sensitive_data'] = $sensitiveData;
+            }
+
+            $employee->update($updateData);
 
             return $this->apiResponse(
                 $employee->fresh()->load(['user', 'location']),

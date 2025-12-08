@@ -13,6 +13,7 @@ import {
     CalendarClock,
     Building2,
     Briefcase,
+    BookOpen,
 } from 'lucide-react';
 import { PageHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
@@ -56,7 +57,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { useEmployeeTypes, useDepartments, usePositions } from '@/hooks/use-master-data';
+import { useEmployeeTypes, useDepartments, usePositions, useSubjects } from '@/hooks/use-master-data';
 import {
     createEmployeeType,
     updateEmployeeType,
@@ -67,10 +68,13 @@ import {
     createPosition,
     updatePosition,
     deletePosition,
+    createSubject,
+    updateSubject,
+    deleteSubject,
 } from '@/lib/api/master-data';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import type { EmployeeType, Department, Position } from '@/types/master-data';
+import type { EmployeeType, Department, Position, Subject } from '@/types/master-data';
 
 // ============ Employee Type Section ============
 interface EmployeeTypeFormData {
@@ -119,6 +123,23 @@ const initialPositionFormData: PositionFormData = {
     is_active: true,
 };
 
+// ============ Subject Section ============
+interface SubjectFormData {
+    name: string;
+    code: string;
+    description: string;
+    category: string;
+    is_active: boolean;
+}
+
+const initialSubjectFormData: SubjectFormData = {
+    name: '',
+    code: '',
+    description: '',
+    category: 'General',
+    is_active: true,
+};
+
 export default function EmployeeTypesPage() {
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState('employee-types');
@@ -144,6 +165,13 @@ export default function EmployeeTypesPage() {
     const [selectedPos, setSelectedPos] = useState<Position | null>(null);
     const [posFormData, setPosFormData] = useState<PositionFormData>(initialPositionFormData);
 
+    // ============ Subjects State ============
+    const [subjSearchQuery, setSubjSearchQuery] = useState('');
+    const [isSubjDialogOpen, setIsSubjDialogOpen] = useState(false);
+    const [isSubjDeleteDialogOpen, setIsSubjDeleteDialogOpen] = useState(false);
+    const [selectedSubj, setSelectedSubj] = useState<Subject | null>(null);
+    const [subjFormData, setSubjFormData] = useState<SubjectFormData>(initialSubjectFormData);
+
     // ============ Fetch Data ============
     const { data: typesResponse, isLoading: typesLoading } = useEmployeeTypes({
         include_inactive: true,
@@ -162,6 +190,12 @@ export default function EmployeeTypesPage() {
         search: posSearchQuery || undefined
     });
     const positions = posResponse?.data || [];
+
+    const { data: subjResponse, isLoading: subjLoading } = useSubjects({
+        is_active: undefined, // Include all active/inactive
+        search: subjSearchQuery || undefined
+    });
+    const subjects = subjResponse?.data || [];
 
     // ============ Employee Type Mutations ============
     const createTypeMutation = useMutation({
@@ -283,6 +317,46 @@ export default function EmployeeTypesPage() {
         },
     });
 
+    // ============ Subject Mutations ============
+    const createSubjMutation = useMutation({
+        mutationFn: createSubject,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['subjects'] });
+            toast.success('Mata pelajaran berhasil dibuat');
+            setIsSubjDialogOpen(false);
+            setSubjFormData(initialSubjectFormData);
+        },
+        onError: (error: any) => {
+            toast.error(error?.response?.data?.message || 'Gagal membuat mata pelajaran');
+        },
+    });
+
+    const updateSubjMutation = useMutation({
+        mutationFn: ({ id, data }: { id: string; data: Partial<Subject> }) =>
+            updateSubject(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['subjects'] });
+            toast.success('Mata pelajaran berhasil diupdate');
+            setIsSubjDialogOpen(false);
+        },
+        onError: (error: any) => {
+            toast.error(error?.response?.data?.message || 'Gagal mengupdate mata pelajaran');
+        },
+    });
+
+    const deleteSubjMutation = useMutation({
+        mutationFn: deleteSubject,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['subjects'] });
+            toast.success('Mata pelajaran berhasil dihapus');
+            setIsSubjDeleteDialogOpen(false);
+            setSelectedSubj(null);
+        },
+        onError: (error: any) => {
+            toast.error(error?.response?.data?.message || 'Gagal menghapus mata pelajaran');
+        },
+    });
+
     // ============ Employee Type Handlers ============
     const handleOpenTypeCreate = () => {
         setSelectedType(null);
@@ -365,9 +439,38 @@ export default function EmployeeTypesPage() {
         }
     };
 
+    // ============ Subject Handlers ============
+    const handleOpenSubjCreate = () => {
+        setSelectedSubj(null);
+        setSubjFormData(initialSubjectFormData);
+        setIsSubjDialogOpen(true);
+    };
+
+    const handleOpenSubjEdit = (subj: Subject) => {
+        setSelectedSubj(subj);
+        setSubjFormData({
+            name: subj.name,
+            code: subj.code,
+            description: subj.description || '',
+            category: subj.category || 'General',
+            is_active: subj.is_active,
+        });
+        setIsSubjDialogOpen(true);
+    };
+
+    const handleSubjSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (selectedSubj) {
+            updateSubjMutation.mutate({ id: selectedSubj.id, data: subjFormData });
+        } else {
+            createSubjMutation.mutate(subjFormData);
+        }
+    };
+
     const isTypePending = createTypeMutation.isPending || updateTypeMutation.isPending;
     const isDeptPending = createDeptMutation.isPending || updateDeptMutation.isPending;
     const isPosPending = createPosMutation.isPending || updatePosMutation.isPending;
+    const isSubjPending = createSubjMutation.isPending || updateSubjMutation.isPending;
 
     return (
         <div className="p-4 space-y-6 sm:p-6">
@@ -380,7 +483,7 @@ export default function EmployeeTypesPage() {
 
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="employee-types" className="flex items-center gap-2">
                         <Users2 className="h-4 w-4" />
                         <span className="hidden sm:inline">Jenis Pegawai</span>
@@ -394,6 +497,10 @@ export default function EmployeeTypesPage() {
                     <TabsTrigger value="positions" className="flex items-center gap-2">
                         <Briefcase className="h-4 w-4" />
                         <span>Jabatan</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="subjects" className="flex items-center gap-2">
+                        <BookOpen className="h-4 w-4" />
+                        <span>Mata Pelajaran</span>
                     </TabsTrigger>
                 </TabsList>
 
@@ -727,6 +834,115 @@ export default function EmployeeTypesPage() {
                                                             onClick={() => {
                                                                 setSelectedPos(pos);
                                                                 setIsPosDeleteDialogOpen(true);
+                                                            }}
+                                                        >
+                                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* ============ Subjects Tab ============ */}
+                <TabsContent value="subjects" className="space-y-4">
+                    <div className="flex flex-col sm:flex-row gap-4 justify-between">
+                        <div className="relative flex-1 max-w-md">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Cari mata pelajaran..."
+                                value={subjSearchQuery}
+                                onChange={(e) => setSubjSearchQuery(e.target.value)}
+                                className="pl-9"
+                            />
+                        </div>
+                        <Button onClick={handleOpenSubjCreate}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Tambah Mapel
+                        </Button>
+                    </div>
+
+                    <Card>
+                        <CardContent className="p-0">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-10"></TableHead>
+                                        <TableHead>Nama Mapel</TableHead>
+                                        <TableHead>Kode</TableHead>
+                                        <TableHead>Kategori</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead className="text-right">Aksi</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {subjLoading ? (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="text-center py-10">
+                                                <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : subjects.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                                                Belum ada mata pelajaran
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        subjects.map((subj: Subject) => (
+                                            <TableRow key={subj.id}>
+                                                <TableCell>
+                                                    <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div>
+                                                        <div className="font-medium">{subj.name}</div>
+                                                        {subj.description && (
+                                                            <div className="text-sm text-muted-foreground truncate max-w-[200px]">
+                                                                {subj.description}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline">{subj.code}</Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="secondary">{subj.category || '-'}</Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {subj.is_active ? (
+                                                        <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100">
+                                                            <Check className="h-3 w-3 mr-1" />
+                                                            Aktif
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge variant="secondary">
+                                                            <X className="h-3 w-3 mr-1" />
+                                                            Nonaktif
+                                                        </Badge>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex justify-end gap-1">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => handleOpenSubjEdit(subj)}
+                                                        >
+                                                            <Pencil className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => {
+                                                                setSelectedSubj(subj);
+                                                                setIsSubjDeleteDialogOpen(true);
                                                             }}
                                                         >
                                                             <Trash2 className="h-4 w-4 text-destructive" />
@@ -1092,6 +1308,131 @@ export default function EmployeeTypesPage() {
                             disabled={deletePosMutation.isPending}
                         >
                             {deletePosMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                            Hapus
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            {/* ============ Subject Dialog ============ */}
+            <Dialog open={isSubjDialogOpen} onOpenChange={setIsSubjDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {selectedSubj ? 'Edit Mata Pelajaran' : 'Tambah Mata Pelajaran'}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {selectedSubj ? 'Ubah informasi mata pelajaran' : 'Masukkan data mata pelajaran baru'}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <form onSubmit={handleSubjSubmit} className="space-y-4">
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="subj-name">Nama Mapel *</Label>
+                                <Input
+                                    id="subj-name"
+                                    value={subjFormData.name}
+                                    onChange={(e) => setSubjFormData(prev => ({
+                                        ...prev,
+                                        name: e.target.value
+                                    }))}
+                                    placeholder="Contoh: Matematika, Bahasa Indonesia"
+                                    required
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="subj-code">Kode *</Label>
+                                <Input
+                                    id="subj-code"
+                                    value={subjFormData.code}
+                                    onChange={(e) => setSubjFormData(prev => ({
+                                        ...prev,
+                                        code: e.target.value.toLowerCase().replace(/\s+/g, '_')
+                                    }))}
+                                    placeholder="Contoh: mtk, bind"
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="subj-category">Kategori</Label>
+                                <Select
+                                    value={subjFormData.category}
+                                    onValueChange={(v) => setSubjFormData(prev => ({
+                                        ...prev,
+                                        category: v
+                                    }))}
+                                >
+                                    <SelectTrigger id="subj-category">
+                                        <SelectValue placeholder="Pilih kategori" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="General">Umum</SelectItem>
+                                        <SelectItem value="Vocational">Kejuruan</SelectItem>
+                                        <SelectItem value="Local Content">Muatan Lokal</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="subj-desc">Deskripsi</Label>
+                                <Textarea
+                                    id="subj-desc"
+                                    value={subjFormData.description}
+                                    onChange={(e) => setSubjFormData(prev => ({
+                                        ...prev,
+                                        description: e.target.value
+                                    }))}
+                                    placeholder="Deskripsi singkat..."
+                                    rows={2}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between rounded-lg border p-3">
+                            <div className="space-y-0.5">
+                                <Label>Status Aktif</Label>
+                                <p className="text-xs text-muted-foreground">
+                                    Mata pelajaran aktif bisa dipilih
+                                </p>
+                            </div>
+                            <Switch
+                                checked={subjFormData.is_active}
+                                onCheckedChange={(checked) =>
+                                    setSubjFormData(prev => ({ ...prev, is_active: checked }))
+                                }
+                            />
+                        </div>
+
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setIsSubjDialogOpen(false)}>
+                                Batal
+                            </Button>
+                            <Button type="submit" disabled={isSubjPending}>
+                                {isSubjPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                                {selectedSubj ? 'Simpan' : 'Tambah'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <AlertDialog open={isSubjDeleteDialogOpen} onOpenChange={setIsSubjDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Hapus Mata Pelajaran</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Apakah Anda yakin ingin menghapus mata pelajaran "{selectedSubj?.name}"?
+                            Tindakan ini tidak dapat dibatalkan.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Batal</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => selectedSubj && deleteSubjMutation.mutate(selectedSubj.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            disabled={deleteSubjMutation.isPending}
+                        >
+                            {deleteSubjMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                             Hapus
                         </AlertDialogAction>
                     </AlertDialogFooter>
