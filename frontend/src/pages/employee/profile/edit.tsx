@@ -16,10 +16,8 @@ import {
   EyeOff,
   AlertTriangle,
   Camera,
-  Briefcase,
   GraduationCap,
   CreditCard,
-  FileText,
   Contact,
 } from 'lucide-react';
 
@@ -105,7 +103,7 @@ type PasswordForm = z.infer<typeof passwordSchema>;
 
 export default function ProfileEditPage() {
   const { success, error: showError } = useNotificationStore();
-  const { user, fetchUser, hasRole } = useAuthStore();
+  const { user, fetchUser } = useAuthStore();
 
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [isPasswordLoading, setIsPasswordLoading] = useState(false);
