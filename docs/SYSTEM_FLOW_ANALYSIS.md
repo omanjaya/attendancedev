@@ -620,69 +620,69 @@ Sistem ini adalah aplikasi manajemen kehadiran (attendance management system) be
 
 ### Authentication
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/v1/auth/login` | Login |
-| POST | `/v1/auth/logout` | Logout |
-| GET | `/v1/auth/me` | Get current user |
-| POST | `/v1/auth/forgot-password` | Request password reset |
-| POST | `/v1/auth/reset-password` | Reset password |
+| Method | Endpoint                     | Description            |
+| ------ | ---------------------------- | ---------------------- |
+| POST   | `/v1/auth/login`           | Login                  |
+| POST   | `/v1/auth/logout`          | Logout                 |
+| GET    | `/v1/auth/me`              | Get current user       |
+| POST   | `/v1/auth/forgot-password` | Request password reset |
+| POST   | `/v1/auth/reset-password`  | Reset password         |
 
 ### Employees
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/v1/employees` | List employees |
-| POST | `/v1/employees` | Create employee |
-| GET | `/v1/employees/{id}` | Get employee detail |
-| PUT | `/v1/employees/{id}` | Update employee |
-| DELETE | `/v1/employees/{id}` | Delete employee |
-| POST | `/v1/employees/bulk` | Bulk actions |
+| Method | Endpoint               | Description         |
+| ------ | ---------------------- | ------------------- |
+| GET    | `/v1/employees`      | List employees      |
+| POST   | `/v1/employees`      | Create employee     |
+| GET    | `/v1/employees/{id}` | Get employee detail |
+| PUT    | `/v1/employees/{id}` | Update employee     |
+| DELETE | `/v1/employees/{id}` | Delete employee     |
+| POST   | `/v1/employees/bulk` | Bulk actions        |
 
 ### Attendance
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/v1/attendance` | List attendance |
-| POST | `/v1/attendance/check-in` | Check-in |
-| POST | `/v1/attendance/check-out` | Check-out |
-| GET | `/v1/attendance/status` | Get current status |
-| GET | `/v1/attendance/statistics` | Get statistics |
+| Method | Endpoint                      | Description        |
+| ------ | ----------------------------- | ------------------ |
+| GET    | `/v1/attendance`            | List attendance    |
+| POST   | `/v1/attendance/check-in`   | Check-in           |
+| POST   | `/v1/attendance/check-out`  | Check-out          |
+| GET    | `/v1/attendance/status`     | Get current status |
+| GET    | `/v1/attendance/statistics` | Get statistics     |
 
 ### Face Recognition
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/v1/face-recognition/register` | Register face |
-| POST | `/v1/face-recognition/verify` | Verify face |
-| POST | `/v1/face/deepface/extract-embedding` | Extract embedding |
-| POST | `/v1/face/deepface/check-liveness` | Liveness check |
+| Method | Endpoint                                | Description       |
+| ------ | --------------------------------------- | ----------------- |
+| POST   | `/v1/face-recognition/register`       | Register face     |
+| POST   | `/v1/face-recognition/verify`         | Verify face       |
+| POST   | `/v1/face/deepface/extract-embedding` | Extract embedding |
+| POST   | `/v1/face/deepface/check-liveness`    | Liveness check    |
 
 ### Schedules
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/v1/schedules` | List schedules |
-| POST | `/v1/schedules` | Create schedule |
-| GET | `/v1/monthly-schedules` | Get monthly schedules |
-| POST | `/v1/monthly-schedules/{id}/assign` | Assign employees |
+| Method | Endpoint                              | Description           |
+| ------ | ------------------------------------- | --------------------- |
+| GET    | `/v1/schedules`                     | List schedules        |
+| POST   | `/v1/schedules`                     | Create schedule       |
+| GET    | `/v1/monthly-schedules`             | Get monthly schedules |
+| POST   | `/v1/monthly-schedules/{id}/assign` | Assign employees      |
 
 ### Leave
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/v1/leave-requests` | List leave requests |
-| POST | `/v1/leave-requests` | Create leave request |
-| POST | `/v1/leave-requests/{id}/approve` | Approve leave |
-| POST | `/v1/leave-requests/{id}/reject` | Reject leave |
+| Method | Endpoint                            | Description          |
+| ------ | ----------------------------------- | -------------------- |
+| GET    | `/v1/leave-requests`              | List leave requests  |
+| POST   | `/v1/leave-requests`              | Create leave request |
+| POST   | `/v1/leave-requests/{id}/approve` | Approve leave        |
+| POST   | `/v1/leave-requests/{id}/reject`  | Reject leave         |
 
 ### Reports
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/v1/reports/monthly-recap` | Monthly recap |
-| POST | `/v1/reports/generate` | Generate report |
-| GET | `/v1/reports/templates` | List templates |
+| Method | Endpoint                      | Description     |
+| ------ | ----------------------------- | --------------- |
+| GET    | `/v1/reports/monthly-recap` | Monthly recap   |
+| POST   | `/v1/reports/generate`      | Generate report |
+| GET    | `/v1/reports/templates`     | List templates  |
 
 ---
 

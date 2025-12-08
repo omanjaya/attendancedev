@@ -5,6 +5,11 @@
 # 1. Build Docker images untuk semua services
 # 2. Push ke Docker Hub
 # 3. Deploy ke VPS via SSH
+# 
+# Optimization features:
+# - [skip ci] support in commit message
+# - Path-based conditional builds
+# - Skip for docs-only changes
 # ============================================
 
 name: Build & Deploy
@@ -16,6 +21,13 @@ on:
       - production
     tags:
       - 'v*'
+    # Skip workflow untuk documentation-only changes
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'LICENSE'
+      - 'README*'
   workflow_dispatch:
     inputs:
       deploy_environment:
@@ -26,6 +38,11 @@ on:
         options:
           - production
           - staging
+      force_build_all:
+        description: 'Force build all images'
+        required: false
+        default: false
+        type: boolean
 
 env:
   DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -33,11 +50,77 @@ env:
 
 jobs:
   # ==========================================
-  # Job 1: Build & Test
+  # Job 0: Check if CI should be skipped
+  # ==========================================
+  check-skip:
+    name: Check Skip Conditions
+    runs-on: ubuntu-latest
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+    steps:
+      - name: Check for [skip ci] in commit message
+        id: skip_check
+        run: |
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          if [[ "$COMMIT_MSG" == *"[skip ci]"* ]] || [[ "$COMMIT_MSG" == *"[ci skip]"* ]]; then
+            echo "should_skip=true" >> $GITHUB_OUTPUT
+            echo "⏭️ Skipping CI due to [skip ci] in commit message"
+          else
+            echo "should_skip=false" >> $GITHUB_OUTPUT
+            echo "✅ Proceeding with CI"
+          fi
+
+  # ==========================================
+  # Job 1: Detect Changes
+  # ==========================================
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    needs: check-skip
+    if: needs.check-skip.outputs.should_skip != 'true'
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+      deepface: ${{ steps.changes.outputs.deepface }}
+      any_changes: ${{ steps.changes.outputs.backend == 'true' || steps.changes.outputs.frontend == 'true' || steps.changes.outputs.deepface == 'true' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check path changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - 'docker/php/**'
+              - 'docker/nginx/**'
+            frontend:
+              - 'frontend/**'
+              - 'docker/node/**'
+            deepface:
+              - 'deepface/**'
+              - 'docker/python/**'
+
+      - name: Log detected changes
+        run: |
+          echo "Backend changes: ${{ steps.changes.outputs.backend }}"
+          echo "Frontend changes: ${{ steps.changes.outputs.frontend }}"
+          echo "DeepFace changes: ${{ steps.changes.outputs.deepface }}"
+
+  # ==========================================
+  # Job 2: Build & Test
   # ==========================================
   build-and-test:
     name: Build & Test
     runs-on: ubuntu-latest
+    needs: [check-skip, detect-changes]
+    if: |
+      needs.check-skip.outputs.should_skip != 'true' && 
+      (needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch')
     
     steps:
       - name: Checkout repository
@@ -94,12 +177,17 @@ jobs:
           retention-days: 1
 
   # ==========================================
-  # Job 2: Build Docker Images
+  # Job 3: Build Docker Images (Conditional)
   # ==========================================
   build-docker:
     name: Build Docker Images
     runs-on: ubuntu-latest
-    needs: build-and-test
+    needs: [build-and-test, detect-changes]
+    outputs:
+      backend_built: ${{ steps.build_backend.outputs.built }}
+      frontend_built: ${{ steps.build_frontend.outputs.built }}
+      deepface_built: ${{ steps.build_deepface.outputs.built }}
+      version: ${{ steps.meta.outputs.VERSION }}
     
     steps:
       - name: Checkout repository
@@ -127,8 +215,10 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "Building version: $VERSION"
 
-      # Build Backend Image
+      # Build Backend Image (conditional)
       - name: Build & Push Backend Image
+        id: build_backend
+        if: needs.detect-changes.outputs.backend == 'true' || github.event.inputs.force_build_all == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -141,8 +231,15 @@ jobs:
           cache-to: type=gha,mode=max
           platforms: linux/amd64
 
-      # Build Frontend Image
+      - name: Mark Backend Built
+        if: needs.detect-changes.outputs.backend == 'true' || github.event.inputs.force_build_all == 'true'
+        run: echo "built=true" >> $GITHUB_OUTPUT
+        id: backend_status
+
+      # Build Frontend Image (conditional)
       - name: Build & Push Frontend Image
+        id: build_frontend
+        if: needs.detect-changes.outputs.frontend == 'true' || github.event.inputs.force_build_all == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -158,8 +255,15 @@ jobs:
           cache-to: type=gha,mode=max
           platforms: linux/amd64
 
-      # Build DeepFace Image
+      - name: Mark Frontend Built
+        if: needs.detect-changes.outputs.frontend == 'true' || github.event.inputs.force_build_all == 'true'
+        run: echo "built=true" >> $GITHUB_OUTPUT
+        id: frontend_status
+
+      # Build DeepFace Image (conditional)
       - name: Build & Push DeepFace Image
+        id: build_deepface
+        if: needs.detect-changes.outputs.deepface == 'true' || github.event.inputs.force_build_all == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -172,14 +276,30 @@ jobs:
           cache-to: type=gha,mode=max
           platforms: linux/amd64
 
+      - name: Mark DeepFace Built
+        if: needs.detect-changes.outputs.deepface == 'true' || github.event.inputs.force_build_all == 'true'
+        run: echo "built=true" >> $GITHUB_OUTPUT
+        id: deepface_status
+
+      - name: Summarize builds
+        run: |
+          echo "### Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | Built |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend | ${{ needs.detect-changes.outputs.backend == 'true' && '✅' || '⏭️ Skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend | ${{ needs.detect-changes.outputs.frontend == 'true' && '✅' || '⏭️ Skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| DeepFace | ${{ needs.detect-changes.outputs.deepface == 'true' && '✅' || '⏭️ Skipped' }} |" >> $GITHUB_STEP_SUMMARY
+
   # ==========================================
-  # Job 3: Deploy to VPS
+  # Job 4: Deploy to VPS
   # ==========================================
   deploy:
     name: Deploy to VPS
     runs-on: ubuntu-latest
-    needs: build-docker
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production' || startsWith(github.ref, 'refs/tags/')
+    needs: [build-docker, detect-changes]
+    if: |
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production' || startsWith(github.ref, 'refs/tags/')) &&
+      (needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.frontend == 'true' || needs.detect-changes.outputs.deepface == 'true' || github.event.inputs.force_build_all == 'true')
     environment: production
     
     steps:
@@ -198,11 +318,16 @@ jobs:
 
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          DEPLOY_BACKEND: ${{ needs.detect-changes.outputs.backend == 'true' || github.event.inputs.force_build_all == 'true' }}
+          DEPLOY_FRONTEND: ${{ needs.detect-changes.outputs.frontend == 'true' || github.event.inputs.force_build_all == 'true' }}
+          DEPLOY_DEEPFACE: ${{ needs.detect-changes.outputs.deepface == 'true' || github.event.inputs.force_build_all == 'true' }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
+          envs: DEPLOY_BACKEND,DEPLOY_FRONTEND,DEPLOY_DEEPFACE
           script: |
             # Navigate to project directory
             cd /opt/attendancedev
@@ -216,15 +341,32 @@ jobs:
             # Login to Docker Hub
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
             
-            # Pull latest images
-            docker pull ${{ env.IMAGE_PREFIX }}-backend:${{ steps.version.outputs.VERSION }}
-            docker pull ${{ env.IMAGE_PREFIX }}-frontend:${{ steps.version.outputs.VERSION }}
-            docker pull ${{ env.IMAGE_PREFIX }}-deepface:${{ steps.version.outputs.VERSION }}
+            echo "📦 Selectively pulling and deploying images..."
             
-            # Tag as local
-            docker tag ${{ env.IMAGE_PREFIX }}-backend:${{ steps.version.outputs.VERSION }} attendancedev-backend:latest
-            docker tag ${{ env.IMAGE_PREFIX }}-frontend:${{ steps.version.outputs.VERSION }} attendancedev-frontend:latest
-            docker tag ${{ env.IMAGE_PREFIX }}-deepface:${{ steps.version.outputs.VERSION }} attendancedev-deepface:latest
+            # Pull and tag only rebuilt images
+            if [ "$DEPLOY_BACKEND" = "true" ]; then
+              echo "🔧 Pulling Backend image..."
+              docker pull ${{ env.IMAGE_PREFIX }}-backend:${{ steps.version.outputs.VERSION }}
+              docker tag ${{ env.IMAGE_PREFIX }}-backend:${{ steps.version.outputs.VERSION }} attendancedev-backend:latest
+            else
+              echo "⏭️ Skipping Backend (no changes)"
+            fi
+            
+            if [ "$DEPLOY_FRONTEND" = "true" ]; then
+              echo "🎨 Pulling Frontend image..."
+              docker pull ${{ env.IMAGE_PREFIX }}-frontend:${{ steps.version.outputs.VERSION }}
+              docker tag ${{ env.IMAGE_PREFIX }}-frontend:${{ steps.version.outputs.VERSION }} attendancedev-frontend:latest
+            else
+              echo "⏭️ Skipping Frontend (no changes)"
+            fi
+            
+            if [ "$DEPLOY_DEEPFACE" = "true" ]; then
+              echo "🤖 Pulling DeepFace image..."
+              docker pull ${{ env.IMAGE_PREFIX }}-deepface:${{ steps.version.outputs.VERSION }}
+              docker tag ${{ env.IMAGE_PREFIX }}-deepface:${{ steps.version.outputs.VERSION }} attendancedev-deepface:latest
+            else
+              echo "⏭️ Skipping DeepFace (no changes)"
+            fi
             
             # Backup database before deployment (use POSTGRES_USER and POSTGRES_DB from container env)
             docker exec attendancedev-postgres sh -c 'pg_dump -U $POSTGRES_USER $POSTGRES_DB' > /tmp/backup_$(date +%Y%m%d_%H%M%S).sql || true
@@ -235,21 +377,23 @@ jobs:
             # Wait for services to be ready
             sleep 10
 
-            # Run migrations
-            docker exec attendancedev-backend php artisan migrate --force || true
-
-            # Clear and rebuild cache
-            docker exec attendancedev-backend php artisan config:cache || true
-            docker exec attendancedev-backend php artisan route:cache || true
-            docker exec attendancedev-backend php artisan view:cache || true
-
-            # Restart queue workers
-            docker exec attendancedev-backend php artisan queue:restart || true
+            # Run migrations if backend was updated
+            if [ "$DEPLOY_BACKEND" = "true" ]; then
+              echo "🗄️ Running migrations..."
+              docker exec attendancedev-backend php artisan migrate --force || true
+              docker exec attendancedev-backend php artisan config:cache || true
+              docker exec attendancedev-backend php artisan route:cache || true
+              docker exec attendancedev-backend php artisan view:cache || true
+              docker exec attendancedev-backend php artisan queue:restart || true
+            fi
 
             # Cleanup old images
             docker image prune -af --filter "until=168h" || true
 
-            echo "✅ Deployment completed successfully!"
+            echo "✅ Deployment completed!"
+            echo "   Backend: $DEPLOY_BACKEND"
+            echo "   Frontend: $DEPLOY_FRONTEND"  
+            echo "   DeepFace: $DEPLOY_DEEPFACE"
 
       - name: Notify Deployment Status
         if: always()
@@ -266,10 +410,15 @@ jobs:
             Commit: ${{ github.sha }}
             Actor: ${{ github.actor }}
             
+            📦 Images Deployed:
+            • Backend: ${{ needs.detect-changes.outputs.backend == 'true' && '✅ Updated' || '⏭️ Skipped' }}
+            • Frontend: ${{ needs.detect-changes.outputs.frontend == 'true' && '✅ Updated' || '⏭️ Skipped' }}
+            • DeepFace: ${{ needs.detect-changes.outputs.deepface == 'true' && '✅ Updated' || '⏭️ Skipped' }}
+            
             ${{ job.status == 'success' && '✅ Successfully deployed to production!' || '❌ Deployment failed. Check logs.' }}
 
   # ==========================================
-  # Job 4: Health Check
+  # Job 5: Health Check
   # ==========================================
   health-check:
     name: Post-Deploy Health Check
