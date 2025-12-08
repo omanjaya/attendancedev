@@ -69,7 +69,7 @@ import {
     type LocationFormData,
     type LocationStatistics,
 } from '@/types/location';
-import { LocationMapPicker } from '@/components/maps/LocationMapPicker';
+import { LocationMapPickerWithRadius } from '@/components/maps/LocationMapPickerWithRadius';
 
 // Type badge component
 function TypeBadge({ type }: { type?: LocationType }) {
@@ -336,18 +336,21 @@ function LocationFormDialog({
 
                                 <div className="grid gap-2">
                                     <Label>Pilih Lokasi di Map</Label>
-                                    <LocationMapPicker
+                                    <LocationMapPickerWithRadius
                                         latitude={formData.latitude}
                                         longitude={formData.longitude}
+                                        radius={formData.radius_meters}
+                                        autoFocus={true}
                                         onLocationChange={(lat, lng, address) => {
                                             setFormData((prev) => ({
                                                 ...prev,
                                                 latitude: lat,
                                                 longitude: lng,
-                                                ...(address && !prev.address ? { address } : {}),
+                                                // Always auto-fill address from search result
+                                                ...(address ? { address } : {}),
                                             }));
                                         }}
-                                        height="350px"
+                                        height="300px"
                                     />
                                 </div>
 

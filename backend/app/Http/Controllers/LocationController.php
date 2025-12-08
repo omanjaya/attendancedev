@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Location;
+use App\Http\Requests\StoreLocationRequest;
+use App\Http\Requests\UpdateLocationRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Yajra\DataTables\Facades\DataTables;
 
 class LocationController extends Controller
@@ -377,78 +380,107 @@ class LocationController extends Controller
 
     /**
      * Store a new location via API.
+     * Uses StoreLocationRequest for validation and authorization.
      */
-    public function storeApi(Request $request)
+    public function storeApi(StoreLocationRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:locations,name',
-            'address' => 'nullable|string|max:500',
-            'latitude' => 'nullable|numeric|between:-90,90',
-            'longitude' => 'nullable|numeric|between:-180,180',
-            'radius_meters' => 'required|integer|min:10|max:1000',
-            'wifi_ssid' => 'nullable|string|max:255',
-            'is_active' => 'boolean',
-        ]);
+        $validated = $request->validated();
 
         try {
+            // Build metadata from optional fields
+            $metadata = [];
+            if (!empty($validated['description'])) {
+                $metadata['description'] = $validated['description'];
+            }
+            if (!empty($validated['type'])) {
+                $metadata['type'] = $validated['type'];
+            }
+
             $location = Location::create([
                 'name' => $validated['name'],
-                'address' => $validated['address'],
-                'latitude' => $validated['latitude'],
-                'longitude' => $validated['longitude'],
+                'address' => $validated['address'] ?? null,
+                'latitude' => $validated['latitude'] ?? null,
+                'longitude' => $validated['longitude'] ?? null,
                 'radius_meters' => $validated['radius_meters'],
-                'wifi_ssid' => $validated['wifi_ssid'],
+                'wifi_ssid' => $validated['wifi_ssid'] ?? null,
                 'is_active' => $validated['is_active'] ?? true,
+                'metadata' => !empty($metadata) ? $metadata : null,
+            ]);
+
+            Log::info('Location created via API', [
+                'location_id' => $location->id,
+                'name' => $location->name,
+                'created_by' => auth()->id(),
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Location created successfully.',
-                'location' => $location,
-            ]);
+                'message' => 'Lokasi berhasil dibuat.',
+                'data' => $location,
+            ], 201);
         } catch (\Exception $e) {
+            Log::error('Failed to create location via API', [
+                'error' => $e->getMessage(),
+                'data' => $validated,
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create location: ' . $e->getMessage(),
+                'message' => 'Gagal membuat lokasi: ' . $e->getMessage(),
             ], 500);
         }
     }
 
     /**
      * Update a location via API.
+     * Uses UpdateLocationRequest for validation and authorization.
      */
-    public function updateApi(Request $request, Location $location)
+    public function updateApi(UpdateLocationRequest $request, Location $location)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:locations,name,' . $location->id,
-            'address' => 'nullable|string|max:500',
-            'latitude' => 'nullable|numeric|between:-90,90',
-            'longitude' => 'nullable|numeric|between:-180,180',
-            'radius_meters' => 'required|integer|min:10|max:1000',
-            'wifi_ssid' => 'nullable|string|max:255',
-            'is_active' => 'boolean',
-        ]);
+        $validated = $request->validated();
 
         try {
+            // Build metadata from optional fields, merging with existing
+            $metadata = $location->metadata ?? [];
+            if (array_key_exists('description', $validated)) {
+                $metadata['description'] = $validated['description'];
+            }
+            if (array_key_exists('type', $validated)) {
+                $metadata['type'] = $validated['type'];
+            }
+
             $location->update([
                 'name' => $validated['name'],
-                'address' => $validated['address'],
-                'latitude' => $validated['latitude'],
-                'longitude' => $validated['longitude'],
+                'address' => $validated['address'] ?? null,
+                'latitude' => $validated['latitude'] ?? null,
+                'longitude' => $validated['longitude'] ?? null,
                 'radius_meters' => $validated['radius_meters'],
-                'wifi_ssid' => $validated['wifi_ssid'],
+                'wifi_ssid' => $validated['wifi_ssid'] ?? null,
                 'is_active' => $validated['is_active'] ?? true,
+                'metadata' => !empty($metadata) ? $metadata : null,
+            ]);
+
+            Log::info('Location updated via API', [
+                'location_id' => $location->id,
+                'name' => $location->name,
+                'updated_by' => auth()->id(),
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Location updated successfully.',
-                'location' => $location,
+                'message' => 'Lokasi berhasil diperbarui.',
+                'data' => $location->fresh(),
             ]);
         } catch (\Exception $e) {
+            Log::error('Failed to update location via API', [
+                'location_id' => $location->id,
+                'error' => $e->getMessage(),
+                'data' => $validated,
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update location: ' . $e->getMessage(),
+                'message' => 'Gagal memperbarui lokasi: ' . $e->getMessage(),
             ], 500);
         }
     }

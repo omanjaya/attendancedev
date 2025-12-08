@@ -76,7 +76,7 @@ export function DesktopEmployeesPage() {
     const queryClient = useQueryClient();
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const perPage = 15;
+    const perPage = 50;
 
     const { data: employeesData, isLoading, refetch } = useEmployees({
         search: searchQuery,

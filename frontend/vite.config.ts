@@ -20,9 +20,14 @@ export default defineConfig({
       '.ngrok-free.dev',
       '.ngrok.io',
       'localhost',
+      'nginx',
     ],
     proxy: {
       '/api': {
+        target: 'http://nginx',
+        changeOrigin: true,
+      },
+      '/nominatim': {
         target: 'http://nginx',
         changeOrigin: true,
       },
