@@ -40,9 +40,11 @@ class DatabaseSeeder extends Seeder
 
         // Create additional test user if needed
         if (! User::where('email', 'test@example.com')->exists()) {
-            $testUser = User::factory()->create([
+            $testUser = User::create([
                 'name' => 'Test User',
                 'email' => 'test@example.com',
+                'password' => bcrypt('password'),
+                'email_verified_at' => now(),
             ]);
             $testUser->assignRole('guru');
         }
