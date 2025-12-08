@@ -43,6 +43,11 @@ on:
         required: false
         default: false
         type: boolean
+      run_seeder:
+        description: 'Run Seeder (Clean & Import Excel). PERINGATAN: Mereset data!'
+        required: false
+        default: false
+        type: boolean
 
 env:
   DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -299,7 +304,7 @@ jobs:
     needs: [build-docker, detect-changes]
     if: |
       (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production' || startsWith(github.ref, 'refs/tags/')) &&
-      (needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.frontend == 'true' || needs.detect-changes.outputs.deepface == 'true' || github.event.inputs.force_build_all == 'true')
+      (needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.frontend == 'true' || needs.detect-changes.outputs.deepface == 'true' || github.event.inputs.force_build_all == 'true' || github.event.inputs.run_seeder == 'true')
     environment: production
     
     steps:
@@ -322,12 +327,13 @@ jobs:
           DEPLOY_BACKEND: ${{ needs.detect-changes.outputs.backend == 'true' || github.event.inputs.force_build_all == 'true' }}
           DEPLOY_FRONTEND: ${{ needs.detect-changes.outputs.frontend == 'true' || github.event.inputs.force_build_all == 'true' }}
           DEPLOY_DEEPFACE: ${{ needs.detect-changes.outputs.deepface == 'true' || github.event.inputs.force_build_all == 'true' }}
+          RUN_SEEDER: ${{ github.event.inputs.run_seeder == 'true' }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
-          envs: DEPLOY_BACKEND,DEPLOY_FRONTEND,DEPLOY_DEEPFACE
+          envs: DEPLOY_BACKEND,DEPLOY_FRONTEND,DEPLOY_DEEPFACE,RUN_SEEDER
           script: |
             # Navigate to project directory
             cd /opt/attendancedev
@@ -389,6 +395,12 @@ jobs:
 
             # Cleanup old images
             docker image prune -af --filter "until=168h" || true
+
+            # Run Seeder if requested
+            if [ "$RUN_SEEDER" = "true" ]; then
+              echo "🌱 Running Custom Seeder (Clean & Import)..."
+              docker exec attendancedev-backend php artisan db:seed --class=CleanAndImportExcelSeeder --force || true
+            fi
 
             echo "✅ Deployment completed!"
             echo "   Backend: $DEPLOY_BACKEND"
