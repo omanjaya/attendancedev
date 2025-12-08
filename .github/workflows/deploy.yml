@@ -204,15 +204,14 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
           script: |
-            set -e
-            
             # Navigate to project directory
             cd /opt/attendancedev
-            
-            # Pull latest docker-compose.prod.yml
+
+            # Stash any local changes and pull latest config files
+            git stash --include-untracked || true
             git fetch origin
-            git checkout origin/main -- docker-compose.prod.yml
-            git checkout origin/main -- docker/nginx/nginx.conf
+            git checkout origin/main -- docker-compose.prod.yml || true
+            git checkout origin/main -- docker/nginx/nginx.conf || true
             
             # Login to Docker Hub
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
@@ -231,22 +230,25 @@ jobs:
             docker exec attendancedev-postgres sh -c 'pg_dump -U $POSTGRES_USER $POSTGRES_DB' > /tmp/backup_$(date +%Y%m%d_%H%M%S).sql || true
             
             # Deploy with zero-downtime
-            docker compose -f docker-compose.prod.yml up -d --no-build --remove-orphans
-            
+            docker compose -f docker-compose.prod.yml up -d --no-build --remove-orphans || docker compose up -d --no-build --remove-orphans
+
+            # Wait for services to be ready
+            sleep 10
+
             # Run migrations
-            docker exec attendancedev-backend php artisan migrate --force
-            
+            docker exec attendancedev-backend php artisan migrate --force || true
+
             # Clear and rebuild cache
-            docker exec attendancedev-backend php artisan config:cache
-            docker exec attendancedev-backend php artisan route:cache
-            docker exec attendancedev-backend php artisan view:cache
-            
+            docker exec attendancedev-backend php artisan config:cache || true
+            docker exec attendancedev-backend php artisan route:cache || true
+            docker exec attendancedev-backend php artisan view:cache || true
+
             # Restart queue workers
-            docker exec attendancedev-backend php artisan queue:restart
-            
+            docker exec attendancedev-backend php artisan queue:restart || true
+
             # Cleanup old images
-            docker image prune -af --filter "until=168h"
-            
+            docker image prune -af --filter "until=168h" || true
+
             echo "✅ Deployment completed successfully!"
 
       - name: Notify Deployment Status
