@@ -39,19 +39,24 @@ export function MobileEmployeeAttendancePage() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<'check_in' | 'check_out' | null>(null);
 
+  // Get today's date for cache key (ensures fresh data each day)
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+
   // Fetch today's attendance
   const { data: todayAttendance } = useQuery({
-    queryKey: ['attendance-today', user?.id],
+    queryKey: ['attendance-today', user?.id, today],
     queryFn: getTodayAttendance,
     enabled: !!user?.id,
     refetchInterval: 30000, // Refetch every 30 seconds
+    staleTime: 0, // Always refetch on mount to ensure fresh data
   });
 
   // Fetch dashboard stats for schedule info
   const { data: dashboardStats } = useQuery({
-    queryKey: ['employee', 'dashboard-stats', user?.id],
+    queryKey: ['employee', 'dashboard-stats', user?.id, today],
     queryFn: getEmployeeDashboardData,
     enabled: !!user?.id,
+    staleTime: 0, // Always refetch on mount
   });
 
   const canAttend = dashboardStats?.schedule.today.can_attend ?? true;

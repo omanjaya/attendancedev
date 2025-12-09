@@ -284,7 +284,11 @@ class Employee extends Model
 
     public function getJoinDateAttribute(): ?string
     {
-        return $this->hire_date?->toIso8601String();
+        if ($this->hire_date === null) {
+            return null;
+        }
+        // hire_date is cast to 'date' which returns a Carbon instance
+        return $this->hire_date->toIso8601String();
     }
 
     public function getAddressAttribute(): ?string
@@ -456,22 +460,28 @@ class Employee extends Model
         $employeeType = $this->employeeTypeRelation;
         
         // If no specific monthly schedule, try to use EmployeeType default
+        // BUT only if require_schedule_for_attendance is false (schedule not strictly required)
         if (!$baseSchedule && $employeeType) {
-            $dayOfWeek = $date instanceof \Carbon\Carbon ? $date->format('D') : \Carbon\Carbon::parse($date)->format('D');
-            $workDays = $employeeType->work_days ?? [];
+            $requireSchedule = $employeeType->require_schedule_for_attendance ?? true;
             
-            // Check if today is a work day for this employee type
-            if (in_array($dayOfWeek, $workDays)) {
-                // Create a virtual schedule object based on defaults
-                $baseSchedule = (object) [
-                    'start_time' => $employeeType->default_start_time,
-                    'end_time' => $employeeType->default_end_time,
-                    'location_id' => $this->location_id,
-                    'is_holiday' => false,
-                    'status' => 'scheduled',
-                    'working_hours' => 8, // Approximate
-                    'override_metadata' => [],
-                ];
+            // Only create virtual schedule from defaults if schedule is NOT required
+            if (!$requireSchedule) {
+                $dayOfWeek = $date instanceof \Carbon\Carbon ? $date->format('D') : \Carbon\Carbon::parse($date)->format('D');
+                $workDays = $employeeType->work_days ?? [];
+                
+                // Check if today is a work day for this employee type
+                if (in_array($dayOfWeek, $workDays)) {
+                    // Create a virtual schedule object based on defaults
+                    $baseSchedule = (object) [
+                        'start_time' => $employeeType->default_start_time,
+                        'end_time' => $employeeType->default_end_time,
+                        'location_id' => $this->location_id,
+                        'is_holiday' => false,
+                        'status' => 'scheduled',
+                        'working_hours' => 8, // Approximate
+                        'override_metadata' => [],
+                    ];
+                }
             }
         }
         

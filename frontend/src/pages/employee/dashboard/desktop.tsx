@@ -14,10 +14,14 @@ import { useAuthStore } from '@/stores';
 export function DesktopEmployeeDashboard() {
   const { user } = useAuthStore();
 
+  // Get today's date for cache key (ensures fresh data each day)
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+
   // Fetch dashboard stats
   const { data: stats } = useQuery({
-    queryKey: ['employee', 'dashboard-stats', user?.id],
+    queryKey: ['employee', 'dashboard-stats', user?.id, today],
     queryFn: getEmployeeDashboardData,
+    staleTime: 0, // Always refetch on mount
   });
 
   const dashboardStats = [

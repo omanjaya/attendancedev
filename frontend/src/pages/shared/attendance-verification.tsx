@@ -78,12 +78,15 @@ export function AttendanceVerificationPage() {
     const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
     const [scheduleChecked, setScheduleChecked] = useState(false);
 
+    // Get today's date for cache key (ensures fresh data each day)
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+
     // Fetch schedule data to validate if employee can attend
     const { data: dashboardData, isLoading: isLoadingSchedule } = useQuery({
-        queryKey: ['employee', 'dashboard-stats', user?.id],
+        queryKey: ['employee', 'dashboard-stats', user?.id, today],
         queryFn: getEmployeeDashboardData,
         enabled: !!user?.id,
-        staleTime: 30000,
+        staleTime: 0, // Always refetch to ensure fresh schedule data
     });
 
     // Check schedule before starting location verification

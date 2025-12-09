@@ -17,9 +17,9 @@ return new class extends Migration
             'guard_name' => 'web',
         ]);
 
-        // Assign to Super Admin and Admin roles
-        $superAdminRole = Role::where('name', 'Super Admin')->first();
-        $adminRole = Role::where('name', 'Admin')->first();
+        // Assign to super-admin and admin roles (using kebab-case format)
+        $superAdminRole = Role::where('name', 'super-admin')->first();
+        $adminRole = Role::where('name', 'admin')->first();
 
         if ($superAdminRole && ! $superAdminRole->hasPermissionTo($permission)) {
             $superAdminRole->givePermissionTo($permission);

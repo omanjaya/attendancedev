@@ -24,11 +24,13 @@ export function MobileAttendancePage() {
   const [currentDate, setCurrentDate] = useState('');
 
   // Fetch today's attendance
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
   const { data: todayAttendance } = useQuery({
-    queryKey: ['attendance-today', user?.id],
+    queryKey: ['attendance-today', user?.id, today],
     queryFn: getTodayAttendance,
     enabled: !!user?.id,
     refetchInterval: 30000, // Refetch every 30 seconds
+    staleTime: 0, // Always refetch on mount to ensure fresh data
   });
 
   useEffect(() => {

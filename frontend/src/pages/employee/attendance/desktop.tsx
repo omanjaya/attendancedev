@@ -59,10 +59,12 @@ export function DesktopEmployeeAttendancePage() {
   });
 
   // Fetch dashboard stats for schedule info
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
   const { data: dashboardStats } = useQuery({
-    queryKey: ['employee', 'dashboard-stats', user?.id],
+    queryKey: ['employee', 'dashboard-stats', user?.id, today],
     queryFn: getEmployeeDashboardData,
     enabled: !!user?.id,
+    staleTime: 0, // Always refetch on mount
   });
 
   const canAttend = dashboardStats?.schedule.today.can_attend ?? true;
