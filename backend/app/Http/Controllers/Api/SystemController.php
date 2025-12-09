@@ -275,7 +275,7 @@ class SystemController extends Controller
             $container = self::SERVICES[$service]['container'];
             $lines = $request->input('lines', 100);
 
-            $command = "docker logs --tail {$lines} {$container}";
+            $command = "docker logs --tail {$lines} {$container} 2>&1";
             $result = $this->executeCommand($command, 30);
 
             if ($result['success']) {
@@ -287,7 +287,7 @@ class SystemController extends Controller
             } else {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to get logs: ' . $result['error'],
+                    'message' => 'Failed to get logs: ' . ($result['error'] ?: $result['output']),
                 ], 500);
             }
         } catch (\Exception $e) {

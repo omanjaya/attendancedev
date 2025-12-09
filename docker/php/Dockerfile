@@ -17,6 +17,7 @@ RUN apk add --no-cache \
     oniguruma-dev \
     icu-dev \
     supervisor \
+    docker-cli \
     && rm -rf /var/cache/apk/*
 
 # Install PHP extensions
@@ -57,6 +58,10 @@ RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage \
     && chmod -R 755 /var/www/html/bootstrap/cache
 
+# Add www-data to docker group for Docker socket access
+# Create docker group with GID 999 (standard Docker group GID) and add www-data to it
+RUN addgroup -g 999 docker || addgroup docker; addgroup www-data docker
+
 # Copy PHP configuration
 COPY docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
 COPY docker/php/www.conf /usr/local/etc/php-fpm.d/www.conf
@@ -64,8 +69,12 @@ COPY docker/php/www.conf /usr/local/etc/php-fpm.d/www.conf
 # Copy supervisor configuration
 COPY docker/php/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
+# Copy and setup entrypoint script
+COPY docker/php/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Expose port
 EXPOSE 9000
 
-# Start supervisor (manages php-fpm and queue worker)
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# Use entrypoint script to fix permissions then start supervisor
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
