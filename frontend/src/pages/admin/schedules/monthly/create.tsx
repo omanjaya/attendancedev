@@ -451,12 +451,12 @@ export default function MonthlyScheduleCreatePage() {
                     <div className="space-y-3">
                       <div className="space-y-1.5">
                         <label className="text-xs font-medium text-muted-foreground">Masuk</label>
-                        <Input type="time" {...register('default_start_time')} className="bg-background" />
+                        <Input type="time" step="60" {...register('default_start_time')} className="bg-background" />
                         {errors.default_start_time && <p className="text-xs text-destructive">{errors.default_start_time.message}</p>}
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-xs font-medium text-muted-foreground">Pulang</label>
-                        <Input type="time" {...register('default_end_time')} className="bg-background" />
+                        <Input type="time" step="60" {...register('default_end_time')} className="bg-background" />
                         {errors.default_end_time && <p className="text-xs text-destructive">{errors.default_end_time.message}</p>}
                       </div>
                     </div>
@@ -471,12 +471,12 @@ export default function MonthlyScheduleCreatePage() {
                     <div className="space-y-3">
                       <div className="space-y-1.5">
                         <label className="text-xs font-medium text-muted-foreground">Mulai</label>
-                        <Input type="time" {...register('checkin_start_time')} className="bg-background" />
+                        <Input type="time" step="60" {...register('checkin_start_time')} className="bg-background" />
                         {errors.checkin_start_time && <p className="text-xs text-destructive">{errors.checkin_start_time.message}</p>}
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-xs font-medium text-muted-foreground">Sampai</label>
-                        <Input type="time" {...register('checkin_end_time')} className="bg-background" />
+                        <Input type="time" step="60" {...register('checkin_end_time')} className="bg-background" />
                         {errors.checkin_end_time && <p className="text-xs text-destructive">{errors.checkin_end_time.message}</p>}
                       </div>
                     </div>
@@ -491,12 +491,12 @@ export default function MonthlyScheduleCreatePage() {
                     <div className="space-y-3">
                       <div className="space-y-1.5">
                         <label className="text-xs font-medium text-muted-foreground">Mulai</label>
-                        <Input type="time" {...register('checkout_start_time')} className="bg-background" />
+                        <Input type="time" step="60" {...register('checkout_start_time')} className="bg-background" />
                         {errors.checkout_start_time && <p className="text-xs text-destructive">{errors.checkout_start_time.message}</p>}
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-xs font-medium text-muted-foreground">Sampai</label>
-                        <Input type="time" {...register('checkout_end_time')} className="bg-background" />
+                        <Input type="time" step="60" {...register('checkout_end_time')} className="bg-background" />
                         {errors.checkout_end_time && <p className="text-xs text-destructive">{errors.checkout_end_time.message}</p>}
                       </div>
                     </div>

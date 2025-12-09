@@ -184,7 +184,7 @@ export default function ScheduleCreatePage() {
                     Jam Masuk <span className="text-destructive">*</span>
                   </label>
                   <Input
-                    type="time"
+                    type="time" step="60"
                     {...register('check_in')}
                   />
                   {errors.check_in && (
@@ -197,7 +197,7 @@ export default function ScheduleCreatePage() {
                     Jam Keluar <span className="text-destructive">*</span>
                   </label>
                   <Input
-                    type="time"
+                    type="time" step="60"
                     {...register('check_out')}
                   />
                   {errors.check_out && (

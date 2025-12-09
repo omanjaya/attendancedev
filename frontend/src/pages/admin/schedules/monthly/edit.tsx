@@ -414,7 +414,7 @@ export default function MonthlyScheduleEditPage() {
                       Jam Masuk <span className="text-destructive">*</span>
                     </label>
                     <Input
-                      type="time"
+                      type="time" step="60"
                       {...register('default_start_time')}
                     />
                     {errors.default_start_time && (
@@ -427,7 +427,7 @@ export default function MonthlyScheduleEditPage() {
                       Jam Keluar <span className="text-destructive">*</span>
                     </label>
                     <Input
-                      type="time"
+                      type="time" step="60"
                       {...register('default_end_time')}
                     />
                     {errors.default_end_time && (
@@ -448,7 +448,7 @@ export default function MonthlyScheduleEditPage() {
                       Mulai <span className="text-destructive">*</span>
                     </label>
                     <Input
-                      type="time"
+                      type="time" step="60"
                       {...register('checkin_start_time')}
                     />
                     {errors.checkin_start_time && (
@@ -461,7 +461,7 @@ export default function MonthlyScheduleEditPage() {
                       Sampai <span className="text-destructive">*</span>
                     </label>
                     <Input
-                      type="time"
+                      type="time" step="60"
                       {...register('checkin_end_time')}
                     />
                     {errors.checkin_end_time && (
@@ -482,7 +482,7 @@ export default function MonthlyScheduleEditPage() {
                       Mulai <span className="text-destructive">*</span>
                     </label>
                     <Input
-                      type="time"
+                      type="time" step="60"
                       {...register('checkout_start_time')}
                     />
                     {errors.checkout_start_time && (
@@ -495,7 +495,7 @@ export default function MonthlyScheduleEditPage() {
                       Sampai <span className="text-destructive">*</span>
                     </label>
                     <Input
-                      type="time"
+                      type="time" step="60"
                       {...register('checkout_end_time')}
                     />
                     {errors.checkout_end_time && (

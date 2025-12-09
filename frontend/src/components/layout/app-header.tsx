@@ -1,4 +1,5 @@
-import { Search, Moon, Sun, Menu } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Moon, Sun, Menu, Command } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -6,6 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { useUIStore } from '@/stores';
 import { NotificationCenter } from '@/components/notifications';
 import { RoleSwitcher } from '@/components/dev';
+import { CommandPalette } from '@/components/search';
 
 interface AppHeaderProps {
   title?: string;
@@ -13,6 +15,20 @@ interface AppHeaderProps {
 
 export function AppHeader({ title }: AppHeaderProps) {
   const { toggleTheme } = useUIStore();
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+
+  // Listen for Cmd+K / Ctrl+K to open command palette
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   return (
     <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-2 border-b border-border/40 bg-gradient-to-r from-background/98 via-background/95 to-background/98 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 shadow-sm">
@@ -33,14 +49,19 @@ export function AppHeader({ title }: AppHeaderProps) {
 
         {/* Search - Desktop */}
         <div className="ml-auto hidden max-w-md flex-1 md:flex">
-          <div className="relative w-full max-w-sm group">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/50 group-focus-within:text-primary transition-all duration-300 group-focus-within:scale-110" />
-            <Input
-              type="search"
-              placeholder="Cari..."
-              className="w-full pl-9 pr-4 bg-muted/40 border-border/40 focus:bg-background focus:border-primary/40 transition-all duration-300 rounded-xl"
-            />
-          </div>
+          <button
+            onClick={() => setCommandPaletteOpen(true)}
+            className="relative w-full max-w-sm group"
+          >
+            <div className="flex items-center w-full px-3 py-2 bg-muted/40 border border-border/40 rounded-xl hover:bg-background hover:border-primary/40 transition-all duration-300 text-left">
+              <Search className="h-4 w-4 text-foreground/50 mr-2 group-hover:text-primary transition-all duration-300 group-hover:scale-110" />
+              <span className="text-sm text-muted-foreground flex-1">Cari...</span>
+              <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-xs font-mono bg-background border rounded shadow-sm">
+                <Command className="h-3 w-3" />
+                K
+              </kbd>
+            </div>
+          </button>
         </div>
 
         {/* Actions */}
@@ -49,6 +70,7 @@ export function AppHeader({ title }: AppHeaderProps) {
           <Button
             variant="ghost"
             size="icon"
+            onClick={() => setCommandPaletteOpen(true)}
             className="md:hidden hover:bg-primary/10 hover:text-primary transition-all duration-300 hover:scale-110 active:scale-95 rounded-xl group"
           >
             <Search className="h-5 w-5 text-foreground group-hover:rotate-12 transition-transform duration-300" />
@@ -75,6 +97,9 @@ export function AppHeader({ title }: AppHeaderProps) {
           <NotificationCenter />
         </div>
       </div>
+
+      {/* Command Palette */}
+      <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
     </header>
   );
 }
