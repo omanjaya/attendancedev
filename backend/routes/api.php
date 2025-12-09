@@ -68,6 +68,16 @@ Route::prefix('v1')->group(function () {
             Route::post('/bulk', [App\Http\Controllers\Api\EmployeeApiController::class, 'bulk']);
         });
 
+        // Excel Import endpoints
+        Route::prefix('import')->group(function () {
+            Route::post('/employees', [App\Http\Controllers\Api\ImportController::class, 'employees']);
+            Route::get('/employees/template', [App\Http\Controllers\Api\ImportController::class, 'employeesTemplate']);
+            Route::post('/subjects', [App\Http\Controllers\Api\ImportController::class, 'subjects']);
+            Route::post('/positions', [App\Http\Controllers\Api\ImportController::class, 'positions']);
+            Route::post('/departments', [App\Http\Controllers\Api\ImportController::class, 'departments']);
+            Route::post('/classrooms', [App\Http\Controllers\Api\ImportController::class, 'classrooms']);
+        });
+
         // User account management endpoints (for admin creating user accounts)
         Route::prefix('users')->group(function () {
             Route::post('/create-account', [App\Http\Controllers\Api\UserApiController::class, 'createUserAccount']);
@@ -84,6 +94,18 @@ Route::prefix('v1')->group(function () {
             Route::get('/{id}', [App\Http\Controllers\Api\AttendanceApiController::class, 'show']);
             Route::put('/{id}', [App\Http\Controllers\Api\AttendanceApiController::class, 'update']);
             Route::delete('/{id}', [App\Http\Controllers\Api\AttendanceApiController::class, 'destroy']);
+        });
+
+        // Attendance Corrections endpoints
+        Route::prefix('attendance-corrections')->group(function () {
+            Route::get('/', [App\Http\Controllers\Api\AttendanceCorrectionController::class, 'index']);
+            Route::get('/statistics', [App\Http\Controllers\Api\AttendanceCorrectionController::class, 'statistics']);
+            Route::post('/', [App\Http\Controllers\Api\AttendanceCorrectionController::class, 'store']);
+            Route::get('/{id}', [App\Http\Controllers\Api\AttendanceCorrectionController::class, 'show']);
+            Route::post('/{id}/cancel', [App\Http\Controllers\Api\AttendanceCorrectionController::class, 'cancel']);
+            Route::post('/{id}/approve', [App\Http\Controllers\Api\AttendanceCorrectionController::class, 'approve']);
+            Route::post('/{id}/reject', [App\Http\Controllers\Api\AttendanceCorrectionController::class, 'reject']);
+            Route::get('/{id}/document', [App\Http\Controllers\Api\AttendanceCorrectionController::class, 'downloadDocument']);
         });
 
         // Payroll management endpoints

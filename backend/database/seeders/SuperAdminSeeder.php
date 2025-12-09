@@ -23,6 +23,7 @@ class SuperAdminSeeder extends Seeder
                 'name' => 'Super Admin',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
+                'password_changed_at' => now(), // Skip forced password change for testing
                 'is_active' => true,
             ]
         );
@@ -77,6 +78,7 @@ class SuperAdminSeeder extends Seeder
                 'name' => 'Admin User',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
+                'password_changed_at' => now(),
                 'is_active' => true,
             ]
         );
@@ -126,6 +128,7 @@ class SuperAdminSeeder extends Seeder
                 'name' => 'Kepala Sekolah',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
+                'password_changed_at' => now(),
                 'is_active' => true,
             ]
         );
@@ -167,9 +170,49 @@ class SuperAdminSeeder extends Seeder
                     'face_recognition' => null,
                 ]),
             ]);
+        // Create Test Employee (for E2E testing)
+        $testEmployee = User::firstOrCreate(
+            ['email' => 'guru1@school.edu'],
+            [
+                'name' => 'Test Employee',
+                'password' => Hash::make('password'),
+                'email_verified_at' => now(),
+                'password_changed_at' => now(),
+                'is_active' => true,
+            ]
+        );
+
+        // Assign guru (employee) role
+        if (! $testEmployee->hasRole('guru')) {
+            $testEmployee->assignRole('guru');
+        }
+
+        // Create employee record for test employee
+        $testEmployeeRecord = Employee::firstOrCreate(
+            ['user_id' => $testEmployee->id],
+            [
+                'id' => (string) Str::uuid(),
+                'employee_id' => 'EMP001',
+                'employee_type' => 'permanent',
+                'full_name' => $testEmployee->name,
+                'phone' => '+62812-0000-0001',
+                'hire_date' => Carbon::now()->subYears(2),
+                'salary_type' => 'monthly',
+                'salary_amount' => 50000,
+                'is_active' => true,
+                'metadata' => json_encode([
+                    'email' => $testEmployee->email,
+                    'address' => '123 Test Street',
+                    'city' => 'Test City',
+                    'department' => 'Testing',
+                    'position' => 'Test Employee',
+                    'date_of_birth' => Carbon::now()->subYears(28)->format('Y-m-d'),
+                ]),
+            ]);
 
         $this->command->info('Super Admin created: superadmin@school.edu (password: password)');
         $this->command->info('Admin created: admin@school.edu (password: password)');
         $this->command->info('Principal created: kepala@school.edu (password: password)');
+        $this->command->info('Test Employee created: guru1@school.edu (password: password)');
     }
 }

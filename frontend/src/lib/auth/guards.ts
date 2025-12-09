@@ -82,6 +82,7 @@ export function requireAuth({ context }: { context: RouteContext }) {
  * Route guard: Require admin role
  * Redirects to /employee/dashboard if not admin
  * Redirects to /login if not authenticated
+ * Also enforces mandatory password change
  */
 export function requireAdmin({ context }: { context: RouteContext }) {
   const { user, isAuthenticated } = context.auth;
@@ -96,6 +97,15 @@ export function requireAdmin({ context }: { context: RouteContext }) {
     });
   }
 
+  // Security: Force password change if required
+  const mustChangePassword =
+    user.force_password_change === true ||
+    user.password_changed_at === null;
+
+  if (mustChangePassword && window.location.pathname !== '/auth/change-password') {
+    throw redirect({ to: '/auth/change-password' });
+  }
+
   // Then check admin role (allow super-admin, admin, and kepala-sekolah)
   if (!hasAnyRole(user, ['admin', 'super-admin', 'kepala-sekolah'])) {
     throw redirect({
@@ -108,6 +118,7 @@ export function requireAdmin({ context }: { context: RouteContext }) {
  * Route guard: Require employee role (non-admin)
  * Redirects to /admin/dashboard if admin
  * Redirects to /login if not authenticated
+ * Also enforces mandatory password change
  */
 export function requireEmployee({ context }: { context: RouteContext }) {
   const { user, isAuthenticated } = context.auth;
@@ -120,6 +131,15 @@ export function requireEmployee({ context }: { context: RouteContext }) {
         redirect: window.location.pathname,
       },
     });
+  }
+
+  // Security: Force password change if required
+  const mustChangePassword =
+    user.force_password_change === true ||
+    user.password_changed_at === null;
+
+  if (mustChangePassword && window.location.pathname !== '/auth/change-password') {
+    throw redirect({ to: '/auth/change-password' });
   }
 
   // Redirect admin users to admin area

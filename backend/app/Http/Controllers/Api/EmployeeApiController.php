@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Resources\EmployeeResource;
+use App\Http\Traits\PreventsIdor;
 use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -11,6 +12,7 @@ use Illuminate\Support\Facades\Storage;
 
 class EmployeeApiController extends BaseApiController
 {
+    use PreventsIdor;
     /**
      * Get list of employees with pagination and filtering
      */
@@ -211,6 +213,8 @@ class EmployeeApiController extends BaseApiController
 
     /**
      * Get single employee
+     * 
+     * Security: IDOR protection - non-admin users can only view their own data
      */
     public function show($id)
     {
@@ -221,6 +225,11 @@ class EmployeeApiController extends BaseApiController
                 return $this->errorResponse('Employee not found', 404);
             }
 
+            // IDOR Protection: Check if user can access this employee
+            if (!$this->canAccessEmployee($employee)) {
+                return $this->errorResponse('Unauthorized access to employee data', 403);
+            }
+
             return $this->apiResponse($employee, 'Employee retrieved successfully');
         } catch (\Exception $e) {
             return $this->errorResponse('Failed to retrieve employee: ' . $e->getMessage(), 500);
@@ -229,6 +238,8 @@ class EmployeeApiController extends BaseApiController
 
     /**
      * Update employee
+     * 
+     * Security: IDOR protection - non-admin users can only update their own data
      */
     public function update(Request $request, $id)
     {
@@ -236,6 +247,11 @@ class EmployeeApiController extends BaseApiController
 
         if (!$employee) {
             return $this->errorResponse('Employee not found', 404);
+        }
+
+        // IDOR Protection: Check if user can access this employee
+        if (!$this->canAccessEmployee($employee)) {
+            return $this->errorResponse('Unauthorized access to employee data', 403);
         }
 
         $validated = $request->validate([
@@ -358,6 +374,8 @@ class EmployeeApiController extends BaseApiController
 
     /**
      * Delete employee
+     * 
+     * Security: IDOR protection - only admins can delete employees
      */
     public function destroy($id)
     {
@@ -365,6 +383,11 @@ class EmployeeApiController extends BaseApiController
 
         if (!$employee) {
             return $this->errorResponse('Employee not found', 404);
+        }
+
+        // IDOR Protection: Check if user can access this employee (admin-level only)
+        if (!$this->canAccessEmployee($employee)) {
+            return $this->errorResponse('Unauthorized to delete this employee', 403);
         }
 
         try {
@@ -544,6 +567,8 @@ class EmployeeApiController extends BaseApiController
 
     /**
      * Upload avatar for employee
+     * 
+     * Security: IDOR protection - users can only upload their own avatar
      */
     public function uploadAvatar(Request $request, $id)
     {
@@ -551,6 +576,11 @@ class EmployeeApiController extends BaseApiController
 
         if (!$employee) {
             return $this->errorResponse('Employee not found', 404);
+        }
+
+        // IDOR Protection: Check if user can access this employee
+        if (!$this->canAccessEmployee($employee)) {
+            return $this->errorResponse('Unauthorized to upload avatar', 403);
         }
 
         $validated = $request->validate([
@@ -580,6 +610,8 @@ class EmployeeApiController extends BaseApiController
 
     /**
      * Delete employee avatar
+     * 
+     * Security: IDOR protection - users can only delete their own avatar
      */
     public function deleteAvatar($id)
     {
@@ -587,6 +619,11 @@ class EmployeeApiController extends BaseApiController
 
         if (!$employee) {
             return $this->errorResponse('Employee not found', 404);
+        }
+
+        // IDOR Protection: Check if user can access this employee
+        if (!$this->canAccessEmployee($employee)) {
+            return $this->errorResponse('Unauthorized to delete avatar', 403);
         }
 
         try {

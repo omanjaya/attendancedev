@@ -19,7 +19,8 @@ class AttendanceService implements AttendanceServiceInterface
     public function __construct(
         private readonly FaceRecognitionService $faceService,
         private readonly NotificationService $notificationService,
-        private readonly TimeService $timeService
+        private readonly TimeService $timeService,
+        private readonly EmailNotificationService $emailService
     ) {}
 
     /**
@@ -172,6 +173,9 @@ class AttendanceService implements AttendanceServiceInterface
                 ]
             );
 
+            // Send email notification (queued)
+            $this->emailService->sendCheckInEmail($employee, $attendance);
+
             return $attendance;
         });
     }
@@ -261,6 +265,9 @@ class AttendanceService implements AttendanceServiceInterface
                     'hours' => $attendance->working_hours,
                 ]
             );
+
+            // Send email notification (queued)
+            $this->emailService->sendCheckOutEmail($employee, $attendance);
 
             return $attendance->fresh();
         });

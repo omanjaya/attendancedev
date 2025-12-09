@@ -248,6 +248,10 @@ class QueryOptimizationService
 
     /**
      * Optimize full-text search
+     * 
+     * @param EloquentBuilder $query
+     * @param string $searchTerm
+     * @param array $columns - Must be valid column names (alphanumeric, underscore, dot only)
      */
     public static function optimizeSearch(
         EloquentBuilder $query,
@@ -258,18 +262,28 @@ class QueryOptimizationService
             return $query;
         }
 
+        // Security: Validate column names to prevent SQL injection
+        // Only allow alphanumeric, underscores, and dots (for table.column)
+        $validatedColumns = array_filter($columns, function ($column) {
+            return preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?$/', $column);
+        });
+
+        if (empty($validatedColumns)) {
+            return $query;
+        }
+
         // Use MATCH AGAINST for full-text search on MySQL
         if (DB::connection()->getDriverName() === 'mysql') {
-            $columnsString = implode(', ', $columns);
+            $columnsString = implode(', ', $validatedColumns);
             return $query->whereRaw(
                 "MATCH ({$columnsString}) AGAINST (? IN BOOLEAN MODE)",
                 [$searchTerm . '*']
             );
         }
 
-        // Fallback to LIKE for other databases
-        return $query->where(function ($q) use ($searchTerm, $columns) {
-            foreach ($columns as $column) {
+        // Fallback to LIKE for other databases (uses parameter binding, safe)
+        return $query->where(function ($q) use ($searchTerm, $validatedColumns) {
+            foreach ($validatedColumns as $column) {
                 $q->orWhere($column, 'LIKE', "%{$searchTerm}%");
             }
         });

@@ -12,6 +12,7 @@ import {
     X,
     GripVertical,
     Search,
+    Upload,
 } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -78,6 +79,8 @@ import {
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { AcademicYear, Subject, Classroom, Period } from '@/types/master-data';
+import { ExcelImportDialog, type ExcelColumn, type ImportResult } from '@/components/shared/ExcelImportDialog';
+import { importClassrooms } from '@/lib/api/imports';
 
 // ============ Form Data Types ============
 interface AcademicYearFormData {
@@ -179,6 +182,24 @@ export default function MasterDataPage() {
     const [isPeriodDeleteDialogOpen, setIsPeriodDeleteDialogOpen] = useState(false);
     const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null);
     const [periodFormData, setPeriodFormData] = useState<PeriodFormData>(initialPeriodFormData);
+
+    // ============ Classroom Import State ============
+    const [isClassroomImportDialogOpen, setIsClassroomImportDialogOpen] = useState(false);
+
+    const classroomImportColumns: ExcelColumn[] = [
+        { key: 'name', label: 'Nama Kelas', required: true, type: 'string', width: 20 },
+        { key: 'grade_level', label: 'Tingkat', required: false, type: 'string', width: 15 },
+        { key: 'description', label: 'Deskripsi', required: false, type: 'string', width: 30 },
+    ];
+
+    const handleClassroomFileImport = async (file: File): Promise<ImportResult> => {
+        return await importClassrooms(file);
+    };
+
+    const handleClassroomImportSuccess = () => {
+        queryClient.invalidateQueries({ queryKey: ['classrooms'] });
+        toast.success('Import kelas berhasil!');
+    };
 
     // ============ Fetch Data ============
     const { data: yearsResponse, isLoading: yearsLoading } = useAcademicYears({
@@ -704,10 +725,16 @@ export default function MasterDataPage() {
                                 className="pl-9"
                             />
                         </div>
-                        <Button onClick={handleOpenClassroomCreate}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Tambah Kelas
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button variant="outline" onClick={() => setIsClassroomImportDialogOpen(true)}>
+                                <Upload className="h-4 w-4 mr-2" />
+                                Import Excel
+                            </Button>
+                            <Button onClick={handleOpenClassroomCreate}>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Tambah Kelas
+                            </Button>
+                        </div>
                     </div>
 
                     <Card>
@@ -1293,6 +1320,18 @@ export default function MasterDataPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* ============ Classroom Import Dialog ============ */}
+            <ExcelImportDialog
+                open={isClassroomImportDialogOpen}
+                onOpenChange={setIsClassroomImportDialogOpen}
+                title="Import Kelas"
+                description="Upload file Excel untuk menambahkan data kelas secara massal."
+                expectedColumns={classroomImportColumns}
+                onFileImport={handleClassroomFileImport}
+                onSuccess={handleClassroomImportSuccess}
+                maxRows={200}
+            />
         </div>
     );
 }

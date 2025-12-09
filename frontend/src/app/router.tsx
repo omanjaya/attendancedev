@@ -94,10 +94,12 @@ const HolidayCreatePage = lazy(() => import('@/pages/admin/holidays/create'));
 
 const MasterDataPage = lazy(() => import('@/pages/admin/master-data'));
 const EmployeeTypesPage = lazy(() => import('@/pages/admin/settings/employee-types'));
+const CorrectionsPage = lazy(() => import('@/pages/admin/corrections'));
 
 // Employee - Profile
 const ProfilePage = lazy(() => import('@/pages/employee/profile'));
 const ProfileEditPage = lazy(() => import('@/pages/employee/profile/edit'));
+const EmployeeCorrectionsPage = lazy(() => import('@/pages/employee/corrections'));
 
 // Auth pages
 const VerifyEmailPage = lazy(() => import('@/pages/auth/verify-email'));
@@ -117,11 +119,24 @@ function AuthenticatedLayout() {
 }
 
 // Auth guard - redirect to login if not authenticated
+// Also checks for mandatory password change
 const requireAuth = () => {
   const { isAuthenticated, user } = useAuthStore.getState();
   if (!isAuthenticated) {
     throw redirect({ to: '/login' });
   }
+
+  // Security: Force password change if required
+  // Check BOTH conditions: admin-forced OR never changed password
+  const mustChangePassword =
+    user?.force_password_change === true ||
+    user?.password_changed_at === null;
+
+  // Only redirect if not already on change-password page
+  if (mustChangePassword && window.location.pathname !== '/auth/change-password') {
+    throw redirect({ to: '/auth/change-password' });
+  }
+
   return {
     auth: {
       user,
@@ -556,6 +571,14 @@ const adminMasterDataRoute = createRoute({
   component: MasterDataPage,
 });
 
+// Admin Attendance Corrections
+const adminCorrectionsRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/admin/corrections',
+  beforeLoad: requireAdmin,
+  component: CorrectionsPage,
+});
+
 // ====================================
 // EMPLOYEE ROUTES
 // ====================================
@@ -628,6 +651,14 @@ const employeeProfileEditRoute = createRoute({
   path: '/employee/profile/edit',
   beforeLoad: requireEmployee,
   component: ProfileEditPage,
+});
+
+// Employee Corrections
+const employeeCorrectionsRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/employee/corrections',
+  beforeLoad: requireEmployee,
+  component: EmployeeCorrectionsPage,
 });
 
 // ====================================
@@ -736,6 +767,7 @@ const routeTree = rootRoute.addChildren([
     adminHolidayEditRoute,
     adminMasterDataRoute,
     adminSettingsEmployeeTypesRoute,
+    adminCorrectionsRoute,
     // Employee routes
     employeeDashboardRoute,
     employeeAttendanceRoute,
@@ -746,6 +778,7 @@ const routeTree = rootRoute.addChildren([
     employeeReportsRoute,
     employeeProfileRoute,
     employeeProfileEditRoute,
+    employeeCorrectionsRoute,
     // Shared routes
     sharedVerifyLocationRoute,
     sharedVerifyFaceRoute,

@@ -14,6 +14,7 @@ import {
     Building2,
     Briefcase,
     BookOpen,
+    Upload,
 } from 'lucide-react';
 import { PageHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
@@ -75,6 +76,8 @@ import {
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { EmployeeType, Department, Position, Subject } from '@/types/master-data';
+import { ExcelImportDialog, type ExcelColumn, type ImportResult } from '@/components/shared/ExcelImportDialog';
+import { importSubjects, importPositions, importDepartments } from '@/lib/api/imports';
 
 // ============ Employee Type Section ============
 interface EmployeeTypeFormData {
@@ -171,6 +174,58 @@ export default function EmployeeTypesPage() {
     const [isSubjDeleteDialogOpen, setIsSubjDeleteDialogOpen] = useState(false);
     const [selectedSubj, setSelectedSubj] = useState<Subject | null>(null);
     const [subjFormData, setSubjFormData] = useState<SubjectFormData>(initialSubjectFormData);
+
+    // ============ Import Dialog States ============
+    const [isSubjImportDialogOpen, setIsSubjImportDialogOpen] = useState(false);
+    const [isPosImportDialogOpen, setIsPosImportDialogOpen] = useState(false);
+    const [isDeptImportDialogOpen, setIsDeptImportDialogOpen] = useState(false);
+
+    // ============ Import Column Definitions ============
+    const subjectImportColumns: ExcelColumn[] = [
+        { key: 'name', label: 'Nama', required: true, type: 'string', width: 25 },
+        { key: 'code', label: 'Kode', required: false, type: 'string', width: 15 },
+        { key: 'description', label: 'Deskripsi', required: false, type: 'string', width: 30 },
+    ];
+
+    const positionImportColumns: ExcelColumn[] = [
+        { key: 'name', label: 'Nama', required: true, type: 'string', width: 25 },
+        { key: 'code', label: 'Kode', required: false, type: 'string', width: 15 },
+        { key: 'description', label: 'Deskripsi', required: false, type: 'string', width: 30 },
+    ];
+
+    const departmentImportColumns: ExcelColumn[] = [
+        { key: 'name', label: 'Nama', required: true, type: 'string', width: 25 },
+        { key: 'code', label: 'Kode', required: false, type: 'string', width: 15 },
+        { key: 'description', label: 'Deskripsi', required: false, type: 'string', width: 30 },
+    ];
+
+    // ============ Import Handlers ============
+    const handleSubjectFileImport = async (file: File): Promise<ImportResult> => {
+        return await importSubjects(file);
+    };
+
+    const handlePositionFileImport = async (file: File): Promise<ImportResult> => {
+        return await importPositions(file);
+    };
+
+    const handleDepartmentFileImport = async (file: File): Promise<ImportResult> => {
+        return await importDepartments(file);
+    };
+
+    const handleSubjectImportSuccess = () => {
+        queryClient.invalidateQueries({ queryKey: ['subjects'] });
+        toast.success('Import mata pelajaran berhasil!');
+    };
+
+    const handlePositionImportSuccess = () => {
+        queryClient.invalidateQueries({ queryKey: ['positions'] });
+        toast.success('Import jabatan berhasil!');
+    };
+
+    const handleDepartmentImportSuccess = () => {
+        queryClient.invalidateQueries({ queryKey: ['departments'] });
+        toast.success('Import unit kerja berhasil!');
+    };
 
     // ============ Fetch Data ============
     const { data: typesResponse, isLoading: typesLoading } = useEmployeeTypes({
@@ -635,10 +690,16 @@ export default function EmployeeTypesPage() {
                                 className="pl-9"
                             />
                         </div>
-                        <Button onClick={handleOpenDeptCreate}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Tambah Unit Kerja
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button variant="outline" onClick={() => setIsDeptImportDialogOpen(true)}>
+                                <Upload className="h-4 w-4 mr-2" />
+                                Import Excel
+                            </Button>
+                            <Button onClick={handleOpenDeptCreate}>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Tambah Unit Kerja
+                            </Button>
+                        </div>
                     </div>
 
                     <Card>
@@ -748,10 +809,16 @@ export default function EmployeeTypesPage() {
                                 className="pl-9"
                             />
                         </div>
-                        <Button onClick={handleOpenPosCreate}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Tambah Jabatan
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button variant="outline" onClick={() => setIsPosImportDialogOpen(true)}>
+                                <Upload className="h-4 w-4 mr-2" />
+                                Import Excel
+                            </Button>
+                            <Button onClick={handleOpenPosCreate}>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Tambah Jabatan
+                            </Button>
+                        </div>
                     </div>
 
                     <Card>
@@ -861,10 +928,16 @@ export default function EmployeeTypesPage() {
                                 className="pl-9"
                             />
                         </div>
-                        <Button onClick={handleOpenSubjCreate}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Tambah Mapel
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button variant="outline" onClick={() => setIsSubjImportDialogOpen(true)}>
+                                <Upload className="h-4 w-4 mr-2" />
+                                Import Excel
+                            </Button>
+                            <Button onClick={handleOpenSubjCreate}>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Tambah Mapel
+                            </Button>
+                        </div>
                     </div>
 
                     <Card>
@@ -1438,6 +1511,44 @@ export default function EmployeeTypesPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* ============ Import Dialogs ============ */}
+
+            {/* Department Import Dialog */}
+            <ExcelImportDialog
+                open={isDeptImportDialogOpen}
+                onOpenChange={setIsDeptImportDialogOpen}
+                title="Import Unit Kerja"
+                description="Upload file Excel untuk menambahkan data unit kerja secara massal."
+                expectedColumns={departmentImportColumns}
+                onFileImport={handleDepartmentFileImport}
+                onSuccess={handleDepartmentImportSuccess}
+                maxRows={200}
+            />
+
+            {/* Position Import Dialog */}
+            <ExcelImportDialog
+                open={isPosImportDialogOpen}
+                onOpenChange={setIsPosImportDialogOpen}
+                title="Import Jabatan"
+                description="Upload file Excel untuk menambahkan data jabatan secara massal."
+                expectedColumns={positionImportColumns}
+                onFileImport={handlePositionFileImport}
+                onSuccess={handlePositionImportSuccess}
+                maxRows={200}
+            />
+
+            {/* Subject Import Dialog */}
+            <ExcelImportDialog
+                open={isSubjImportDialogOpen}
+                onOpenChange={setIsSubjImportDialogOpen}
+                title="Import Mata Pelajaran"
+                description="Upload file Excel untuk menambahkan data mata pelajaran secara massal."
+                expectedColumns={subjectImportColumns}
+                onFileImport={handleSubjectFileImport}
+                onSuccess={handleSubjectImportSuccess}
+                maxRows={200}
+            />
         </div>
     );
 }

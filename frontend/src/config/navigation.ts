@@ -11,6 +11,7 @@ import {
   UserCircle,
   BarChart3,
   MapPin,
+  Edit3,
   type LucideIcon,
 } from 'lucide-react';
 import type { UserRole, Permission } from '@/types/auth';
@@ -88,6 +89,12 @@ export const adminNavigation: NavGroup[] = [
         icon: FileText,
         description: 'Laporan & report builder',
       },
+      {
+        title: 'Koreksi Absensi',
+        href: '/admin/corrections',
+        icon: Edit3,
+        description: 'Kelola permintaan koreksi',
+      },
     ],
   },
   {
@@ -125,6 +132,12 @@ export const employeeNavigation: NavGroup[] = [
         href: '/employee/reports',
         icon: BarChart3,
         description: 'Laporan kehadiran',
+      },
+      {
+        title: 'Koreksi Absensi',
+        href: '/employee/corrections',
+        icon: Edit3,
+        description: 'Ajukan koreksi absensi',
       },
     ],
   },

@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\HandleCors::class,
         ], append: [
             \App\Http\Middleware\EnsureUserIsActive::class,
+            \App\Http\Middleware\ForcePasswordChangeMiddleware::class, // Security: Enforce password change
         ]);
 
         $middleware->alias([
@@ -35,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'persistent.auth' => \App\Http\Middleware\EnsurePersistentAuth::class,
             'impersonation' => \App\Http\Middleware\ImpersonationMiddleware::class,
             'error.boundary' => \App\Http\Middleware\ErrorBoundary::class,
+            'force.password.change' => \App\Http\Middleware\ForcePasswordChangeMiddleware::class, // Security: Force password change
         ]);
 
         // Add security logging to web middleware group (always enabled for security tracking)

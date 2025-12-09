@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Traits\PreventsIdor;
 use App\Models\Leave;
 use App\Models\LeaveBalance;
 use Illuminate\Http\Request;
@@ -10,6 +11,8 @@ use Illuminate\Support\Facades\Auth;
 
 class LeaveApiController extends BaseApiController
 {
+    use PreventsIdor;
+
     protected $leaveService;
 
     public function __construct(\App\Services\LeaveService $leaveService)
@@ -52,12 +55,22 @@ class LeaveApiController extends BaseApiController
         return $this->paginatedResponse($requests, 'Leave requests retrieved');
     }
 
+    /**
+     * Show a leave request
+     * 
+     * Security: IDOR protection - users can only view their own leave requests
+     */
     public function show($id)
     {
         $request = Leave::with(['employee', 'approver', 'leaveType'])->find($id);
 
         if (!$request) {
             return $this->errorResponse('Leave request not found', 404);
+        }
+
+        // IDOR Protection: Check if user can access this leave request
+        if ($request->employee && !$this->canAccessEmployee($request->employee)) {
+            return $this->errorResponse('Unauthorized access to leave request', 403);
         }
 
         return $this->apiResponse($request, 'Leave request retrieved');
@@ -136,16 +149,29 @@ class LeaveApiController extends BaseApiController
         }
     }
 
+    /**
+     * Cancel a leave request
+     * 
+     * Security: IDOR protection - users can only cancel their own leave requests
+     */
     public function cancel($id)
     {
-        $leaveRequest = Leave::find($id);
+        $leaveRequest = Leave::with('employee')->find($id);
 
         if (!$leaveRequest) {
             return $this->errorResponse('Leave request not found', 404);
         }
 
-        // TODO: Add logic to restore balance if cancelling an approved leave (if allowed)
-        // For now, just cancel
+        // IDOR Protection: Check if user can cancel this leave request
+        if ($leaveRequest->employee && !$this->canAccessEmployee($leaveRequest->employee)) {
+            return $this->errorResponse('Unauthorized to cancel this leave request', 403);
+        }
+
+        // Only pending requests can be cancelled
+        if ($leaveRequest->status !== 'pending') {
+            return $this->errorResponse('Only pending leave requests can be cancelled', 422);
+        }
+
         $leaveRequest->update(['status' => 'cancelled']);
 
         return $this->apiResponse($leaveRequest->fresh(), 'Leave request cancelled');
@@ -164,12 +190,22 @@ class LeaveApiController extends BaseApiController
         return $this->apiResponse($balance, 'Leave balance retrieved');
     }
 
+    /**
+     * Get leave balance for a specific employee
+     * 
+     * Security: IDOR protection - non-admin users can only view their own balance
+     */
     public function balanceByEmployee($employeeId)
     {
         $employee = \App\Models\Employee::find($employeeId);
 
         if (!$employee) {
             return $this->errorResponse('Employee not found', 404);
+        }
+
+        // IDOR Protection: Check if user can access this employee's balance
+        if (!$this->canAccessEmployee($employee)) {
+            return $this->errorResponse('Unauthorized to view this employee\'s leave balance', 403);
         }
 
         $balance = $this->leaveService->getAggregatedBalance($employee);
