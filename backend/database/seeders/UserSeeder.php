@@ -54,7 +54,7 @@ class UserSeeder extends Seeder
                 'manage_locations',
                 'view_reports',
             ],
-            'Admin' => [
+            RoleEnum::ADMIN->value => [
                 'manage_employees',
                 'view_employees',
                 'create_employees',
@@ -68,7 +68,7 @@ class UserSeeder extends Seeder
                 'approve_leave',
                 'view_reports',
             ],
-            'Manager' => [
+            RoleEnum::KEPALA_SEKOLAH->value => [
                 'view_employees',
                 'view_attendance',
                 'view_attendance_reports',
@@ -76,7 +76,7 @@ class UserSeeder extends Seeder
                 'approve_leave',
                 'view_reports',
             ],
-            'Employee' => ['view_attendance_own', 'manage_attendance_own', 'view_schedules'],
+            RoleEnum::PEGAWAI->value => ['view_attendance_own', 'manage_attendance_own', 'view_schedules'],
         ];
 
         foreach ($roles as $roleName => $permissions) {
@@ -145,7 +145,7 @@ class UserSeeder extends Seeder
                 'department' => 'Management',
                 'employee_type' => 'permanent',
                 'salary' => 12000000,
-                'role' => 'Admin',
+                'role' => RoleEnum::ADMIN->value,
             ],
             [
                 'employee_id' => 'MGR002',
@@ -157,7 +157,7 @@ class UserSeeder extends Seeder
                 'department' => 'Academic',
                 'employee_type' => 'permanent',
                 'salary' => 10000000,
-                'role' => 'Manager',
+                'role' => RoleEnum::KEPALA_SEKOLAH->value,
             ],
 
             // Teachers
@@ -171,7 +171,7 @@ class UserSeeder extends Seeder
                 'department' => 'Exact Sciences',
                 'employee_type' => 'permanent',
                 'salary' => 8000000,
-                'role' => 'Employee',
+                'role' => RoleEnum::PEGAWAI->value,
             ],
             [
                 'employee_id' => 'TCH002',
@@ -183,7 +183,7 @@ class UserSeeder extends Seeder
                 'department' => 'Language',
                 'employee_type' => 'permanent',
                 'salary' => 7500000,
-                'role' => 'Employee',
+                'role' => RoleEnum::PEGAWAI->value,
             ],
             [
                 'employee_id' => 'TCH003',
@@ -195,7 +195,7 @@ class UserSeeder extends Seeder
                 'department' => 'Language',
                 'employee_type' => 'permanent',
                 'salary' => 7500000,
-                'role' => 'Employee',
+                'role' => RoleEnum::PEGAWAI->value,
             ],
             [
                 'employee_id' => 'TCH004',
@@ -207,7 +207,7 @@ class UserSeeder extends Seeder
                 'department' => 'Exact Sciences',
                 'employee_type' => 'permanent',
                 'salary' => 8000000,
-                'role' => 'Employee',
+                'role' => RoleEnum::PEGAWAI->value,
             ],
             [
                 'employee_id' => 'TCH005',
@@ -219,7 +219,7 @@ class UserSeeder extends Seeder
                 'department' => 'Exact Sciences',
                 'employee_type' => 'permanent',
                 'salary' => 8000000,
-                'role' => 'Employee',
+                'role' => RoleEnum::PEGAWAI->value,
             ],
             [
                 'employee_id' => 'TCH006',
@@ -231,7 +231,7 @@ class UserSeeder extends Seeder
                 'department' => 'Exact Sciences',
                 'employee_type' => 'permanent',
                 'salary' => 7800000,
-                'role' => 'Employee',
+                'role' => RoleEnum::PEGAWAI->value,
             ],
             [
                 'employee_id' => 'TCH007',
@@ -243,7 +243,7 @@ class UserSeeder extends Seeder
                 'department' => 'Social Sciences',
                 'employee_type' => 'permanent',
                 'salary' => 7200000,
-                'role' => 'Employee',
+                'role' => RoleEnum::PEGAWAI->value,
             ],
             [
                 'employee_id' => 'TCH008',
@@ -255,7 +255,7 @@ class UserSeeder extends Seeder
                 'department' => 'Social Sciences',
                 'employee_type' => 'permanent',
                 'salary' => 7200000,
-                'role' => 'Employee',
+                'role' => RoleEnum::PEGAWAI->value,
             ],
 
             // Honorary Teachers
@@ -269,7 +269,7 @@ class UserSeeder extends Seeder
                 'department' => 'Social Sciences',
                 'employee_type' => 'honorary',
                 'salary' => 4500000,
-                'role' => 'Employee',
+                'role' => RoleEnum::PEGAWAI->value,
             ],
             [
                 'employee_id' => 'HON002',
@@ -281,7 +281,7 @@ class UserSeeder extends Seeder
                 'department' => 'Arts',
                 'employee_type' => 'honorary',
                 'salary' => 4000000,
-                'role' => 'Employee',
+                'role' => RoleEnum::PEGAWAI->value,
             ],
 
             // Staff
@@ -295,7 +295,7 @@ class UserSeeder extends Seeder
                 'department' => 'Administration',
                 'employee_type' => 'permanent',
                 'salary' => 5500000,
-                'role' => 'Employee',
+                'role' => RoleEnum::PEGAWAI->value,
             ],
             [
                 'employee_id' => 'STF002',
@@ -307,7 +307,7 @@ class UserSeeder extends Seeder
                 'department' => 'Library',
                 'employee_type' => 'permanent',
                 'salary' => 4800000,
-                'role' => 'Employee',
+                'role' => RoleEnum::PEGAWAI->value,
             ],
             [
                 'employee_id' => 'STF003',
@@ -319,7 +319,7 @@ class UserSeeder extends Seeder
                 'department' => 'IT',
                 'employee_type' => 'permanent',
                 'salary' => 6500000,
-                'role' => 'Employee',
+                'role' => RoleEnum::PEGAWAI->value,
             ],
         ];
 

@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Employee;
 use App\Models\User;
+use App\Enums\Role;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -29,12 +30,12 @@ class SuperAdminSeeder extends Seeder
         );
 
         // Assign superadmin role
-        if (! $superAdmin->hasRole('Super Admin')) {
-            $superAdmin->assignRole('Super Admin');
+        if (! $superAdmin->hasRole(Role::SUPER_ADMIN->value)) {
+            $superAdmin->assignRole(Role::SUPER_ADMIN->value);
         }
 
         // Ensure superadmin has ALL permissions
-        $superadminRole = \Spatie\Permission\Models\Role::where('name', 'Super Admin')->first();
+        $superadminRole = \Spatie\Permission\Models\Role::where('name', Role::SUPER_ADMIN->value)->first();
         $allPermissions = \Spatie\Permission\Models\Permission::all();
         $superadminRole->syncPermissions($allPermissions);
 
@@ -84,8 +85,8 @@ class SuperAdminSeeder extends Seeder
         );
 
         // Assign admin role
-        if (! $admin->hasRole('Admin')) {
-            $admin->assignRole('Admin');
+        if (! $admin->hasRole(Role::ADMIN->value)) {
+            $admin->assignRole(Role::ADMIN->value);
         }
 
         // Create employee record for admin
@@ -133,9 +134,9 @@ class SuperAdminSeeder extends Seeder
             ]
         );
 
-        // Assign admin role to principal (as they have administrative privileges)
-        if (! $principal->hasRole('Admin')) {
-            $principal->assignRole('Admin');
+        // Assign kepala-sekolah role to principal
+        if (! $principal->hasRole(Role::KEPALA_SEKOLAH->value)) {
+            $principal->assignRole(Role::KEPALA_SEKOLAH->value);
         }
 
         // Create employee record for principal
@@ -182,9 +183,9 @@ class SuperAdminSeeder extends Seeder
             ]
         );
 
-        // Assign guru (employee) role
-        if (! $testEmployee->hasRole('guru')) {
-            $testEmployee->assignRole('guru');
+        // Assign guru (teacher) role
+        if (! $testEmployee->hasRole(Role::GURU->value)) {
+            $testEmployee->assignRole(Role::GURU->value);
         }
 
         // Create employee record for test employee
