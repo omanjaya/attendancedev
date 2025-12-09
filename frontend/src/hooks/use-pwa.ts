@@ -30,16 +30,24 @@ export function usePWA(): UsePWAResult {
             setIsInstalled(true);
         }
 
+        // Check if user dismissed the install prompt in current session
+        const isDismissed = sessionStorage.getItem('pwa-install-dismissed') === 'true';
+
         // Listen for beforeinstallprompt
         const handleBeforeInstallPrompt = (e: Event) => {
             e.preventDefault();
-            setInstallPrompt(e as BeforeInstallPromptEvent);
+            // Only show if not dismissed in current session
+            if (!isDismissed) {
+                setInstallPrompt(e as BeforeInstallPromptEvent);
+            }
         };
 
         // Listen for app installed
         const handleAppInstalled = () => {
             setIsInstalled(true);
             setInstallPrompt(null);
+            // Clear dismissal flag when app is installed
+            sessionStorage.removeItem('pwa-install-dismissed');
         };
 
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -98,6 +106,8 @@ export function usePWA(): UsePWAResult {
     }, [installPrompt]);
 
     const dismissInstall = useCallback(() => {
+        // Save dismissal state in session storage
+        sessionStorage.setItem('pwa-install-dismissed', 'true');
         setInstallPrompt(null);
     }, []);
 

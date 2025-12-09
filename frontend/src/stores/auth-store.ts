@@ -47,6 +47,8 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
             error: null,
           });
+          // Clear PWA install dismissal flag on successful login
+          sessionStorage.removeItem('pwa-install-dismissed');
         } catch (error: any) {
           const message = error.response?.data?.message || 'Login failed';
           set({
