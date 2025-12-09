@@ -4,6 +4,7 @@ import { PageLayout } from '@/components/shared/PageLayout';
 import { StatsGrid } from '@/components/shared/StatsGrid';
 import { ContentCard } from '@/components/shared/ContentCard';
 import { getDashboardData } from '@/lib/api/dashboard';
+import { getCorrectionStatistics } from '@/lib/api/attendance-corrections';
 
 /**
  * Admin Dashboard
@@ -17,10 +18,16 @@ export function DesktopAdminDashboard() {
     refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
   });
 
-  const stats = dashboardData?.summary;
+  // Fetch corrections statistics
+  const { data: correctionsData } = useQuery({
+    queryKey: ['admin', 'correction-stats'],
+    queryFn: getCorrectionStatistics,
+    refetchInterval: 60000,
+  });
 
-  // Fix color types if needed. StatsGrid usually supports: default, primary, success, warning, destructive, info.
-  // Let's adjust colors to match supported types.
+  const stats = dashboardData?.summary;
+  const recentActivity = dashboardData?.recent_activity || [];
+  const pendingCorrections = correctionsData?.pending || 0;
 
   const refinedStats = [
     {
@@ -68,6 +75,25 @@ export function DesktopAdminDashboard() {
     );
   }
 
+  // Helper to format time from ISO string
+  const formatTime = (timestamp: string) => {
+    try {
+      const date = new Date(timestamp);
+      return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return '--:--';
+    }
+  };
+
+  // Helper to get activity status
+  const getActivityStatus = (type: string, description?: string) => {
+    if (type === 'check_in' || type === 'check_out') {
+      if (description?.toLowerCase().includes('terlambat')) return 'late';
+      return 'success';
+    }
+    return 'pending';
+  };
+
   return (
     <PageLayout
       title="Dashboard Admin"
@@ -92,7 +118,10 @@ export function DesktopAdminDashboard() {
         >
           <div className="space-y-3">
             {/* Leave Requests */}
-            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+            <div
+              onClick={() => window.location.href = '/admin/leave'}
+              className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+            >
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
                   <Calendar className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
@@ -102,25 +131,31 @@ export function DesktopAdminDashboard() {
                   <p className="text-xs text-muted-foreground">{stats?.leave?.pending || 0} menunggu approval</p>
                 </div>
               </div>
-              <AlertCircle className="h-4 w-4 text-yellow-600" />
+              {(stats?.leave?.pending || 0) > 0 && <AlertCircle className="h-4 w-4 text-yellow-600" />}
             </div>
 
             {/* Attendance Corrections */}
-            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+            <div
+              onClick={() => window.location.href = '/admin/corrections'}
+              className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+            >
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                   <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
                   <p className="text-sm font-medium">Koreksi Absensi</p>
-                  <p className="text-xs text-muted-foreground">3 menunggu approval</p>
+                  <p className="text-xs text-muted-foreground">{pendingCorrections} menunggu approval</p>
                 </div>
               </div>
-              <AlertCircle className="h-4 w-4 text-blue-600" />
+              {pendingCorrections > 0 && <AlertCircle className="h-4 w-4 text-blue-600" />}
             </div>
 
             {/* Payroll */}
-            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+            <div
+              onClick={() => window.location.href = '/admin/payroll'}
+              className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+            >
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
                   <DollarSign className="h-4 w-4 text-purple-600 dark:text-purple-400" />
@@ -130,7 +165,7 @@ export function DesktopAdminDashboard() {
                   <p className="text-xs text-muted-foreground">{stats?.payroll?.pending || 0} perlu diproses</p>
                 </div>
               </div>
-              <AlertCircle className="h-4 w-4 text-purple-600" />
+              {(stats?.payroll?.pending || 0) > 0 && <AlertCircle className="h-4 w-4 text-purple-600" />}
             </div>
           </div>
         </ContentCard>
@@ -182,38 +217,42 @@ export function DesktopAdminDashboard() {
           className="lg:col-span-2"
         >
           <div className="space-y-2">
-            {[
-              { name: 'John Doe', action: 'Check-in', time: '08:00', status: 'success' },
-              { name: 'Jane Smith', action: 'Check-in', time: '08:15', status: 'success' },
-              { name: 'Bob Johnson', action: 'Pengajuan cuti', time: '09:30', status: 'pending' },
-              { name: 'Alice Brown', action: 'Check-in', time: '09:45', status: 'late' },
-              { name: 'Charlie Wilson', action: 'Koreksi absensi', time: '10:00', status: 'pending' },
-            ].map((activity, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${activity.status === 'success' ? 'bg-green-100 dark:bg-green-900/30' :
-                    activity.status === 'late' ? 'bg-yellow-100 dark:bg-yellow-900/30' :
-                      'bg-blue-100 dark:bg-blue-900/30'
-                    }`}>
-                    {activity.status === 'success' ? (
-                      <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    ) : activity.status === 'late' ? (
-                      <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                    ) : (
-                      <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{activity.name}</p>
-                    <p className="text-xs text-muted-foreground">{activity.action}</p>
-                  </div>
-                </div>
-                <span className="text-xs text-muted-foreground">{activity.time}</span>
+            {recentActivity.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Belum ada aktivitas hari ini</p>
               </div>
-            ))}
+            ) : (
+              recentActivity.slice(0, 5).map((activity) => {
+                const status = getActivityStatus(activity.type, activity.description);
+                return (
+                  <div
+                    key={activity.id}
+                    className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${status === 'success' ? 'bg-green-100 dark:bg-green-900/30' :
+                        status === 'late' ? 'bg-yellow-100 dark:bg-yellow-900/30' :
+                          'bg-blue-100 dark:bg-blue-900/30'
+                        }`}>
+                        {status === 'success' ? (
+                          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                        ) : status === 'late' ? (
+                          <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                        ) : (
+                          <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{activity.employee_name}</p>
+                        <p className="text-xs text-muted-foreground">{activity.description}</p>
+                      </div>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{formatTime(activity.timestamp)}</span>
+                  </div>
+                );
+              })
+            )}
           </div>
         </ContentCard>
       </div>

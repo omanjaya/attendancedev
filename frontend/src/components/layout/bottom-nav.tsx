@@ -44,7 +44,7 @@ const employeeNavItems: NavItem[] = [
   {
     icon: Clock,
     label: 'Absensi',
-    href: '/employee/attendance',
+    href: '/employee/attendance', // Status page with Datang/Pulang buttons
   },
   {
     icon: FileText,

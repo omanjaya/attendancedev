@@ -43,6 +43,32 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Location Verification (Geofencing)
+    |--------------------------------------------------------------------------
+    |
+    | Require employees to be within location radius when checking in/out.
+    | Uses GPS coordinates and Haversine formula for distance calculation.
+    |
+    | Recommended: true for production (prevents remote check-in)
+    |
+    */
+    'require_location_verification' => env('ATTENDANCE_REQUIRE_LOCATION', true),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Face Verification
+    |--------------------------------------------------------------------------
+    |
+    | Require face recognition verification for check-in/out.
+    | Uses DeepFace with ArcFace model for high accuracy.
+    |
+    | Recommended: true for production (prevents buddy punching)
+    |
+    */
+    'require_face_verification' => env('ATTENDANCE_REQUIRE_FACE', true),
+
+    /*
+    |--------------------------------------------------------------------------
     | Time Window Validation
     |--------------------------------------------------------------------------
     |
