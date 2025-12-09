@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Employee;
 use App\Models\User;
+use App\Enums\Role as RoleEnum;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
@@ -30,7 +31,7 @@ class UserSeeder extends Seeder
     private function createRoles()
     {
         $roles = [
-            'Super Admin' => [
+            RoleEnum::SUPER_ADMIN->value => [
                 'admin_access',
                 'manage_system',
                 'manage_users',
@@ -125,7 +126,7 @@ class UserSeeder extends Seeder
         ]);
 
         // Assign Super Admin role
-        $adminUser->assignRole('Super Admin');
+        $adminUser->assignRole(RoleEnum::SUPER_ADMIN->value);
 
         $this->command->info('✅ Admin user created: admin@attendance.com / password123');
     }

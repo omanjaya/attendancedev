@@ -137,14 +137,14 @@ trait PreventsIdor
         }
 
         // Super admin can access all users
-        if ($currentUser->hasRole('superadmin') || $currentUser->hasRole('super-admin')) {
+        if ($currentUser->hasRole('superadmin') || $currentUser->hasRole('super-admin') || $currentUser->hasRole('Super Admin')) {
             return true;
         }
 
         // Admin can access most users but not other admins
         if ($currentUser->hasRole('admin')) {
             // Admin cannot modify super admins
-            if ($targetUser->hasRole('superadmin') || $targetUser->hasRole('super-admin')) {
+            if ($targetUser->hasRole('superadmin') || $targetUser->hasRole('super-admin') || $targetUser->hasRole('Super Admin')) {
                 return false;
             }
             return true;
@@ -170,7 +170,7 @@ trait PreventsIdor
         }
 
         // Super admin can access all
-        if ($user->hasRole('superadmin') || $user->hasRole('super-admin')) {
+        if ($user->hasRole('superadmin') || $user->hasRole('super-admin') || $user->hasRole('Super Admin')) {
             return true;
         }
 

@@ -4,7 +4,8 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Role as SpatieRole;
+use App\Enums\Role;
 
 class RolesAndPermissionsSeeder extends Seeder
 {
@@ -123,11 +124,11 @@ class RolesAndPermissionsSeeder extends Seeder
         // Create roles and assign permissions
 
         // Super Admin - has all permissions
-        $superAdmin = Role::firstOrCreate(['name' => 'Super Admin']);
+        $superAdmin = SpatieRole::firstOrCreate(['name' => Role::SUPER_ADMIN->value]);
         $superAdmin->syncPermissions(Permission::all());
 
         // Admin - comprehensive management permissions
-        $admin = Role::firstOrCreate(['name' => 'Admin']);
+        $admin = SpatieRole::firstOrCreate(['name' => Role::ADMIN->value]);
         $admin->syncPermissions([
             // Attendance
             'view_attendance_all',
@@ -197,7 +198,7 @@ class RolesAndPermissionsSeeder extends Seeder
         ]);
 
         // Kepala Sekolah (Principal) - oversight and approval permissions
-        $principal = Role::firstOrCreate(['name' => 'kepala_sekolah']);
+        $principal = SpatieRole::firstOrCreate(['name' => Role::KEPALA_SEKOLAH->value]);
         $principal->syncPermissions([
             // Attendance
             'view_attendance_own',
@@ -241,7 +242,7 @@ class RolesAndPermissionsSeeder extends Seeder
         ]);
 
         // Guru (Teacher) - basic operational permissions
-        $teacher = Role::firstOrCreate(['name' => 'guru']);
+        $teacher = SpatieRole::firstOrCreate(['name' => Role::GURU->value]);
         $teacher->syncPermissions([
             // Attendance
             'view_attendance_own',
@@ -270,7 +271,7 @@ class RolesAndPermissionsSeeder extends Seeder
         ]);
 
         // Pegawai (Staff) - minimal operational permissions
-        $staff = Role::firstOrCreate(['name' => 'pegawai']);
+        $staff = SpatieRole::firstOrCreate(['name' => Role::PEGAWAI->value]);
         $staff->syncPermissions([
             // Attendance
             'view_attendance_own',

@@ -84,20 +84,10 @@ class User extends Authenticatable
     {
         $array = parent::toArray();
 
-        // Add role as single string
+        // Add role as single string (already in kebab-case format in database)
         $role = $this->roles->first();
         if ($role) {
-            // Map database role names to frontend format
-            $roleMap = [
-                'Super Admin' => 'super-admin',
-                'Admin' => 'admin',
-                'Manager' => 'kepala-sekolah',
-                'Employee' => 'pegawai',
-                'Kepala Sekolah' => 'kepala-sekolah',
-                'Guru' => 'guru',
-                'Pegawai' => 'pegawai',
-            ];
-            $array['role'] = $roleMap[$role->name] ?? strtolower(str_replace(' ', '-', $role->name));
+            $array['role'] = $role->name;
         } else {
             $array['role'] = 'pegawai';
         }
@@ -438,7 +428,7 @@ class User extends Authenticatable
      */
     public function isAdministrator(): bool
     {
-        return $this->hasRole(['admin', 'superadmin']);
+        return $this->hasRole(['admin', 'Admin', 'superadmin', 'super-admin', 'Super Admin']);
     }
 
     /**
@@ -446,7 +436,7 @@ class User extends Authenticatable
      */
     public function canManageUsers(): bool
     {
-        return $this->hasRole(['admin', 'superadmin', 'manager']);
+        return $this->hasRole(['admin', 'Admin', 'superadmin', 'super-admin', 'Super Admin', 'manager', 'Manager']);
     }
 
     /**
