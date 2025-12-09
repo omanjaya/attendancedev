@@ -12,6 +12,7 @@ import {
   BarChart3,
   MapPin,
   Edit3,
+  Server,
   type LucideIcon,
 } from 'lucide-react';
 import type { UserRole, Permission } from '@/types/auth';
@@ -105,6 +106,13 @@ export const adminNavigation: NavGroup[] = [
         href: '/admin/settings',
         icon: Settings,
         description: 'Lokasi, libur, users & keamanan',
+      },
+      {
+        title: 'Services',
+        href: '/admin/services',
+        icon: Server,
+        description: 'Monitor & kelola system services',
+        roles: ['super-admin'],
       },
     ],
   },

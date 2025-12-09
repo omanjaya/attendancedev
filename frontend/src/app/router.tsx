@@ -1,7 +1,7 @@
 import { createRouter, createRootRoute, createRoute, redirect, Outlet } from '@tanstack/react-router';
 import { useAuthStore } from '@/stores';
 import { AppShell } from '@/components/layout';
-import { requireAdmin, requireEmployee, requireAuth as requireAuthGuard } from '@/lib/auth/guards';
+import { requireAdmin, requireEmployee, requireSuperAdmin, requireAuth as requireAuthGuard } from '@/lib/auth/guards';
 import { getDefaultRedirect } from '@/lib/auth';
 
 // Lazy load pages
@@ -75,6 +75,9 @@ const SecurityPage = lazy(() => import('@/pages/admin/security'));
 const SecurityEventsPage = lazy(() => import('@/pages/admin/security/events'));
 const SecurityDevicesPage = lazy(() => import('@/pages/admin/security/devices'));
 const TwoFactorPage = lazy(() => import('@/pages/admin/security/two-factor'));
+
+// Admin - Services (Super-admin only)
+const ServicesPage = lazy(() => import('@/pages/admin/services'));
 
 // Admin - System Management
 const UsersPage = lazy(() => import('@/pages/admin/users'));
@@ -580,6 +583,14 @@ const adminCorrectionsRoute = createRoute({
   component: CorrectionsPage,
 });
 
+// Admin Services (Super-admin only)
+const adminServicesRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/admin/services',
+  beforeLoad: requireSuperAdmin,
+  component: ServicesPage,
+});
+
 // ====================================
 // EMPLOYEE ROUTES
 // ====================================
@@ -776,6 +787,7 @@ const routeTree = rootRoute.addChildren([
     adminMasterDataRoute,
     adminSettingsEmployeeTypesRoute,
     adminCorrectionsRoute,
+    adminServicesRoute,
     // Employee routes
     employeeDashboardRoute,
     employeeAttendanceRoute,

@@ -257,6 +257,18 @@ Route::prefix('v1')->group(function () {
             Route::put('/holidays/{id}', [App\Http\Controllers\Api\AdminApiController::class, 'updateHoliday']);
             Route::delete('/holidays/{id}', [App\Http\Controllers\Api\AdminApiController::class, 'destroyHoliday']);
 
+            // System Services (Super Admin Only)
+            Route::middleware('role:super-admin')->prefix('services')->group(function () {
+                Route::get('/', [App\Http\Controllers\Api\SystemController::class, 'index']);
+                Route::get('/{service}', [App\Http\Controllers\Api\SystemController::class, 'show']);
+                Route::post('/{service}/restart', [App\Http\Controllers\Api\SystemController::class, 'restart']);
+                Route::post('/{service}/start', [App\Http\Controllers\Api\SystemController::class, 'start']);
+                Route::post('/{service}/stop', [App\Http\Controllers\Api\SystemController::class, 'stop']);
+                Route::get('/{service}/logs', [App\Http\Controllers\Api\SystemController::class, 'logs']);
+                Route::get('/{service}/metrics', [App\Http\Controllers\Api\SystemController::class, 'metrics']);
+                Route::post('/restart-all', [App\Http\Controllers\Api\SystemController::class, 'restartAll']);
+            });
+
             // Master Data
             Route::apiResource('academic-years', App\Http\Controllers\Api\AcademicYearApiController::class);
             Route::apiResource('employee-types', App\Http\Controllers\Api\EmployeeTypeApiController::class);

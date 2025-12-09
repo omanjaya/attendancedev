@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search, Moon, Sun, Menu, Command } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
 import { useUIStore } from '@/stores';

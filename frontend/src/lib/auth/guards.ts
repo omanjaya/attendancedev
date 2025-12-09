@@ -115,6 +115,42 @@ export function requireAdmin({ context }: { context: RouteContext }) {
 }
 
 /**
+ * Route guard: Require super-admin role only
+ * Redirects to /unauthorized if not super-admin
+ * Redirects to /login if not authenticated
+ * Also enforces mandatory password change
+ */
+export function requireSuperAdmin({ context }: { context: RouteContext }) {
+  const { user, isAuthenticated } = context.auth;
+
+  // First check authentication
+  if (!isAuthenticated || !user) {
+    throw redirect({
+      to: '/login',
+      search: {
+        redirect: window.location.pathname,
+      },
+    });
+  }
+
+  // Security: Force password change if required
+  const mustChangePassword =
+    user.force_password_change === true ||
+    user.password_changed_at === null;
+
+  if (mustChangePassword && window.location.pathname !== '/auth/change-password') {
+    throw redirect({ to: '/auth/change-password' });
+  }
+
+  // Only super-admin can access
+  if (!hasRole(user, 'super-admin')) {
+    throw redirect({
+      to: '/unauthorized',
+    });
+  }
+}
+
+/**
  * Route guard: Require employee role (non-admin)
  * Redirects to /admin/dashboard if admin
  * Redirects to /login if not authenticated

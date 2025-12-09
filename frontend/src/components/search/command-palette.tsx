@@ -10,7 +10,6 @@ import {
   Settings,
   MapPin,
   DollarSign,
-  LayoutGrid,
   TrendingUp,
   User,
   CalendarOff,
@@ -22,7 +21,6 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -369,7 +367,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                     {getCategoryLabel(category)}
                   </div>
                   <div className="space-y-1">
-                    {items.map((item, index) => {
+                    {items.map((item) => {
                       const globalIndex = filteredItems.indexOf(item);
                       const isSelected = globalIndex === selectedIndex;
                       const Icon = item.icon;
