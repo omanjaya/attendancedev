@@ -298,6 +298,6 @@ class RolesAndPermissionsSeeder extends Seeder
 
         $this->command->info('Roles and permissions seeded successfully with standardized naming!');
         $this->command->info('Total permissions created: ' . Permission::count());
-        $this->command->info('Total roles created: ' . Role::count());
+        $this->command->info('Total roles created: ' . SpatieRole::count());
     }
 }
