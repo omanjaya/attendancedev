@@ -341,6 +341,9 @@ class SystemController extends Controller
     /**
      * Restart all services
      */
+    /**
+     * Restart all services
+     */
     public function restartAll()
     {
         try {
@@ -349,19 +352,37 @@ class SystemController extends Controller
                 'user_name' => auth()->user()->name,
             ]);
 
-            $projectDir = base_path('..');
-            $command = "cd {$projectDir} && docker compose restart";
-            $result = $this->executeCommand($command, 60);
+            $results = [];
+            $failures = [];
 
-            if ($result['success']) {
+            foreach (self::SERVICES as $key => $config) {
+                // Skip postgres to prevent database connection issues during restart
+                if ($key === 'postgres') {
+                    continue;
+                }
+
+                $container = $config['container'];
+                $command = "docker restart {$container}";
+                $result = $this->executeCommand($command, 60);
+
+                if ($result['success']) {
+                    $results[] = "{$config['name']} restarted";
+                } else {
+                    $failures[] = "{$config['name']}: " . ($result['error'] ?: 'Unknown error');
+                }
+            }
+
+            if (empty($failures)) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'All services restarted successfully',
+                    'message' => 'All services triggered restart successfully',
+                    'details' => $results
                 ]);
             } else {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to restart all services: ' . $result['error'],
+                    'message' => 'Some services failed to restart: ' . implode(', ', $failures),
+                    'details' => $results
                 ], 500);
             }
         } catch (\Exception $e) {
