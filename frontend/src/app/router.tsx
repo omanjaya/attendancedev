@@ -24,6 +24,7 @@ const EmployeeReportsPage = lazy(() => import('@/pages/employee/reports'));
 // Shared pages
 const VerifyLocationPage = lazy(() => import('@/pages/shared/verify-location'));
 const VerifyFacePage = lazy(() => import('@/pages/shared/verify-face'));
+const AttendanceVerificationPage = lazy(() => import('@/pages/shared/attendance-verification'));
 
 // Error pages
 const UnauthorizedPage = lazy(() => import('@/pages/unauthorized'));
@@ -679,6 +680,13 @@ const sharedVerifyFaceRoute = createRoute({
   component: VerifyFacePage,
 });
 
+const sharedAttendanceVerifyRoute = createRoute({
+  getParentRoute: () => rootRoute, // No sidebar for fullscreen
+  path: '/shared/verify-attendance',
+  beforeLoad: requireAuth,
+  component: AttendanceVerificationPage,
+});
+
 // ====================================
 // AUTH & OTHER ROUTES
 // ====================================
@@ -786,6 +794,7 @@ const routeTree = rootRoute.addChildren([
     changePasswordRoute,
     confirmPasswordRoute,
   ]),
+  sharedAttendanceVerifyRoute, // Outside authenticated layout for fullscreen
   notFoundRoute,
 ]);
 

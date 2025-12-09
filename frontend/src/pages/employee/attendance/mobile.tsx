@@ -98,14 +98,14 @@ export function MobileEmployeeAttendancePage() {
       setPendingAction(type);
       setShowConfirmModal(true);
     } else {
-      // Proceed directly
-      window.location.href = `/shared/verify-location?type=${type === 'check_in' ? 'check-in' : 'check-out'}`;
+      // Proceed directly to new unified verification page
+      navigate({ to: '/shared/verify-attendance', search: { type: type === 'check_in' ? 'check-in' : 'check-out' } });
     }
   };
 
   const handleConfirmReattend = () => {
     if (pendingAction) {
-      window.location.href = `/shared/verify-location?type=${pendingAction === 'check_in' ? 'check-in' : 'check-out'}&overwrite=true`;
+      navigate({ to: '/shared/verify-attendance', search: { type: pendingAction === 'check_in' ? 'check-in' : 'check-out', overwrite: true } });
     }
     setShowConfirmModal(false);
   };
