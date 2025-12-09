@@ -82,9 +82,18 @@ class LeaveSeeder extends Seeder
         $this->command->info('Leave balances created successfully!');
 
         // Create some leave requests with various statuses
+        // Only select users who have an associated employee record because approved_by references employees table
         $approvers = User::whereHas('roles', function ($query) {
             $query->whereIn('name', ['admin', 'superadmin', 'manager']);
-        })->get();
+        })->whereHas('employee')->with('employee')->get();
+
+        // Fallback: if no admin/manager has employee record, use any employee as approver for seeding purposes
+        if ($approvers->isEmpty()) {
+            $approvers = Employee::take(3)->get();
+            $useUserRelation = false;
+        } else {
+            $useUserRelation = true;
+        }
 
         foreach ($employees as $employee) {
             // Each employee has 0-4 leave requests
@@ -134,10 +143,13 @@ class LeaveSeeder extends Seeder
                 // Add approval/rejection data for processed requests
                 if (in_array($status, ['approved', 'rejected']) && $approvers->isNotEmpty()) {
                     $approver = $approvers->random();
+                    // If we got User model (with employee relation), use employee->id. If we got Employee model (fallback), use id.
+                    $approverId = $useUserRelation ? $approver->employee->id : $approver->id;
+                    
                     $processedAt = $leave->applied_at->copy()->addDays(rand(1, 5));
 
                     $leave->update([
-                        'approved_by' => $approver->id,
+                        'approved_by' => $approverId,
                         'approved_at' => $processedAt,
                         'approval_notes' => $status === 'rejected'
                             ? $this->getRejectionReason()
