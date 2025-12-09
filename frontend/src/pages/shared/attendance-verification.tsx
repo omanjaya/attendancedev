@@ -19,6 +19,8 @@ import { checkIn, checkOut } from '@/lib/api/attendance';
 import { useAuthStore } from '@/stores';
 import { AutoCaptureFace } from '@/components/attendance/auto-capture-face';
 import { cn } from '@/lib/utils';
+import { useQuery } from '@tanstack/react-query';
+import { getEmployeeDashboardData } from '@/lib/api/employees';
 import type { CheckRequest } from '@/types/attendance';
 
 type Step = 'location' | 'face' | 'submitting' | 'success' | 'error';
@@ -68,16 +70,51 @@ export function AttendanceVerificationPage() {
         faceError: null,
         employeeName: null,
         confidence: null,
-        message: 'Mencari lokasi GPS...',
-        progress: 10,
+        message: 'Memeriksa jadwal...',
+        progress: 5,
     });
 
     const [countdown, setCountdown] = useState(3);
     const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
+    const [scheduleChecked, setScheduleChecked] = useState(false);
+
+    // Fetch schedule data to validate if employee can attend
+    const { data: dashboardData, isLoading: isLoadingSchedule } = useQuery({
+        queryKey: ['employee', 'dashboard-stats', user?.id],
+        queryFn: getEmployeeDashboardData,
+        enabled: !!user?.id,
+        staleTime: 30000,
+    });
+
+    // Check schedule before starting location verification
+    useEffect(() => {
+        if (isLoadingSchedule || scheduleChecked) return;
+
+        const canAttend = dashboardData?.schedule?.today?.can_attend ?? true;
+        const scheduleMessage = dashboardData?.schedule?.today?.message;
+
+        if (!canAttend) {
+            setState(prev => ({
+                ...prev,
+                step: 'error',
+                locationError: scheduleMessage || 'Tidak memiliki jadwal untuk absen hari ini',
+                message: 'Tidak Ada Jadwal',
+                progress: 0,
+                locationLoading: false,
+            }));
+        } else {
+            setState(prev => ({
+                ...prev,
+                message: 'Mencari lokasi GPS...',
+                progress: 10,
+            }));
+        }
+        setScheduleChecked(true);
+    }, [isLoadingSchedule, dashboardData, scheduleChecked]);
 
     // Get user's current location and verify
     useEffect(() => {
-        if (state.step !== 'location') return;
+        if (state.step !== 'location' || !scheduleChecked || isLoadingSchedule) return;
 
         if ('geolocation' in navigator) {
             navigator.geolocation.getCurrentPosition(
@@ -158,7 +195,7 @@ export function AttendanceVerificationPage() {
                 step: 'error',
             }));
         }
-    }, [state.step]);
+    }, [state.step, scheduleChecked, isLoadingSchedule]);
 
     // Face captured handler
     const onFaceCaptured = useCallback(async (videoElement: HTMLVideoElement) => {
