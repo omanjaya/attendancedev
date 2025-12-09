@@ -15,6 +15,8 @@ import {
     Briefcase,
     BookOpen,
     Upload,
+    Info,
+    Lightbulb,
 } from 'lucide-react';
 import { PageHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
@@ -561,6 +563,31 @@ export default function EmployeeTypesPage() {
 
                 {/* ============ Employee Types Tab ============ */}
                 <TabsContent value="employee-types" className="space-y-4">
+                    {/* Info Card */}
+                    <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                        <div className="flex gap-3">
+                            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                            <div className="space-y-1">
+                                <h4 className="font-medium text-blue-800 dark:text-blue-200">Apa itu Jenis Pegawai?</h4>
+                                <p className="text-sm text-blue-700 dark:text-blue-300">
+                                    <strong>Jenis Pegawai</strong> adalah kategori utama yang menentukan <strong>mode jadwal kerja</strong> karyawan.
+                                </p>
+                                <div className="text-sm text-blue-600 dark:text-blue-400 mt-2">
+                                    <div className="flex items-center gap-2">
+                                        <Lightbulb className="h-4 w-4" />
+                                        <span className="font-medium">Contoh pengisian:</span>
+                                    </div>
+                                    <ul className="list-disc list-inside ml-6 mt-1 space-y-0.5">
+                                        <li><strong>Guru Tetap</strong> (Mode: Tetap) - jam kerja sesuai jadwal mengajar</li>
+                                        <li><strong>Guru Honorer</strong> (Mode: Fleksibel) - jam kerja menyesuaikan</li>
+                                        <li><strong>Staff Administrasi</strong> (Mode: Tetap) - jam kerja kantor standard</li>
+                                        <li><strong>Security</strong> (Mode: Tetap) - jam kerja shift</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="flex flex-col sm:flex-row gap-4 justify-between">
                         <div className="relative flex-1 max-w-md">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -680,6 +707,33 @@ export default function EmployeeTypesPage() {
 
                 {/* ============ Departments Tab ============ */}
                 <TabsContent value="departments" className="space-y-4">
+                    {/* Info Card */}
+                    <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
+                        <div className="flex gap-3">
+                            <Info className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                            <div className="space-y-1">
+                                <h4 className="font-medium text-emerald-800 dark:text-emerald-200">Apa itu Unit Kerja?</h4>
+                                <p className="text-sm text-emerald-700 dark:text-emerald-300">
+                                    <strong>Unit Kerja</strong> adalah divisi, bagian, atau departemen tempat pegawai bekerja.
+                                    Digunakan untuk mengelompokkan pegawai berdasarkan <strong>struktur organisasi</strong>.
+                                </p>
+                                <div className="text-sm text-emerald-600 dark:text-emerald-400 mt-2">
+                                    <div className="flex items-center gap-2">
+                                        <Lightbulb className="h-4 w-4" />
+                                        <span className="font-medium">Contoh pengisian:</span>
+                                    </div>
+                                    <ul className="list-disc list-inside ml-6 mt-1 space-y-0.5">
+                                        <li><strong>Tata Usaha</strong> - bagian administrasi sekolah</li>
+                                        <li><strong>Kurikulum</strong> - bagian pengembangan kurikulum</li>
+                                        <li><strong>Kesiswaan</strong> - bagian pembinaan siswa</li>
+                                        <li><strong>Sarana Prasarana</strong> - bagian fasilitas sekolah</li>
+                                        <li><strong>Humas</strong> - bagian hubungan masyarakat</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="flex flex-col sm:flex-row gap-4 justify-between">
                         <div className="relative flex-1 max-w-md">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -799,6 +853,34 @@ export default function EmployeeTypesPage() {
 
                 {/* ============ Positions Tab ============ */}
                 <TabsContent value="positions" className="space-y-4">
+                    {/* Info Card */}
+                    <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                        <div className="flex gap-3">
+                            <Info className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                            <div className="space-y-1">
+                                <h4 className="font-medium text-amber-800 dark:text-amber-200">Apa itu Jabatan?</h4>
+                                <p className="text-sm text-amber-700 dark:text-amber-300">
+                                    <strong>Jabatan</strong> adalah posisi atau peran spesifik seorang pegawai dalam organisasi.
+                                    Menunjukkan <strong>tanggung jawab dan wewenang</strong> pegawai.
+                                </p>
+                                <div className="text-sm text-amber-600 dark:text-amber-400 mt-2">
+                                    <div className="flex items-center gap-2">
+                                        <Lightbulb className="h-4 w-4" />
+                                        <span className="font-medium">Contoh pengisian:</span>
+                                    </div>
+                                    <ul className="list-disc list-inside ml-6 mt-1 space-y-0.5">
+                                        <li><strong>Kepala Sekolah</strong> - pimpinan tertinggi sekolah</li>
+                                        <li><strong>Wakil Kepala Sekolah</strong> - wakil pimpinan</li>
+                                        <li><strong>Wali Kelas</strong> - guru pembimbing kelas</li>
+                                        <li><strong>Guru Mapel</strong> - guru mata pelajaran</li>
+                                        <li><strong>Bendahara</strong> - pengelola keuangan</li>
+                                        <li><strong>Operator Sekolah</strong> - pengelola data sekolah</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="flex flex-col sm:flex-row gap-4 justify-between">
                         <div className="relative flex-1 max-w-md">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -918,6 +1000,34 @@ export default function EmployeeTypesPage() {
 
                 {/* ============ Subjects Tab ============ */}
                 <TabsContent value="subjects" className="space-y-4">
+                    {/* Info Card */}
+                    <div className="bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+                        <div className="flex gap-3">
+                            <Info className="h-5 w-5 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+                            <div className="space-y-1">
+                                <h4 className="font-medium text-purple-800 dark:text-purple-200">Apa itu Mata Pelajaran?</h4>
+                                <p className="text-sm text-purple-700 dark:text-purple-300">
+                                    <strong>Mata Pelajaran</strong> adalah daftar subject/mapel yang diajarkan di sekolah.
+                                    Digunakan untuk menyusun <strong>jadwal mengajar guru</strong>.
+                                </p>
+                                <div className="text-sm text-purple-600 dark:text-purple-400 mt-2">
+                                    <div className="flex items-center gap-2">
+                                        <Lightbulb className="h-4 w-4" />
+                                        <span className="font-medium">Contoh pengisian:</span>
+                                    </div>
+                                    <ul className="list-disc list-inside ml-6 mt-1 space-y-0.5">
+                                        <li><strong>Matematika</strong> (MTK) - hitung-hitungan</li>
+                                        <li><strong>Bahasa Indonesia</strong> (BIN) - bahasa nasional</li>
+                                        <li><strong>Bahasa Inggris</strong> (BIG) - bahasa asing</li>
+                                        <li><strong>IPA</strong> - ilmu pengetahuan alam</li>
+                                        <li><strong>IPS</strong> - ilmu pengetahuan sosial</li>
+                                        <li><strong>Pendidikan Agama</strong> (PAI) - pendidikan keagamaan</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="flex flex-col sm:flex-row gap-4 justify-between">
                         <div className="relative flex-1 max-w-md">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
