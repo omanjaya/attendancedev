@@ -40,10 +40,26 @@ class AttendanceService implements AttendanceServiceInterface
                 throw new \Exception('Already checked in today');
             }
 
-            // === NEW: Validate schedule before allowing check-in ===
+            // === Validate schedule before allowing check-in ===
+            // IMPORTANT: Default to FALSE if can_attend is not set (strict validation)
             $effectiveSchedule = $employee->getEffectiveScheduleForDate(now());
-            if (!($effectiveSchedule['can_attend'] ?? true)) {
+            $canAttend = $effectiveSchedule['can_attend'] ?? false;
+            
+            if (!$canAttend) {
+                $scheduleType = $effectiveSchedule['schedule_type'] ?? 'none';
                 $message = $effectiveSchedule['message'] ?? 'Tidak memiliki jadwal untuk absen hari ini';
+                
+                // Provide specific error messages based on schedule type
+                if ($scheduleType === 'none') {
+                    $message = 'Tidak ada jadwal yang di-assign untuk hari ini';
+                } elseif ($scheduleType === 'holiday') {
+                    $message = $effectiveSchedule['holiday_name'] 
+                        ? 'Hari ini adalah hari libur: ' . $effectiveSchedule['holiday_name']
+                        : 'Hari ini adalah hari libur';
+                } elseif ($scheduleType === 'no_teaching') {
+                    $message = 'Tidak ada jadwal mengajar hari ini';
+                }
+                
                 throw new \Exception($message);
             }
 

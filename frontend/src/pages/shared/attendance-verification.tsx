@@ -95,16 +95,33 @@ export function AttendanceVerificationPage() {
 
     // Check schedule before starting location verification
     useEffect(() => {
-        if (isLoadingSchedule || scheduleChecked) return;
-
-        const canAttend = dashboardData?.schedule?.today?.can_attend ?? true;
+        // Wait until dashboard data is loaded
+        if (isLoadingSchedule) return;
+        // Only check once
+        if (scheduleChecked) return;
+        
+        // IMPORTANT: Default to FALSE (cannot attend) if data not available
+        // This ensures we don't allow attendance without proper schedule validation
+        const canAttend = dashboardData?.schedule?.today?.can_attend === true;
         const scheduleMessage = dashboardData?.schedule?.today?.message;
+        const scheduleType = dashboardData?.schedule?.today?.schedule_type;
 
         if (!canAttend) {
+            let errorMessage = scheduleMessage || 'Tidak memiliki jadwal untuk absen hari ini';
+            
+            // Provide more specific messages based on schedule type
+            if (scheduleType === 'none') {
+                errorMessage = 'Tidak ada jadwal yang di-assign untuk hari ini';
+            } else if (scheduleType === 'holiday') {
+                errorMessage = scheduleMessage || 'Hari ini adalah hari libur';
+            } else if (scheduleType === 'no_teaching') {
+                errorMessage = 'Tidak ada jadwal mengajar hari ini';
+            }
+            
             setState(prev => ({
                 ...prev,
                 step: 'error',
-                locationError: scheduleMessage || 'Tidak memiliki jadwal untuk absen hari ini',
+                locationError: errorMessage,
                 message: 'Tidak Ada Jadwal',
                 progress: 0,
                 locationLoading: false,
