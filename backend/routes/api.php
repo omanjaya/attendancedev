@@ -56,6 +56,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/dashboard', [App\Http\Controllers\Api\EmployeeApiController::class, 'dashboard']);
             Route::get('/with-face-data', [App\Http\Controllers\Api\EmployeeApiController::class, 'withFaceData']); // Added route
             Route::get('/{id}', [App\Http\Controllers\Api\EmployeeApiController::class, 'show']);
+            Route::get('/{id}/dashboard', [App\Http\Controllers\Api\EmployeeApiController::class, 'dashboardById']);
             Route::put('/{id}', [App\Http\Controllers\Api\EmployeeApiController::class, 'update']);
             Route::delete('/{id}', [App\Http\Controllers\Api\EmployeeApiController::class, 'destroy']);
             // Avatar management
@@ -496,6 +497,12 @@ Route::prefix('v1')->group(function () {
                 App\Http\Controllers\Api\FaceRecognitionController::class,
                 'verifyFaceDeepFace',
             ])->middleware('permission:manage_attendance_own');
+
+            // Analyze emotion (for liveness check)
+            Route::post('/analyze-emotion', [
+                App\Http\Controllers\Api\FaceRecognitionController::class,
+                'analyzeEmotionDeepFace',
+            ])->middleware('permission:manage_attendance_own');
         });
 
         // User management endpoints
@@ -521,12 +528,12 @@ Route::prefix('v1')->group(function () {
         // Location management endpoints
         Route::prefix('locations')->group(function () {
             Route::get('/select', [
-                App\Http\Controllers\LocationController::class,
-                'getLocationsForSelect',
+                App\Http\Controllers\Api\LocationApiController::class,
+                'forSelect',
             ])->middleware('permission:view_employees');
             Route::post('/verify', [
-                App\Http\Controllers\LocationController::class,
-                'verifyLocation',
+                App\Http\Controllers\Api\LocationApiController::class,
+                'verify',
             ])->middleware('permission:manage_attendance_own');
         });
 

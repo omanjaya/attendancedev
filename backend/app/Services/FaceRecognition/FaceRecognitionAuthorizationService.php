@@ -9,7 +9,7 @@ class FaceRecognitionAuthorizationService
     /**
      * Check if user can manage employee face data
      */
-    public function canManageEmployeeFaceData($user, int $employeeId): bool
+    public function canManageEmployeeFaceData($user, string|int $employeeId): bool
     {
         $isOwnProfile = $user->employee && $user->employee->id == $employeeId;
         return $isOwnProfile || $user->can('manage_employees');
@@ -18,7 +18,7 @@ class FaceRecognitionAuthorizationService
     /**
      * Check if user can view employee face data
      */
-    public function canViewEmployeeFaceData($user, int $employeeId): bool
+    public function canViewEmployeeFaceData($user, string|int $employeeId): bool
     {
         $isOwnProfile = $user->employee && $user->employee->id == $employeeId;
         return $isOwnProfile || $user->can('view_employees');

@@ -475,7 +475,6 @@ export function CheckInFlow() {
                             setCurrentStep('error');
                         }}
                         autoCapture={true}
-                        stabilityDuration={1500}
                         confidenceThreshold={0.7}
                     />
 

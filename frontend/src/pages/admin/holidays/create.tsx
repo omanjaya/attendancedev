@@ -12,6 +12,7 @@ import {
   Palmtree,
   Flag,
   Star,
+  Users,
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,22 +28,35 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { useNotificationStore } from '@/stores';
+import { createHoliday, type HolidayFormData } from '@/lib/api/holidays';
 
 const holidaySchema = z.object({
   name: z.string().min(2, 'Nama hari libur minimal 2 karakter'),
   date: z.string().min(1, 'Pilih tanggal'),
-  type: z.string().min(1, 'Pilih jenis hari libur'),
+  end_date: z.string().optional(),
+  type: z.enum(['public_holiday', 'religious_holiday', 'school_holiday', 'substitute_holiday']),
   description: z.string().optional(),
   is_recurring: z.boolean().optional(),
+  affected_roles: z.array(z.string()).optional(),
+  is_paid: z.boolean().optional(),
 });
 
 type HolidayForm = z.infer<typeof holidaySchema>;
 
 const holidayTypes = [
-  { value: 'national', label: 'Hari Libur Nasional', icon: Flag },
-  { value: 'religious', label: 'Hari Raya Keagamaan', icon: Star },
-  { value: 'company', label: 'Cuti Bersama Perusahaan', icon: Palmtree },
+  { value: 'public_holiday', label: 'Libur Nasional', icon: Flag },
+  { value: 'religious_holiday', label: 'Libur Keagamaan', icon: Star },
+  { value: 'school_holiday', label: 'Libur Sekolah', icon: Palmtree },
+  { value: 'substitute_holiday', label: 'Cuti Bersama', icon: Calendar },
+];
+
+const availableRoles = [
+  { value: 'guru', label: 'Guru' },
+  { value: 'pegawai', label: 'Pegawai' },
+  { value: 'kepala-sekolah', label: 'Kepala Sekolah' },
 ];
 
 export default function HolidayCreatePage() {
@@ -50,6 +64,9 @@ export default function HolidayCreatePage() {
   const { success, error: showError } = useNotificationStore();
   const [isLoading, setIsLoading] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
+  const [isPaid, setIsPaid] = useState(true);
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [isMultiDay, setIsMultiDay] = useState(false);
 
   const {
     register,
@@ -60,14 +77,37 @@ export default function HolidayCreatePage() {
     resolver: zodResolver(holidaySchema),
     defaultValues: {
       is_recurring: false,
+      is_paid: true,
+      affected_roles: [],
     },
   });
+
+  const handleRoleToggle = (role: string) => {
+    setSelectedRoles(prev => {
+      const newRoles = prev.includes(role)
+        ? prev.filter(r => r !== role)
+        : [...prev, role];
+      setValue('affected_roles', newRoles);
+      return newRoles;
+    });
+  };
 
   const onSubmit = async (data: HolidayForm) => {
     setIsLoading(true);
     try {
-      console.log('Creating holiday:', { ...data, is_recurring: isRecurring });
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const payload: HolidayFormData = {
+        name: data.name,
+        date: data.date,
+        end_date: isMultiDay && data.end_date ? data.end_date : undefined,
+        type: data.type,
+        description: data.description,
+        is_recurring: isRecurring,
+        is_paid: isPaid,
+        affected_roles: selectedRoles.length > 0 ? selectedRoles : undefined,
+        status: 'active',
+      };
+
+      await createHoliday(payload);
       success('Berhasil', 'Hari libur berhasil ditambahkan');
       navigate({ to: '/admin/holidays' });
     } catch (err) {
@@ -123,7 +163,7 @@ export default function HolidayCreatePage() {
                 <label className="text-sm font-medium">
                   Jenis <span className="text-destructive">*</span>
                 </label>
-                <Select onValueChange={(value) => setValue('type', value)}>
+                <Select onValueChange={(value) => setValue('type', value as HolidayForm['type'])}>
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih jenis hari libur" />
                   </SelectTrigger>
@@ -164,13 +204,35 @@ export default function HolidayCreatePage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">
-                  Tanggal Hari Libur <span className="text-destructive">*</span>
+                  Tanggal Mulai <span className="text-destructive">*</span>
                 </label>
                 <Input type="date" {...register('date')} />
                 {errors.date && (
                   <p className="text-xs text-destructive">{errors.date.message}</p>
                 )}
               </div>
+
+              <div className="flex items-center justify-between p-4 rounded-lg bg-muted">
+                <div>
+                  <p className="font-medium">Libur Multi-hari</p>
+                  <p className="text-sm text-muted-foreground">
+                    Aktifkan jika libur lebih dari satu hari
+                  </p>
+                </div>
+                <Switch
+                  checked={isMultiDay}
+                  onCheckedChange={setIsMultiDay}
+                />
+              </div>
+
+              {isMultiDay && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Tanggal Selesai
+                  </label>
+                  <Input type="date" {...register('end_date')} />
+                </div>
+              )}
 
               <div className="flex items-center justify-between p-4 rounded-lg bg-muted">
                 <div>
@@ -184,6 +246,58 @@ export default function HolidayCreatePage() {
                   onCheckedChange={setIsRecurring}
                 />
               </div>
+
+              <div className="flex items-center justify-between p-4 rounded-lg bg-muted">
+                <div>
+                  <p className="font-medium">Libur Dibayar</p>
+                  <p className="text-sm text-muted-foreground">
+                    Karyawan tetap dibayar meski tidak masuk
+                  </p>
+                </div>
+                <Switch
+                  checked={isPaid}
+                  onCheckedChange={setIsPaid}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Affected Roles */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Users className="h-5 w-5 text-primary" />
+                Berlaku Untuk
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Pilih role yang berlaku libur ini. Jika tidak ada yang dipilih, libur berlaku untuk semua karyawan.
+              </p>
+              <div className="space-y-3">
+                {availableRoles.map((role) => (
+                  <div key={role.value} className="flex items-center space-x-3">
+                    <Checkbox
+                      id={`role-${role.value}`}
+                      checked={selectedRoles.includes(role.value)}
+                      onCheckedChange={() => handleRoleToggle(role.value)}
+                    />
+                    <Label
+                      htmlFor={`role-${role.value}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      {role.label}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+              {selectedRoles.length > 0 && (
+                <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    <strong>Info:</strong> Libur ini hanya berlaku untuk: {selectedRoles.map(r => availableRoles.find(ar => ar.value === r)?.label).join(', ')}
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

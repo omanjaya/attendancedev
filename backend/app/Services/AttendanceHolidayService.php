@@ -11,23 +11,60 @@ use Illuminate\Support\Collection;
 class AttendanceHolidayService
 {
     /**
-     * Check if a given date is a holiday
+     * Check if a given date is a holiday for a specific role
      */
-    public function isHoliday(Carbon $date): bool
+    public function isHoliday(Carbon $date, ?string $role = null): bool
     {
-        return Holiday::where('date', $date->format('Y-m-d'))
-            ->where('status', Holiday::STATUS_ACTIVE)
-            ->exists();
+        $holidays = Holiday::where('status', Holiday::STATUS_ACTIVE)
+            ->where(function ($query) use ($date) {
+                $query->where('date', $date->format('Y-m-d'))
+                    ->orWhere(function ($subQuery) use ($date) {
+                        $subQuery->whereNotNull('end_date')
+                            ->where('date', '<=', $date->format('Y-m-d'))
+                            ->where('end_date', '>=', $date->format('Y-m-d'));
+                    });
+            })
+            ->get();
+
+        if ($holidays->isEmpty()) {
+            return false;
+        }
+
+        if ($role === null) {
+            return true;
+        }
+
+        // Filter holidays that affect this role
+        return $holidays->contains(function ($holiday) use ($role) {
+            return $holiday->affectsRole($role);
+        });
     }
 
     /**
-     * Get holiday information for a date
+     * Get holiday information for a date (optionally filtered by role)
      */
-    public function getHoliday(Carbon $date): ?Holiday
+    public function getHoliday(Carbon $date, ?string $role = null): ?Holiday
     {
-        return Holiday::where('date', $date->format('Y-m-d'))
-            ->where('status', Holiday::STATUS_ACTIVE)
-            ->first();
+        $query = Holiday::where('status', Holiday::STATUS_ACTIVE)
+            ->where(function ($q) use ($date) {
+                $q->where('date', $date->format('Y-m-d'))
+                    ->orWhere(function ($subQuery) use ($date) {
+                        $subQuery->whereNotNull('end_date')
+                            ->where('date', '<=', $date->format('Y-m-d'))
+                            ->where('end_date', '>=', $date->format('Y-m-d'));
+                    });
+            });
+
+        $holidays = $query->get();
+
+        if ($role === null) {
+            return $holidays->first();
+        }
+
+        // Return first holiday that affects this role
+        return $holidays->first(function ($holiday) use ($role) {
+            return $holiday->affectsRole($role);
+        });
     }
 
     /**
@@ -164,9 +201,12 @@ class AttendanceHolidayService
     {
         $date = Carbon::parse($attendance->date);
 
-        // Check if the date is a holiday
-        if ($this->isHoliday($date)) {
-            $holiday = $this->getHoliday($date);
+        // Get employee's role for holiday filtering
+        $role = $attendance->employee?->user?->roles?->first()?->name;
+
+        // Check if the date is a holiday for this employee's role
+        if ($this->isHoliday($date, $role)) {
+            $holiday = $this->getHoliday($date, $role);
 
             // If it's a holiday and employee still came to work
             if ($attendance->check_in_time) {
@@ -247,8 +287,11 @@ class AttendanceHolidayService
      */
     public function shouldMarkAbsent(Employee $employee, Carbon $date): bool
     {
-        // Don't mark absent on holidays or weekends
-        if ($this->isHoliday($date) || $date->isWeekend()) {
+        // Get employee's role for holiday filtering
+        $role = $employee->user?->roles?->first()?->name;
+
+        // Don't mark absent on holidays (filtered by role) or weekends
+        if ($this->isHoliday($date, $role) || $date->isWeekend()) {
             return false;
         }
 

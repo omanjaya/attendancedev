@@ -24,9 +24,12 @@ class EmployeeResource extends JsonResource
             'name' => $this->full_name,
             'email' => $this->user?->email ?? '',
             'phone' => $this->phone,
-            // Get from metadata
-            'position' => $this->metadata['position'] ?? 'Belum Diatur',
-            'department' => $this->metadata['department'] ?? 'Belum Diatur',
+            // Get from relation first, fallback to metadata, then default
+            'position' => $this->positionRelation?->name ?? $this->metadata['position'] ?? null,
+            'department' => $this->departmentRelation?->name ?? $this->metadata['department'] ?? null,
+            // Also include IDs for reference
+            'position_id' => $this->position_id,
+            'department_id' => $this->department_id,
             'status' => $status,
             'join_date' => $this->hire_date?->format('Y-m-d'),
             'avatar' => $this->photo_path,

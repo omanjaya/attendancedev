@@ -27,7 +27,7 @@ type ChangePasswordForm = z.infer<typeof changePasswordSchema>;
 
 export default function ChangePasswordPage() {
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const { success, error: showError } = useNotificationStore();
   const [isLoading, setIsLoading] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -53,15 +53,17 @@ export default function ChangePasswordPage() {
 
       success('Berhasil!', 'Password berhasil diubah. Silakan login kembali dengan password baru.');
 
-      // Logout and redirect to login
-      setTimeout(async () => {
-        await logout();
-        navigate({ to: '/login' });
+      // Backend already revokes all tokens, so we just need to clear local state
+      // Don't call logout() API as token is already invalid
+      setTimeout(() => {
+        // Clear auth state directly without API call
+        useAuthStore.getState().reset();
+        // Use window.location for hard redirect to ensure clean state
+        window.location.href = '/login';
       }, 1500);
     } catch (err: any) {
       const message = err.response?.data?.message || 'Gagal mengubah password';
       showError('Gagal', message);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -69,8 +71,15 @@ export default function ChangePasswordPage() {
   const handleCancel = async () => {
     // If must change password, logout instead of cancel
     if (user?.force_password_change) {
-      await logout();
-      navigate({ to: '/login' });
+      try {
+        // Try to call logout API, but it may fail if token already invalid
+        const { logout } = useAuthStore.getState();
+        await logout();
+      } catch {
+        // If logout API fails, just reset local state
+        useAuthStore.getState().reset();
+      }
+      window.location.href = '/login';
     } else {
       navigate({ to: getDefaultRedirect(user) });
     }

@@ -42,15 +42,17 @@ class FaceRecognitionRepository extends BaseRepository
         $cacheKey = $this->getCacheKey('face_recognition_stats_by_location');
 
         return cache()->remember($cacheKey, 1800, function () {
+            // PostgreSQL JSONB syntax
             $locations = DB::table('employees')
                 ->join('locations', 'employees.location_id', '=', 'locations.id')
                 ->select(
                     'locations.id',
                     'locations.name',
                     DB::raw('COUNT(*) as total_employees'),
-                    DB::raw('COUNT(CASE WHEN employees.metadata->>"$.face_recognition.descriptor" IS NOT NULL THEN 1 END) as registered_faces')
+                    DB::raw("COUNT(CASE WHEN (employees.metadata -> 'face_recognition' -> 'descriptor') IS NOT NULL THEN 1 END) as registered_faces")
                 )
                 ->where('employees.is_active', true)
+                ->whereNull('employees.deleted_at')
                 ->groupBy('locations.id', 'locations.name')
                 ->get();
 
@@ -92,9 +94,10 @@ class FaceRecognitionRepository extends BaseRepository
         $cacheKey = $this->getCacheKey('low_quality_faces', [$threshold]);
 
         return cache()->remember($cacheKey, 1800, function () use ($threshold) {
+            // PostgreSQL JSONB syntax
             return $this->model
                 ->whereNotNull('metadata->face_recognition->quality_score')
-                ->whereRaw('JSON_EXTRACT(metadata, "$.face_recognition.quality_score") < ?', [$threshold])
+                ->whereRaw("CAST(metadata -> 'face_recognition' ->> 'quality_score' AS NUMERIC) < ?", [$threshold])
                 ->where('is_active', true)
                 ->with(['location', 'user'])
                 ->get();
@@ -164,12 +167,13 @@ class FaceRecognitionRepository extends BaseRepository
         $cutoffDate = now()->subDays($days)->toISOString();
 
         return cache()->remember($cacheKey, 3600, function () use ($cutoffDate) {
+            // PostgreSQL JSONB syntax
             return $this->model
                 ->whereNotNull('metadata->face_recognition->updated_at')
-                ->whereRaw('JSON_EXTRACT(metadata, "$.face_recognition.updated_at") > ?', [$cutoffDate])
+                ->whereRaw("metadata -> 'face_recognition' ->> 'updated_at' > ?", [$cutoffDate])
                 ->where('is_active', true)
                 ->with(['location', 'user'])
-                ->orderByRaw('JSON_EXTRACT(metadata, "$.face_recognition.updated_at") DESC')
+                ->orderByRaw("metadata -> 'face_recognition' ->> 'updated_at' DESC")
                 ->get();
         });
     }
@@ -217,23 +221,23 @@ class FaceRecognitionRepository extends BaseRepository
             $totalAttempts = $logs->count();
             $successfulAttempts = $logs->where('action', 'verify_success')->count();
 
-            // Calculate average confidence for successful verifications
+            // Calculate average confidence for successful verifications (PostgreSQL JSONB syntax)
             $avgConfidence = DB::table('face_recognition_logs')
                 ->where('action', 'verify_success')
                 ->where('created_at', '>=', $startDate)
-                ->whereNotNull('data->similarity')
-                ->avg(DB::raw('JSON_EXTRACT(data, "$.similarity")'));
+                ->whereRaw("data ->> 'similarity' IS NOT NULL")
+                ->avg(DB::raw("CAST(data ->> 'similarity' AS NUMERIC)"));
 
-            // Get hourly distribution
+            // Get hourly distribution (PostgreSQL syntax)
             $hourlyDistribution = DB::table('face_recognition_logs')
                 ->whereIn('action', ['verify_success', 'verify_failed'])
                 ->where('created_at', '>=', $startDate)
                 ->select(
-                    DB::raw('HOUR(created_at) as hour'),
+                    DB::raw('EXTRACT(HOUR FROM created_at)::integer as hour'),
                     DB::raw('COUNT(*) as count'),
-                    DB::raw('SUM(CASE WHEN action = "verify_success" THEN 1 ELSE 0 END) as success_count')
+                    DB::raw("SUM(CASE WHEN action = 'verify_success' THEN 1 ELSE 0 END) as success_count")
                 )
-                ->groupBy(DB::raw('HOUR(created_at)'))
+                ->groupBy(DB::raw('EXTRACT(HOUR FROM created_at)'))
                 ->get();
 
             return [
@@ -290,13 +294,15 @@ class FaceRecognitionRepository extends BaseRepository
         $cacheKey = $this->getCacheKey('face_recognition_usage_by_type');
 
         return cache()->remember($cacheKey, 3600, function () {
+            // PostgreSQL JSONB syntax
             $types = DB::table('employees')
                 ->select(
                     'employee_type',
                     DB::raw('COUNT(*) as total'),
-                    DB::raw('COUNT(CASE WHEN metadata->>"$.face_recognition.descriptor" IS NOT NULL THEN 1 END) as with_face')
+                    DB::raw("COUNT(CASE WHEN (metadata -> 'face_recognition' -> 'descriptor') IS NOT NULL THEN 1 END) as with_face")
                 )
                 ->where('is_active', true)
+                ->whereNull('deleted_at')
                 ->groupBy('employee_type')
                 ->get();
 
@@ -399,15 +405,16 @@ class FaceRecognitionRepository extends BaseRepository
                     });
                     break;
                 case 'low_quality':
+                    // PostgreSQL JSONB syntax
                     $q->whereNotNull('metadata->face_recognition->quality_score')
-                        ->whereRaw('JSON_EXTRACT(metadata, "$.face_recognition.quality_score") < ?', [0.7]);
+                        ->whereRaw("CAST(metadata -> 'face_recognition' ->> 'quality_score' AS NUMERIC) < ?", [0.7]);
                     break;
             }
 
             if ($query) {
                 $q->where(function ($q) use ($query) {
-                    $q->where('full_name', 'LIKE', "%{$query}%")
-                        ->orWhere('employee_id', 'LIKE', "%{$query}%");
+                    $q->where('full_name', 'ILIKE', "%{$query}%")
+                        ->orWhere('employee_id', 'ILIKE', "%{$query}%");
                 });
             }
 

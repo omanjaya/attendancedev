@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Calendar, Clock, MapPin, Download, ChevronLeft, ChevronRight, List, CalendarOff, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Calendar, Clock, Download, ChevronLeft, ChevronRight, List, CalendarOff, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { PageLayout } from '@/components/shared/PageLayout';
 import { ContentCard } from '@/components/shared/ContentCard';
 import { Badge } from '@/components/ui/badge';
@@ -257,12 +257,7 @@ export function DesktopEmployeeSchedulePage() {
                       <Clock className="h-4 w-4" />
                       <span>{schedule.default_start_time} - {schedule.default_end_time}</span>
                     </div>
-                    {schedule.location && (
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <MapPin className="h-4 w-4" />
-                        <span>{schedule.location.name}</span>
-                      </div>
-                    )}
+
                   </div>
                 </div>
               ))
@@ -292,7 +287,7 @@ export function DesktopEmployeeSchedulePage() {
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <Badge variant="outline">Hari Kerja</Badge>
                         <span>{schedule.default_start_time} - {schedule.default_end_time}</span>
-                        {schedule.location && <span>• {schedule.location.name}</span>}
+
                       </div>
                     </div>
                   </div>
@@ -383,12 +378,6 @@ export function DesktopEmployeeSchedulePage() {
                   <Clock className="h-3.5 w-3.5" />
                   <span>{schedule.default_start_time} - {schedule.default_end_time}</span>
                 </div>
-                {schedule.location && (
-                  <div className="flex items-center gap-1">
-                    <MapPin className="h-3.5 w-3.5" />
-                    <span>{schedule.location.name}</span>
-                  </div>
-                )}
                 <div>
                   <Badge variant="outline" className="text-[10px]">
                     {schedule.total_working_days} hari kerja
@@ -463,12 +452,6 @@ export function DesktopEmployeeSchedulePage() {
                   <Clock className="h-4 w-4" />
                   <span>{schedule.default_start_time} - {schedule.default_end_time}</span>
                 </div>
-                {schedule.location && (
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    <span>{schedule.location.name}</span>
-                  </div>
-                )}
               </div>
             </div>
             <Button

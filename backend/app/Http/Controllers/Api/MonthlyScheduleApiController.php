@@ -42,11 +42,31 @@ class MonthlyScheduleApiController extends BaseApiController
             'name' => 'required|string|max:255',
             'year' => 'required|integer|min:2020|max:2100',
             'month' => 'required|integer|min:1|max:12',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'default_start_time' => 'required|date_format:H:i',
+            'default_end_time' => 'required|date_format:H:i|after:default_start_time',
+            'checkin_start_time' => 'nullable|date_format:H:i',
+            'checkin_end_time' => 'nullable|date_format:H:i',
+            'checkout_start_time' => 'nullable|date_format:H:i',
+            'checkout_end_time' => 'nullable|date_format:H:i',
+            'working_days' => 'nullable|array',
+            'working_days.*' => 'date',
             'is_active' => 'boolean',
+            'description' => 'nullable|string|max:1000',
+            'metadata' => 'nullable|array',
             'employees' => 'nullable|array',
             'employees.*.employee_id' => 'required|exists:employees,id',
             'employees.*.schedule_data' => 'nullable|array',
         ]);
+
+        // Calculate start_date and end_date from month/year if not provided
+        if (empty($validated['start_date'])) {
+            $validated['start_date'] = \Carbon\Carbon::createFromDate($validated['year'], $validated['month'], 1)->startOfMonth()->format('Y-m-d');
+        }
+        if (empty($validated['end_date'])) {
+            $validated['end_date'] = \Carbon\Carbon::createFromDate($validated['year'], $validated['month'], 1)->endOfMonth()->format('Y-m-d');
+        }
 
         $validated['created_by'] = $request->user()->id;
 
@@ -70,7 +90,19 @@ class MonthlyScheduleApiController extends BaseApiController
             'name' => 'sometimes|string|max:255',
             'year' => 'sometimes|integer|min:2020|max:2100',
             'month' => 'sometimes|integer|min:1|max:12',
+            'start_date' => 'sometimes|date',
+            'end_date' => 'sometimes|date|after_or_equal:start_date',
+            'default_start_time' => 'sometimes|date_format:H:i',
+            'default_end_time' => 'sometimes|date_format:H:i',
+            'checkin_start_time' => 'nullable|date_format:H:i',
+            'checkin_end_time' => 'nullable|date_format:H:i',
+            'checkout_start_time' => 'nullable|date_format:H:i',
+            'checkout_end_time' => 'nullable|date_format:H:i',
+            'working_days' => 'nullable|array',
+            'working_days.*' => 'date',
             'is_active' => 'boolean',
+            'description' => 'nullable|string|max:1000',
+            'metadata' => 'nullable|array',
             'employees' => 'nullable|array',
             'employees.*.employee_id' => 'required|exists:employees,id',
             'employees.*.schedule_data' => 'nullable|array',

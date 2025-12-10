@@ -37,26 +37,29 @@ class DeepFaceLoadBalancer
      */
     public function __construct()
     {
-        // Get DeepFace instances from config (new deepface.php config)
-        $baseUrl = config('deepface.base_url', 'http://127.0.0.1');
-        $ports = config('deepface.ports', [8001, 8002, 8003, 8004, 8005]);
+        // Get DeepFace base URL from config (e.g., http://deepface:8001)
+        $baseUrl = config('deepface.base_url', 'http://deepface:8001');
 
-        // Filter out invalid ports
-        $ports = array_filter($ports, fn($p) => is_numeric($p) && $p > 0);
+        // Parse the base URL
+        $parsedUrl = parse_url($baseUrl);
+        $scheme = $parsedUrl['scheme'] ?? 'http';
+        $host = $parsedUrl['host'] ?? 'deepface';
+        $urlPort = $parsedUrl['port'] ?? 8001;
 
-        $this->instances = array_map(
-            fn($port) => [
-                'url' => "{$baseUrl}:{$port}",
-                'port' => $port,
+        // For Docker setup, use the single service URL directly
+        // Docker's internal load balancing handles multiple replicas via the service name
+        $this->instances = [
+            [
+                'url' => "{$scheme}://{$host}:{$urlPort}",
+                'port' => $urlPort,
                 'healthy' => true,
                 'last_check' => null,
-            ],
-            $ports
-        );
+            ]
+        ];
 
         Log::info('DeepFace Load Balancer initialized', [
             'instances' => count($this->instances),
-            'ports' => $ports
+            'urls' => array_column($this->instances, 'url')
         ]);
     }
 
@@ -300,6 +303,70 @@ class DeepFaceLoadBalancer
             'is_live' => true,
             'message' => 'Liveness check unavailable, proceeding'
         ];
+    }
+
+    /**
+     * Analyze facial emotion (load balanced)
+     */
+    public function analyzeEmotion($imageFile, string $expectedEmotion = 'happy', int $maxRetries = 2): array
+    {
+        $attempt = 0;
+
+        while ($attempt < $maxRetries) {
+            $instance = $this->getHealthyInstance();
+
+            if (!$instance) {
+                throw new \RuntimeException('No healthy DeepFace instances available');
+            }
+
+            try {
+                Log::info('Attempting emotion analysis', [
+                    'port' => $instance['port'],
+                    'attempt' => $attempt + 1,
+                    'expected_emotion' => $expectedEmotion
+                ]);
+
+                $response = Http::timeout(self::REQUEST_TIMEOUT)
+                    ->attach('image', file_get_contents($imageFile->getRealPath()), $imageFile->getClientOriginalName())
+                    ->post("{$instance['url']}/analyze-emotion", [
+                        'expected_emotion' => $expectedEmotion
+                    ]);
+
+                if ($response->successful()) {
+                    $data = $response->json();
+
+                    Log::info('Emotion analysis successful', [
+                        'port' => $instance['port'],
+                        'dominant_emotion' => $data['dominant_emotion'] ?? null,
+                        'is_match' => $data['is_match'] ?? false
+                    ]);
+
+                    return $data;
+                }
+
+                // Mark instance as unhealthy on failure
+                Cache::put("deepface_health_{$instance['port']}", false, 10);
+
+                Log::warning('Emotion analysis failed, trying next instance', [
+                    'port' => $instance['port'],
+                    'status' => $response->status()
+                ]);
+
+            } catch (\Exception $e) {
+                Log::error('Emotion analysis error', [
+                    'port' => $instance['port'] ?? 'unknown',
+                    'error' => $e->getMessage()
+                ]);
+
+                if (isset($instance['port'])) {
+                    Cache::put("deepface_health_{$instance['port']}", false, 10);
+                }
+            }
+
+            $attempt++;
+        }
+
+        throw new \RuntimeException('All DeepFace instances failed to analyze emotion');
     }
 
     /**

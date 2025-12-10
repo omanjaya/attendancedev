@@ -12,9 +12,13 @@ import {
   CalendarDays,
   Briefcase,
   CheckCircle2,
+  Wand2,
+  RotateCcw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,6 +51,7 @@ const monthlyScheduleSchema = z.object({
   checkout_start_time: z.string().min(1, 'Pilih jam absen pulang awal'),
   checkout_end_time: z.string().min(1, 'Pilih jam absen pulang akhir'),
   working_days: z.array(z.string()).min(1, 'Pilih minimal 1 hari kerja'),
+  is_active: z.boolean(),
   description: z.string().optional(),
 });
 
@@ -133,7 +138,20 @@ export default function MonthlyScheduleEditPage() {
     reset,
   } = useForm<MonthlyScheduleForm>({
     resolver: zodResolver(monthlyScheduleSchema),
-    // Don't set defaultValues here - will be set in useEffect after data loads
+    defaultValues: {
+      name: '',
+      month: undefined as unknown as number,
+      year: undefined as unknown as number,
+      default_start_time: '',
+      default_end_time: '',
+      checkin_start_time: '',
+      checkin_end_time: '',
+      checkout_start_time: '',
+      checkout_end_time: '',
+      working_days: [],
+      is_active: true,
+      description: '',
+    },
   });
 
   const selectedMonth = watch('month');
@@ -155,6 +173,7 @@ export default function MonthlyScheduleEditPage() {
         checkout_start_time: schedule.checkout_start_time,
         checkout_end_time: schedule.checkout_end_time,
         working_days: schedule.working_days,
+        is_active: schedule.is_active,
         description: schedule.description || '',
       });
 
@@ -172,14 +191,80 @@ export default function MonthlyScheduleEditPage() {
     if (selectedMonth && selectedYear) {
       getHolidaysByMonth(selectedMonth, selectedYear)
         .then((data) => {
-          setHolidays(data.holidays.map(h => h.date));
+          // Parse holiday dates - handle both single date and date ranges
+          const holidayDates: string[] = [];
+          data.holidays.forEach(h => {
+            // Parse start date (handle timezone by extracting date part)
+            const startDate = h.date.split('T')[0];
+            holidayDates.push(startDate);
+            
+            // If has end_date, add all dates in range
+            if (h.end_date) {
+              const endDate = h.end_date.split('T')[0];
+              const start = new Date(startDate);
+              const end = new Date(endDate);
+              
+              // Add all dates between start and end
+              const current = new Date(start);
+              current.setDate(current.getDate() + 1); // Start from day after
+              while (current <= end) {
+                const dateStr = [
+                  current.getFullYear(),
+                  String(current.getMonth() + 1).padStart(2, '0'),
+                  String(current.getDate()).padStart(2, '0')
+                ].join('-');
+                if (!holidayDates.includes(dateStr)) {
+                  holidayDates.push(dateStr);
+                }
+                current.setDate(current.getDate() + 1);
+              }
+            }
+          });
+          setHolidays(holidayDates);
         })
         .catch((err) => {
           console.error('Failed to fetch holidays:', err);
+          setHolidays([]);
         });
     }
   }, [selectedMonth, selectedYear]);
 
+  // Generate working days (Mon-Fri) excluding holidays
+  const generateWorkingDays = () => {
+    if (!selectedMonth || !selectedYear) return;
+
+    const workingDaysList: string[] = [];
+    const lastDay = new Date(selectedYear, selectedMonth, 0);
+
+    for (let day = 1; day <= lastDay.getDate(); day++) {
+      const date = new Date(selectedYear, selectedMonth - 1, day);
+      const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+      
+      // Skip weekends (Saturday = 6, Sunday = 0)
+      if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+
+      const dateStr = [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, '0'),
+        String(date.getDate()).padStart(2, '0')
+      ].join('-');
+
+      // Skip holidays
+      if (holidays.includes(dateStr)) continue;
+
+      workingDaysList.push(dateStr);
+    }
+
+    setValue('working_days', workingDaysList);
+    setGeneratedWorkingDays(workingDaysList);
+    success('Hari Kerja Digenerate', `${workingDaysList.length} hari kerja (Senin-Jumat, exclude libur)`);
+  };
+
+  // Clear all working days
+  const clearWorkingDays = () => {
+    setValue('working_days', []);
+    setGeneratedWorkingDays([]);
+  };
 
   const toggleWorkingDay = (date: string) => {
     const currentDays = watch('working_days') || [];
@@ -237,6 +322,9 @@ export default function MonthlyScheduleEditPage() {
     // Add days of month
     for (let day = 1; day <= lastDay.getDate(); day++) {
       const date = new Date(selectedYear, selectedMonth - 1, day);
+      const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      
       // Use local date string to match backend format and avoid timezone shifts
       const dateStr = [
         date.getFullYear(),
@@ -247,6 +335,7 @@ export default function MonthlyScheduleEditPage() {
         day,
         date: dateStr,
         isHoliday: holidays.includes(dateStr),
+        isWeekend,
         isSelected: generatedWorkingDays.includes(dateStr),
       });
     }
@@ -412,7 +501,21 @@ export default function MonthlyScheduleEditPage() {
                   <Textarea
                     placeholder="Deskripsi singkat tentang jadwal ini..."
                     {...register('description')}
-                    className="min-h-[120px] resize-none"
+                    className="min-h-[100px] resize-none"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="is_active" className="text-sm font-medium">Status Jadwal</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Aktifkan jadwal ini untuk digunakan oleh pegawai
+                    </p>
+                  </div>
+                  <Switch
+                    id="is_active"
+                    checked={watch('is_active')}
+                    onCheckedChange={(checked) => setValue('is_active', checked)}
                   />
                 </div>
               </CardContent>
@@ -529,7 +632,30 @@ export default function MonthlyScheduleEditPage() {
                   Pilih hari kerja dalam sebulan
                 </CardDescription>
               </div>
-              <p className="text-xs text-muted-foreground">Klik tanggal untuk memilih/membatalkan hari kerja</p>
+              <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={generateWorkingDays}
+                    className="h-8"
+                  >
+                    <Wand2 className="h-4 w-4 mr-1" />
+                    Generate Senin-Jumat
+                  </Button>
+                  {workingDays && workingDays.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearWorkingDays}
+                      className="h-8 text-muted-foreground"
+                    >
+                      <RotateCcw className="h-4 w-4 mr-1" />
+                      Reset
+                    </Button>
+                  )}
+                </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -548,15 +674,17 @@ export default function MonthlyScheduleEditPage() {
                     <button
                       key={day.date}
                       type="button"
-                      onClick={() => toggleWorkingDay(day.date)}
-                      disabled={day.isHoliday}
+                      onClick={() => !day.isHoliday && !day.isWeekend && toggleWorkingDay(day.date)}
+                      disabled={day.isHoliday || day.isWeekend}
                       className={cn(
                         "aspect-square rounded-lg flex flex-col items-center justify-center text-sm transition-all border relative group",
                         day.isHoliday
                           ? "bg-red-50 text-red-600 border-red-100 cursor-not-allowed"
-                          : day.isSelected
-                            ? "bg-primary text-primary-foreground border-primary shadow-sm hover:bg-primary/90"
-                            : "bg-card hover:bg-accent border-border text-foreground"
+                          : day.isWeekend
+                            ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                            : day.isSelected
+                              ? "bg-primary text-primary-foreground border-primary shadow-sm hover:bg-primary/90"
+                              : "bg-card hover:bg-accent border-border text-foreground"
                       )}
                     >
                       <span className="font-semibold text-lg">{day.day}</span>
@@ -565,7 +693,10 @@ export default function MonthlyScheduleEditPage() {
                           Libur
                         </Badge>
                       )}
-                      {!day.isHoliday && day.isSelected && (
+                      {day.isWeekend && !day.isHoliday && (
+                        <span className="text-[10px] opacity-60 mt-1">Weekend</span>
+                      )}
+                      {!day.isHoliday && !day.isWeekend && day.isSelected && (
                         <span className="text-[10px] opacity-80 mt-1">Kerja</span>
                       )}
                     </button>
@@ -573,22 +704,29 @@ export default function MonthlyScheduleEditPage() {
                 ))}
               </div>
 
-              <div className="flex justify-between items-center pt-4 text-xs text-muted-foreground border-t">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-4 text-xs text-muted-foreground border-t">
                 <div>
                   Total Hari Kerja: <span className="font-medium text-foreground">{workingDays?.length || 0} hari</span>
+                  {holidays.length > 0 && (
+                    <span className="ml-2">• {holidays.length} hari libur</span>
+                  )}
                 </div>
-                <div className="flex gap-4">
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-wrap gap-3">
+                  <div className="flex items-center gap-1.5">
                     <div className="w-3 h-3 rounded bg-primary" />
                     <span>Hari Kerja</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <div className="w-3 h-3 rounded bg-red-100 border border-red-200" />
-                    <span>Hari Libur</span>
+                    <span>Libur Nasional</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded bg-gray-100 border border-gray-200" />
+                    <span>Weekend</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
                     <div className="w-3 h-3 rounded bg-card border" />
-                    <span>Hari Libur (Off)</span>
+                    <span>Tersedia</span>
                   </div>
                 </div>
               </div>

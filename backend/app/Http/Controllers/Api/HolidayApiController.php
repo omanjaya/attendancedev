@@ -75,7 +75,7 @@ class HolidayApiController extends BaseApiController
     }
 
     /**
-     * Create new holiday
+     * Create new holiday (with upsert - updates if same name+date+type exists)
      */
     public function store(Request $request)
     {
@@ -99,6 +99,18 @@ class HolidayApiController extends BaseApiController
         $validated['is_recurring'] = $validated['is_recurring'] ?? false;
         $validated['is_paid'] = $validated['is_paid'] ?? true;
         $validated['color'] = $validated['color'] ?? '#dc3545';
+
+        // Check for existing holiday with same name, date, and type (upsert logic)
+        $existing = Holiday::where('name', $validated['name'])
+            ->where('date', $validated['date'])
+            ->where('type', $validated['type'])
+            ->first();
+
+        if ($existing) {
+            // Update existing holiday instead of creating duplicate
+            $existing->update($validated);
+            return $this->apiResponse($existing->fresh(), 'Holiday updated (duplicate prevented)', 200);
+        }
 
         $holiday = Holiday::create($validated);
 

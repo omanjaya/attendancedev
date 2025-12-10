@@ -22,9 +22,22 @@ import {
     subMonths,
     startOfWeek,
     endOfWeek,
+    isValid,
 } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+
+// Safe date formatting helper
+const safeFormatDate = (dateStr: string | null | undefined, formatStr: string, fallback: string = '-') => {
+    if (!dateStr) return fallback;
+    try {
+        const date = parseISO(dateStr);
+        if (!isValid(date)) return fallback;
+        return format(date, formatStr, { locale: id });
+    } catch {
+        return fallback;
+    }
+};
 import { LoadingState } from '@/components/states';
 import { getAttendance } from '@/lib/api/attendance';
 import { getMySchedule } from '@/lib/api/schedules';
@@ -369,7 +382,7 @@ export function MobileEmployeeSchedulePage() {
                                 </div>
                                 <div className="flex-1">
                                     <p className="text-sm font-semibold leading-relaxed">
-                                        {format(parseISO(event.date), 'dd MMM yyyy', { locale: id })} - {event.name}
+                                        {safeFormatDate(event.date, 'dd MMM yyyy')} - {event.name}
                                     </p>
                                 </div>
                             </div>

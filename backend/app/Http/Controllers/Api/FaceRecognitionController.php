@@ -884,4 +884,77 @@ class FaceRecognitionController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Analyze facial emotion for liveness check
+     *
+     * POST /api/v1/face/deepface/analyze-emotion
+     *
+     * Request:
+     * - image: file
+     * - expected_emotion: string (e.g., 'happy' for smile check)
+     *
+     * Response:
+     * {
+     *   "success": true,
+     *   "emotions": {"happy": 89.2, "neutral": 5.1, ...},
+     *   "dominant_emotion": "happy",
+     *   "is_match": true,
+     *   "confidence": 0.89
+     * }
+     */
+    public function analyzeEmotionDeepFace(Request $request): JsonResponse
+    {
+        $request->validate([
+            'image' => 'required|file|mimes:jpg,jpeg,png|max:10240',
+            'expected_emotion' => 'nullable|string|in:happy,neutral,sad,angry,surprise,fear',
+        ]);
+
+        try {
+            $image = $request->file('image');
+            $expectedEmotion = $request->input('expected_emotion', 'happy');
+
+            // Call DeepFace analyze-emotion endpoint
+            $data = $this->deepFaceLoadBalancer->analyzeEmotion($image, $expectedEmotion);
+
+            Log::info('DeepFace emotion analysis completed', [
+                'dominant_emotion' => $data['dominant_emotion'] ?? null,
+                'expected_emotion' => $expectedEmotion,
+                'is_match' => $data['is_match'] ?? false,
+            ]);
+
+            return response()->json($data);
+
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::error('DeepFace service connection failed (emotion)', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Face recognition service unavailable. Please try again later.',
+                'error' => $e->getMessage(),
+            ], 503);
+        } catch (\RuntimeException $e) {
+            Log::error('DeepFace service runtime error (emotion)', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Face recognition service unavailable: ' . $e->getMessage(),
+                'error' => $e->getMessage(),
+            ], 503);
+        } catch (\Exception $e) {
+            Log::error('DeepFace emotion analysis error', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to analyze emotion: ' . $e->getMessage(),
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

@@ -49,6 +49,7 @@ class LocationVerificationService
                 'address' => $location->address,
                 'latitude' => $location->latitude,
                 'longitude' => $location->longitude,
+                'radius_meters' => $location->radius_meters,
                 'require_face_recognition' => $location->require_face_recognition,
             ],
             'message' => $verified

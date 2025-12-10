@@ -176,12 +176,9 @@ export default function EmployeeEditPage() {
   // Use find method safely
   const selectedEmployeeType = employeeTypes.find((t: any) => t.id === watchEmployeeTypeId);
 
-  // Determine if this is a teacher type (flexible schedule OR name contains 'guru') or staff type
+  // Determine if this is a teacher type (flexible schedule OR name contains 'guru')
   const isTeacherType = selectedEmployeeType?.schedule_mode === 'flexible' ||
     (selectedEmployeeType?.name?.toLowerCase().includes('guru') ?? false);
-
-  // Staff type is explicitly NOT a teacher type, but has a selected type
-  const isStaffType = !!selectedEmployeeType && !isTeacherType;
 
   // Populate form when employee data loads
   useEffect(() => {
@@ -533,12 +530,12 @@ export default function EmployeeEditPage() {
                       )}
                     </div>
 
-                    {/* DYNAMIC FIELD: Subject for Teachers */}
+                    {/* Subject for Teachers */}
                     {isTeacherType && (
                       <div className="space-y-2">
                         <Label htmlFor="subject">
                           <BookOpen className="w-4 h-4 inline mr-1" />
-                          Mata Pelajaran <span className="text-destructive">*</span>
+                          Mata Pelajaran
                         </Label>
                         <Select
                           onValueChange={(v) => setValue('subject_id', v)}
@@ -557,52 +554,43 @@ export default function EmployeeEditPage() {
                       </div>
                     )}
 
-                    {/* DYNAMIC FIELD: Department for Staff */}
-                    {isStaffType && (
-                      <div className="space-y-2">
-                        <Label htmlFor="department">Unit Kerja</Label>
-                        <Select
-                          onValueChange={(v) => setValue('department_id', v)}
-                          defaultValue={(employee as any).department_id}
-                        >
-                          <SelectTrigger id="department">
-                            <SelectValue placeholder="Pilih unit kerja" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {departments.map((d: any) => (
-                              <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {errors.department_id && <p className="text-xs text-destructive">{errors.department_id.message}</p>}
-                      </div>
-                    )}
-
-                    {/* POSITION FIELD */}
+                    {/* Department/Unit Kerja - untuk semua tipe */}
                     <div className="space-y-2">
-                      <Label htmlFor="position">Posisi/Jabatan <span className="text-destructive">*</span></Label>
-                      {isStaffType ? (
-                        <Select
-                          onValueChange={(v) => setValue('position_id', v)}
-                          defaultValue={(employee as any).position_id}
-                        >
-                          <SelectTrigger id="position">
-                            <SelectValue placeholder="Pilih jabatan" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {positions.map((p: any) => (
-                              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Input id="position" placeholder="Contoh: Guru Matematika" {...register('position')} />
-                      )}
-
-                      {errors.position && <p className="text-xs text-destructive">{errors.position.message}</p>}
+                      <Label htmlFor="department">Unit Kerja / Departemen</Label>
+                      <Select
+                        onValueChange={(v) => setValue('department_id', v)}
+                        defaultValue={(employee as any).department_id || ''}
+                      >
+                        <SelectTrigger id="department">
+                          <SelectValue placeholder="Pilih unit kerja" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {departments.map((d: any) => (
+                            <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.department_id && <p className="text-xs text-destructive">{errors.department_id.message}</p>}
                     </div>
 
-                    {/* Location Field - moved here to balance grid if needed, or keep below */}
+                    {/* Position/Jabatan - untuk semua tipe */}
+                    <div className="space-y-2">
+                      <Label htmlFor="position">Posisi / Jabatan</Label>
+                      <Select
+                        onValueChange={(v) => setValue('position_id', v)}
+                        defaultValue={(employee as any).position_id || ''}
+                      >
+                        <SelectTrigger id="position">
+                          <SelectValue placeholder="Pilih jabatan" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {positions.map((p: any) => (
+                            <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.position_id && <p className="text-xs text-destructive">{errors.position_id.message}</p>}
+                    </div>
                   </div>
 
                   <div className="grid gap-6 md:grid-cols-2">

@@ -8,8 +8,33 @@ import { ContentCard } from '@/components/shared/ContentCard';
 import { getAttendance, getAttendanceStatistics } from '@/lib/api/attendance';
 import { getEmployeeDashboardData } from '@/lib/api/employees';
 import { useAuthStore } from '@/stores';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, isValid } from 'date-fns';
 import { id } from 'date-fns/locale';
+
+// Safe date formatting helper
+const safeFormatDate = (dateStr: string | null | undefined, formatStr: string, fallback: string = '-') => {
+  if (!dateStr) return fallback;
+  try {
+    const date = parseISO(dateStr);
+    if (!isValid(date)) return fallback;
+    return format(date, formatStr, { locale: id });
+  } catch {
+    return fallback;
+  }
+};
+
+// Safe time formatting (for HH:mm format)
+const safeFormatTime = (timeStr: string | null | undefined, fallback: string = '-') => {
+  if (!timeStr) return fallback;
+  try {
+    // If it's just time like "07:30:00", prepend a date
+    const date = parseISO(timeStr.includes('T') ? timeStr : `2000-01-01T${timeStr}`);
+    if (!isValid(date)) return fallback;
+    return format(date, 'HH:mm');
+  } catch {
+    return fallback;
+  }
+};
 
 /**
  * Employee Attendance Page
@@ -239,7 +264,7 @@ export function DesktopEmployeeAttendancePage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-sm font-medium">
-                      {record.date ? format(parseISO(record.date), 'EEEE, dd MMMM yyyy', { locale: id }) : '-'}
+                      {safeFormatDate(record.date, 'EEEE, dd MMMM yyyy')}
                     </span>
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(record.status)}`}>
                       {getStatusIcon(record.status)}
@@ -251,13 +276,13 @@ export function DesktopEmployeeAttendancePage() {
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4" />
                       <span>
-                        Check-in: {record.checkIn ? format(parseISO(`2000-01-01T${record.checkIn}`), 'HH:mm') : '-'}
+                        Check-in: {safeFormatTime(record.checkIn)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4" />
                       <span>
-                        Check-out: {record.checkOut ? format(parseISO(`2000-01-01T${record.checkOut}`), 'HH:mm') : '-'}
+                        Check-out: {safeFormatTime(record.checkOut)}
                       </span>
                     </div>
                     {record.location && (

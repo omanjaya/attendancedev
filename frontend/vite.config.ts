@@ -15,13 +15,7 @@ export default defineConfig({
       interval: 1000,
     },
     hmr: false, // Disable HMR in Docker (use manual refresh)
-    allowedHosts: [
-      'snuffiest-nydia-egregious.ngrok-free.dev',
-      '.ngrok-free.dev',
-      '.ngrok.io',
-      'localhost',
-      'nginx',
-    ],
+    allowedHosts: true, // Allow all hosts in development
     proxy: {
       '/api': {
         target: 'http://nginx',

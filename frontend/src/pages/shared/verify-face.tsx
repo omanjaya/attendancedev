@@ -293,7 +293,6 @@ export function VerifyFacePage() {
               onCapture={onFaceCaptured}
               onError={(err) => setFaceState({ status: 'failed', message: 'Gagal kamera', error: err })}
               autoCapture={true}
-              stabilityDuration={1000}
               className="w-full"
             />
           )}

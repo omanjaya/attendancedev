@@ -32,7 +32,19 @@ class MonthlyScheduleService
                 'name' => $data['name'],
                 'year' => $data['year'],
                 'month' => $data['month'],
+                'start_date' => $data['start_date'],
+                'end_date' => $data['end_date'],
+                'default_start_time' => $data['default_start_time'],
+                'default_end_time' => $data['default_end_time'],
+                'checkin_start_time' => $data['checkin_start_time'] ?? null,
+                'checkin_end_time' => $data['checkin_end_time'] ?? null,
+                'checkout_start_time' => $data['checkout_start_time'] ?? null,
+                'checkout_end_time' => $data['checkout_end_time'] ?? null,
+                'working_days' => $data['working_days'] ?? [],
+                'total_working_days' => isset($data['working_days']) ? count($data['working_days']) : 0,
                 'is_active' => $data['is_active'] ?? false,
+                'description' => $data['description'] ?? null,
+                'metadata' => $data['metadata'] ?? [],
                 'created_by' => $data['created_by'],
             ]);
 
@@ -53,12 +65,32 @@ class MonthlyScheduleService
     public function updateMonthlySchedule(MonthlySchedule $schedule, array $data): MonthlySchedule
     {
         DB::transaction(function () use ($schedule, $data) {
-            $schedule->update(array_filter([
+            $updateData = array_filter([
                 'name' => $data['name'] ?? null,
                 'year' => $data['year'] ?? null,
                 'month' => $data['month'] ?? null,
-                'is_active' => $data['is_active'] ?? null,
-            ]));
+                'start_date' => $data['start_date'] ?? null,
+                'end_date' => $data['end_date'] ?? null,
+                'default_start_time' => $data['default_start_time'] ?? null,
+                'default_end_time' => $data['default_end_time'] ?? null,
+                'checkin_start_time' => $data['checkin_start_time'] ?? null,
+                'checkin_end_time' => $data['checkin_end_time'] ?? null,
+                'checkout_start_time' => $data['checkout_start_time'] ?? null,
+                'checkout_end_time' => $data['checkout_end_time'] ?? null,
+                'description' => $data['description'] ?? null,
+                'metadata' => $data['metadata'] ?? null,
+            ], fn($value) => $value !== null);
+
+            if (array_key_exists('is_active', $data)) {
+                $updateData['is_active'] = $data['is_active'];
+            }
+
+            if (array_key_exists('working_days', $data)) {
+                $updateData['working_days'] = $data['working_days'];
+                $updateData['total_working_days'] = is_array($data['working_days']) ? count($data['working_days']) : 0;
+            }
+
+            $schedule->update($updateData);
 
             if (isset($data['employees'])) {
                 EmployeeMonthlySchedule::where('monthly_schedule_id', $schedule->id)->delete();

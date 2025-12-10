@@ -506,6 +506,56 @@ export async function verifyFaceDeepFace(
 }
 
 /**
+ * Emotion analysis response from DeepFace
+ */
+export interface DeepFaceEmotionResponse {
+  success: boolean;
+  emotions?: {
+    angry: number;
+    disgust: number;
+    fear: number;
+    happy: number;
+    sad: number;
+    surprise: number;
+    neutral: number;
+  };
+  dominant_emotion?: string;
+  expected_emotion?: string;
+  is_match?: boolean;
+  confidence?: number;
+  message?: string;
+  error?: string;
+}
+
+/**
+ * Analyze facial emotion using DeepFace
+ * Used for liveness check - detect if user is smiling
+ *
+ * @param imageFile - Image file to analyze
+ * @param expectedEmotion - Expected emotion to validate (e.g., 'happy' for smile)
+ * @returns Emotion analysis result with is_match boolean
+ */
+export async function analyzeEmotionDeepFace(
+  imageFile: File,
+  expectedEmotion: 'happy' | 'neutral' | 'sad' | 'angry' | 'surprise' | 'fear' = 'happy'
+): Promise<DeepFaceEmotionResponse> {
+  const formData = new FormData();
+  formData.append('image', imageFile);
+  formData.append('expected_emotion', expectedEmotion);
+
+  const response = await apiClient.post<DeepFaceEmotionResponse>(
+    '/face/deepface/analyze-emotion',
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }
+  );
+  return response.data;
+}
+
+/**
  * Check DeepFace service health
  *
  * @returns Health status of DeepFace service

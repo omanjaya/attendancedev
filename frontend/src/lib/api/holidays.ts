@@ -17,6 +17,7 @@ export interface HolidayFilters {
   status?: string;
   search?: string;
   per_page?: number;
+  page?: number;
 }
 
 export interface HolidayFormData {

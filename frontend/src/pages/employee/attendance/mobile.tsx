@@ -120,12 +120,24 @@ export function MobileEmployeeAttendancePage() {
     setPendingAction(null);
   };
 
-  // Format time from "HH:MM:SS" to "HH:MM:SS"
-  const formatTime = (time: string | null) => {
+  // Format time from ISO string or "HH:MM:SS" to "HH:MM:SS"
+  const formatTime = (time: string | null | undefined) => {
     if (!time) return '--:--:--';
     try {
+      // If it's already in HH:MM:SS format, return as-is
+      if (/^\d{2}:\d{2}(:\d{2})?$/.test(time)) {
+        return time.length === 5 ? `${time}:00` : time;
+      }
+      // Parse ISO date string
       const date = new Date(time);
-      if (isNaN(date.getTime())) return time;
+      if (isNaN(date.getTime())) {
+        // If invalid, try to extract time portion
+        const match = time.match(/(\d{2}):(\d{2}):?(\d{2})?/);
+        if (match) {
+          return `${match[1]}:${match[2]}:${match[3] || '00'}`;
+        }
+        return '--:--:--';
+      }
       return date.toLocaleTimeString('id-ID', {
         hour: '2-digit',
         minute: '2-digit',
@@ -133,19 +145,24 @@ export function MobileEmployeeAttendancePage() {
         hour12: false
       }).replace(/\./g, ':');
     } catch (e) {
-      return time;
+      return '--:--:--';
     }
   };
 
   // Format date
-  const formatDate = (date: string | null) => {
+  const formatDate = (date: string | null | undefined) => {
     if (!date) return '';
-    const d = new Date(date);
-    return d.toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
+    try {
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return '';
+      return d.toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
+    } catch (e) {
+      return '';
+    }
   };
 
   // Get user initials for avatar

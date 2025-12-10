@@ -54,8 +54,8 @@ class AttendanceService implements AttendanceServiceInterface
                 }
             }
 
-            // Verify face if provided
-            if ($faceData && config('attendance.require_face_verification')) {
+            // Verify face if descriptor provided (skip if already verified via DeepFace API)
+            if ($faceData && config('attendance.require_face_verification') && !empty($faceData['descriptor'])) {
                 $verification = $this->faceService->verifyFace($faceData['descriptor'], $employee);
                 if (!$verification['success']) {
                     throw new \Exception('Face verification failed');
@@ -403,6 +403,17 @@ class AttendanceService implements AttendanceServiceInterface
             return true; // No location restriction
         }
 
+        // Check if employee is WFA/Remote (location has no GPS or very large radius)
+        $isWfa = !$employeeLocation->latitude
+            || !$employeeLocation->longitude
+            || ($employeeLocation->radius_meters ?? 0) >= 9999999
+            || str_contains(strtolower($employeeLocation->name ?? ''), 'remote')
+            || str_contains(strtolower($employeeLocation->name ?? ''), 'wfa');
+
+        if ($isWfa) {
+            return true; // WFA employees are always location-verified
+        }
+
         $distance = $this->calculateDistance(
             $locationData['latitude'],
             $locationData['longitude'],
@@ -410,7 +421,7 @@ class AttendanceService implements AttendanceServiceInterface
             $employeeLocation->longitude
         );
 
-        return $distance <= ($employeeLocation->radius ?? config('attendance.default_location_radius', 100));
+        return $distance <= ($employeeLocation->radius_meters ?? $employeeLocation->radius ?? config('attendance.default_location_radius', 100));
     }
 
     /**

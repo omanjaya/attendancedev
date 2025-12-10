@@ -417,6 +417,91 @@ async def verify_face(
         logger.error(f"Verification failed: {e}")
         raise HTTPException(status_code=500, detail=f"Verification failed: {str(e)}")
 
+@app.post("/analyze-emotion")
+async def analyze_emotion(
+    image: Optional[UploadFile] = File(None),
+    image_base64: Optional[str] = Form(None),
+    expected_emotion: Optional[str] = Form(None)
+):
+    """
+    Analyze facial emotion for liveness check
+
+    Parameters:
+    - image: Image file upload
+    - image_base64: Base64 encoded image string
+    - expected_emotion: Expected emotion to validate (e.g., 'happy', 'neutral')
+
+    Returns:
+    - emotions: Dict of all emotion scores
+    - dominant_emotion: The strongest detected emotion
+    - is_match: Whether expected_emotion matches dominant_emotion
+    """
+    try:
+        # Load image
+        if image:
+            img_bytes = await image.read()
+            img = Image.open(io.BytesIO(img_bytes))
+            img_array = np.array(img)
+        elif image_base64:
+            img_array = decode_base64_image(image_base64)
+        else:
+            raise HTTPException(status_code=400, detail="No image provided")
+
+        # Analyze emotion using DeepFace
+        logger.info("Analyzing facial emotion...")
+        analysis = DeepFace.analyze(
+            img_path=img_array,
+            actions=['emotion'],
+            enforce_detection=True,
+            detector_backend=CONFIG["detector_backend"]
+        )
+
+        if not analysis or len(analysis) == 0:
+            return {
+                "success": False,
+                "message": "No face detected in image"
+            }
+
+        # Get emotion results
+        face_analysis = analysis[0]
+        emotions = face_analysis.get("emotion", {})
+        dominant_emotion = face_analysis.get("dominant_emotion", "unknown")
+
+        # Check if matches expected emotion
+        is_match = True
+        if expected_emotion:
+            expected_lower = expected_emotion.lower()
+            # For 'happy' check - very low threshold for easy detection
+            if expected_lower == "happy":
+                is_match = dominant_emotion == "happy" or emotions.get("happy", 0) > 8
+            elif expected_lower == "neutral":
+                is_match = dominant_emotion == "neutral" or emotions.get("neutral", 0) > 20
+            else:
+                is_match = dominant_emotion == expected_lower
+
+        logger.info(f"✓ Emotion analysis: {dominant_emotion} (match: {is_match})")
+
+        return {
+            "success": True,
+            "emotions": emotions,
+            "dominant_emotion": dominant_emotion,
+            "expected_emotion": expected_emotion,
+            "is_match": is_match,
+            "confidence": emotions.get(dominant_emotion, 0) / 100
+        }
+
+    except ValueError as e:
+        logger.warning(f"Emotion analysis failed: {e}")
+        return {
+            "success": False,
+            "message": "No face detected in image",
+            "error": str(e)
+        }
+    except Exception as e:
+        logger.error(f"Emotion analysis error: {e}")
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+
+
 @app.get("/models")
 async def list_models():
     """List available DeepFace models"""

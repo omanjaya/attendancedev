@@ -309,7 +309,6 @@ export function MonthlyScheduleList({ showHeader = true }: { showHeader?: boolea
                   <TableRow>
                     <TableHead>Nama Jadwal</TableHead>
                     <TableHead>Periode</TableHead>
-                    <TableHead>Lokasi</TableHead>
                     <TableHead>Hari Kerja</TableHead>
                     <TableHead>Jam Kerja</TableHead>
                     <TableHead>Pegawai</TableHead>
@@ -324,7 +323,6 @@ export function MonthlyScheduleList({ showHeader = true }: { showHeader?: boolea
                       <TableCell>
                         {months[schedule.month - 1]} {schedule.year}
                       </TableCell>
-                      <TableCell>{schedule.location?.name || '-'}</TableCell>
                       <TableCell>{schedule.total_working_days} hari</TableCell>
                       <TableCell className="text-sm">
                         {schedule.default_start_time} - {schedule.default_end_time}

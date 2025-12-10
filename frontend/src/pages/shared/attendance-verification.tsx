@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import {
     MapPin,
@@ -78,6 +78,10 @@ export function AttendanceVerificationPage() {
     const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
     const [scheduleChecked, setScheduleChecked] = useState(false);
 
+    // Use ref to store location data that persists across re-renders
+    // This ensures location is available when submitAttendance is called
+    const locationRef = React.useRef<{ latitude: number; longitude: number } | null>(null);
+
     // Get today's date for cache key (ensures fresh data each day)
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
 
@@ -124,6 +128,9 @@ export function AttendanceVerificationPage() {
                 async (position) => {
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
+
+                    // Store location in ref for later use (ensures availability in submitAttendance)
+                    locationRef.current = { latitude: lat, longitude: lng };
 
                     setState(prev => ({
                         ...prev,
@@ -191,18 +198,68 @@ export function AttendanceVerificationPage() {
         }
     }, [state.step, scheduleChecked, isLoadingSchedule]);
 
-    // Handler for "Lanjut" button after location verified
-    const handleContinueToFace = useCallback(() => {
+    // Handler for "Lanjut" button after location verified - request camera permission first
+    const handleContinueToFace = useCallback(async () => {
         setState(prev => ({
             ...prev,
-            step: 'face',
-            message: 'Silakan Senyum 😊',
-            progress: 50,
+            message: 'Meminta izin kamera...',
+            progress: 45,
         }));
+
+        try {
+            // Request camera permission before proceeding
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'user' },
+                audio: false
+            });
+
+            // Permission granted - stop the test stream
+            stream.getTracks().forEach(track => track.stop());
+
+            // Now proceed to face step
+            setState(prev => ({
+                ...prev,
+                step: 'face',
+                message: 'Silakan Senyum 😊',
+                progress: 50,
+            }));
+        } catch (err) {
+            console.error('Camera permission error:', err);
+
+            let errorMessage = 'Gagal mengakses kamera';
+            if (err instanceof Error) {
+                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    errorMessage = 'Izin kamera ditolak. Silakan aktifkan izin kamera di pengaturan browser.';
+                } else if (err.name === 'NotFoundError') {
+                    errorMessage = 'Kamera tidak ditemukan pada perangkat ini.';
+                } else if (err.name === 'NotReadableError') {
+                    errorMessage = 'Kamera sedang digunakan aplikasi lain.';
+                }
+            }
+
+            setState(prev => ({
+                ...prev,
+                step: 'error',
+                faceError: errorMessage,
+                message: 'Error kamera',
+                progress: 40,
+            }));
+        }
     }, []);
 
     // Face captured handler - verify face with DeepFace after liveness check
     const onFaceCaptured = useCallback(async (videoElement: HTMLVideoElement) => {
+        // Safety check - ensure video is ready
+        if (!videoElement.videoWidth || !videoElement.videoHeight) {
+            setState(prev => ({
+                ...prev,
+                step: 'error',
+                faceError: 'Kamera belum siap. Silakan coba lagi.',
+                message: 'Error kamera',
+            }));
+            return;
+        }
+
         setState(prev => ({
             ...prev,
             message: 'Memverifikasi wajah...',
@@ -299,8 +356,10 @@ export function AttendanceVerificationPage() {
             return;
         }
 
-        // Use stored location from state (already verified)
-        if (!state.latitude || !state.longitude) {
+        // Use location from ref (more reliable) or fallback to state
+        const location = locationRef.current || { latitude: state.latitude, longitude: state.longitude };
+
+        if (!location.latitude || !location.longitude) {
             setState(prev => ({
                 ...prev,
                 step: 'error',
@@ -315,13 +374,13 @@ export function AttendanceVerificationPage() {
                 employee_id: user.employee.id,
                 action: type === 'check-in' ? 'check_in' : 'check_out',
                 location: {
-                    latitude: state.latitude,
-                    longitude: state.longitude,
+                    latitude: location.latitude,
+                    longitude: location.longitude,
                 },
                 type: type === 'check-in' ? 'check_in' : 'check_out',
                 face_confidence: state.confidence ?? 0,
-                latitude: state.latitude,
-                longitude: state.longitude,
+                latitude: location.latitude,
+                longitude: location.longitude,
                 notes: `${type === 'check-in' ? 'Check-in' : 'Check-out'} via unified verification`,
                 metadata: {
                     device: navigator.userAgent,
@@ -367,13 +426,17 @@ export function AttendanceVerificationPage() {
         }
     };
 
-    // Countdown for success (optional - now user clicks Selesai)
+    // Countdown for success - auto navigate when countdown reaches 0
     useEffect(() => {
-        if (state.step === 'success' && countdown > 0) {
-            const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-            return () => clearTimeout(timer);
+        if (state.step === 'success') {
+            if (countdown > 0) {
+                const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+                return () => clearTimeout(timer);
+            } else {
+                // Auto navigate when countdown finishes
+                handleBack();
+            }
         }
-        // Don't auto-navigate, let user click "Selesai"
     }, [state.step, countdown]);
 
     const handleBack = () => {
@@ -538,7 +601,6 @@ export function AttendanceVerificationPage() {
                                     message: 'Kamera error',
                                 }))}
                                 autoCapture={true}
-                                stabilityDuration={1500}
                                 className="w-full h-full"
                             />
                         </div>

@@ -54,10 +54,51 @@ class LocationApiController extends BaseApiController
             'location_id' => 'nullable|exists:locations,id',
         ]);
 
+        // If no location_id provided, try to use logged-in user's employee location
+        $locationId = $validated['location_id'] ?? null;
+
+        if (!$locationId) {
+            $user = $request->user();
+            if ($user && $user->employee && $user->employee->location_id) {
+                $employeeLocation = $user->employee->location;
+
+                // Check if employee is WFA/Remote (location has no GPS or very large radius)
+                if ($employeeLocation) {
+                    $isWfa = !$employeeLocation->latitude
+                        || !$employeeLocation->longitude
+                        || $employeeLocation->radius_meters >= 9999999
+                        || str_contains(strtolower($employeeLocation->name), 'remote')
+                        || str_contains(strtolower($employeeLocation->name), 'wfa');
+
+                    if ($isWfa) {
+                        // WFA employees are always verified
+                        return response()->json([
+                            'verified' => true,
+                            'distance' => 0,
+                            'allowed_radius' => $employeeLocation->radius_meters,
+                            'location' => [
+                                'id' => $employeeLocation->id,
+                                'name' => $employeeLocation->name,
+                                'address' => $employeeLocation->address ?? 'Work From Anywhere',
+                                'latitude' => $validated['latitude'],
+                                'longitude' => $validated['longitude'],
+                                'radius_meters' => $employeeLocation->radius_meters,
+                                'require_face_recognition' => $employeeLocation->require_face_recognition,
+                            ],
+                            'message' => 'Work From Anywhere - Location verified.',
+                        ]);
+                    }
+
+                    // Use employee's assigned location for verification
+                    $locationId = $employeeLocation->id;
+                }
+            }
+        }
+
         $result = $this->verificationService->verifyLocation(
             $validated['latitude'],
             $validated['longitude'],
-            $validated['location_id'] ?? null
+            $locationId
         );
 
         return response()->json($result);

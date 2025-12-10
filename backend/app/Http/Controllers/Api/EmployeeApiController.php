@@ -303,6 +303,38 @@ class EmployeeApiController extends BaseApiController
     }
 
     /**
+     * Get employee dashboard data by ID (admin only)
+     */
+    public function dashboardById(Request $request, string $id)
+    {
+        $employee = $this->employeeService->getEmployeeById($id);
+        
+        if (!$employee) {
+            return $this->errorResponse('Employee not found', 404);
+        }
+
+        $data = $this->statisticsService->getDashboard($employee);
+        
+        // Add recent attendance records
+        $data['recent_attendance'] = \App\Models\Attendance::where('employee_id', $employee->id)
+            ->orderBy('date', 'desc')
+            ->limit(10)
+            ->get()
+            ->map(function ($record) {
+                return [
+                    'date' => $record->date->format('Y-m-d'),
+                    'check_in' => $record->check_in_time ? $record->check_in_time->format('H:i') : '-',
+                    'check_out' => $record->check_out_time ? $record->check_out_time->format('H:i') : '-',
+                    'status' => $record->status,
+                    'is_late' => $record->is_late,
+                    'late_minutes' => $record->late_minutes,
+                ];
+            });
+
+        return $this->apiResponse($data, 'Employee dashboard data retrieved');
+    }
+
+    /**
      * Bulk actions for employees
      */
     public function bulk(Request $request)

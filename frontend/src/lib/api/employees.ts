@@ -13,6 +13,7 @@ const ENDPOINTS = {
   search: '/employees/search',
   statistics: '/employees/statistics',
   dashboard: '/employees/dashboard',
+  dashboardById: (id: string) => `/employees/${id}/dashboard`,
 } as const;
 
 // Get all employees with pagination and filters
@@ -65,9 +66,67 @@ export async function getEmployeeStatistics(): Promise<EmployeeStatistics> {
   return response.data.data;
 }
 
-// Get employee dashboard data
+// Get employee dashboard data (for current user)
 export async function getEmployeeDashboardData(): Promise<any> {
   const response = await apiClient.get(ENDPOINTS.dashboard);
+  return response.data.data;
+}
+
+// Employee dashboard data types
+export interface EmployeeDashboardData {
+  attendance: {
+    thisMonth: number;
+    present: number;
+    late: number;
+    absent: number;
+    todayStatus: string | null;
+    checkIn: string | null;
+    checkOut: string | null;
+  };
+  leave: {
+    balance: number;
+    used: number;
+    pending: number;
+  };
+  schedule: {
+    today: {
+      shift: string;
+      time: string;
+      location: string;
+      can_attend: boolean;
+      message: string;
+      schedule_type: string;
+    };
+    nextShift: {
+      date: string;
+      shift: string;
+      time: string;
+    } | null;
+  };
+  payroll: {
+    lastPayment: {
+      amount: number;
+      date: string;
+      status: string;
+    };
+    nextPayment: {
+      date: string;
+      estimated: number;
+    };
+  };
+  recent_attendance: {
+    date: string;
+    check_in: string;
+    check_out: string;
+    status: string;
+    is_late: boolean;
+    late_minutes: number;
+  }[];
+}
+
+// Get employee dashboard data by ID (admin only)
+export async function getEmployeeDashboardById(id: string): Promise<EmployeeDashboardData> {
+  const response = await apiClient.get<{ data: EmployeeDashboardData }>(ENDPOINTS.dashboardById(id));
   return response.data.data;
 }
 

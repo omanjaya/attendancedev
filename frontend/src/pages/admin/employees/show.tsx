@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams, useNavigate } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft,
@@ -42,15 +43,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useEmployee, useDeleteEmployee } from '@/hooks';
-
-// Mock attendance data (TODO: integrate with attendance API)
-const recentAttendance = [
-  { date: '2024-11-28', check_in: '08:15', check_out: '17:30', status: 'present' },
-  { date: '2024-11-27', check_in: '08:45', check_out: '17:00', status: 'late' },
-  { date: '2024-11-26', check_in: '08:00', check_out: '17:15', status: 'present' },
-  { date: '2024-11-25', check_in: '07:55', check_out: '17:30', status: 'present' },
-  { date: '2024-11-24', check_in: '-', check_out: '-', status: 'leave' },
-];
+import { getEmployeeDashboardById, type EmployeeDashboardData } from '@/lib/api/employees';
 
 // Loading skeleton
 function ShowLoadingSkeleton() {
@@ -98,6 +91,17 @@ export default function EmployeeShowPage() {
     error,
     refetch,
   } = useEmployee(id);
+
+  // Fetch employee dashboard data (attendance stats, etc)
+  const {
+    data: dashboardData,
+    isLoading: isDashboardLoading,
+  } = useQuery<EmployeeDashboardData>({
+    queryKey: ['employee-dashboard', id],
+    queryFn: () => getEmployeeDashboardById(id),
+    enabled: !!id && !!employee,
+    staleTime: 60000, // 1 minute
+  });
 
   // Delete mutation
   const deleteEmployeeMutation = useDeleteEmployee();
@@ -169,12 +173,43 @@ export default function EmployeeShowPage() {
     );
   }
 
-  // Stats data
+  // Calculate attendance percentage
+  const attendancePercentage = dashboardData?.attendance
+    ? dashboardData.attendance.thisMonth > 0
+      ? Math.round((dashboardData.attendance.present / dashboardData.attendance.thisMonth) * 100 * 10) / 10
+      : 0
+    : 0;
+
+  // Stats data from real API
   const stats = [
-    { id: 'stat-1', value: '95.6%', label: 'Kehadiran Bulan Ini', icon: CheckCircle, color: 'text-success' },
-    { id: 'stat-2', value: '22', label: 'Hari Hadir', icon: CalendarDays, color: 'text-primary' },
-    { id: 'stat-3', value: '2', label: 'Terlambat', icon: Clock, color: 'text-warning' },
-    { id: 'stat-4', value: '3', label: 'Cuti Digunakan', icon: Briefcase, color: 'text-info' },
+    { 
+      id: 'stat-1', 
+      value: isDashboardLoading ? '-' : `${attendancePercentage}%`, 
+      label: 'Kehadiran Bulan Ini', 
+      icon: CheckCircle, 
+      color: 'text-success' 
+    },
+    { 
+      id: 'stat-2', 
+      value: isDashboardLoading ? '-' : String(dashboardData?.attendance?.present || 0), 
+      label: 'Hari Hadir', 
+      icon: CalendarDays, 
+      color: 'text-primary' 
+    },
+    { 
+      id: 'stat-3', 
+      value: isDashboardLoading ? '-' : String(dashboardData?.attendance?.late || 0), 
+      label: 'Terlambat', 
+      icon: Clock, 
+      color: 'text-warning' 
+    },
+    { 
+      id: 'stat-4', 
+      value: isDashboardLoading ? '-' : String(dashboardData?.leave?.used || 0), 
+      label: 'Cuti Digunakan', 
+      icon: Briefcase, 
+      color: 'text-info' 
+    },
   ];
 
   return (
@@ -395,7 +430,7 @@ export default function EmployeeShowPage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground mb-1">Departemen</p>
-                      <p className="font-medium">{employee.department}</p>
+                      <p className="font-medium">{employee.department || <span className="text-muted-foreground italic">Belum diatur</span>}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4 group">
@@ -404,7 +439,7 @@ export default function EmployeeShowPage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground mb-1">Posisi</p>
-                      <p className="font-medium">{employee.position}</p>
+                      <p className="font-medium">{employee.position || <span className="text-muted-foreground italic">Belum diatur</span>}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4 group">
@@ -447,33 +482,50 @@ export default function EmployeeShowPage() {
                 </Button>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b bg-muted/30">
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tanggal</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Check In</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Check Out</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {recentAttendance.map((record, index) => (
-                      <tr key={index} className="hover:bg-muted/30 transition-colors">
-                        <td className="px-6 py-4 text-sm font-medium">
-                          {new Date(record.date).toLocaleDateString('id-ID', {
-                            weekday: 'short',
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
-                        </td>
-                        <td className="px-6 py-4 text-sm font-mono text-muted-foreground">{record.check_in}</td>
-                        <td className="px-6 py-4 text-sm font-mono text-muted-foreground">{record.check_out}</td>
-                        <td className="px-6 py-4">{getStatusBadge(record.status)}</td>
+                {isDashboardLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : !dashboardData?.recent_attendance?.length ? (
+                  <div className="py-8 text-center text-muted-foreground">
+                    Belum ada data kehadiran
+                  </div>
+                ) : (
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b bg-muted/30">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tanggal</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Check In</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Check Out</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y">
+                      {dashboardData.recent_attendance.map((record, index) => (
+                        <tr key={index} className="hover:bg-muted/30 transition-colors">
+                          <td className="px-6 py-4 text-sm font-medium">
+                            {new Date(record.date).toLocaleDateString('id-ID', {
+                              weekday: 'short',
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                          </td>
+                          <td className="px-6 py-4 text-sm font-mono text-muted-foreground">
+                            {record.check_in}
+                            {record.is_late && record.late_minutes > 0 && (
+                              <Badge variant="outline" className="ml-2 border-warning/50 text-warning bg-warning/10 text-xs">
+                                +{record.late_minutes}m
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-sm font-mono text-muted-foreground">{record.check_out}</td>
+                          <td className="px-6 py-4">{getStatusBadge(record.status)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </motion.div>
           </TabsContent>

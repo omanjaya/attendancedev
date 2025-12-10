@@ -211,7 +211,6 @@ export interface MonthlyAttendanceScheduleFormData {
   name: string;
   month: number; // 1-12
   year: number;
-  location_id?: string;
   default_start_time: string; // HH:mm format
   default_end_time: string; // HH:mm format
   checkin_start_time: string; // HH:mm format
@@ -219,6 +218,7 @@ export interface MonthlyAttendanceScheduleFormData {
   checkout_start_time: string; // HH:mm format
   checkout_end_time: string; // HH:mm format
   working_days: string[]; // Array of ISO date strings ["2025-02-01", "2025-02-02"]
+  is_active?: boolean;
   description?: string;
   metadata?: Record<string, any>;
 }
@@ -230,11 +230,6 @@ export interface MonthlyAttendanceSchedule {
   year: number;
   start_date: string;
   end_date: string;
-  location_id: string;
-  location?: {
-    id: string;
-    name: string;
-  };
   default_start_time: string;
   default_end_time: string;
   checkin_start_time: string;
@@ -311,9 +306,21 @@ export async function getMonthlyAttendanceSchedule(
 export async function createMonthlyAttendanceSchedule(
   data: MonthlyAttendanceScheduleFormData
 ): Promise<MonthlyAttendanceSchedule> {
+  // Calculate start_date and end_date from month and year
+  const startDate = new Date(data.year, data.month - 1, 1);
+  const endDate = new Date(data.year, data.month, 0); // Last day of month
+  
+  const formatDate = (d: Date) => d.toISOString().split('T')[0];
+  
+  const payload = {
+    ...data,
+    start_date: formatDate(startDate),
+    end_date: formatDate(endDate),
+  };
+  
   const response = await apiClient.post<{ success: boolean; data: MonthlyAttendanceSchedule }>(
     V1_ENDPOINTS.monthlySchedules,
-    data
+    payload
   );
   return response.data.data;
 }
