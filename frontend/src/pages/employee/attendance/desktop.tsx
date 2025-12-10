@@ -179,7 +179,7 @@ export function DesktopEmployeeAttendancePage() {
           {/* Calendar days */}
           {days.map((day: Date) => {
             const record = attendanceData?.records.find((r: any) =>
-              isSameDay(parseISO(r.date), day)
+              r.date && isSameDay(parseISO(r.date), day)
             );
 
             return (
@@ -239,7 +239,7 @@ export function DesktopEmployeeAttendancePage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-sm font-medium">
-                      {format(parseISO(record.date), 'EEEE, dd MMMM yyyy', { locale: id })}
+                      {record.date ? format(parseISO(record.date), 'EEEE, dd MMMM yyyy', { locale: id }) : '-'}
                     </span>
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(record.status)}`}>
                       {getStatusIcon(record.status)}

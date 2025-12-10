@@ -36,6 +36,14 @@ class AttendanceApiController extends BaseApiController
             $query->where('status', $status);
         }
 
+        // Support month filter (format: YYYY-MM)
+        if ($month = $request->get('month')) {
+            $startDate = \Carbon\Carbon::parse($month . '-01')->startOfMonth();
+            $endDate = \Carbon\Carbon::parse($month . '-01')->endOfMonth();
+            $query->whereDate('date', '>=', $startDate)
+                  ->whereDate('date', '<=', $endDate);
+        }
+
         $query->orderBy('date', 'desc');
 
         $perPage = $request->get('per_page', 15);

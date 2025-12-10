@@ -39,11 +39,18 @@ class SystemController extends Controller
             'description' => 'React Vite Application',
             'health_check' => '/',
         ],
-        'deepface' => [
-            'name' => 'Face Recognition',
-            'container' => 'attendancedev-deepface',
+        'deepface-1' => [
+            'name' => 'Face Recognition 1',
+            'container' => 'attendancedev-deepface-1',
             'icon' => 'scan-face',
-            'description' => 'DeepFace Service',
+            'description' => 'DeepFace Service (Primary)',
+            'health_check' => '/health',
+        ],
+        'deepface-2' => [
+            'name' => 'Face Recognition 2',
+            'container' => 'attendancedev-deepface-2',
+            'icon' => 'scan-face',
+            'description' => 'DeepFace Service (Secondary)',
             'health_check' => '/health',
         ],
         'postgres' => [
