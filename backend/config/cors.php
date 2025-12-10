@@ -17,25 +17,39 @@ return [
 
     'paths' => ['api/*', 'sanctum/csrf-cookie', 'auth/*', 'login'],
 
-    'allowed_methods' => ['*'],
+    'allowed_methods' => ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
 
-    'allowed_origins' => [
-        'http://localhost:5173',
-        'http://127.0.0.1:5173',
-        'http://localhost:3000',
-        'http://localhost:5174',
-        'http://127.0.0.1:5174',
-        'http://192.168.110.247:5173',
-        'https://snuffiest-nydia-egregious.ngrok-free.dev',
-    ],
+    /*
+    |--------------------------------------------------------------------------
+    | Allowed Origins
+    |--------------------------------------------------------------------------
+    |
+    | Set via CORS_ALLOWED_ORIGINS environment variable.
+    | For multiple origins, use comma-separated values:
+    | CORS_ALLOWED_ORIGINS=https://example.com,https://app.example.com
+    |
+    | In development, you can add localhost origins:
+    | CORS_ALLOWED_ORIGINS=https://absensi.patra.co.id,http://localhost:5173
+    |
+    */
+    'allowed_origins' => array_filter(
+        array_map('trim', explode(',', env('CORS_ALLOWED_ORIGINS', 'https://absensi.patra.co.id')))
+    ),
 
     'allowed_origins_patterns' => [],
 
-    'allowed_headers' => ['*'],
+    'allowed_headers' => [
+        'Content-Type',
+        'Authorization',
+        'X-Requested-With',
+        'Accept',
+        'Origin',
+        'X-CSRF-TOKEN',
+    ],
 
     'exposed_headers' => [],
 
-    'max_age' => 0,
+    'max_age' => 86400, // 24 hours
 
     'supports_credentials' => true,
 

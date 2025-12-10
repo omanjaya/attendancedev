@@ -316,7 +316,10 @@ class SystemController extends Controller
 
         try {
             $container = self::SERVICES[$service]['container'];
-            $lines = $request->input('lines', 100);
+
+            // Validate and sanitize lines parameter to prevent command injection
+            $lines = (int) $request->input('lines', 100);
+            $lines = max(1, min($lines, 1000)); // Clamp between 1 and 1000
 
             $command = "docker logs --tail {$lines} {$container} 2>&1";
             $result = $this->monitoringService->executeCommand($command, 30);

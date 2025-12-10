@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import {
     Upload,
     FileSpreadsheet,
@@ -191,22 +191,61 @@ export function ExcelImportDialog({
         return null;
     };
 
+    // Helper function to convert ExcelJS worksheet to JSON
+    const worksheetToJson = (worksheet: ExcelJS.Worksheet): Record<string, any>[] => {
+        const jsonData: Record<string, any>[] = [];
+        const headers: string[] = [];
+
+        worksheet.eachRow((row, rowNumber) => {
+            if (rowNumber === 1) {
+                // First row is headers
+                row.eachCell((cell, colNumber) => {
+                    headers[colNumber - 1] = String(cell.value || '');
+                });
+            } else {
+                // Data rows
+                const rowData: Record<string, any> = {};
+                row.eachCell((cell, colNumber) => {
+                    const header = headers[colNumber - 1];
+                    if (header) {
+                        let value = cell.value;
+                        // Handle date values
+                        if (value instanceof Date) {
+                            value = value.toISOString().split('T')[0];
+                        }
+                        // Handle formula results
+                        if (typeof value === 'object' && value !== null && 'result' in value) {
+                            value = (value as { result: any }).result;
+                        }
+                        rowData[header] = value;
+                    }
+                });
+                if (Object.keys(rowData).length > 0) {
+                    jsonData.push(rowData);
+                }
+            }
+        });
+
+        return jsonData;
+    };
+
     // Parse Excel file
     const parseExcelFile = useCallback(async (file: File) => {
         setParseError(null);
 
         try {
             const data = await file.arrayBuffer();
-            const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+            const workbook = new ExcelJS.Workbook();
+            await workbook.xlsx.load(data);
 
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
+            const worksheet = workbook.worksheets[0];
+            if (!worksheet) {
+                setParseError('File Excel kosong atau tidak memiliki worksheet');
+                return;
+            }
 
             // Convert to JSON
-            const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-                raw: false,
-                dateNF: 'yyyy-mm-dd',
-            });
+            const jsonData = worksheetToJson(worksheet);
 
             if (jsonData.length === 0) {
                 setParseError('File Excel kosong atau tidak memiliki data');
@@ -379,31 +418,55 @@ export function ExcelImportDialog({
     };
 
     // Download template
-    const handleDownloadTemplate = () => {
+    const handleDownloadTemplate = async () => {
         if (templateUrl) {
             window.open(templateUrl, '_blank');
             return;
         }
 
-        // Generate template from columns
-        const ws = XLSX.utils.json_to_sheet(
-            exampleData || [
-                expectedColumns.reduce((acc, col) => {
-                    acc[col.label] = col.type === 'date' ? '2024-01-01' :
-                        col.type === 'number' ? '0' :
-                            col.type === 'email' ? 'email@example.com' :
-                                col.type === 'boolean' ? 'Ya' : '';
-                    return acc;
-                }, {} as Record<string, string>)
-            ]
-        );
+        // Generate template from columns using ExcelJS
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Template');
 
-        // Set column widths
-        ws['!cols'] = expectedColumns.map(col => ({ wch: col.width || 15 }));
+        // Set headers
+        worksheet.columns = expectedColumns.map(col => ({
+            header: col.label,
+            key: col.key,
+            width: col.width || 15,
+        }));
 
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Template');
-        XLSX.writeFile(wb, templateName);
+        // Add example data
+        const templateData = exampleData || [
+            expectedColumns.reduce((acc, col) => {
+                acc[col.key] = col.type === 'date' ? '2024-01-01' :
+                    col.type === 'number' ? '0' :
+                        col.type === 'email' ? 'email@example.com' :
+                            col.type === 'boolean' ? 'Ya' : '';
+                return acc;
+            }, {} as Record<string, string>)
+        ];
+
+        templateData.forEach(row => {
+            worksheet.addRow(row);
+        });
+
+        // Style header row
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.getRow(1).fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFE0E0E0' },
+        };
+
+        // Generate and download file
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = templateName;
+        link.click();
+        URL.revokeObjectURL(url);
     };
 
     // Statistics

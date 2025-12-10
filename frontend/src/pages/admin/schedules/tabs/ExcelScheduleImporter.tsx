@@ -108,6 +108,30 @@ export function ExcelScheduleImporter({ onImportComplete }: ExcelScheduleImporte
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Helper function to convert ExcelJS worksheet to 2D array
+    const worksheetTo2DArray = (worksheet: any): string[][] => {
+        const data: string[][] = [];
+        worksheet.eachRow((row: any, rowNumber: number) => {
+            const rowData: string[] = [];
+            row.eachCell({ includeEmpty: true }, (cell: any, colNumber: number) => {
+                // Ensure array has enough slots
+                while (rowData.length < colNumber) {
+                    rowData.push('');
+                }
+                let value = cell.value;
+                if (value instanceof Date) {
+                    value = value.toISOString().split('T')[0];
+                }
+                if (typeof value === 'object' && value !== null && 'result' in value) {
+                    value = value.result;
+                }
+                rowData[colNumber - 1] = String(value ?? '');
+            });
+            data[rowNumber - 1] = rowData;
+        });
+        return data;
+    };
+
     // Parse the Excel file
     const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -116,9 +140,10 @@ export function ExcelScheduleImporter({ onImportComplete }: ExcelScheduleImporte
         setIsLoading(true);
 
         try {
-            const XLSX = await import('xlsx');
+            const ExcelJS = await import('exceljs');
             const arrayBuffer = await file.arrayBuffer();
-            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+            const workbook = new ExcelJS.Workbook();
+            await workbook.xlsx.load(arrayBuffer);
 
             const teachers: TeacherCode[] = [];
             const schedules: ParsedScheduleCell[] = [];
@@ -126,14 +151,17 @@ export function ExcelScheduleImporter({ onImportComplete }: ExcelScheduleImporte
             const daysSet = new Set<string>();
             const errors: string[] = [];
 
+            // Get sheet names
+            const sheetNames = workbook.worksheets.map(ws => ws.name);
+
             // 1. Parse KODE GURU sheet
-            const guruSheetName = workbook.SheetNames.find(
+            const guruSheetName = sheetNames.find(
                 name => name.toLowerCase().includes('kode') || name.toLowerCase().includes('guru')
             );
 
             if (guruSheetName) {
-                const guruSheet = workbook.Sheets[guruSheetName];
-                const guruData = XLSX.utils.sheet_to_json(guruSheet, { header: 1, defval: '' }) as string[][];
+                const guruSheet = workbook.getWorksheet(guruSheetName);
+                const guruData = worksheetTo2DArray(guruSheet);
 
                 guruData.forEach((row: string[], index: number) => {
                     if (index < 2) return; // Skip headers
@@ -155,13 +183,13 @@ export function ExcelScheduleImporter({ onImportComplete }: ExcelScheduleImporte
             }
 
             // 2. Parse schedule sheets (Kelas 7, Kelas 8, Kelas 9, etc.)
-            const scheduleSheets = workbook.SheetNames.filter(
+            const scheduleSheets = sheetNames.filter(
                 name => name.toLowerCase().includes('kelas')
             );
 
             for (const sheetName of scheduleSheets) {
-                const sheet = workbook.Sheets[sheetName];
-                const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }) as string[][];
+                const sheet = workbook.getWorksheet(sheetName);
+                const data = worksheetTo2DArray(sheet);
 
                 let currentDay = '';
                 let classColumns: { index: number; name: string }[] = [];
