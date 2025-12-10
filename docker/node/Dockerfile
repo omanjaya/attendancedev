@@ -7,11 +7,13 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY frontend/package*.json ./
+# Copy package files (monorepo - lockfile is at root)
+COPY frontend/package.json ./
+COPY package-lock.json ./
 
 # Install dependencies
-RUN npm ci
+# Using npm install since this is a monorepo workspace
+RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY frontend/ .
