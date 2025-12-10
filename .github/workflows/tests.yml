@@ -164,6 +164,8 @@ jobs:
       continue-on-error: true
 
   browser-tests:
+    # SKIPPED: E2E tests dijalankan secara lokal saja, tidak di CI
+    if: false
     runs-on: ubuntu-latest
     needs: test
 
