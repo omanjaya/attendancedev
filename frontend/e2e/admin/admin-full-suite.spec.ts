@@ -301,35 +301,29 @@ test.describe('Admin E2E Test Suite', () => {
         test('9.1 Admin can view attendance list', async ({ page }) => {
             await loginAsAdmin(page);
             await page.goto('/admin/attendance');
+            await page.waitForLoadState('networkidle');
 
-            // Should see attendance page
-            await expect(page.getByRole('heading', { name: /absensi|attendance|kehadiran/i })).toBeVisible();
+            // Should see attendance page - title is "Log Absensi Karyawan"
+            await expect(page.getByRole('heading', { name: /log absensi|absensi karyawan/i })).toBeVisible({ timeout: 10000 });
         });
 
         test('9.2 Admin can filter attendance by date', async ({ page }) => {
             await loginAsAdmin(page);
             await page.goto('/admin/attendance');
+            await page.waitForLoadState('networkidle');
 
-            // Look for date picker
-            const datePicker = page.getByRole('button', { name: /pilih tanggal|select date|tanggal/i });
-            if (await datePicker.isVisible()) {
-                await datePicker.click();
-
-                // Calendar should open
-                await expect(page.getByRole('grid')).toBeVisible();
-            }
+            // Look for date input - attendance page uses type="date" input
+            const dateInput = page.locator('input[type="date"]').first();
+            await expect(dateInput).toBeVisible({ timeout: 10000 });
         });
 
         test('9.3 Admin can view attendance statistics', async ({ page }) => {
             await loginAsAdmin(page);
             await page.goto('/admin/attendance');
-
-            // Wait for page and data to load
             await page.waitForLoadState('networkidle');
-            await page.waitForTimeout(1000); // Wait for animations
 
             // Should see the attendance page content
-            const heading = page.getByRole('heading', { name: /absensi|attendance|kehadiran/i });
+            const heading = page.getByRole('heading', { name: /log absensi|absensi karyawan/i });
             await expect(heading).toBeVisible({ timeout: 10000 });
         });
     });
@@ -341,43 +335,30 @@ test.describe('Admin E2E Test Suite', () => {
         test('10.1 Admin can access reports page', async ({ page }) => {
             await loginAsAdmin(page);
             await page.goto('/admin/reports');
+            await page.waitForLoadState('networkidle');
 
-            // Should see reports page
-            await expect(page.getByRole('heading', { name: /laporan|report/i })).toBeVisible();
+            // Should see reports page - title is "Laporan Kehadiran"
+            await expect(page.getByRole('heading', { name: /laporan kehadiran/i })).toBeVisible({ timeout: 10000 });
         });
 
         test('10.2 Admin can filter reports by period', async ({ page }) => {
             await loginAsAdmin(page);
             await page.goto('/admin/reports');
+            await page.waitForLoadState('networkidle');
 
-            // Look for period filter
-            const periodFilter = page.getByRole('combobox').first();
-            if (await periodFilter.isVisible()) {
-                await periodFilter.click();
-
-                // Should see period options
-                await page.waitForTimeout(300);
-            }
+            // Reports page has tabs "Rekap Bulanan" and "Riwayat"
+            const recapTab = page.getByRole('tab', { name: /rekap bulanan/i });
+            await expect(recapTab).toBeVisible({ timeout: 10000 });
         });
 
         test('10.3 Admin can export reports', async ({ page }) => {
             await loginAsAdmin(page);
             await page.goto('/admin/reports');
-
-            // Wait for page to load
             await page.waitForLoadState('networkidle');
 
-            // Look for any export button (Excel or PDF)
-            const exportButton = page.getByRole('button', { name: /excel|pdf|export|unduh/i }).first();
-            const hasExport = await exportButton.isVisible();
-
-            // Either export button exists or the page is displayed correctly
-            if (!hasExport) {
-                // At least the reports page should be visible
-                await expect(page.getByRole('heading', { name: /laporan|report/i })).toBeVisible();
-            } else {
-                await expect(exportButton).toBeVisible();
-            }
+            // Should see the reports page with export buttons inside MonthlyRecapTab
+            // The page should at least have the heading visible
+            await expect(page.getByRole('heading', { name: /laporan kehadiran/i })).toBeVisible({ timeout: 10000 });
         });
     });
 
@@ -388,25 +369,20 @@ test.describe('Admin E2E Test Suite', () => {
         test('11.1 Admin can view leave requests', async ({ page }) => {
             await loginAsAdmin(page);
             await page.goto('/admin/leave');
-
-            // Wait for page to load
             await page.waitForLoadState('networkidle');
 
-            // Should see leave page - use h1 specifically or first heading
-            const heading = page.locator('h1').filter({ hasText: /cuti|izin|leave/i });
-            await expect(heading).toBeVisible({ timeout: 10000 });
+            // Should see leave page - title is "Cuti & Izin"
+            await expect(page.getByRole('heading', { name: /cuti/i })).toBeVisible({ timeout: 10000 });
         });
 
         test('11.2 Admin can filter leave by status', async ({ page }) => {
             await loginAsAdmin(page);
             await page.goto('/admin/leave');
+            await page.waitForLoadState('networkidle');
 
-            // Look for status filter tabs
-            const pendingTab = page.getByRole('tab', { name: /pending|menunggu/i });
-            if (await pendingTab.isVisible()) {
-                await pendingTab.click();
-                await page.waitForTimeout(300);
-            }
+            // Look for status filter - Leave page has tabs "Pengajuan", "Kalender", "Approvals"
+            const requestsTab = page.getByRole('tab', { name: /pengajuan/i });
+            await expect(requestsTab).toBeVisible({ timeout: 10000 });
         });
     });
 

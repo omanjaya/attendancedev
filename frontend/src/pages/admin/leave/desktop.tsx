@@ -59,11 +59,10 @@ import {
     useLeaveRequests,
     useLeaveBalance,
     useCreateLeaveRequest,
-    useApproveLeaveRequest,
-    useRejectLeaveRequest,
     useCancelLeaveRequest,
     useLeaveStatistics,
 } from '@/hooks';
+import { useAdminLeavePage } from '@/hooks/use-admin-leave-page';
 import { useAuthStore } from '@/stores/auth-store';
 import type { LeaveFilters } from '@/lib/api/leave';
 import {
@@ -236,19 +235,21 @@ function LeaveRequestDialog({
 // Desktop version (original implementation)
 export function DesktopAdminLeavePage() {
     const { hasPermission } = useAuthStore();
+
+    // Use shared hook for common logic
+    const logic = useAdminLeavePage();
+
+    // Desktop-specific state
     const [activeTab, setActiveTab] = useState('requests');
-    const [statusFilter, setStatusFilter] = useState<string>('all');
     const [typeFilter, setTypeFilter] = useState<string>('all');
     const [showCreateDialog, setShowCreateDialog] = useState(false);
-    const [showRejectDialog, setShowRejectDialog] = useState(false);
-    const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
 
-    // Build filters
+    // Build filters with both status and type
     const filters: LeaveFilters = {};
-    if (statusFilter !== 'all') filters.status = statusFilter as LeaveStatus;
+    if (logic.statusFilter !== 'all') filters.status = logic.statusFilter as LeaveStatus;
     if (typeFilter !== 'all') filters.type = typeFilter as LeaveType;
 
-    // Fetch leave requests
+    // Desktop-specific data fetching
     const {
         data: leaveRequestsData,
         isLoading: isLoadingRequests,
@@ -256,20 +257,16 @@ export function DesktopAdminLeavePage() {
         refetch: refetchRequests,
     } = useLeaveRequests(filters);
 
-    // Fetch leave balance
     const {
         data: leaveBalance,
         isLoading: isLoadingBalance,
     } = useLeaveBalance();
 
-    // Mutations
-    const createLeaveRequestMutation = useCreateLeaveRequest();
-    const approveLeaveRequestMutation = useApproveLeaveRequest();
-    const rejectLeaveRequestMutation = useRejectLeaveRequest();
-    const cancelLeaveRequestMutation = useCancelLeaveRequest();
-
-    // Get requests from response
     const leaveRequests = leaveRequestsData?.data || [];
+
+    // Desktop-specific mutations
+    const createLeaveRequestMutation = useCreateLeaveRequest();
+    const cancelLeaveRequestMutation = useCancelLeaveRequest();
 
     // Handle create
     const handleCreate = async (data: LeaveRequestFormData) => {
@@ -278,34 +275,6 @@ export function DesktopAdminLeavePage() {
             setShowCreateDialog(false);
         } catch {
             // Error handled in hook
-        }
-    };
-
-    // Handle approve
-    const handleApprove = async (id: string) => {
-        try {
-            await approveLeaveRequestMutation.mutateAsync({ id });
-        } catch {
-            // Error handled in hook
-        }
-    };
-
-    // Handle reject click
-    const onRejectClick = (id: string) => {
-        setSelectedRequestId(id);
-        setShowRejectDialog(true);
-    };
-
-    // Handle reject confirm
-    const handleRejectConfirm = async (reason: string) => {
-        if (selectedRequestId) {
-            try {
-                await rejectLeaveRequestMutation.mutateAsync({ id: selectedRequestId, reason });
-                setShowRejectDialog(false);
-                setSelectedRequestId(null);
-            } catch {
-                // Error handled in hook
-            }
         }
     };
 
@@ -500,7 +469,7 @@ export function DesktopAdminLeavePage() {
                                 className="pl-9 w-[150px] lg:w-[200px]"
                             />
                         </div>
-                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <Select value={logic.statusFilter} onValueChange={logic.setStatusFilter}>
                             <SelectTrigger className="w-[140px]">
                                 <Filter className="mr-2 h-4 w-4 text-muted-foreground" />
                                 <SelectValue placeholder="Status" />
@@ -626,8 +595,8 @@ export function DesktopAdminLeavePage() {
                                                                         {hasPermission('approve_leave') && (
                                                                             <DropdownMenuItem
                                                                                 className="text-success focus:text-success"
-                                                                                onClick={() => handleApprove(request.id)}
-                                                                                disabled={approveLeaveRequestMutation.isPending}
+                                                                                onClick={() => logic.handleApprove(request.id)}
+                                                                                disabled={logic.approveLeaveRequestMutation.isPending}
                                                                             >
                                                                                 <CheckCircle2 className="mr-2 h-4 w-4" />
                                                                                 Setujui
@@ -636,8 +605,8 @@ export function DesktopAdminLeavePage() {
                                                                         {hasPermission('reject_leave') && (
                                                                             <DropdownMenuItem
                                                                                 className="text-destructive focus:text-destructive"
-                                                                                onClick={() => onRejectClick(request.id)}
-                                                                                disabled={rejectLeaveRequestMutation.isPending}
+                                                                                onClick={() => logic.onRejectClick(request.id)}
+                                                                                disabled={logic.rejectLeaveRequestMutation.isPending}
                                                                             >
                                                                                 <XCircle className="mr-2 h-4 w-4" />
                                                                                 Tolak
@@ -744,8 +713,8 @@ export function DesktopAdminLeavePage() {
                                                             variant="outline"
                                                             size="sm"
                                                             className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20"
-                                                            onClick={() => onRejectClick(request.id)}
-                                                            disabled={rejectLeaveRequestMutation.isPending}
+                                                            onClick={() => logic.onRejectClick(request.id)}
+                                                            disabled={logic.rejectLeaveRequestMutation.isPending}
                                                         >
                                                             <XCircle className="mr-2 h-4 w-4" />
                                                             Tolak
@@ -755,8 +724,8 @@ export function DesktopAdminLeavePage() {
                                                         <Button
                                                             size="sm"
                                                             className="bg-success hover:bg-success/90 text-white"
-                                                            onClick={() => handleApprove(request.id)}
-                                                            disabled={approveLeaveRequestMutation.isPending}
+                                                            onClick={() => logic.handleApprove(request.id)}
+                                                            disabled={logic.approveLeaveRequestMutation.isPending}
                                                         >
                                                             <CheckCircle2 className="mr-2 h-4 w-4" />
                                                             Setujui
@@ -782,10 +751,10 @@ export function DesktopAdminLeavePage() {
 
             {/* Reject Dialog */}
             <RejectDialog
-                open={showRejectDialog}
-                onOpenChange={setShowRejectDialog}
-                onConfirm={handleRejectConfirm}
-                isLoading={rejectLeaveRequestMutation.isPending}
+                open={logic.showRejectDialog}
+                onOpenChange={logic.setShowRejectDialog}
+                onConfirm={logic.handleRejectConfirm}
+                isLoading={logic.rejectLeaveRequestMutation.isPending}
             />
         </div>
     );

@@ -2,8 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    ChevronLeft,
-    Search,
     Plus,
     User,
     Phone,
@@ -17,7 +15,10 @@ import {
     Copy,
     EyeOff,
 } from 'lucide-react';
-import { useEmployees, useDeleteEmployee } from '@/hooks/use-employees';
+import { MobilePageHeader } from '@/components/mobile';
+import { SearchBar } from '@/components/shared';
+import { useEmployees } from '@/hooks/use-employees';
+import { useEmployeesPage } from '@/hooks/use-employees-page';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -51,69 +52,15 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { resetEmployeePassword, type ResetPasswordResponse } from '@/lib/api/employees';
-import { toast } from 'sonner';
-
-
 export function MobileEmployeesPage() {
     const navigate = useNavigate();
-    const [searchQuery, setSearchQuery] = useState('');
+
+    // Use shared hook for common logic
+    const logic = useEmployeesPage();
+
+    // Mobile-specific state
     const [selectedEmployee, setSelectedEmployee] = useState<{ id: string; name: string; email?: string } | null>(null);
-    const [employeeToDelete, setEmployeeToDelete] = useState<{ id: string; name: string } | null>(null);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-
-    // Reset password states
-    const [employeeToReset, setEmployeeToReset] = useState<{ id: string; name: string; email?: string } | null>(null);
-    const [isResetting, setIsResetting] = useState(false);
-    const [resetResult, setResetResult] = useState<ResetPasswordResponse | null>(null);
-    const [showPassword, setShowPassword] = useState(false);
-    const [customPassword, setCustomPassword] = useState('');
-
-    const deleteEmployeeMutation = useDeleteEmployee();
-
-    const handleDelete = async () => {
-        if (!employeeToDelete) return;
-        try {
-            await deleteEmployeeMutation.mutateAsync(employeeToDelete.id);
-            setEmployeeToDelete(null);
-            setIsDrawerOpen(false);
-        } catch (error) {
-            console.error('Failed to delete employee:', error);
-        }
-    };
-
-    const handleResetPassword = async () => {
-        if (!employeeToReset) return;
-
-        setIsResetting(true);
-        try {
-            const result = await resetEmployeePassword(
-                employeeToReset.id,
-                customPassword || undefined
-            );
-            setResetResult(result);
-            toast.success('Password berhasil direset!');
-        } catch (error) {
-            console.error('Failed to reset password:', error);
-            toast.error('Gagal mereset password');
-        } finally {
-            setIsResetting(false);
-        }
-    };
-
-    const handleCopyPassword = () => {
-        if (resetResult?.temporary_password) {
-            navigator.clipboard.writeText(resetResult.temporary_password);
-            toast.success('Password disalin');
-        }
-    };
-
-    const handleCloseResetDialog = () => {
-        setEmployeeToReset(null);
-        setResetResult(null);
-        setCustomPassword('');
-        setShowPassword(false);
-    };
 
     const openOptions = (e: React.MouseEvent, employee: { id: string; name: string; email?: string }) => {
         e.stopPropagation();
@@ -122,21 +69,11 @@ export function MobileEmployeesPage() {
     };
 
     const { data: employeesData, isLoading } = useEmployees({
-        search: searchQuery,
+        search: logic.searchQuery,
         per_page: 20,
     });
 
     const employees = employeesData?.data || [];
-
-    const getInitials = (name: string) => {
-        if (!name) return 'U';
-        return name
-            .split(' ')
-            .map((n) => n[0])
-            .join('')
-            .toUpperCase()
-            .slice(0, 2);
-    };
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -154,35 +91,28 @@ export function MobileEmployeesPage() {
     return (
         <div className="min-h-screen bg-gradient-to-b from-muted/30 via-background to-background dark:from-gray-950 dark:via-gray-900 dark:to-gray-900 pb-20 relative">
             {/* Header */}
-            <div className="px-4 pt-3 pb-3 sticky top-0 z-20">
-                <div className="bg-card/80 dark:bg-card/60 backdrop-blur-md rounded-3xl p-1.5 shadow-xl border border-border/40 dark:border-border/30">
-                    <div className="bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-900 dark:to-cyan-800 px-4 py-3 rounded-[20px] flex items-center gap-3 shadow-lg">
-                        <button
-                            onClick={() => navigate({ to: '/admin/dashboard' })}
-                            className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
-                            title="Kembali"
-                        >
-                            <ChevronLeft className="h-5 w-5 text-white" />
-                        </button>
-                        <h1 className="text-base font-bold text-white flex-1">Karyawan</h1>
-                        <button className="p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95" title="Filter">
-                            <Filter className="h-5 w-5 text-white" />
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <MobilePageHeader
+                title="Karyawan"
+                onBack={() => navigate({ to: '/admin/dashboard' })}
+                gradient="blue"
+                actions={
+                    <button
+                        className="p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
+                        title="Filter"
+                    >
+                        <Filter className="h-5 w-5 text-white" />
+                    </button>
+                }
+            />
 
             {/* Search Bar */}
             <div className="px-4 mt-2 mb-4">
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        placeholder="Cari karyawan..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-9 bg-white dark:bg-gray-900 border-border/50 rounded-2xl shadow-sm h-11 focus-visible:ring-primary"
-                    />
-                </div>
+                <SearchBar
+                    value={logic.searchQuery}
+                    onChange={logic.setSearchQuery}
+                    placeholder="Cari karyawan..."
+                    inputClassName="bg-white dark:bg-gray-900 border-border/50 rounded-2xl shadow-sm h-11 focus-visible:ring-primary"
+                />
             </div>
 
             {/* Employee List */}
@@ -207,7 +137,7 @@ export function MobileEmployeesPage() {
                                     <Avatar className="h-12 w-12 border border-border/50">
                                         <AvatarImage src={employee.avatar || undefined} alt={employee.name} />
                                         <AvatarFallback className="bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-medium">
-                                            {getInitials(employee.name)}
+                                            {logic.getInitials(employee.name)}
                                         </AvatarFallback>
                                     </Avatar>
                                     <div className="flex-1 min-w-0">
@@ -298,7 +228,7 @@ export function MobileEmployeesPage() {
                             className="w-full justify-start h-12 text-base"
                             onClick={() => {
                                 if (selectedEmployee) {
-                                    setEmployeeToReset(selectedEmployee);
+                                    logic.setEmployeeToReset(selectedEmployee);
                                     setIsDrawerOpen(false);
                                 }
                             }}
@@ -311,7 +241,7 @@ export function MobileEmployeesPage() {
                             className="w-full justify-start h-12 text-base text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20"
                             onClick={() => {
                                 if (selectedEmployee) {
-                                    setEmployeeToDelete(selectedEmployee);
+                                    logic.setEmployeeToDelete(selectedEmployee);
                                     setIsDrawerOpen(false);
                                 }
                             }}
@@ -329,30 +259,30 @@ export function MobileEmployeesPage() {
             </Drawer>
 
             {/* Delete Confirmation */}
-            <AlertDialog open={!!employeeToDelete} onOpenChange={(open) => !open && setEmployeeToDelete(null)}>
+            <AlertDialog open={!!logic.employeeToDelete} onOpenChange={(open) => !open && logic.setEmployeeToDelete(null)}>
                 <AlertDialogContent className="max-w-[90vw] rounded-2xl">
                     <AlertDialogHeader>
                         <AlertDialogTitle>Hapus Karyawan?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Apakah Anda yakin ingin menghapus karyawan <strong>{employeeToDelete?.name}</strong>?
+                            Apakah Anda yakin ingin menghapus karyawan <strong>{logic.employeeToDelete?.name}</strong>?
                             Tindakan ini tidak dapat dibatalkan.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Batal</AlertDialogCancel>
                         <AlertDialogAction
-                            onClick={handleDelete}
+                            onClick={() => logic.handleDelete(() => setIsDrawerOpen(false))}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            disabled={deleteEmployeeMutation.isPending}
+                            disabled={logic.deleteEmployeeMutation.isPending}
                         >
-                            {deleteEmployeeMutation.isPending ? 'Menghapus...' : 'Hapus'}
+                            {logic.deleteEmployeeMutation.isPending ? 'Menghapus...' : 'Hapus'}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
 
             {/* Reset Password Dialog */}
-            <Dialog open={!!employeeToReset} onOpenChange={(open) => !open && handleCloseResetDialog()}>
+            <Dialog open={!!logic.employeeToReset} onOpenChange={(open) => !open && logic.handleCloseResetDialog()}>
                 <DialogContent className="max-w-[90vw] rounded-2xl">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
@@ -360,11 +290,11 @@ export function MobileEmployeesPage() {
                             Reset Password
                         </DialogTitle>
                         <DialogDescription>
-                            Reset password untuk <strong>{employeeToReset?.name}</strong>
+                            Reset password untuk <strong>{logic.employeeToReset?.name}</strong>
                         </DialogDescription>
                     </DialogHeader>
 
-                    {resetResult ? (
+                    {logic.resetResult ? (
                         // Show result after reset
                         <div className="space-y-4 py-4">
                             <div className="rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-4">
@@ -374,8 +304,8 @@ export function MobileEmployeesPage() {
                                 <div className="flex items-center gap-2">
                                     <div className="flex-1 relative">
                                         <Input
-                                            type={showPassword ? 'text' : 'password'}
-                                            value={resetResult.temporary_password}
+                                            type={logic.showPassword ? 'text' : 'password'}
+                                            value={logic.resetResult.temporary_password}
                                             readOnly
                                             className="pr-20 font-mono text-sm"
                                         />
@@ -385,16 +315,16 @@ export function MobileEmployeesPage() {
                                                 variant="ghost"
                                                 size="icon"
                                                 className="h-7 w-7"
-                                                onClick={() => setShowPassword(!showPassword)}
+                                                onClick={() => logic.setShowPassword(!logic.showPassword)}
                                             >
-                                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                {logic.showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                             </Button>
                                             <Button
                                                 type="button"
                                                 variant="ghost"
                                                 size="icon"
                                                 className="h-7 w-7"
-                                                onClick={handleCopyPassword}
+                                                onClick={logic.handleCopyPassword}
                                             >
                                                 <Copy className="h-4 w-4" />
                                             </Button>
@@ -414,10 +344,10 @@ export function MobileEmployeesPage() {
                                 <div className="relative">
                                     <Input
                                         id="custom-password-mobile"
-                                        type={showPassword ? 'text' : 'password'}
+                                        type={logic.showPassword ? 'text' : 'password'}
                                         placeholder="Kosongkan untuk otomatis..."
-                                        value={customPassword}
-                                        onChange={(e) => setCustomPassword(e.target.value)}
+                                        value={logic.customPassword}
+                                        onChange={(e) => logic.setCustomPassword(e.target.value)}
                                         className="pr-10"
                                     />
                                     <Button
@@ -425,9 +355,9 @@ export function MobileEmployeesPage() {
                                         variant="ghost"
                                         size="icon"
                                         className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                                        onClick={() => setShowPassword(!showPassword)}
+                                        onClick={() => logic.setShowPassword(!logic.showPassword)}
                                     >
-                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        {logic.showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                     </Button>
                                 </div>
                                 <p className="text-xs text-muted-foreground">
@@ -438,21 +368,21 @@ export function MobileEmployeesPage() {
                     )}
 
                     <DialogFooter className="flex-col gap-2 sm:flex-row">
-                        {resetResult ? (
-                            <Button onClick={handleCloseResetDialog} className="w-full">
+                        {logic.resetResult ? (
+                            <Button onClick={logic.handleCloseResetDialog} className="w-full">
                                 Selesai
                             </Button>
                         ) : (
                             <>
-                                <Button variant="outline" onClick={handleCloseResetDialog} disabled={isResetting} className="w-full sm:w-auto">
+                                <Button variant="outline" onClick={logic.handleCloseResetDialog} disabled={logic.isResetting} className="w-full sm:w-auto">
                                     Batal
                                 </Button>
                                 <Button
-                                    onClick={handleResetPassword}
-                                    disabled={isResetting || (customPassword.length > 0 && customPassword.length < 8)}
+                                    onClick={logic.handleResetPassword}
+                                    disabled={logic.isResetting || (logic.customPassword.length > 0 && logic.customPassword.length < 8)}
                                     className="w-full sm:w-auto"
                                 >
-                                    {isResetting ? 'Mereset...' : 'Reset Password'}
+                                    {logic.isResetting ? 'Mereset...' : 'Reset Password'}
                                 </Button>
                             </>
                         )}

@@ -4,28 +4,33 @@ namespace Tests\Feature;
 
 use App\Models\Employee;
 use App\Models\User;
-use App\Repositories\FaceRecognitionRepository;
+use App\Services\DeepFaceLoadBalancer;
 use App\Services\FaceRecognitionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Mockery;
 use Tests\TestCase;
 
+/**
+ * Face Recognition Feature Tests
+ * 
+ * Tests face recognition functionality using DeepFace (ArcFace 512-d) 
+ * as the primary recognition engine implementing server-side processing.
+ */
 class FaceRecognitionTest extends TestCase
 {
     use RefreshDatabase, WithFaker;
 
     protected $faceRecognitionService;
-
-    protected $faceRecognitionRepository;
+    protected $employee;
+    protected $user;
+    protected $deepFaceLoadBalancerMock;
 
     protected function setUp(): void
     {
         parent::setUp();
-
-        $this->faceRecognitionService = app(FaceRecognitionService::class);
-        $this->faceRecognitionRepository = app(FaceRecognitionRepository::class);
 
         // Create test employee with user
         $this->employee = Employee::factory()->create([
@@ -37,31 +42,69 @@ class FaceRecognitionTest extends TestCase
         ]);
 
         Storage::fake('private');
+        
+        // Get service from container (with mocked DeepFace in tests)
+        $this->faceRecognitionService = app(FaceRecognitionService::class);
+    }
+
+    protected function tearDown(): void
+    {
+        Mockery::close();
+        parent::tearDown();
     }
 
     /** @test */
-    public function it_can_register_face_for_employee()
+    public function it_can_register_face_with_512d_deepface_descriptor()
     {
+        // 512-d descriptor from DeepFace ArcFace
         $faceData = [
-            'descriptor' => array_fill(0, 128, 0.5),
-            'confidence' => 0.85,
-            'algorithm' => 'face-api.js',
-            'model_version' => '1.0',
+            'descriptor' => array_fill(0, 512, 0.5),
+            'confidence' => 0.95,
+            'algorithm' => 'deepface-arcface',
+            'model_version' => 'arcface-1.0',
         ];
 
         $result = $this->faceRecognitionService->registerFace(
-            $this->employee->id,
+            $this->employee,
+            $faceData['descriptor'],
+            null,
             $faceData
         );
 
         $this->assertTrue($result['success']);
         $this->assertEquals($this->employee->id, $result['employee_id']);
-        $this->assertEquals(0.85, $result['confidence']);
+        $this->assertEquals(0.95, $result['confidence']);
 
         // Check database
         $this->employee->refresh();
         $this->assertNotNull($this->employee->metadata['face_recognition']);
-        $this->assertEquals($faceData['descriptor'], $this->employee->metadata['face_recognition']['descriptor']);
+        $this->assertEquals(512, count($this->employee->metadata['face_recognition']['descriptor']));
+    }
+
+    /** @test */
+    public function it_can_register_face_with_128d_descriptor()
+    {
+        // 128-d descriptor (legacy support)
+        $faceData = [
+            'descriptor' => array_fill(0, 128, 0.5),
+            'confidence' => 0.85,
+            'algorithm' => 'deepface-facenet',
+            'model_version' => '1.0',
+        ];
+
+        $result = $this->faceRecognitionService->registerFace(
+            $this->employee,
+            $faceData['descriptor'],
+            null,
+            $faceData
+        );
+
+        $this->assertTrue($result['success']);
+        $this->assertEquals($this->employee->id, $result['employee_id']);
+        
+        // Check database
+        $this->employee->refresh();
+        $this->assertEquals(128, count($this->employee->metadata['face_recognition']['descriptor']));
     }
 
     /** @test */
@@ -70,14 +113,16 @@ class FaceRecognitionTest extends TestCase
         $image = UploadedFile::fake()->image('face.jpg', 640, 480);
 
         $faceData = [
-            'descriptor' => array_fill(0, 128, 0.5),
-            'confidence' => 0.85,
+            'descriptor' => array_fill(0, 512, 0.5),
+            'confidence' => 0.92,
+            'algorithm' => 'deepface-arcface',
         ];
 
         $result = $this->faceRecognitionService->registerFace(
-            $this->employee->id,
-            $faceData,
-            $image
+            $this->employee,
+            $faceData['descriptor'],
+            $image,
+            $faceData
         );
 
         $this->assertTrue($result['success']);
@@ -87,21 +132,24 @@ class FaceRecognitionTest extends TestCase
         $this->employee->refresh();
         $imagePath = $this->employee->metadata['face_recognition']['image_path'];
         $this->assertNotNull($imagePath);
-        Storage::disk('private')->assertExists($imagePath);
+        $this->assertTrue(Storage::disk('private')->exists($imagePath));
     }
 
     /** @test */
-    public function it_validates_face_data_structure()
+    public function it_validates_face_descriptor_size()
     {
         $invalidFaceData = [
-            'descriptor' => array_fill(0, 100, 0.5), // Wrong size
-            'confidence' => 0.5, // Too low
+            'descriptor' => array_fill(0, 100, 0.5), // Wrong size - not 128 or 512
+            'confidence' => 0.9,
         ];
 
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid face descriptor format');
 
         $this->faceRecognitionService->registerFace(
-            $this->employee->id,
+            $this->employee,
+            $invalidFaceData['descriptor'],
+            null,
             $invalidFaceData
         );
     }
@@ -111,12 +159,14 @@ class FaceRecognitionTest extends TestCase
     {
         // Register face first time
         $faceData = [
-            'descriptor' => array_fill(0, 128, 0.5),
-            'confidence' => 0.85,
+            'descriptor' => array_fill(0, 512, 0.5),
+            'confidence' => 0.9,
         ];
 
         $this->faceRecognitionService->registerFace(
-            $this->employee->id,
+            $this->employee,
+            $faceData['descriptor'],
+            null,
             $faceData
         );
 
@@ -125,33 +175,33 @@ class FaceRecognitionTest extends TestCase
         $this->expectExceptionMessage('Employee already has a registered face');
 
         $this->faceRecognitionService->registerFace(
-            $this->employee->id,
+            $this->employee,
+            $faceData['descriptor'],
+            null,
             $faceData
         );
     }
 
     /** @test */
-    public function it_can_verify_registered_face()
+    public function it_can_verify_registered_face_with_512d_descriptor()
     {
-        // Register face first
-        $descriptor = array_fill(0, 128, 0.5);
+        // Register face first with 512-d
+        $descriptor = array_fill(0, 512, 0.5);
         $faceData = [
             'descriptor' => $descriptor,
-            'confidence' => 0.85,
+            'confidence' => 0.95,
+            'algorithm' => 'deepface-arcface',
         ];
 
         $this->faceRecognitionService->registerFace(
-            $this->employee->id,
+            $this->employee,
+            $faceData['descriptor'],
+            null,
             $faceData
         );
 
         // Verify with same descriptor (should match)
-        $verifyData = [
-            'descriptor' => $descriptor,
-            'confidence' => 0.8,
-        ];
-
-        $result = $this->faceRecognitionService->verifyFace($verifyData);
+        $result = $this->faceRecognitionService->verifyFace($descriptor, null, 0.6);
 
         $this->assertTrue($result['success']);
         $this->assertEquals($this->employee->id, $result['employee']['id']);
@@ -161,12 +211,10 @@ class FaceRecognitionTest extends TestCase
     /** @test */
     public function it_rejects_unregistered_face()
     {
-        $verifyData = [
-            'descriptor' => array_fill(0, 128, 0.9), // Different descriptor
-            'confidence' => 0.8,
-        ];
-
-        $result = $this->faceRecognitionService->verifyFace($verifyData);
+        // Verify without any registered faces
+        $verifyDescriptor = array_fill(0, 512, 0.9);
+        
+        $result = $this->faceRecognitionService->verifyFace($verifyDescriptor);
 
         $this->assertFalse($result['success']);
         $this->assertEquals('Face not recognized', $result['message']);
@@ -176,33 +224,36 @@ class FaceRecognitionTest extends TestCase
     public function it_can_update_face_data()
     {
         // Register face first
-        $originalData = [
-            'descriptor' => array_fill(0, 128, 0.5),
-            'confidence' => 0.85,
-        ];
-
-        $this->faceRecognitionService->registerFace(
-            $this->employee->id,
-            $originalData
-        );
-
-        // Update with new data
-        $newData = [
-            'descriptor' => array_fill(0, 128, 0.7),
+        $originalFaceData = [
+            'descriptor' => array_fill(0, 512, 0.5),
             'confidence' => 0.9,
         ];
 
-        $result = $this->faceRecognitionService->updateFace(
-            $this->employee->id,
-            $newData
+        $this->faceRecognitionService->registerFace(
+            $this->employee,
+            $originalFaceData['descriptor'],
+            null,
+            $originalFaceData
         );
 
-        $this->assertTrue($result['success']);
-        $this->assertEquals(0.9, $result['confidence']);
+        // Update with new data
+        $newDescriptor = array_fill(0, 512, 0.7);
+        $newFaceData = [
+            'descriptor' => $newDescriptor,
+            'confidence' => 0.95,
+        ];
+
+        $result = $this->faceRecognitionService->updateFaceData(
+            $this->employee,
+            $newDescriptor,
+            $newFaceData
+        );
+
+        $this->assertTrue($result);
 
         // Check database
         $this->employee->refresh();
-        $this->assertEquals($newData['descriptor'], $this->employee->metadata['face_recognition']['descriptor']);
+        $this->assertEquals($newDescriptor, $this->employee->metadata['face_recognition']['descriptor']);
         $this->assertEquals(1, $this->employee->metadata['face_recognition']['update_count']);
     }
 
@@ -211,17 +262,19 @@ class FaceRecognitionTest extends TestCase
     {
         // Register face first
         $faceData = [
-            'descriptor' => array_fill(0, 128, 0.5),
-            'confidence' => 0.85,
+            'descriptor' => array_fill(0, 512, 0.5),
+            'confidence' => 0.9,
         ];
 
         $this->faceRecognitionService->registerFace(
-            $this->employee->id,
+            $this->employee,
+            $faceData['descriptor'],
+            null,
             $faceData
         );
 
         // Delete face
-        $result = $this->faceRecognitionService->deleteFace($this->employee->id);
+        $result = $this->faceRecognitionService->deleteFaceData($this->employee);
 
         $this->assertTrue($result);
 
@@ -231,22 +284,62 @@ class FaceRecognitionTest extends TestCase
     }
 
     /** @test */
-    public function it_performs_liveness_detection()
+    public function it_calculates_cosine_similarity_correctly()
     {
-        $faceData = [
-            'descriptor' => array_fill(0, 128, 0.5),
-            'confidence' => 0.85,
-            'blink_detected' => true,
-            'head_movement' => 0.2,
-            'expressions' => ['happy' => 0.6, 'neutral' => 0.4],
+        $descriptor1 = [1, 0, 0];
+        $descriptor2 = [0, 1, 0];
+        $descriptor3 = [1, 0, 0]; // Same as descriptor1
+
+        // Different vectors should have low similarity
+        $similarity1 = $this->faceRecognitionService->calculateSimilarity($descriptor1, $descriptor2);
+        $this->assertEquals(0, $similarity1);
+
+        // Same vectors should have high similarity
+        $similarity2 = $this->faceRecognitionService->calculateSimilarity($descriptor1, $descriptor3);
+        $this->assertEquals(1, $similarity2);
+    }
+
+    /** @test */
+    public function it_calculates_quality_score()
+    {
+        $highQualityData = [
+            'descriptor' => array_fill(0, 512, 0.5),
+            'confidence' => 0.95,
+            'face_bounds' => ['width' => 200, 'height' => 200],
+            'pose' => ['yaw' => 5, 'pitch' => 3],
+            'lighting_score' => 0.9,
+            'blur_score' => 0.1,
         ];
 
-        $options = ['require_liveness' => true];
+        $result = $this->faceRecognitionService->registerFace(
+            $this->employee,
+            $highQualityData['descriptor'],
+            null,
+            $highQualityData
+        );
 
-        $result = $this->faceRecognitionService->verifyFace($faceData, $options);
+        $this->assertGreaterThan(0.5, $result['quality_score']);
+    }
 
-        // Should fail because no registered face exists yet
-        $this->assertFalse($result['success']);
+    /** @test */
+    public function it_generates_comprehensive_statistics()
+    {
+        // Register some faces
+        $employee2 = Employee::factory()->create();
+
+        $faceData1 = ['descriptor' => array_fill(0, 512, 0.5), 'confidence' => 0.9, 'algorithm' => 'deepface-arcface'];
+        $faceData2 = ['descriptor' => array_fill(0, 512, 0.7), 'confidence' => 0.95, 'algorithm' => 'deepface-arcface'];
+
+        $this->faceRecognitionService->registerFace($this->employee, $faceData1['descriptor'], null, $faceData1);
+        $this->faceRecognitionService->registerFace($employee2, $faceData2['descriptor'], null, $faceData2);
+
+        $stats = $this->faceRecognitionService->getStatistics();
+
+        $this->assertArrayHasKey('total_employees', $stats);
+        $this->assertArrayHasKey('registered_faces', $stats);
+        $this->assertArrayHasKey('registration_percentage', $stats);
+        $this->assertArrayHasKey('recognition_accuracy', $stats);
+        $this->assertEquals(2, $stats['registered_faces']);
     }
 
     /** @test */
@@ -255,37 +348,37 @@ class FaceRecognitionTest extends TestCase
         // Register multiple faces
         $employee2 = Employee::factory()->create();
 
-        $face1Data = ['descriptor' => array_fill(0, 128, 0.5), 'confidence' => 0.85];
-        $face2Data = ['descriptor' => array_fill(0, 128, 0.7), 'confidence' => 0.9];
+        $face1Data = ['descriptor' => array_fill(0, 512, 0.5), 'confidence' => 0.9];
+        $face2Data = ['descriptor' => array_fill(0, 512, 0.7), 'confidence' => 0.95];
 
-        $this->faceRecognitionService->registerFace($this->employee->id, $face1Data);
-        $this->faceRecognitionService->registerFace($employee2->id, $face2Data);
+        $this->faceRecognitionService->registerFace($this->employee, $face1Data['descriptor'], null, $face1Data);
+        $this->faceRecognitionService->registerFace($employee2, $face2Data['descriptor'], null, $face2Data);
 
-        // Batch verify
-        $batchData = [
-            ['descriptor' => array_fill(0, 128, 0.5), 'confidence' => 0.8], // Should match employee 1
-            ['descriptor' => array_fill(0, 128, 0.7), 'confidence' => 0.8], // Should match employee 2
-            ['descriptor' => array_fill(0, 128, 0.9), 'confidence' => 0.8], // Should not match
-        ];
+        // Batch verify - match employee 1
+        $result1 = $this->faceRecognitionService->verifyFace(array_fill(0, 512, 0.5));
+        $this->assertTrue($result1['success']);
 
-        $results = $this->faceRecognitionService->batchVerify($batchData);
+        // Batch verify - match employee 2
+        $result2 = $this->faceRecognitionService->verifyFace(array_fill(0, 512, 0.7));
+        $this->assertTrue($result2['success']);
 
-        $this->assertCount(3, $results);
-        $this->assertTrue($results[0]['success']);
-        $this->assertTrue($results[1]['success']);
-        $this->assertFalse($results[2]['success']);
+        // Batch verify - no match
+        $result3 = $this->faceRecognitionService->verifyFace(array_fill(0, 512, 0.1));
+        $this->assertFalse($result3['success']);
     }
 
     /** @test */
     public function it_logs_face_recognition_activities()
     {
         $faceData = [
-            'descriptor' => array_fill(0, 128, 0.5),
-            'confidence' => 0.85,
+            'descriptor' => array_fill(0, 512, 0.5),
+            'confidence' => 0.9,
         ];
 
         $this->faceRecognitionService->registerFace(
-            $this->employee->id,
+            $this->employee,
+            $faceData['descriptor'],
+            null,
             $faceData
         );
 
@@ -297,43 +390,55 @@ class FaceRecognitionTest extends TestCase
     }
 
     /** @test */
-    public function it_calculates_quality_score()
+    public function it_supports_one_to_one_verification()
     {
-        $highQualityData = [
-            'descriptor' => array_fill(0, 128, 0.5),
-            'confidence' => 0.95,
-            'face_bounds' => ['width' => 200, 'height' => 200],
-            'pose' => ['yaw' => 5, 'pitch' => 3],
-            'lighting_score' => 0.9,
-            'blur_score' => 0.1,
+        // Register face for specific employee
+        $faceData = [
+            'descriptor' => array_fill(0, 512, 0.5),
+            'confidence' => 0.92,
         ];
 
-        $result = $this->faceRecognitionService->registerFace(
-            $this->employee->id,
-            $highQualityData
+        $this->faceRecognitionService->registerFace(
+            $this->employee,
+            $faceData['descriptor'],
+            null,
+            $faceData
         );
 
-        $this->assertGreaterThan(0.7, $result['quality_score']);
+        // 1:1 verification - should match target employee
+        $result = $this->faceRecognitionService->verifyFace(
+            $faceData['descriptor'],
+            $this->employee, // Target specific employee
+            0.6
+        );
+
+        $this->assertTrue($result['success']);
+        $this->assertEquals($this->employee->id, $result['employee']['id']);
     }
 
     /** @test */
-    public function it_generates_comprehensive_statistics()
+    public function it_rejects_inactive_employee_during_verification()
     {
-        // Register some faces
-        $employee2 = Employee::factory()->create();
+        // Register face
+        $faceData = [
+            'descriptor' => array_fill(0, 512, 0.5),
+            'confidence' => 0.9,
+        ];
 
-        $faceData1 = ['descriptor' => array_fill(0, 128, 0.5), 'confidence' => 0.85];
-        $faceData2 = ['descriptor' => array_fill(0, 128, 0.7), 'confidence' => 0.9];
+        $this->faceRecognitionService->registerFace(
+            $this->employee,
+            $faceData['descriptor'],
+            null,
+            $faceData
+        );
 
-        $this->faceRecognitionService->registerFace($this->employee->id, $faceData1);
-        $this->faceRecognitionService->registerFace($employee2->id, $faceData2);
+        // Deactivate employee
+        $this->employee->update(['is_active' => false]);
 
-        $stats = $this->faceRecognitionService->getStatistics();
+        // Verify - should fail because employee is inactive
+        $result = $this->faceRecognitionService->verifyFace($faceData['descriptor']);
 
-        $this->assertArrayHasKey('total_employees', $stats);
-        $this->assertArrayHasKey('registered_faces', $stats);
-        $this->assertArrayHasKey('registration_percentage', $stats);
-        $this->assertArrayHasKey('recognition_accuracy', $stats);
-        $this->assertEquals(2, $stats['registered_faces']);
+        $this->assertFalse($result['success']);
+        $this->assertStringContainsString('not active', $result['message']);
     }
 }

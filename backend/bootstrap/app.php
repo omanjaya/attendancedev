@@ -20,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Enable CORS for API routes
         $middleware->api(prepend: [
             \Illuminate\Http\Middleware\HandleCors::class,
+            \App\Http\Middleware\AddRequestId::class, // Add Request ID for error tracking
         ], append: [
             \App\Http\Middleware\EnsureUserIsActive::class,
             \App\Http\Middleware\ForcePasswordChangeMiddleware::class, // Security: Enforce password change
@@ -52,6 +53,47 @@ return Application::configure(basePath: dirname(__DIR__))
         }
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Enhanced exception rendering dengan detail untuk debugging
+        $exceptions->render(function (Throwable $e, $request) {
+            // Only for API requests
+            if ($request->is('api/*') || $request->expectsJson()) {
+                $requestId = $request->attributes->get('request_id', 'unknown');
+                $statusCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
+
+                // Base error response
+                $error = [
+                    'message' => $e->getMessage() ?: 'Server error occurred',
+                    'request_id' => $requestId,
+                ];
+
+                // Add detailed information in development
+                if (config('app.debug')) {
+                    $error['debug'] = [
+                        'exception' => get_class($e),
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine(),
+                        'trace' => collect($e->getTrace())->take(5)->map(function ($trace) {
+                            return [
+                                'file' => $trace['file'] ?? 'unknown',
+                                'line' => $trace['line'] ?? 0,
+                                'function' => $trace['function'] ?? 'unknown',
+                            ];
+                        })->toArray(),
+                    ];
+                }
+
+                return response()->json($error, $statusCode);
+            }
+        });
+
+        // Log all exceptions dengan context
+        $exceptions->report(function (Throwable $e) {
+            \Illuminate\Support\Facades\Log::error($e->getMessage(), [
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+        });
     })
     ->create();

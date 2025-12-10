@@ -60,7 +60,7 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Switch } from '@/components/ui/switch';
-import { useLocations } from '@/hooks/use-locations';
+import { useLocationsPage } from '@/hooks/use-locations-page';
 import {
     locationTypeLabels,
     locationTypeColors,
@@ -608,108 +608,21 @@ function AssignEmployeesDialog({
 }
 
 export function DesktopLocationsPage() {
-    const {
-        isLoading,
-        locations,
-        fetchLocations,
-        createLocation,
-        updateLocation,
-        deleteLocation,
-        toggleStatus,
-        assignEmployees,
-        getStatistics,
-    } = useLocations();
+    // Use shared hook for common logic
+    const logic = useLocationsPage();
 
-    const [searchQuery, setSearchQuery] = useState('');
-    const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
-    const [isFormOpen, setIsFormOpen] = useState(false);
-    const [editingLocation, setEditingLocation] = useState<Location | null>(null);
-    const [deletingLocation, setDeletingLocation] = useState<Location | null>(null);
-    const [assigningLocation, setAssigningLocation] = useState<Location | null>(null);
+    // Desktop-specific state
     const [stats, setStats] = useState<LocationStatistics | null>(null);
 
     const loadStats = async () => {
-        const statistics = await getStatistics();
+        const statistics = await logic.getStatistics();
         setStats(statistics);
     };
 
     useEffect(() => {
-        fetchLocations();
         loadStats();
-    }, [fetchLocations]);
-
-    const handleSearch = () => {
-        fetchLocations({
-            is_active: statusFilter === 'active' ? true : statusFilter === 'inactive' ? false : undefined,
-            search: searchQuery || undefined,
-        });
-    };
-
-    useEffect(() => {
-        handleSearch();
-    }, [statusFilter]);
-
-    const handleCreate = async (data: LocationFormData) => {
-        if (data.radius_meters <= 0) {
-            toast.error('Radius harus lebih dari 0 meter');
-            return;
-        }
-        try {
-            await createLocation(data);
-            toast.success('Lokasi berhasil dibuat');
-            loadStats();
-        } catch (error: any) {
-            // Error is already handled/thrown by hook, but we catch it here to prevent uncaught promise
-            // and maybe show a specific toast if the hook didn't (though hook sets error state)
-            console.error('Create location error:', error);
-            // The hook sets 'error' state, but we can also toast here
-            toast.error(error.message || 'Gagal membuat lokasi');
-        }
-    };
-
-    const handleUpdate = async (data: LocationFormData) => {
-        if (data.radius_meters <= 0) {
-            toast.error('Radius harus lebih dari 0 meter');
-            return;
-        }
-        if (editingLocation) {
-            try {
-                await updateLocation(editingLocation.id, data);
-                toast.success('Lokasi berhasil diperbarui');
-                setEditingLocation(null);
-                loadStats();
-            } catch (error: any) {
-                console.error('Update location error:', error);
-                toast.error(error.message || 'Gagal memperbarui lokasi');
-            }
-        }
-    };
-
-    const handleAssignEmployees = async (locationId: string, employeeIds: string[]) => {
-        try {
-            await assignEmployees(locationId, employeeIds);
-            toast.success('Pegawai berhasil ditugaskan');
-            setAssigningLocation(null);
-            loadStats();
-        } catch (error: any) {
-            console.error('Assign employees error:', error);
-            toast.error(error.message || 'Gagal menugaskan pegawai');
-        }
-    };
-
-    const handleDelete = async () => {
-        if (deletingLocation) {
-            try {
-                await deleteLocation(deletingLocation.id);
-                toast.success('Lokasi berhasil dihapus');
-                setDeletingLocation(null);
-                loadStats();
-            } catch (error: any) {
-                console.error('Delete location error:', error);
-                toast.error(error.message || 'Gagal menghapus lokasi');
-            }
-        }
-    };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const statsItems: StatItem[] = stats ? [
         {
@@ -748,8 +661,8 @@ export function DesktopLocationsPage() {
                 actions={
                     <Button
                         onClick={() => {
-                            setEditingLocation(null);
-                            setIsFormOpen(true);
+                            logic.setEditingLocation(null);
+                            logic.setIsFormOpen(true);
                         }}
                     >
                         <Plus className="mr-2 h-4 w-4" />
@@ -770,19 +683,19 @@ export function DesktopLocationsPage() {
                                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                 <Input
                                     placeholder="Cari nama atau alamat..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                                    value={logic.searchQuery}
+                                    onChange={(e) => logic.setSearchQuery(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && logic.handleSearch()}
                                     className="pl-9"
                                 />
                             </div>
-                            <Button variant="outline" onClick={handleSearch}>
+                            <Button variant="outline" onClick={logic.handleSearch}>
                                 Cari
                             </Button>
                         </div>
                         <Select
-                            value={statusFilter}
-                            onValueChange={(value) => setStatusFilter(value as 'all' | 'active' | 'inactive')}
+                            value={logic.statusFilter}
+                            onValueChange={(value) => logic.setStatusFilter(value as 'all' | 'active' | 'inactive')}
                         >
                             <SelectTrigger className="w-[150px]">
                                 <SelectValue placeholder="Semua Status" />
@@ -798,11 +711,11 @@ export function DesktopLocationsPage() {
             </Card>
 
             {/* Locations Grid */}
-            {isLoading ? (
+            {logic.isLoading ? (
                 <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
-            ) : locations.length === 0 ? (
+            ) : logic.locations.length === 0 ? (
                 <Card>
                     <CardContent className="py-12 text-center">
                         <MapPin className="mx-auto h-12 w-12 text-muted-foreground" />
@@ -813,8 +726,8 @@ export function DesktopLocationsPage() {
                         <Button
                             className="mt-4"
                             onClick={() => {
-                                setEditingLocation(null);
-                                setIsFormOpen(true);
+                                logic.setEditingLocation(null);
+                                logic.setIsFormOpen(true);
                             }}
                         >
                             <Plus className="mr-2 h-4 w-4" />
@@ -824,17 +737,17 @@ export function DesktopLocationsPage() {
                 </Card>
             ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {locations.map((location) => (
+                    {logic.locations.map((location: Location) => (
                         <LocationCard
                             key={location.id}
                             location={location}
                             onEdit={() => {
-                                setEditingLocation(location);
-                                setIsFormOpen(true);
+                                logic.setEditingLocation(location);
+                                logic.setIsFormOpen(true);
                             }}
-                            onDelete={() => setDeletingLocation(location)}
-                            onToggle={() => toggleStatus(location.id)}
-                            onAssign={() => setAssigningLocation(location)}
+                            onDelete={() => logic.setDeletingLocation(location)}
+                            onToggle={() => logic.handleToggleStatus(location)}
+                            onAssign={() => logic.setAssigningLocation(location)}
                         />
                     ))}
                 </div>
@@ -842,35 +755,35 @@ export function DesktopLocationsPage() {
 
             {/* Location Form Dialog */}
             <LocationFormDialog
-                open={isFormOpen}
+                open={logic.isFormOpen}
                 onOpenChange={(open) => {
-                    setIsFormOpen(open);
-                    if (!open) setEditingLocation(null);
+                    logic.setIsFormOpen(open);
+                    if (!open) logic.setEditingLocation(null);
                 }}
-                location={editingLocation}
-                onSubmit={editingLocation ? handleUpdate : handleCreate}
-                isLoading={isLoading}
+                location={logic.editingLocation}
+                onSubmit={(data) => logic.editingLocation ? logic.handleUpdate(data, loadStats) : logic.handleCreate(data, loadStats)}
+                isLoading={logic.isLoading}
             />
 
             {/* Assign Employees Dialog */}
             <AssignEmployeesDialog
-                open={!!assigningLocation}
-                onOpenChange={(open) => !open && setAssigningLocation(null)}
-                location={assigningLocation}
-                onSubmit={handleAssignEmployees}
-                isLoading={isLoading}
+                open={!!logic.assigningLocation}
+                onOpenChange={(open) => !open && logic.setAssigningLocation(null)}
+                location={logic.assigningLocation}
+                onSubmit={(id, ids) => logic.handleAssignEmployees(id, ids, () => { logic.fetchLocations(); loadStats(); })}
+                isLoading={logic.isLoading}
             />
 
             {/* Delete Confirmation */}
-            <AlertDialog open={!!deletingLocation} onOpenChange={() => setDeletingLocation(null)}>
+            <AlertDialog open={!!logic.deletingLocation} onOpenChange={() => logic.setDeletingLocation(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Hapus Lokasi?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Anda yakin ingin menghapus lokasi <strong>{deletingLocation?.name}</strong>?
-                            {deletingLocation?.employee_count && deletingLocation.employee_count > 0 && (
+                            Anda yakin ingin menghapus lokasi <strong>{logic.deletingLocation?.name}</strong>?
+                            {logic.deletingLocation?.employee_count && logic.deletingLocation.employee_count > 0 && (
                                 <span className="mt-2 block text-warning">
-                                    Perhatian: Lokasi ini memiliki {deletingLocation.employee_count} pegawai yang
+                                    Perhatian: Lokasi ini memiliki {logic.deletingLocation.employee_count} pegawai yang
                                     terdaftar.
                                 </span>
                             )}
@@ -879,7 +792,7 @@ export function DesktopLocationsPage() {
                     <AlertDialogFooter>
                         <AlertDialogCancel>Batal</AlertDialogCancel>
                         <AlertDialogAction
-                            onClick={handleDelete}
+                            onClick={() => logic.handleDelete(loadStats)}
                             className="bg-destructive hover:bg-destructive/90"
                         >
                             Hapus

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import {
   ChevronLeft,
   ChevronRight,
@@ -130,7 +131,7 @@ export default function LeaveCalendarPage() {
           </p>
         </div>
         <Button asChild>
-          <a href="/leave/create">Ajukan Cuti</a>
+          <Link to="/admin/leave/create">Ajukan Cuti</Link>
         </Button>
       </div>
 

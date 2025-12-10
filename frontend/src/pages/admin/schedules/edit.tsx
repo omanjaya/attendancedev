@@ -10,7 +10,6 @@ import {
   Save,
   Calendar,
   Users,
-  MapPin,
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,13 +17,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useNotificationStore } from '@/stores';
@@ -34,17 +26,12 @@ const scheduleSchema = z.object({
   check_in: z.string().min(1, 'Pilih waktu masuk'),
   check_out: z.string().min(1, 'Pilih waktu keluar'),
   late_tolerance: z.string().optional(),
-  location_id: z.string().optional(),
   description: z.string().optional(),
 });
 
 type ScheduleForm = z.infer<typeof scheduleSchema>;
 
-const locations = [
-  { id: '1', name: 'Kantor Pusat' },
-  { id: '2', name: 'Kantor Cabang A' },
-  { id: '3', name: 'Kantor Cabang B' },
-];
+
 
 const daysOfWeek = [
   { id: 'monday', label: 'Senin' },
@@ -64,7 +51,6 @@ const mockSchedule = {
   check_in: '08:00',
   check_out: '17:00',
   late_tolerance: '15',
-  location_id: '1',
   is_flexible: false,
   days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
 };
@@ -79,7 +65,6 @@ export default function ScheduleEditPage() {
   const {
     register,
     handleSubmit,
-    setValue,
     formState: { errors },
   } = useForm<ScheduleForm>({
     resolver: zodResolver(scheduleSchema),
@@ -89,7 +74,6 @@ export default function ScheduleEditPage() {
       check_in: mockSchedule.check_in,
       check_out: mockSchedule.check_out,
       late_tolerance: mockSchedule.late_tolerance,
-      location_id: mockSchedule.location_id,
     },
   });
 
@@ -163,26 +147,6 @@ export default function ScheduleEditPage() {
                   placeholder="Deskripsi singkat tentang jadwal ini..."
                   {...register('description')}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Lokasi</label>
-                <Select
-                  defaultValue={mockSchedule.location_id}
-                  onValueChange={(value) => setValue('location_id', value)}
-                >
-                  <SelectTrigger>
-                    <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <SelectValue placeholder="Pilih lokasi (opsional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {locations.map((loc) => (
-                      <SelectItem key={loc.id} value={loc.id}>
-                        {loc.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
             </CardContent>
           </Card>

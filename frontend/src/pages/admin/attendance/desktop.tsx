@@ -42,7 +42,7 @@ interface AttendanceRecord {
  */
 export function DesktopAdminAttendancePage() {
   const queryClient = useQueryClient();
-  const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date()); // Ubah ke selectedDate
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [showManualEntry, setShowManualEntry] = useState(false);
@@ -54,17 +54,18 @@ export function DesktopAdminAttendancePage() {
   const [manualCheckOut, setManualCheckOut] = useState('');
   const [manualNotes, setManualNotes] = useState('');
 
-  // Fetch attendance statistics
+  // Fetch attendance statistics untuk hari ini
   const { data: stats } = useQuery({
-    queryKey: ['admin', 'attendance-stats', format(selectedMonth, 'yyyy-MM-dd')],
-    queryFn: () => getAttendanceStatistics(format(selectedMonth, 'yyyy-MM-dd')),
+    queryKey: ['admin', 'attendance-stats', format(selectedDate, 'yyyy-MM-dd')],
+    queryFn: () => getAttendanceStatistics(format(selectedDate, 'yyyy-MM-dd')),
   });
 
-  // Fetch attendance records
+  // Fetch attendance records untuk tanggal tertentu (default hari ini)
   const { data: attendanceData, isLoading: recordsLoading } = useQuery({
-    queryKey: ['admin', 'attendance-records', format(selectedMonth, 'yyyy-MM'), searchQuery, filterStatus],
+    queryKey: ['admin', 'attendance-records', format(selectedDate, 'yyyy-MM-dd'), searchQuery, filterStatus],
     queryFn: () => getAttendance({
-      month: format(selectedMonth, 'yyyy-MM'),
+      date_from: format(selectedDate, 'yyyy-MM-dd'),
+      date_to: format(selectedDate, 'yyyy-MM-dd'),
       search: searchQuery || undefined,
       status: filterStatus !== 'all' ? filterStatus as AttendanceStatus : undefined,
     }),
@@ -263,8 +264,8 @@ export function DesktopAdminAttendancePage() {
 
   return (
     <PageLayout
-      title="Kelola Absensi"
-      description="Kelola dan approve absensi karyawan"
+      title="Log Absensi Karyawan"
+      description={`Data absensi ${format(selectedDate, 'EEEE, dd MMMM yyyy', { locale: id })}`}
       actions={
         <button
           onClick={() => setShowManualEntry(true)}
@@ -315,17 +316,24 @@ export function DesktopAdminAttendancePage() {
           </select>
         </div>
 
-        {/* Date Filter */}
+        {/* Date Filter - Ganti ke filter tanggal */}
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-muted-foreground" />
           <input
-            type="month"
-            value={format(selectedMonth, 'yyyy-MM')}
-            onChange={(e) => setSelectedMonth(parseISO(e.target.value + '-01'))}
+            type="date"
+            value={format(selectedDate, 'yyyy-MM-dd')}
+            onChange={(e) => setSelectedDate(parseISO(e.target.value))}
             className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-            aria-label="Filter Bulan"
-            title="Filter Bulan"
+            aria-label="Filter Tanggal"
+            title="Filter Tanggal"
           />
+          <button
+            onClick={() => setSelectedDate(new Date())}
+            className="px-3 py-2 text-sm border rounded-lg hover:bg-muted transition-colors whitespace-nowrap"
+            title="Kembali ke hari ini"
+          >
+            Hari Ini
+          </button>
         </div>
 
         {/* Export Button */}
@@ -339,7 +347,7 @@ export function DesktopAdminAttendancePage() {
       </div>
 
       {/* Attendance Records */}
-      <ContentCard title="Data Absensi">
+      <ContentCard title={`Log Absensi - ${format(selectedDate, 'dd MMMM yyyy', { locale: id })}`}>
         <div className="space-y-2">
           {recordsLoading ? (
             <div className="flex items-center justify-center py-12">
@@ -465,20 +473,18 @@ export function DesktopAdminAttendancePage() {
             <form onSubmit={handleManualSubmit} className="p-4 space-y-4">
               <div>
                 <label htmlFor="manual-employee" className="block text-sm font-medium mb-2">
-                  Karyawan <span className="text-red-500">*</span>
+                  ID Karyawan <span className="text-red-500">*</span>
                 </label>
-                <select
+                <input
                   id="manual-employee"
+                  type="text"
                   value={manualEmployeeId}
                   onChange={(e) => setManualEmployeeId(e.target.value)}
                   className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="Masukkan ID karyawan"
                   required
-                >
-                  <option value="">Pilih karyawan</option>
-                  <option value="101">John Doe (#101)</option>
-                  <option value="102">Jane Smith (#102)</option>
-                  <option value="103">Bob Johnson (#103)</option>
-                </select>
+                />
+                <p className="text-xs text-muted-foreground mt-1">Masukkan ID karyawan yang valid</p>
               </div>
 
               <div>

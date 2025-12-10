@@ -183,7 +183,7 @@ export function useCreateReportTemplate() {
 // Update template mutation
 export function useUpdateReportTemplate() {
   const queryClient = useQueryClient();
-  const { success, error } = useNotificationStore();
+  const { success } = useNotificationStore();
 
   return useMutation({
     mutationFn: ({
@@ -193,13 +193,11 @@ export function useUpdateReportTemplate() {
       id: string;
       data: Partial<Omit<ReportTemplate, 'id' | 'created_at' | 'updated_at'>>;
     }) => updateReportTemplate(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: reportKeys.templates() });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: reportKeys.templates() });
       success('Berhasil', 'Template laporan berhasil diperbarui');
     },
-    onError: (err: Error) => {
-      error('Gagal', err.message || 'Gagal memperbarui template');
-    },
+    // onError removed - global error handler will catch it
   });
 }
 

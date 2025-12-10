@@ -19,5 +19,15 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // Prevent internal links using <a href> instead of <Link to>
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'JSXElement[openingElement.name.name="a"][openingElement.attributes.0.name.name="href"]',
+          message: '❌ Use <Link to="..."> from @tanstack/react-router instead of <a href="..."> for internal navigation. External links (https://, mailto:, etc.) are OK with <a>.',
+        },
+      ],
+    },
   },
 ])

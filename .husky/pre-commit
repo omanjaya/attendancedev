@@ -1,0 +1,21 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run ESLint on frontend
+echo "🔍 Running ESLint checks..."
+cd frontend && npm run lint
+
+# Check for internal <a href> links (safety net)
+echo "🔗 Checking for internal <a href> links..."
+if git diff --cached --name-only | grep -E 'frontend/src/.*\.(tsx|ts)$' | xargs grep -l '<a href="/"' 2>/dev/null; then
+  echo ""
+  echo "❌ ERROR: Found internal <a href> links in staged files!"
+  echo "   Use <Link to> from @tanstack/react-router instead."
+  echo ""
+  echo "   Bad:  <a href=\"/admin/dashboard\">Dashboard</a>"
+  echo "   Good: <Link to=\"/admin/dashboard\">Dashboard</Link>"
+  echo ""
+  exit 1
+fi
+
+echo "✅ All checks passed!"

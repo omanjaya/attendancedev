@@ -1,113 +1,20 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     Plane,
     Plus,
     Clock,
-    ArrowLeft,
 } from 'lucide-react';
-import { format, parseISO, differenceInDays } from 'date-fns';
+import { MobilePageHeader } from '@/components/mobile';
+import { format, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { useAuthStore } from '@/stores';
-import {
-    getLeaveBalance,
-    getLeaveRequests,
-    createLeaveRequest,
-    cancelLeaveRequest
-} from '@/lib/api/leave';
-import { toast } from 'sonner';
-import type { LeaveRequest } from '@/types';
+import { useEmployeeLeavePage } from '@/hooks/use-employee-leave-page';
 
 export function MobileEmployeeLeavePage() {
-    const { user } = useAuthStore();
-    const queryClient = useQueryClient();
-    const [showRequestForm, setShowRequestForm] = useState(false);
-    const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
-
-    // Form state
-    const [leaveType, setLeaveType] = useState('');
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
-    const [reason, setReason] = useState('');
-
-    // Fetch leave balance
-    const { data: leaveBalance } = useQuery({
-        queryKey: ['employee', 'leave-balance', user?.id],
-        queryFn: getLeaveBalance,
-    });
-
-    // Fetch leave requests
-    const { data: leaveRequestsResponse, isLoading } = useQuery({
-        queryKey: ['employee', 'leave-requests', user?.id],
-        queryFn: () => getLeaveRequests({ per_page: 50 }), // Fetch more for list
-    });
-
-    const leaveRequests = (leaveRequestsResponse?.data || []) as LeaveRequest[];
-
-    // Create leave request mutation
-    const createLeaveMutation = useMutation({
-        mutationFn: async (data: { leaveType: string; startDate: string; endDate: string; reason: string }) => {
-            return createLeaveRequest({
-                type: data.leaveType as any, // Cast as any because select value is string but type expects LeaveType
-                start_date: data.startDate,
-                end_date: data.endDate,
-                duration_type: 'full_day', // Default to full_day for now
-                reason: data.reason,
-            });
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['employee', 'leave-requests'] });
-            queryClient.invalidateQueries({ queryKey: ['employee', 'leave-balance'] });
-            setShowRequestForm(false);
-            resetForm();
-            toast.success('Pengajuan cuti berhasil dikirim');
-        },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.message || 'Gagal mengajukan cuti');
-        }
-    });
-
-    // Cancel leave request mutation
-    const cancelLeaveMutation = useMutation({
-        mutationFn: async (id: string) => {
-            return cancelLeaveRequest(id);
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['employee', 'leave-requests'] });
-            queryClient.invalidateQueries({ queryKey: ['employee', 'leave-balance'] });
-            toast.success('Pengajuan cuti dibatalkan');
-        },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.message || 'Gagal membatalkan cuti');
-        }
-    });
-
-    const resetForm = () => {
-        setLeaveType('');
-        setStartDate('');
-        setEndDate('');
-        setReason('');
-    };
-
-    const handleSubmitRequest = (e: React.FormEvent) => {
-        e.preventDefault();
-        createLeaveMutation.mutate({
-            leaveType,
-            startDate,
-            endDate,
-            reason,
-        });
-    };
-
-    const handleCancelRequest = (id: string) => {
-        if (confirm('Apakah Anda yakin ingin membatalkan pengajuan cuti ini?')) {
-            cancelLeaveMutation.mutate(id);
-        }
-    };
+    // Use shared hook for all logic
+    const logic = useEmployeeLeavePage();
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -118,57 +25,31 @@ export function MobileEmployeeLeavePage() {
         }
     };
 
-    const getStatusLabel = (status: string) => {
-        switch (status) {
-            case 'pending': return 'Menunggu';
-            case 'approved': return 'Disetujui';
-            case 'rejected': return 'Ditolak';
-            default: return status;
-        }
-    };
-
-    const filteredRequests = leaveRequests?.filter((request) => {
-        if (filterStatus === 'all') return true;
-        return request.status === filterStatus;
-    });
-
-    const calculateDays = () => {
-        if (startDate && endDate) {
-            const days = differenceInDays(parseISO(endDate), parseISO(startDate)) + 1;
-            return days > 0 ? days : 0;
-        }
-        return 0;
-    };
 
     return (
         <div className="min-h-screen bg-background pb-20">
             {/* Header */}
-            <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <Button variant="ghost" size="icon" onClick={() => window.history.back()}>
-                        <ArrowLeft className="h-5 w-5" />
-                    </Button>
-                    <div>
-                        <h1 className="text-lg font-bold">Cuti Saya</h1>
-                        <p className="text-xs text-muted-foreground">Kelola pengajuan cuti</p>
-                    </div>
-                </div>
-                <Sheet open={showRequestForm} onOpenChange={setShowRequestForm}>
-                    <SheetTrigger asChild>
-                        <Button size="icon" className="rounded-full">
-                            <Plus className="h-5 w-5" />
-                        </Button>
-                    </SheetTrigger>
+            <MobilePageHeader
+                title="Cuti Saya"
+                onBack={() => window.history.back()}
+                gradient="teal"
+                actions={
+                    <Sheet open={logic.showRequestForm} onOpenChange={logic.setShowRequestForm}>
+                        <SheetTrigger asChild>
+                            <button className="p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95">
+                                <Plus className="h-5 w-5 text-white" />
+                            </button>
+                        </SheetTrigger>
                     <SheetContent side="bottom" className="h-[90vh] rounded-t-xl">
                         <SheetHeader>
                             <SheetTitle>Ajukan Cuti Baru</SheetTitle>
                         </SheetHeader>
-                        <form onSubmit={handleSubmitRequest} className="space-y-4 mt-4 overflow-y-auto h-full pb-20">
+                        <form onSubmit={logic.handleSubmitRequest} className="space-y-4 mt-4 overflow-y-auto h-full pb-20">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">Jenis Cuti</label>
                                 <select
-                                    value={leaveType}
-                                    onChange={(e) => setLeaveType(e.target.value)}
+                                    value={logic.leaveType}
+                                    onChange={(e) => logic.setLeaveType(e.target.value)}
                                     className="w-full p-2 border rounded-md"
                                     required
                                     aria-label="Pilih jenis cuti"
@@ -186,8 +67,8 @@ export function MobileEmployeeLeavePage() {
                                     <label className="text-sm font-medium">Mulai</label>
                                     <Input
                                         type="date"
-                                        value={startDate}
-                                        onChange={(e) => setStartDate(e.target.value)}
+                                        value={logic.startDate}
+                                        onChange={(e) => logic.setStartDate(e.target.value)}
                                         required
                                     />
                                 </div>
@@ -195,26 +76,26 @@ export function MobileEmployeeLeavePage() {
                                     <label className="text-sm font-medium">Selesai</label>
                                     <Input
                                         type="date"
-                                        value={endDate}
-                                        onChange={(e) => setEndDate(e.target.value)}
-                                        min={startDate}
+                                        value={logic.endDate}
+                                        onChange={(e) => logic.setEndDate(e.target.value)}
+                                        min={logic.startDate}
                                         required
                                     />
                                 </div>
                             </div>
 
-                            {startDate && endDate && (
+                            {logic.startDate && logic.endDate && (
                                 <div className="p-3 bg-blue-50 rounded-lg flex justify-between items-center">
                                     <span className="text-sm">Durasi Cuti</span>
-                                    <span className="font-bold text-blue-700">{calculateDays()} hari</span>
+                                    <span className="font-bold text-blue-700">{logic.calculateDays()} hari</span>
                                 </div>
                             )}
 
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">Alasan</label>
                                 <textarea
-                                    value={reason}
-                                    onChange={(e) => setReason(e.target.value)}
+                                    value={logic.reason}
+                                    onChange={(e) => logic.setReason(e.target.value)}
                                     className="w-full p-2 border rounded-md resize-none"
                                     rows={4}
                                     placeholder="Jelaskan alasan..."
@@ -222,13 +103,14 @@ export function MobileEmployeeLeavePage() {
                                 />
                             </div>
 
-                            <Button type="submit" className="w-full" disabled={createLeaveMutation.isPending}>
-                                {createLeaveMutation.isPending ? 'Mengirim...' : 'Ajukan Cuti'}
+                            <Button type="submit" className="w-full" disabled={logic.createLeaveMutation.isPending}>
+                                {logic.createLeaveMutation.isPending ? 'Mengirim...' : 'Ajukan Cuti'}
                             </Button>
                         </form>
                     </SheetContent>
                 </Sheet>
-            </div>
+                }
+            />
 
             {/* Balance Cards */}
             <div className="p-4 grid grid-cols-2 gap-3">
@@ -237,16 +119,16 @@ export function MobileEmployeeLeavePage() {
                         <Plane className="h-4 w-4 text-blue-600" />
                         <span className="text-xs font-medium text-blue-700">Sisa Cuti Tahunan</span>
                     </div>
-                    <p className="text-2xl font-bold text-blue-700">{leaveBalance?.annual_remaining || 0}</p>
-                    <p className="text-xs text-blue-600">dari {leaveBalance?.annual_total || 0} hari</p>
+                    <p className="text-2xl font-bold text-blue-700">{logic.leaveBalance?.annual_remaining || 0}</p>
+                    <p className="text-xs text-blue-600">dari {logic.leaveBalance?.annual_total || 0} hari</p>
                 </div>
                 <div className="p-4 bg-yellow-50 border border-yellow-100 rounded-xl">
                     <div className="flex items-center gap-2 mb-2">
                         <Clock className="h-4 w-4 text-yellow-600" />
                         <span className="text-xs font-medium text-yellow-700">Cuti Sakit</span>
                     </div>
-                    <p className="text-2xl font-bold text-yellow-700">{leaveBalance?.sick_remaining || 0}</p>
-                    <p className="text-xs text-yellow-600">dari {leaveBalance?.sick_total || 0} hari</p>
+                    <p className="text-2xl font-bold text-yellow-700">{logic.leaveBalance?.sick_remaining || 0}</p>
+                    <p className="text-xs text-yellow-600">dari {logic.leaveBalance?.sick_total || 0} hari</p>
                 </div>
             </div>
 
@@ -256,11 +138,11 @@ export function MobileEmployeeLeavePage() {
                     {(['all', 'pending', 'approved', 'rejected'] as const).map((status) => (
                         <Badge
                             key={status}
-                            variant={filterStatus === status ? 'default' : 'outline'}
+                            variant={logic.filterStatus === status ? 'default' : 'outline'}
                             className="cursor-pointer whitespace-nowrap"
-                            onClick={() => setFilterStatus(status)}
+                            onClick={() => logic.setFilterStatus(status)}
                         >
-                            {status === 'all' ? 'Semua' : getStatusLabel(status)}
+                            {status === 'all' ? 'Semua' : logic.getStatusLabel(status)}
                         </Badge>
                     ))}
                 </div>
@@ -268,11 +150,11 @@ export function MobileEmployeeLeavePage() {
 
             {/* List */}
             <div className="px-4 space-y-3">
-                {isLoading ? (
+                {logic.isLoading ? (
                     <div className="text-center py-8 text-muted-foreground">Memuat data...</div>
-                ) : filteredRequests?.length === 0 ? (
+                ) : logic.filteredRequests?.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">Belum ada pengajuan cuti</div>
-                ) : filteredRequests?.map((request) => (
+                ) : logic.filteredRequests?.map((request) => (
                     <div
                         key={request.id}
                         className="bg-card border rounded-xl p-4 shadow-sm space-y-3"
@@ -286,7 +168,7 @@ export function MobileEmployeeLeavePage() {
                                 </p>
                             </div>
                             <Badge variant="outline" className={getStatusColor(request.status)}>
-                                {getStatusLabel(request.status)}
+                                {logic.getStatusLabel(request.status)}
                             </Badge>
                         </div>
 
@@ -299,8 +181,8 @@ export function MobileEmployeeLeavePage() {
                                 variant="outline"
                                 size="sm"
                                 className="w-full text-red-600 border-red-200 hover:bg-red-50"
-                                onClick={() => handleCancelRequest(request.id)}
-                                disabled={cancelLeaveMutation.isPending}
+                                onClick={() => logic.handleCancelRequest(request.id)}
+                                disabled={logic.cancelLeaveMutation.isPending}
                             >
                                 Batalkan Pengajuan
                             </Button>

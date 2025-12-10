@@ -79,7 +79,7 @@ export function LivenessChallenge({
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const detectionDataRef = useRef<{
     initialPose: { yaw: number; pitch: number } | null;
     blinkCount: number;

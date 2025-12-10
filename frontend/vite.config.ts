@@ -47,7 +47,6 @@ export default defineConfig({
           'router': ['@tanstack/react-router'],
           'query': ['@tanstack/react-query'],
           'charts': ['recharts'],
-          'face-detection': ['face-api.js', '@tensorflow/tfjs-core', '@tensorflow/tfjs-backend-webgl'],
           'ui': [
             '@radix-ui/react-dialog',
             '@radix-ui/react-dropdown-menu',

@@ -25,11 +25,11 @@ class AttendanceApiController extends BaseApiController
         }
 
         if ($startDate = $request->get('start_date') ?? $request->get('date_from')) {
-            $query->whereDate('date', '>=', $startDate);
+            $query->where('date', '>=', $startDate);
         }
 
         if ($endDate = $request->get('end_date') ?? $request->get('date_to')) {
-            $query->whereDate('date', '<=', $endDate);
+            $query->where('date', '<=', $endDate);
         }
 
         if ($status = $request->get('status')) {
@@ -55,9 +55,10 @@ class AttendanceApiController extends BaseApiController
         return $this->apiResponse($attendance, 'Attendance retrieved');
     }
 
-    public function today()
+    public function today(Request $request)
     {
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = $request->user();
         $employee = $user->employee;
 
         if (!$employee) {
@@ -103,7 +104,7 @@ class AttendanceApiController extends BaseApiController
             'absent' => max(0, $totalEmployees - ($stats->present ?? 0) - ($stats->late ?? 0) - ($stats->on_leave ?? 0)),
             'on_leave' => $stats->on_leave ?? 0,
             'attendance_rate' => $totalEmployees > 0
-                ? round((($stats->present ?? 0) + ($stats->late ?? 0)) / $totalEmployees * 100, 1)
+                ? min(100, round((($stats->present ?? 0) + ($stats->late ?? 0)) / $totalEmployees * 100, 1))
                 : 0,
         ], 'Statistics retrieved');
     }

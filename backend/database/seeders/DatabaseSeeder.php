@@ -2,8 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -15,43 +13,24 @@ class DatabaseSeeder extends Seeder
     {
         // Order is important for foreign key relationships
         $this->call([
-            // 1. Basic system setup
+            // 1. Basic system setup (REQUIRED)
             RolesAndPermissionsSeeder::class,
             SuperAdminSeeder::class,
             
             // 2. Reference data
             HolidaySeeder::class,
+            HolidaysIndonesia2025Seeder::class,
             LocationSeeder::class,
             LeaveTypeSeeder::class,
             PeriodSeeder::class,
+            EmployeeTypeSeeder::class,
             
             // 3. Schedule management data
             ScheduleManagementSeeder::class,
-            
-            // 4. Users and employees
-            UserSeeder::class,
-            EmployeeSeeder::class,
-            
-            // 5. Operational data
-            ScheduleSeeder::class,
-            AttendanceSeeder::class,
-            LeaveSeeder::class,
         ]);
 
-        // Create additional test user if needed
-        if (! User::where('email', 'test@example.com')->exists()) {
-            $testUser = User::create([
-                'name' => 'Test User',
-                'email' => 'test@example.com',
-                'password' => bcrypt('password'),
-                'email_verified_at' => now(),
-            ]);
-            $testUser->assignRole('guru');
-        }
-
         $this->command->info('🎉 All seeders completed successfully!');
-        $this->command->info('📊 Database has been populated with sample data');
-        $this->command->info('👤 Default admin: admin@school.com / password');
-        $this->command->info('👨‍🏫 Test teacher: test@example.com / password');
+        $this->command->info('✅ System is ready for production use');
+        $this->command->info('👤 Super Admin: Check SuperAdminSeeder for credentials');
     }
 }

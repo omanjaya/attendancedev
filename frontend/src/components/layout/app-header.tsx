@@ -5,7 +5,6 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
 import { useUIStore } from '@/stores';
 import { NotificationCenter } from '@/components/notifications';
-import { RoleSwitcher } from '@/components/dev';
 import { CommandPalette } from '@/components/search';
 
 interface AppHeaderProps {
@@ -75,9 +74,6 @@ export function AppHeader({ title }: AppHeaderProps) {
             <Search className="h-5 w-5 text-foreground group-hover:rotate-12 transition-transform duration-300" />
             <span className="sr-only">Cari</span>
           </Button>
-
-          {/* Role Switcher (Dev Only) */}
-          <RoleSwitcher />
 
           {/* Theme Toggle */}
           <Button

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
     Plus,
-    Search,
     MoreHorizontal,
     Edit,
     Trash2,
@@ -12,10 +11,11 @@ import {
     CalendarCheck,
     CalendarX,
     Repeat,
-    ChevronLeft,
     Filter,
 } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
+import { MobilePageHeader } from '@/components/mobile';
+import { SearchBar } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -61,7 +61,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
-import { useHolidays } from '@/hooks/use-holidays';
+import { useHolidaysPage } from '@/hooks/use-holidays-page';
 import {
     holidayTypeLabels,
     holidayTypeColors,
@@ -285,110 +285,55 @@ function HolidayFormDialog({
 
 export function MobileHolidaysPage() {
     const navigate = useNavigate();
-    const {
-        isLoading,
-        holidays,
-        fetchHolidays,
-        createHoliday,
-        updateHoliday,
-        deleteHoliday,
-        cancelHoliday,
-    } = useHolidays();
 
-    const [searchQuery, setSearchQuery] = useState('');
-    const [typeFilter, setTypeFilter] = useState<HolidayType | 'all'>('all');
-    const [yearFilter, setYearFilter] = useState(new Date().getFullYear());
-    const [isFormOpen, setIsFormOpen] = useState(false);
-    const [editingHoliday, setEditingHoliday] = useState<Holiday | null>(null);
-    const [deletingHoliday, setDeletingHoliday] = useState<Holiday | null>(null);
+    // Use shared hook for all logic
+    const logic = useHolidaysPage();
+
+    // Mobile-specific state only
     const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-    useEffect(() => {
-        fetchHolidays({ year: yearFilter });
-    }, [fetchHolidays, yearFilter]);
-
-    const handleSearch = () => {
-        fetchHolidays({
-            type: typeFilter !== 'all' ? typeFilter : undefined,
-            year: yearFilter,
-            search: searchQuery || undefined,
-        });
-    };
-
-    useEffect(() => {
-        handleSearch();
-    }, [typeFilter, yearFilter]);
-
-    const handleCreate = async (data: HolidayFormData) => {
-        await createHoliday(data);
-    };
-
-    const handleUpdate = async (data: HolidayFormData) => {
-        if (editingHoliday) {
-            await updateHoliday(editingHoliday.id, data);
-            setEditingHoliday(null);
-        }
-    };
-
-    const handleDelete = async () => {
-        if (deletingHoliday) {
-            await deleteHoliday(deletingHoliday.id);
-            setDeletingHoliday(null);
-        }
-    };
-
     const currentYear = new Date().getFullYear();
-    const yearOptions = [currentYear - 1, currentYear, currentYear + 1];
-    const activeFiltersCount = (typeFilter !== 'all' ? 1 : 0) + (yearFilter !== currentYear ? 1 : 0);
+    const activeFiltersCount = (logic.typeFilter !== 'all' ? 1 : 0) + (logic.yearFilter !== currentYear ? 1 : 0);
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-muted/30 via-background to-background dark:from-gray-950 dark:via-gray-900 dark:to-gray-900 pb-24">
-            {/* Header Wrapper */}
-            <div className="px-4 pt-3 pb-3 sticky top-0 z-20">
-                <div className="bg-card/80 dark:bg-card/60 backdrop-blur-md rounded-3xl p-1.5 shadow-xl border border-border/40 dark:border-border/30">
-                    <div className="bg-gradient-to-r from-pink-600 to-rose-600 px-4 py-3 rounded-[20px] flex items-center gap-3 shadow-lg">
-                        <button
-                            onClick={() => navigate({ to: '/admin/dashboard' })}
-                            className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
-                        >
-                            <ChevronLeft className="h-5 w-5 text-white" />
-                        </button>
-                        <h1 className="text-base font-bold text-white flex-1">Manajemen Hari Libur</h1>
-                        <button
-                            onClick={() => setIsFilterOpen(true)}
-                            className="relative p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
-                        >
-                            <Filter className="h-5 w-5 text-white" />
-                            {activeFiltersCount > 0 && (
-                                <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 bg-yellow-400 rounded-full border-2 border-pink-600" />
-                            )}
-                        </button>
-                    </div>
-                </div>
-            </div>
+            {/* Header */}
+            <MobilePageHeader
+                title="Manajemen Hari Libur"
+                onBack={() => navigate({ to: '/admin/dashboard' })}
+                gradient="pink"
+                actions={
+                    <button
+                        onClick={() => setIsFilterOpen(true)}
+                        className="relative p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
+                    >
+                        <Filter className="h-5 w-5 text-white" />
+                        {activeFiltersCount > 0 && (
+                            <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 bg-yellow-400 rounded-full border-2 border-pink-600" />
+                        )}
+                    </button>
+                }
+            />
 
             {/* Search Bar */}
             <div className="px-4 mb-4">
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                        placeholder="Cari hari libur..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                        className="pl-9 bg-white dark:bg-gray-900/50 rounded-2xl border-border/50 shadow-sm"
-                    />
-                </div>
+                <SearchBar
+                    value={logic.searchQuery}
+                    onChange={logic.setSearchQuery}
+                    placeholder="Cari hari libur..."
+                    onSearch={logic.handleSearch}
+                    inputClassName="bg-white dark:bg-gray-900/50 rounded-2xl border-border/50 shadow-sm"
+                />
             </div>
 
             {/* Holidays List */}
             <div className="px-4 space-y-3">
-                {isLoading ? (
+                {logic.isLoading ? (
                     <div className="flex flex-col items-center justify-center py-12 gap-3">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                         <p className="text-sm text-muted-foreground">Memuat data...</p>
                     </div>
-                ) : holidays.length === 0 ? (
+                ) : logic.holidays.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
                         <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
                             <CalendarDays className="h-8 w-8 text-muted-foreground" />
@@ -399,7 +344,7 @@ export function MobileHolidaysPage() {
                         </div>
                     </div>
                 ) : (
-                    holidays.map((holiday) => (
+                    logic.holidays.map((holiday: Holiday) => (
                         <div
                             key={holiday.id}
                             className="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-border/50 flex flex-col gap-3"
@@ -445,15 +390,15 @@ export function MobileHolidaysPage() {
                                     <DropdownMenuContent align="end" className="w-48">
                                         <DropdownMenuItem
                                             onClick={() => {
-                                                setEditingHoliday(holiday);
-                                                setIsFormOpen(true);
+                                                logic.setEditingHoliday(holiday);
+                                                logic.setIsFormOpen(true);
                                             }}
                                         >
                                             <Edit className="mr-2 h-4 w-4" />
                                             Edit
                                         </DropdownMenuItem>
                                         {holiday.status === 'active' && (
-                                            <DropdownMenuItem onClick={() => cancelHoliday(holiday.id)}>
+                                            <DropdownMenuItem onClick={() => logic.handleCancel(holiday.id)}>
                                                 <XCircle className="mr-2 h-4 w-4" />
                                                 Batalkan
                                             </DropdownMenuItem>
@@ -461,7 +406,7 @@ export function MobileHolidaysPage() {
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem
                                             className="text-destructive"
-                                            onClick={() => setDeletingHoliday(holiday)}
+                                            onClick={() => logic.setDeletingHoliday(holiday)}
                                         >
                                             <Trash2 className="mr-2 h-4 w-4" />
                                             Hapus
@@ -477,8 +422,8 @@ export function MobileHolidaysPage() {
             {/* FAB Add Holiday */}
             <Button
                 onClick={() => {
-                    setEditingHoliday(null);
-                    setIsFormOpen(true);
+                    logic.setEditingHoliday(null);
+                    logic.setIsFormOpen(true);
                 }}
                 className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-xl bg-pink-600 hover:bg-pink-700 text-white z-50"
             >
@@ -498,14 +443,14 @@ export function MobileHolidaysPage() {
                         <div className="space-y-2">
                             <Label>Tahun</Label>
                             <Select
-                                value={yearFilter.toString()}
-                                onValueChange={(value) => setYearFilter(parseInt(value))}
+                                value={logic.yearFilter.toString()}
+                                onValueChange={(value) => logic.setYearFilter(parseInt(value))}
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Tahun" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {yearOptions.map((year) => (
+                                    {logic.yearOptions.map((year: number) => (
                                         <SelectItem key={year} value={year.toString()}>
                                             {year}
                                         </SelectItem>
@@ -516,8 +461,8 @@ export function MobileHolidaysPage() {
                         <div className="space-y-2">
                             <Label>Tipe</Label>
                             <Select
-                                value={typeFilter}
-                                onValueChange={(value) => setTypeFilter(value as HolidayType | 'all')}
+                                value={logic.typeFilter}
+                                onValueChange={(value) => logic.setTypeFilter(value as HolidayType | 'all')}
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Semua Tipe" />
@@ -543,29 +488,29 @@ export function MobileHolidaysPage() {
 
             {/* Holiday Form Dialog */}
             <HolidayFormDialog
-                open={isFormOpen}
+                open={logic.isFormOpen}
                 onOpenChange={(open) => {
-                    setIsFormOpen(open);
-                    if (!open) setEditingHoliday(null);
+                    logic.setIsFormOpen(open);
+                    if (!open) logic.setEditingHoliday(null);
                 }}
-                holiday={editingHoliday}
-                onSubmit={editingHoliday ? handleUpdate : handleCreate}
-                isLoading={isLoading}
+                holiday={logic.editingHoliday}
+                onSubmit={logic.editingHoliday ? logic.handleUpdate : logic.handleCreate}
+                isLoading={logic.isLoading}
             />
 
             {/* Delete Confirmation */}
-            <AlertDialog open={!!deletingHoliday} onOpenChange={() => setDeletingHoliday(null)}>
+            <AlertDialog open={!!logic.deletingHoliday} onOpenChange={() => logic.setDeletingHoliday(null)}>
                 <AlertDialogContent className="w-[90%] rounded-2xl">
                     <AlertDialogHeader>
                         <AlertDialogTitle>Hapus Hari Libur?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Yakin ingin menghapus <strong>{deletingHoliday?.name}</strong>?
+                            Yakin ingin menghapus <strong>{logic.deletingHoliday?.name}</strong>?
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="flex-row gap-2 justify-end">
                         <AlertDialogCancel className="mt-0">Batal</AlertDialogCancel>
                         <AlertDialogAction
-                            onClick={handleDelete}
+                            onClick={() => logic.handleDelete()}
                             className="bg-destructive hover:bg-destructive/90"
                         >
                             Hapus

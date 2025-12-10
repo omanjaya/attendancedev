@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import {
   Search,
   Filter,
@@ -36,8 +36,8 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { getPendingApprovals, approveLeaveRequest, rejectLeaveRequest } from '@/lib/api/leave';
-import { useNotificationStore } from '@/stores';
+import { getPendingApprovals } from '@/lib/api/leave';
+import { useApproveLeaveRequest, useRejectLeaveRequest } from '@/hooks/use-leave';
 import { leaveTypeLabels, leaveTypeColors } from '@/types/leave';
 
 export default function LeaveApprovalsPage() {
@@ -46,45 +46,23 @@ export default function LeaveApprovalsPage() {
   const [rejectReason, setRejectReason] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const queryClient = useQueryClient();
-  const { success, error: showError } = useNotificationStore();
-
   const { data: approvals = [], isLoading } = useQuery({
     queryKey: ['leave-approvals'],
     queryFn: getPendingApprovals,
   });
 
-  const approveMutation = useMutation({
-    mutationFn: (id: string) => approveLeaveRequest(id),
-    onSuccess: () => {
-      success('Berhasil', 'Pengajuan cuti disetujui');
-      queryClient.invalidateQueries({ queryKey: ['leave-approvals'] });
-    },
-    onError: (err: any) => {
-      showError('Gagal', err.message || 'Gagal menyetujui pengajuan');
-    },
-  });
-
-  const rejectMutation = useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) => rejectLeaveRequest(id, reason),
-    onSuccess: () => {
-      success('Berhasil', 'Pengajuan cuti ditolak');
-      queryClient.invalidateQueries({ queryKey: ['leave-approvals'] });
-      setRejectReason('');
-      setSelectedId(null);
-    },
-    onError: (err: any) => {
-      showError('Gagal', err.message || 'Gagal menolak pengajuan');
-    },
-  });
+  const approveMutation = useApproveLeaveRequest();
+  const rejectMutation = useRejectLeaveRequest();
 
   const handleApprove = (id: string) => {
-    approveMutation.mutate(id);
+    approveMutation.mutate({ id });
   };
 
   const handleReject = () => {
     if (selectedId && rejectReason) {
       rejectMutation.mutate({ id: selectedId, reason: rejectReason });
+      setRejectReason('');
+      setSelectedId(null);
     }
   };
 

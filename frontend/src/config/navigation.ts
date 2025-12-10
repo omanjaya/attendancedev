@@ -13,9 +13,11 @@ import {
   MapPin,
   Edit3,
   Server,
-  type LucideIcon,
 } from 'lucide-react';
 import type { UserRole, Permission } from '@/types/auth';
+
+// Define LucideIcon type manually to avoid import issues
+type LucideIcon = React.ComponentType<{ className?: string; size?: number | string; strokeWidth?: number | string }>;
 
 export interface NavItem {
   title: string;

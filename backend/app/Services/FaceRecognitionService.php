@@ -93,7 +93,7 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
             $faceRecognitionData = [
                 'descriptor' => $descriptor,
                 'confidence' => $metadata['confidence'] ?? 0.95,
-                'algorithm' => $metadata['algorithm'] ?? 'face-api.js',
+                'algorithm' => $metadata['algorithm'] ?? 'deepface-arcface',
                 'model_version' => $metadata['model_version'] ?? '1.0',
                 'registered_at' => now()->toISOString(),
                 'image_path' => $imagePath,
@@ -271,7 +271,7 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
         $faceData = [
             'descriptor' => $descriptor,
             'confidence' => $metadata['confidence'] ?? 0.95,
-            'algorithm' => $metadata['algorithm'] ?? 'face-api.js',
+            'algorithm' => $metadata['algorithm'] ?? 'deepface-arcface',
             'model_version' => $metadata['model_version'] ?? '1.0',
             'device_info' => $metadata['device_info'] ?? null,
         ];
@@ -311,7 +311,7 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
             $faceRecognitionData = [
                 'descriptor' => $faceData['descriptor'],
                 'confidence' => $faceData['confidence'],
-                'algorithm' => $faceData['algorithm'] ?? 'face-api.js',
+                'algorithm' => $faceData['algorithm'] ?? 'deepface-arcface',
                 'model_version' => $faceData['model_version'] ?? '1.0',
                 'updated_at' => now()->toISOString(),
                 'image_path' => $imagePath,

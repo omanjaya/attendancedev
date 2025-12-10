@@ -62,14 +62,15 @@ class FaceRecognitionApiTest extends TestCase
     /** @test */
     public function can_register_face_via_api()
     {
-        $descriptor = array_fill(0, 128, 0.5);
+        // 512-d descriptor for DeepFace ArcFace
+        $descriptor = array_fill(0, 512, 0.5);
         
         $response = $this->postJson('/api/v1/face-recognition/register', [
             'employee_id' => $this->employee->id,
             'descriptor' => $descriptor,
             'confidence' => 0.95,
-            'algorithm' => 'face-api.js',
-            'model_version' => '1.0',
+            'algorithm' => 'deepface-arcface',
+            'model_version' => 'arcface-1.0',
         ]);
         
         $response->assertStatus(200);
@@ -87,12 +88,13 @@ class FaceRecognitionApiTest extends TestCase
     /** @test */
     public function can_verify_face_via_api()
     {
-        // First register a face
-        $descriptor = array_fill(0, 128, 0.5);
+        // First register a face with 512-d DeepFace descriptor
+        $descriptor = array_fill(0, 512, 0.5);
         $this->postJson('/api/v1/face-recognition/register', [
             'employee_id' => $this->employee->id,
             'descriptor' => $descriptor,
             'confidence' => 0.95,
+            'algorithm' => 'deepface-arcface',
         ]);
         
         // Then verify it
@@ -118,12 +120,13 @@ class FaceRecognitionApiTest extends TestCase
     /** @test */
     public function can_check_in_via_api()
     {
-        // Register face first
-        $descriptor = array_fill(0, 128, 0.5);
+        // Register face first with 512-d DeepFace descriptor
+        $descriptor = array_fill(0, 512, 0.5);
         $this->postJson('/api/v1/face-recognition/register', [
             'employee_id' => $this->employee->id,
             'descriptor' => $descriptor,
             'confidence' => 0.95,
+            'algorithm' => 'deepface-arcface',
         ]);
         
         // Check in
@@ -157,12 +160,13 @@ class FaceRecognitionApiTest extends TestCase
     /** @test */
     public function can_check_out_via_api()
     {
-        // Register face and check in first
-        $descriptor = array_fill(0, 128, 0.5);
+        // Register face and check in first with 512-d DeepFace descriptor
+        $descriptor = array_fill(0, 512, 0.5);
         $this->postJson('/api/v1/face-recognition/register', [
             'employee_id' => $this->employee->id,
             'descriptor' => $descriptor,
             'confidence' => 0.95,
+            'algorithm' => 'deepface-arcface',
         ]);
         
         $this->postJson('/api/v1/attendance-face/check-in', [
@@ -203,7 +207,7 @@ class FaceRecognitionApiTest extends TestCase
     /** @test */
     public function face_registration_requires_valid_descriptor()
     {
-        // Invalid descriptor (wrong length)
+        // Invalid descriptor (wrong length - must be 128 or 512)
         $response = $this->postJson('/api/v1/face-recognition/register', [
             'employee_id' => $this->employee->id,
             'descriptor' => array_fill(0, 64, 0.5), // Wrong length
@@ -217,7 +221,7 @@ class FaceRecognitionApiTest extends TestCase
     /** @test */
     public function face_verification_fails_with_unregistered_face()
     {
-        $descriptor = array_fill(0, 128, 0.5);
+        $descriptor = array_fill(0, 512, 0.5);
         
         $response = $this->postJson('/api/v1/face-recognition/verify', [
             'descriptor' => $descriptor,
@@ -238,16 +242,17 @@ class FaceRecognitionApiTest extends TestCase
     /** @test */
     public function can_update_face_data_via_api()
     {
-        // Register face first
-        $originalDescriptor = array_fill(0, 128, 0.5);
+        // Register face first with 512-d DeepFace descriptor
+        $originalDescriptor = array_fill(0, 512, 0.5);
         $this->postJson('/api/v1/face-recognition/register', [
             'employee_id' => $this->employee->id,
             'descriptor' => $originalDescriptor,
             'confidence' => 0.95,
+            'algorithm' => 'deepface-arcface',
         ]);
         
-        // Update face data
-        $newDescriptor = array_fill(0, 128, 0.7);
+        // Update face data with new 512-d descriptor
+        $newDescriptor = array_fill(0, 512, 0.7);
         $response = $this->postJson('/api/v1/face-recognition/update', [
             'employee_id' => $this->employee->id,
             'descriptor' => $newDescriptor,
@@ -267,12 +272,13 @@ class FaceRecognitionApiTest extends TestCase
     /** @test */
     public function can_delete_face_data_via_api()
     {
-        // Register face first
-        $descriptor = array_fill(0, 128, 0.5);
+        // Register face first with 512-d DeepFace descriptor
+        $descriptor = array_fill(0, 512, 0.5);
         $this->postJson('/api/v1/face-recognition/register', [
             'employee_id' => $this->employee->id,
             'descriptor' => $descriptor,
             'confidence' => 0.95,
+            'algorithm' => 'deepface-arcface',
         ]);
         
         // Delete face data
@@ -293,12 +299,13 @@ class FaceRecognitionApiTest extends TestCase
     /** @test */
     public function can_get_face_data_via_api()
     {
-        // Register face first
-        $descriptor = array_fill(0, 128, 0.5);
+        // Register face first with 512-d DeepFace descriptor
+        $descriptor = array_fill(0, 512, 0.5);
         $this->postJson('/api/v1/face-recognition/register', [
             'employee_id' => $this->employee->id,
             'descriptor' => $descriptor,
             'confidence' => 0.95,
+            'algorithm' => 'deepface-arcface',
         ]);
         
         // Get face data
@@ -314,7 +321,7 @@ class FaceRecognitionApiTest extends TestCase
                 'has_face_data' => true,
                 'face_data' => [
                     'confidence' => 0.95,
-                    'algorithm' => 'face-api.js',
+                    'algorithm' => 'deepface-arcface',
                 ],
             ],
         ]);
@@ -323,9 +330,9 @@ class FaceRecognitionApiTest extends TestCase
     /** @test */
     public function can_batch_verify_faces_via_api()
     {
-        // Register multiple faces
-        $descriptor1 = array_fill(0, 128, 0.5);
-        $descriptor2 = array_fill(0, 128, 0.3);
+        // Register multiple faces with 512-d DeepFace descriptors
+        $descriptor1 = array_fill(0, 512, 0.5);
+        $descriptor2 = array_fill(0, 512, 0.3);
         
         $employee2 = Employee::factory()->create([
             'user_id' => User::factory()->create()->id,
@@ -336,17 +343,19 @@ class FaceRecognitionApiTest extends TestCase
             'employee_id' => $this->employee->id,
             'descriptor' => $descriptor1,
             'confidence' => 0.95,
+            'algorithm' => 'deepface-arcface',
         ]);
         
         $this->postJson('/api/v1/face-recognition/register', [
             'employee_id' => $employee2->id,
             'descriptor' => $descriptor2,
             'confidence' => 0.95,
+            'algorithm' => 'deepface-arcface',
         ]);
         
         // Batch verify
         $response = $this->postJson('/api/v1/face-recognition/batch-verify', [
-            'faces' => [$descriptor1, $descriptor2, array_fill(0, 128, 0.1)],
+            'faces' => [$descriptor1, $descriptor2, array_fill(0, 512, 0.1)],
             'threshold' => 0.6,
         ]);
         
@@ -386,12 +395,13 @@ class FaceRecognitionApiTest extends TestCase
     /** @test */
     public function can_validate_attendance_via_api()
     {
-        // Register face first
-        $descriptor = array_fill(0, 128, 0.5);
+        // Register face first with 512-d DeepFace descriptor
+        $descriptor = array_fill(0, 512, 0.5);
         $this->postJson('/api/v1/face-recognition/register', [
             'employee_id' => $this->employee->id,
             'descriptor' => $descriptor,
             'confidence' => 0.95,
+            'algorithm' => 'deepface-arcface',
         ]);
         
         // Validate attendance
@@ -459,7 +469,7 @@ class FaceRecognitionApiTest extends TestCase
         
         $response = $this->postJson('/api/v1/face-recognition/register', [
             'employee_id' => $this->employee->id,
-            'descriptor' => array_fill(0, 128, 0.5),
+            'descriptor' => array_fill(0, 512, 0.5),
             'confidence' => 0.95,
         ]);
         
@@ -492,7 +502,7 @@ class FaceRecognitionApiTest extends TestCase
         
         $response = $this->postJson('/api/v1/face-recognition/register', [
             'employee_id' => $otherEmployee->id,
-            'descriptor' => array_fill(0, 128, 0.5),
+            'descriptor' => array_fill(0, 512, 0.5),
             'confidence' => 0.95,
         ]);
         
@@ -505,7 +515,7 @@ class FaceRecognitionApiTest extends TestCase
     {
         $response = $this->postJson('/api/v1/face-recognition/register', [
             'employee_id' => 'invalid-id',
-            'descriptor' => array_fill(0, 128, 0.5),
+            'descriptor' => array_fill(0, 512, 0.5),
             'confidence' => 0.95,
         ]);
         
@@ -518,8 +528,8 @@ class FaceRecognitionApiTest extends TestCase
     {
         $response = $this->postJson('/api/v1/face-recognition/register', [
             'employee_id' => $this->employee->id,
-            'descriptor' => array_fill(0, 128, 0.5),
-            'confidence' => 0.3, // Low confidence
+            'descriptor' => array_fill(0, 512, 0.5),
+            'confidence' => 0.3, // Low confidence - below MIN_CONFIDENCE_SCORE
         ]);
         
         $response->assertStatus(500);

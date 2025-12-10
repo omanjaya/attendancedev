@@ -1,0 +1,259 @@
+import { AxiosError } from 'axios';
+
+interface ApiErrorResponse {
+  message?: string;
+  errors?: Record<string, string[]>;
+  error?: string;
+  trace?: string; // Stack trace dari backend (dev mode)
+  request_id?: string; // Request ID untuk tracking
+  file?: string; // File yang error (dev mode)
+  line?: number; // Line number (dev mode)
+}
+
+interface DetailedError {
+  message: string;
+  userMessage: string; // User-friendly message
+  technicalMessage: string; // Technical details
+  statusCode?: number;
+  requestId?: string;
+  endpoint?: string;
+  timestamp: string;
+  stack?: string;
+}
+
+/**
+ * Extract detailed error information dari API error
+ * Returns both user-friendly message dan technical details
+ */
+export function getDetailedError(error: unknown): DetailedError {
+  const timestamp = new Date().toISOString();
+
+  // Axios error
+  if (error instanceof AxiosError) {
+    const data = error.response?.data as ApiErrorResponse;
+    const statusCode = error.response?.status;
+    const endpoint = error.config?.url;
+
+    // Validation errors (422)
+    if (statusCode === 422 && data?.errors) {
+      const errors = data.errors;
+      const firstField = Object.keys(errors)[0];
+      const firstError = errors[firstField]?.[0];
+      const allErrors = Object.entries(errors)
+        .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
+        .join('\n');
+
+      return {
+        message: firstError || 'Validation failed',
+        userMessage: firstError || 'Data yang Anda masukkan tidak valid',
+        technicalMessage: `Validation failed:\n${allErrors}`,
+        statusCode,
+        requestId: data?.request_id,
+        endpoint,
+        timestamp,
+        stack: data?.trace,
+      };
+    }
+
+    // Server error dengan detail (500)
+    if (statusCode === 500 && data) {
+      return {
+        message: data.message || 'Server error',
+        userMessage: 'Terjadi kesalahan di server. Tim kami telah diberitahu.',
+        technicalMessage: [
+          data.message || 'Internal Server Error',
+          data.file && `File: ${data.file}:${data.line}`,
+          data.trace && `Stack: ${data.trace.substring(0, 500)}...`,
+        ].filter(Boolean).join('\n'),
+        statusCode,
+        requestId: data?.request_id,
+        endpoint,
+        timestamp,
+        stack: data?.trace,
+      };
+    }
+
+    // Business logic error (400, 403, etc.)
+    if (data?.message) {
+      return {
+        message: data.message,
+        userMessage: data.message,
+        technicalMessage: data.message,
+        statusCode,
+        requestId: data?.request_id,
+        endpoint,
+        timestamp,
+      };
+    }
+
+    // HTTP status messages
+    const statusMessages: Record<number, { user: string; tech: string }> = {
+      401: {
+        user: 'Sesi Anda telah berakhir. Silakan login kembali.',
+        tech: 'Unauthorized - Token expired or invalid',
+      },
+      403: {
+        user: 'Anda tidak memiliki akses untuk melakukan tindakan ini.',
+        tech: 'Forbidden - Insufficient permissions',
+      },
+      404: {
+        user: 'Data yang Anda cari tidak ditemukan.',
+        tech: `Not Found - ${endpoint}`,
+      },
+      429: {
+        user: 'Terlalu banyak permintaan. Silakan coba lagi nanti.',
+        tech: 'Rate limit exceeded',
+      },
+      500: {
+        user: 'Terjadi kesalahan di server. Silakan coba lagi.',
+        tech: 'Internal Server Error',
+      },
+      503: {
+        user: 'Layanan sedang tidak tersedia. Silakan coba lagi nanti.',
+        tech: 'Service Unavailable',
+      },
+    };
+
+    const statusMsg = statusMessages[statusCode || 0] || {
+      user: 'Terjadi kesalahan jaringan',
+      tech: `HTTP ${statusCode} - ${error.message}`,
+    };
+
+    return {
+      message: statusMsg.user,
+      userMessage: statusMsg.user,
+      technicalMessage: statusMsg.tech,
+      statusCode,
+      endpoint,
+      timestamp,
+      stack: error.stack,
+    };
+  }
+
+  // Generic Error object
+  if (error instanceof Error) {
+    return {
+      message: error.message,
+      userMessage: 'Terjadi kesalahan. Silakan coba lagi.',
+      technicalMessage: error.message,
+      timestamp,
+      stack: error.stack,
+    };
+  }
+
+  // Unknown error
+  return {
+    message: 'An unknown error occurred',
+    userMessage: 'Terjadi kesalahan yang tidak diketahui',
+    technicalMessage: String(error),
+    timestamp,
+  };
+}
+
+/**
+ * Extract clean user-friendly error message
+ * Hanya tampilkan pesan untuk user, hide technical details
+ */
+export function getErrorMessage(error: unknown): string {
+  return getDetailedError(error).userMessage;
+}
+
+/**
+ * Log error dengan detail lengkap untuk debugging
+ * Development: Console log dengan colors
+ * Production: Send to error tracking service (Sentry/LogRocket)
+ */
+export function logError(error: unknown, context?: string): void {
+  const details = getDetailedError(error);
+
+  if (import.meta.env.DEV) {
+    // Development - detailed console logging
+    console.group(
+      `%c❌ Error${context ? ` - ${context}` : ''}`,
+      'color: #ef4444; font-weight: bold; font-size: 14px;'
+    );
+    console.log('%c📝 User Message:', 'color: #f59e0b; font-weight: bold;', details.userMessage);
+    console.log('%c🔧 Technical:', 'color: #3b82f6; font-weight: bold;', details.technicalMessage);
+    if (details.statusCode) {
+      console.log('%c📊 Status Code:', 'color: #8b5cf6;', details.statusCode);
+    }
+    if (details.endpoint) {
+      console.log('%c🌐 Endpoint:', 'color: #10b981;', details.endpoint);
+    }
+    if (details.requestId) {
+      console.log('%c🔑 Request ID:', 'color: #ec4899;', details.requestId);
+    }
+    console.log('%c⏰ Timestamp:', 'color: #6b7280;', details.timestamp);
+    if (details.stack && import.meta.env.DEV) {
+      console.log('%c📚 Stack Trace:', 'color: #6b7280;');
+      console.log(details.stack);
+    }
+    console.groupEnd();
+  }
+
+  // Production - send to error tracking service
+  if (import.meta.env.PROD) {
+    // TODO: Integrate Sentry atau LogRocket
+    // Sentry.captureException(error, {
+    //   contexts: {
+    //     error_details: details,
+    //   },
+    //   tags: {
+    //     context: context || 'unknown',
+    //     status_code: details.statusCode?.toString(),
+    //     endpoint: details.endpoint,
+    //   },
+    //   fingerprint: [details.requestId || details.message],
+    // });
+
+    // For now, just log minimal info
+    console.error('[Error]', {
+      context,
+      message: details.userMessage,
+      requestId: details.requestId,
+      timestamp: details.timestamp,
+    });
+  }
+}
+
+/**
+ * Format error untuk display di UI (optional)
+ * Returns formatted HTML-safe string
+ */
+export function formatErrorForDisplay(error: unknown): {
+  title: string;
+  message: string;
+  details?: string;
+} {
+  const details = getDetailedError(error);
+
+  return {
+    title: 'Terjadi Kesalahan',
+    message: details.userMessage,
+    details: import.meta.env.DEV
+      ? `${details.technicalMessage}\n${details.endpoint ? `Endpoint: ${details.endpoint}` : ''}\n${details.requestId ? `Request ID: ${details.requestId}` : ''}`
+      : undefined,
+  };
+}
+
+/**
+ * Check if error is recoverable (user can retry)
+ */
+export function isRecoverableError(error: unknown): boolean {
+  if (error instanceof AxiosError) {
+    const status = error.response?.status;
+    // Network errors, timeouts, 5xx errors are recoverable
+    return !status || status >= 500 || error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT';
+  }
+  return true; // Most errors are recoverable
+}
+
+/**
+ * Check if error should trigger auto-logout
+ */
+export function shouldLogout(error: unknown): boolean {
+  if (error instanceof AxiosError) {
+    return error.response?.status === 401;
+  }
+  return false;
+}

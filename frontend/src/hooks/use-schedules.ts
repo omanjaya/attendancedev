@@ -151,23 +151,24 @@ export function useCreateSchedule() {
 // Update schedule mutation
 export function useUpdateSchedule() {
   const queryClient = useQueryClient();
-  const { success, error } = useNotificationStore();
+  const { success } = useNotificationStore();
 
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<ScheduleFormData> }) =>
       updateSchedule(id, data),
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: scheduleKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: scheduleKeys.detail(result.id) });
-      if (result.academic_class_id) {
-        queryClient.invalidateQueries({ queryKey: scheduleKeys.byClass(result.academic_class_id) });
-      }
-      queryClient.invalidateQueries({ queryKey: scheduleKeys.conflicts() });
+    onSuccess: async (result) => {
+      // Await all invalidations to ensure data is fresh
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: scheduleKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: scheduleKeys.detail(result.id) }),
+        result.academic_class_id
+          ? queryClient.invalidateQueries({ queryKey: scheduleKeys.byClass(result.academic_class_id) })
+          : Promise.resolve(),
+        queryClient.invalidateQueries({ queryKey: scheduleKeys.conflicts() }),
+      ]);
       success('Berhasil', 'Jadwal berhasil diperbarui');
     },
-    onError: (err: Error) => {
-      error('Gagal', err.message || 'Gagal memperbarui jadwal');
-    },
+    // onError removed - global error handler will catch it
   });
 }
 

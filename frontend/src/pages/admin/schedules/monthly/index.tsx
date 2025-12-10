@@ -174,57 +174,30 @@ export function MonthlyScheduleList({ showHeader = true }: { showHeader?: boolea
 
   // Handle assign
   const handleAssign = () => {
-    console.log('✅ handleAssign called');
-    console.log('  Schedule:', assignDialog.schedule);
-    console.log('  Selected employees:', selectedEmployees);
-    console.log('  Selected count:', selectedEmployees.length);
-
     if (assignDialog.schedule && selectedEmployees.length > 0) {
-      console.log('  ✓ Calling API with:', {
-        scheduleId: assignDialog.schedule.id,
-        employeeIds: selectedEmployees,
-      });
       assignMutation.mutate({
         scheduleId: assignDialog.schedule.id,
         employeeIds: selectedEmployees,
       });
-    } else {
-      console.log('  ✗ Assignment blocked!');
-      if (!assignDialog.schedule) console.log('    Reason: No schedule selected');
-      if (selectedEmployees.length === 0) console.log('    Reason: No employees selected');
     }
   };
 
   // Toggle employee selection
   const toggleEmployee = (employeeId: string) => {
-    console.log('🔄 toggleEmployee called with ID:', employeeId);
     setSelectedEmployees(prev => {
       const isSelected = prev.includes(employeeId);
-      const newSelection = isSelected
+      return isSelected
         ? prev.filter(id => id !== employeeId)
         : [...prev, employeeId];
-      console.log('  Previous selection:', prev);
-      console.log('  Is selected:', isSelected);
-      console.log('  New selection:', newSelection);
-      console.log('  Count:', newSelection.length);
-      return newSelection;
     });
   };
 
   // Select all employees
   const selectAllEmployees = () => {
-    console.log('🔘 selectAllEmployees called');
-    console.log('  Current selection:', selectedEmployees);
-    console.log('  Total employees:', employees.length);
-    console.log('  Selected count:', selectedEmployees.length);
-
     if (selectedEmployees.length === employees.length) {
-      console.log('  Action: Deselect all');
       setSelectedEmployees([]);
     } else {
       const allIds = employees.map(e => String(e.id));
-      console.log('  Action: Select all');
-      console.log('  All employee IDs:', allIds);
       setSelectedEmployees(allIds);
     }
   };

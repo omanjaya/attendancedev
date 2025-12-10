@@ -1,194 +1,150 @@
-import { useState, useCallback, useEffect } from 'react';
-import type {
-  Location,
-  LocationFormData,
-  LocationStatistics,
-} from '@/types/location';
-import * as locationsApi from '@/lib/api/locations';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  getLocations,
+  getLocation,
+  createLocation as createLocationApi,
+  updateLocation as updateLocationApi,
+  deleteLocation as deleteLocationApi,
+  toggleLocationStatus as toggleLocationStatusApi,
+  assignEmployees as assignEmployeesApi,
+  getLocationStatistics,
+} from '@/lib/api/locations';
+import type { LocationFormData } from '@/types/location';
+import { useNotificationStore } from '@/stores';
 
-export function useLocations() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
-  const [statistics, setStatistics] = useState<LocationStatistics | null>(null);
+// Location filters type (for future use)
+export interface LocationFilters {
+  is_active?: boolean;
+  search?: string;
+}
 
-  // Fetch locations
-  const fetchLocations = useCallback(async (filters?: {
-    is_active?: boolean;
-    search?: string;
-  }) => {
-    setIsLoading(true);
-    setError(null);
+// Query keys
+export const locationKeys = {
+  all: ['locations'] as const,
+  lists: () => [...locationKeys.all, 'list'] as const,
+  list: (filters?: LocationFilters) => [...locationKeys.lists(), filters] as const,
+  details: () => [...locationKeys.all, 'detail'] as const,
+  detail: (id: string) => [...locationKeys.details(), id] as const,
+  statistics: () => [...locationKeys.all, 'statistics'] as const,
+};
 
-    try {
-      const data = await locationsApi.getLocations();
+// Get locations list
+export function useLocations(filters?: LocationFilters) {
+  return useQuery({
+    queryKey: locationKeys.list(filters),
+    queryFn: () => getLocations(),
+    // Client-side filtering can be added here if needed via select option
+  });
+}
 
-      let filtered = [...data];
+// Get single location
+export function useLocation(id: string) {
+  return useQuery({
+    queryKey: locationKeys.detail(id),
+    queryFn: () => getLocation(id),
+    enabled: !!id,
+  });
+}
 
-      // Apply filters
-      if (filters?.is_active !== undefined) {
-        filtered = filtered.filter((l) => l.is_active === filters.is_active);
-      }
-      if (filters?.search) {
-        const search = filters.search.toLowerCase();
-        filtered = filtered.filter(
-          (l) =>
-            l.name.toLowerCase().includes(search) ||
-            (l.address && l.address.toLowerCase().includes(search))
-        );
-      }
+// Get location statistics
+export function useLocationStatistics() {
+  return useQuery({
+    queryKey: locationKeys.statistics(),
+    queryFn: getLocationStatistics,
+  });
+}
 
-      setLocations(filtered);
-    } catch (err) {
-      setError('Gagal memuat data lokasi');
-      console.error('Error fetching locations:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+// Create location mutation
+export function useCreateLocation() {
+  const queryClient = useQueryClient();
+  const { success } = useNotificationStore();
 
-  // Fetch statistics
-  const fetchStatistics = useCallback(async () => {
-    try {
-      const stats = await locationsApi.getLocationStatistics();
-      setStatistics(stats);
-    } catch (err) {
-      console.error('Error fetching statistics:', err);
-    }
-  }, []);
+  return useMutation({
+    mutationFn: (data: LocationFormData) => createLocationApi(data),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: locationKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: locationKeys.statistics() }),
+      ]);
+      success('Berhasil', 'Lokasi berhasil dibuat');
+    },
+    // onError removed - global error handler will catch it
+  });
+}
 
-  // Create location
-  const createLocation = useCallback(async (data: LocationFormData) => {
-    setIsLoading(true);
-    setError(null);
+// Update location mutation
+export function useUpdateLocation() {
+  const queryClient = useQueryClient();
+  const { success } = useNotificationStore();
 
-    try {
-      const newLocation = await locationsApi.createLocation(data);
-      setLocations((prev) => [newLocation, ...prev]);
-      return newLocation;
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.message || 'Gagal membuat lokasi';
-      setError(errorMsg);
-      throw new Error(errorMsg);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<LocationFormData> }) =>
+      updateLocationApi(id, data),
+    onSuccess: async (result) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: locationKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: locationKeys.detail(result.id) }),
+        queryClient.invalidateQueries({ queryKey: locationKeys.statistics() }),
+      ]);
+      success('Berhasil', 'Lokasi berhasil diperbarui');
+    },
+    // onError removed - global error handler will catch it
+  });
+}
 
-  // Update location
-  const updateLocation = useCallback(async (id: string, data: Partial<LocationFormData>) => {
-    setIsLoading(true);
-    setError(null);
+// Delete location mutation
+export function useDeleteLocation() {
+  const queryClient = useQueryClient();
+  const { success } = useNotificationStore();
 
-    try {
-      const updatedLocation = await locationsApi.updateLocation(id, data);
-      setLocations((prev) =>
-        prev.map((loc) => (loc.id === id ? updatedLocation : loc))
-      );
-      if (selectedLocation?.id === id) {
-        setSelectedLocation(updatedLocation);
-      }
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.message || 'Gagal mengupdate lokasi';
-      setError(errorMsg);
-      throw new Error(errorMsg);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedLocation]);
+  return useMutation({
+    mutationFn: (id: string) => deleteLocationApi(id),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: locationKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: locationKeys.statistics() }),
+      ]);
+      success('Berhasil', 'Lokasi berhasil dihapus');
+    },
+    // onError removed - global error handler will catch it
+  });
+}
 
-  // Delete location
-  const deleteLocation = useCallback(async (id: string) => {
-    setIsLoading(true);
-    setError(null);
+// Toggle location status mutation
+export function useToggleLocationStatus() {
+  const queryClient = useQueryClient();
+  const { success } = useNotificationStore();
 
-    try {
-      await locationsApi.deleteLocation(id);
-      setLocations((prev) => prev.filter((l) => l.id !== id));
-      if (selectedLocation?.id === id) {
-        setSelectedLocation(null);
-      }
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.message || 'Gagal menghapus lokasi';
-      setError(errorMsg);
-      throw new Error(errorMsg);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedLocation]);
+  return useMutation({
+    mutationFn: (id: string) => toggleLocationStatusApi(id),
+    onSuccess: async (result) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: locationKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: locationKeys.detail(result.id) }),
+        queryClient.invalidateQueries({ queryKey: locationKeys.statistics() }),
+      ]);
+      success('Berhasil', 'Status lokasi berhasil diubah');
+    },
+    // onError removed - global error handler will catch it
+  });
+}
 
-  // Toggle location status
-  const toggleStatus = useCallback(async (id: string) => {
-    setIsLoading(true);
-    setError(null);
+// Assign employees mutation
+export function useAssignEmployees() {
+  const queryClient = useQueryClient();
+  const { success } = useNotificationStore();
 
-    try {
-      const updatedLocation = await locationsApi.toggleLocationStatus(id);
-      setLocations((prev) =>
-        prev.map((loc) => (loc.id === id ? updatedLocation : loc))
-      );
-      if (selectedLocation?.id === id) {
-        setSelectedLocation(updatedLocation);
-      }
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.message || 'Gagal mengubah status lokasi';
-      setError(errorMsg);
-      throw new Error(errorMsg);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedLocation]);
-
-  // Assign employees
-  const assignEmployees = useCallback(async (locationId: string, employeeIds: string[]) => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      await locationsApi.assignEmployees(locationId, employeeIds);
-      fetchLocations();
-      fetchStatistics();
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.message || 'Gagal menetapkan pegawai';
-      setError(errorMsg);
-      throw new Error(errorMsg);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchLocations, fetchStatistics]);
-
-  // Get statistics (kept for backward compatibility)
-  const getStatistics = useCallback(async (): Promise<LocationStatistics> => {
-    const stats = await locationsApi.getLocationStatistics();
-    setStatistics(stats);
-    return stats;
-  }, []);
-
-  // Load locations on mount
-  useEffect(() => {
-    fetchLocations();
-    fetchStatistics();
-  }, [fetchLocations, fetchStatistics]);
-
-  return {
-    // State
-    isLoading,
-    error,
-    locations,
-    selectedLocation,
-    statistics,
-
-    // Actions
-    fetchLocations,
-    fetchStatistics,
-    createLocation,
-    updateLocation,
-    deleteLocation,
-    toggleStatus,
-    assignEmployees,
-    getStatistics,
-    setSelectedLocation,
-    clearError: () => setError(null),
-  };
+  return useMutation({
+    mutationFn: ({ locationId, employeeIds }: { locationId: string; employeeIds: string[] }) =>
+      assignEmployeesApi(locationId, employeeIds),
+    onSuccess: async (_, variables) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: locationKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: locationKeys.detail(variables.locationId) }),
+        queryClient.invalidateQueries({ queryKey: locationKeys.statistics() }),
+      ]);
+      success('Berhasil', 'Pegawai berhasil ditetapkan ke lokasi');
+    },
+    // onError removed - global error handler will catch it
+  });
 }

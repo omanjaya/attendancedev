@@ -59,8 +59,9 @@ RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/bootstrap/cache
 
 # Add www-data to docker group for Docker socket access
-# Create docker group with GID 999 (standard Docker group GID) and add www-data to it
-RUN addgroup -g 999 docker || addgroup docker; addgroup www-data docker
+# Note: GID will be adjusted at runtime based on host's docker socket
+RUN addgroup -g 983 docker 2>/dev/null || addgroup docker; \
+    addgroup www-data docker 2>/dev/null || true
 
 # Copy PHP configuration
 COPY docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini

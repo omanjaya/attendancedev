@@ -16,11 +16,11 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
-        // Clear cache before each test
-        $this->clearApplicationCache();
-
-        // Set up test-specific configurations
+        // Set up test-specific configurations first
         $this->setUpTestConfiguration();
+
+        // Clear cache after config is set
+        $this->clearApplicationCache();
     }
 
     /**
@@ -64,8 +64,8 @@ abstract class TestCase extends BaseTestCase
         // Disable mail sending in tests
         config(['mail.default' => 'array']);
 
-        // Set test-specific database configuration
-        config(['database.default' => 'testing']);
+        // Database config is already set in phpunit.xml via DB_CONNECTION=sqlite
+        // No need to override here as it conflicts with RefreshDatabase
     }
 
     /**

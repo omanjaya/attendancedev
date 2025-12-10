@@ -207,13 +207,13 @@ export default function EmployeeCredentialsPage() {
           <div className="flex flex-col gap-4 mb-10">
             <h1 className="text-4xl font-bold md:text-5xl">Manajemen User & Password</h1>
             <p className="text-lg text-muted-foreground">Kelola akun user untuk guru dan karyawan</p>
-            <a
-              href="/employees"
+            <Link
+              to="/admin/employees"
               className="flex items-center gap-1 font-bold hover:underline w-fit"
             >
               Lihat daftar karyawan
               <ArrowRight className="h-auto w-4" />
-            </a>
+            </Link>
           </div>
 
           {/* Stats Grid - shadcnblocks Stats8 style */}

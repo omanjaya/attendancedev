@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\FaceRecognitionRequest;
 use App\Services\FaceRecognitionService;
 use App\Services\DeepFaceLoadBalancer;
+use App\Services\FaceRecognition\FaceRecognitionAuthorizationService;
+use App\Services\FaceRecognition\ClusterHealthService;
 use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -17,7 +19,9 @@ class FaceRecognitionController extends Controller
 {
     public function __construct(
         private readonly FaceRecognitionService $faceRecognitionService,
-        private readonly DeepFaceLoadBalancer $deepFaceLoadBalancer
+        private readonly DeepFaceLoadBalancer $deepFaceLoadBalancer,
+        private readonly FaceRecognitionAuthorizationService $authService,
+        private readonly ClusterHealthService $clusterHealthService
     ) {
     }
 
@@ -28,7 +32,7 @@ class FaceRecognitionController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'employee_id' => 'required|exists:employees,id',
-            'descriptor' => 'required|array|min:128',  // Support 128-d (face-api.js) OR 512-d (DeepFace ArcFace)
+            'descriptor' => 'required|array|min:512',  // Enforce 512-d (DeepFace ArcFace)
             'descriptor.*' => 'required|numeric',
             'confidence' => 'required|numeric|min:0|max:1',
             'image' => 'nullable|image|max:2048',
@@ -46,15 +50,8 @@ class FaceRecognitionController extends Controller
         }
 
         // Authorization check
-        $user = $request->user();
-        $isOwnProfile = $user->employee && $user->employee->id == $request->employee_id;
-
-        if (!$isOwnProfile && !$user->can('manage_employees')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Forbidden. You do not have the required permission.',
-                'required_permission' => 'manage_employees'
-            ], 403);
+        if (!$this->authService->canManageEmployeeFaceData($request->user(), $request->employee_id)) {
+            return $this->authService->getForbiddenManageResponse();
         }
 
         try {
@@ -62,7 +59,7 @@ class FaceRecognitionController extends Controller
 
             $metadata = [
                 'confidence' => $request->confidence,
-                'algorithm' => $request->algorithm ?? 'face-api.js',
+                'algorithm' => $request->algorithm ?? 'deepface-arcface',
                 'model_version' => $request->model_version ?? '1.0',
                 'device_info' => $request->device_info ?? [],
             ];
@@ -99,7 +96,7 @@ class FaceRecognitionController extends Controller
     public function verifyFace(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'descriptor' => 'required|array|size:128',
+            'descriptor' => 'required|array|size:512',
             'descriptor.*' => 'required|numeric',
             'confidence' => 'required|numeric|min:0|max:1',
             'employee_id' => 'nullable|exists:employees,id',
@@ -155,7 +152,7 @@ class FaceRecognitionController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'employee_id' => 'required|exists:employees,id',
-            'descriptor' => 'required|array|min:128',  // Support 128-d (face-api.js) OR 512-d (DeepFace ArcFace)
+            'descriptor' => 'required|array|min:512',  // Enforce 512-d (DeepFace ArcFace)
             'descriptor.*' => 'required|numeric',
             'confidence' => 'required|numeric|min:0|max:1',
             'image' => 'nullable|image|max:2048',
@@ -173,15 +170,8 @@ class FaceRecognitionController extends Controller
         }
 
         // Authorization check
-        $user = $request->user();
-        $isOwnProfile = $user->employee && $user->employee->id == $request->employee_id;
-
-        if (!$isOwnProfile && !$user->can('manage_employees')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Forbidden. You do not have the required permission.',
-                'required_permission' => 'manage_employees'
-            ], 403);
+        if (!$this->authService->canManageEmployeeFaceData($request->user(), $request->employee_id)) {
+            return $this->authService->getForbiddenManageResponse();
         }
 
         try {
@@ -189,7 +179,7 @@ class FaceRecognitionController extends Controller
 
             $metadata = [
                 'confidence' => $request->confidence,
-                'algorithm' => $request->algorithm ?? 'face-api.js',
+                'algorithm' => $request->algorithm ?? 'deepface-arcface',
                 'model_version' => $request->model_version ?? '1.0',
                 'device_info' => $request->device_info ?? [],
             ];
@@ -237,15 +227,8 @@ class FaceRecognitionController extends Controller
         }
 
         // Authorization check
-        $user = $request->user();
-        $isOwnProfile = $user->employee && $user->employee->id == $request->employee_id;
-
-        if (!$isOwnProfile && !$user->can('manage_employees')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Forbidden. You do not have the required permission.',
-                'required_permission' => 'manage_employees'
-            ], 403);
+        if (!$this->authService->canManageEmployeeFaceData($request->user(), $request->employee_id)) {
+            return $this->authService->getForbiddenManageResponse();
         }
 
         try {
@@ -290,15 +273,8 @@ class FaceRecognitionController extends Controller
         }
 
         // Authorization check
-        $user = $request->user();
-        $isOwnProfile = $user->employee && $user->employee->id == $request->employee_id;
-
-        if (!$isOwnProfile && !$user->can('view_employees')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Forbidden. You do not have the required permission.',
-                'required_permission' => 'view_employees'
-            ], 403);
+        if (!$this->authService->canViewEmployeeFaceData($request->user(), $request->employee_id)) {
+            return $this->authService->getForbiddenViewResponse();
         }
 
         try {
@@ -659,7 +635,7 @@ class FaceRecognitionController extends Controller
                 'status' => $healthyCount > 0 ? 'operational' : 'down',
                 'healthy_instances' => $healthyCount,
                 'total_instances' => $totalCount,
-                'cluster_health_percentage' => ($healthyCount / max($totalCount, 1)) * 100,
+                'cluster_health_percentage' => min(100, round(($healthyCount / max($totalCount, 1)) * 100, 1)),
             ]);
 
         } catch (\Exception $e) {
@@ -688,7 +664,7 @@ class FaceRecognitionController extends Controller
             return response()->json([
                 'success' => true,
                 'cluster' => $clusterStatus,
-                'recommendation' => $this->getClusterRecommendation($clusterStatus),
+                'recommendation' => $this->clusterHealthService->getClusterRecommendation($clusterStatus),
             ]);
 
         } catch (\Exception $e) {
@@ -702,56 +678,6 @@ class FaceRecognitionController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
-    }
-
-    /**
-     * Get cluster recommendations based on health status
-     */
-    private function getClusterRecommendation(array $status): array
-    {
-        $healthy = $status['healthy_instances'];
-        $total = $status['total_instances'];
-        $percentage = ($healthy / max($total, 1)) * 100;
-
-        $recommendations = [];
-
-        if ($percentage < 50) {
-            $recommendations[] = '⚠️ CRITICAL: Less than 50% of instances healthy - immediate action required!';
-            $recommendations[] = 'Check logs: tail -f python-services/face-recognition/logs/*.log';
-            $recommendations[] = 'Restart unhealthy instances: cd python-services/face-recognition && ./start-cluster.sh';
-        } elseif ($percentage < 75) {
-            $recommendations[] = '⚠️ WARNING: Less than 75% of instances healthy';
-            $recommendations[] = 'Consider restarting unhealthy instances';
-        } elseif ($percentage === 100.0) {
-            $recommendations[] = '✅ All instances healthy - cluster operating optimally';
-        } else {
-            $recommendations[] = '✅ Cluster healthy but some instances down';
-            $recommendations[] = 'Monitor for recurring failures';
-        }
-
-        // Check response times
-        $avgResponseTime = 0;
-        $responseCount = 0;
-        foreach ($status['instances'] as $instance) {
-            if (isset($instance['response_time']) && $instance['healthy']) {
-                $avgResponseTime += $instance['response_time'];
-                $responseCount++;
-            }
-        }
-
-        if ($responseCount > 0) {
-            $avgResponseTime /= $responseCount;
-            if ($avgResponseTime > 3.0) {
-                $recommendations[] = "⚠️ High average response time: {$avgResponseTime}s (target: <2s)";
-                $recommendations[] = 'Consider adding more instances or using GPU acceleration';
-            }
-        }
-
-        return [
-            'health_percentage' => round($percentage, 1),
-            'status' => $percentage >= 75 ? 'healthy' : ($percentage >= 50 ? 'degraded' : 'critical'),
-            'recommendations' => $recommendations,
-        ];
     }
 
     /**

@@ -41,7 +41,7 @@ export function VerifyFacePage() {
 
   // Auto-submit effect
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setTimeout>;
     if (faceState.status === 'verified' && !showOverwriteConfirm) {
       timer = setTimeout(() => {
         handleConfirm();

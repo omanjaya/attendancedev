@@ -13,7 +13,6 @@ import {
     CircleDot,
     Power,
     PowerOff,
-    ChevronLeft,
     Filter,
     UserPlus,
 } from 'lucide-react';
@@ -22,6 +21,8 @@ import { getEmployees } from '@/lib/api/employees';
 import type { Employee } from '@/types';
 import { toast } from 'sonner';
 import { useNavigate } from '@tanstack/react-router';
+import { MobilePageHeader } from '@/components/mobile';
+import { SearchBar } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -68,7 +69,7 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Switch } from '@/components/ui/switch';
-import { useLocations } from '@/hooks/use-locations';
+import { useLocationsPage } from '@/hooks/use-locations-page';
 import {
     locationTypeLabels,
     locationTypeColors,
@@ -491,152 +492,55 @@ function AssignEmployeesDialog({
 
 export function MobileLocationsPage() {
     const navigate = useNavigate();
-    const {
-        isLoading,
-        locations,
-        fetchLocations,
-        createLocation,
-        updateLocation,
-        deleteLocation,
-        toggleStatus,
-        assignEmployees,
-    } = useLocations();
 
-    const [searchQuery, setSearchQuery] = useState('');
-    const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
-    const [isFormOpen, setIsFormOpen] = useState(false);
-    const [editingLocation, setEditingLocation] = useState<Location | null>(null);
-    const [deletingLocation, setDeletingLocation] = useState<Location | null>(null);
-    const [assigningLocation, setAssigningLocation] = useState<Location | null>(null);
+    // Use shared hook for common logic
+    const logic = useLocationsPage();
+
+    // Mobile-specific state
     const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-    useEffect(() => {
-        fetchLocations();
-    }, [fetchLocations]);
-
-    const handleSearch = () => {
-        fetchLocations({
-            is_active: statusFilter === 'active' ? true : statusFilter === 'inactive' ? false : undefined,
-            search: searchQuery || undefined,
-        });
-    };
-
-    useEffect(() => {
-        handleSearch();
-    }, [statusFilter]);
-
-    const handleCreate = async (data: LocationFormData) => {
-        if (data.radius_meters <= 0) {
-            toast.error('Radius harus lebih dari 0 meter');
-            return;
-        }
-        try {
-            await createLocation(data);
-            toast.success('Lokasi berhasil dibuat');
-            setIsFormOpen(false); // Close form on success
-        } catch (error: any) {
-            console.error('Create location error:', error);
-            toast.error(error.message || 'Gagal membuat lokasi');
-        }
-    };
-
-    const handleUpdate = async (data: LocationFormData) => {
-        if (data.radius_meters <= 0) {
-            toast.error('Radius harus lebih dari 0 meter');
-            return;
-        }
-        if (editingLocation) {
-            try {
-                await updateLocation(editingLocation.id, data);
-                toast.success('Lokasi berhasil diperbarui');
-                setEditingLocation(null);
-                setIsFormOpen(false); // Close form on success
-            } catch (error: any) {
-                console.error('Update location error:', error);
-                toast.error(error.message || 'Gagal memperbarui lokasi');
-            }
-        }
-    };
-
-
-
-    const handleAssignEmployees = async (locationId: string, employeeIds: string[]) => {
-        try {
-            await assignEmployees(locationId, employeeIds);
-            toast.success('Pegawai berhasil ditugaskan');
-            setAssigningLocation(null);
-            fetchLocations(); // Refresh to update counts
-        } catch (error: any) {
-            console.error('Assign employees error:', error);
-            toast.error(error.message || 'Gagal menugaskan pegawai');
-        }
-    };
-
-    const handleDelete = async () => {
-        if (deletingLocation) {
-            try {
-                await deleteLocation(deletingLocation.id);
-                toast.success('Lokasi berhasil dihapus');
-                setDeletingLocation(null);
-            } catch (error: any) {
-                console.error('Delete location error:', error);
-                toast.error(error.message || 'Gagal menghapus lokasi');
-            }
-        }
-    };
-
-    const activeFiltersCount = statusFilter !== 'all' ? 1 : 0;
+    const activeFiltersCount = logic.statusFilter !== 'all' ? 1 : 0;
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-muted/30 via-background to-background dark:from-gray-950 dark:via-gray-900 dark:to-gray-900 pb-24">
-            {/* Header Wrapper */}
-            <div className="px-4 pt-3 pb-3 sticky top-0 z-20">
-                <div className="bg-card/80 dark:bg-card/60 backdrop-blur-md rounded-3xl p-1.5 shadow-xl border border-border/40 dark:border-border/30">
-                    <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3 rounded-[20px] flex items-center gap-3 shadow-lg">
-                        <button
-                            onClick={() => navigate({ to: '/admin/dashboard' })}
-                            className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
-                            aria-label="Kembali ke Dashboard"
-                        >
-                            <ChevronLeft className="h-5 w-5 text-white" />
-                        </button>
-                        <h1 className="text-base font-bold text-white flex-1">Manajemen Lokasi</h1>
-                        <button
-                            onClick={() => setIsFilterOpen(true)}
-                            className="relative p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
-                            aria-label="Filter Lokasi"
-                        >
-                            <Filter className="h-5 w-5 text-white" />
-                            {activeFiltersCount > 0 && (
-                                <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-emerald-600" />
-                            )}
-                        </button>
-                    </div>
-                </div>
-            </div>
+            {/* Header */}
+            <MobilePageHeader
+                title="Manajemen Lokasi"
+                onBack={() => navigate({ to: '/admin/dashboard' })}
+                gradient="emerald"
+                actions={
+                    <button
+                        onClick={() => setIsFilterOpen(true)}
+                        className="relative p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
+                        aria-label="Filter Lokasi"
+                    >
+                        <Filter className="h-5 w-5 text-white" />
+                        {activeFiltersCount > 0 && (
+                            <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-emerald-600" />
+                        )}
+                    </button>
+                }
+            />
 
             {/* Search Bar */}
             <div className="px-4 mb-4">
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                        placeholder="Cari lokasi..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                        className="pl-9 bg-white dark:bg-gray-900/50 rounded-2xl border-border/50 shadow-sm"
-                    />
-                </div>
+                <SearchBar
+                    value={logic.searchQuery}
+                    onChange={logic.setSearchQuery}
+                    placeholder="Cari lokasi..."
+                    onSearch={logic.handleSearch}
+                    inputClassName="bg-white dark:bg-gray-900/50 rounded-2xl border-border/50 shadow-sm"
+                />
             </div>
 
             {/* Locations List */}
             <div className="px-4 space-y-3">
-                {isLoading ? (
+                {logic.isLoading ? (
                     <div className="flex flex-col items-center justify-center py-12 gap-3">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                         <p className="text-sm text-muted-foreground">Memuat data...</p>
                     </div>
-                ) : locations.length === 0 ? (
+                ) : logic.locations.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
                         <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
                             <MapPin className="h-8 w-8 text-muted-foreground" />
@@ -647,7 +551,7 @@ export function MobileLocationsPage() {
                         </div>
                     </div>
                 ) : (
-                    locations.map((location) => (
+                    logic.locations.map((location: Location) => (
                         <div
                             key={location.id}
                             className={cn(
@@ -701,19 +605,19 @@ export function MobileLocationsPage() {
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="w-48">
                                         <DropdownMenuItem onClick={() => {
-                                            setEditingLocation(location);
-                                            setIsFormOpen(true);
+                                            logic.setEditingLocation(location);
+                                            logic.setIsFormOpen(true);
                                         }}>
                                             <Edit className="mr-2 h-4 w-4" />
                                             Edit
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => {
-                                            setAssigningLocation(location);
+                                            logic.setAssigningLocation(location);
                                         }}>
                                             <UserPlus className="mr-2 h-4 w-4" />
                                             Assign Pegawai
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => toggleStatus(location.id)}>
+                                        <DropdownMenuItem onClick={() => logic.handleToggleStatus(location)}>
                                             {location.is_active ? (
                                                 <>
                                                     <PowerOff className="mr-2 h-4 w-4" />
@@ -729,7 +633,7 @@ export function MobileLocationsPage() {
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem
                                             className="text-destructive"
-                                            onClick={() => setDeletingLocation(location)}
+                                            onClick={() => logic.setDeletingLocation(location)}
                                         >
                                             <Trash2 className="mr-2 h-4 w-4" />
                                             Hapus
@@ -745,8 +649,8 @@ export function MobileLocationsPage() {
             {/* FAB Add Location */}
             <Button
                 onClick={() => {
-                    setEditingLocation(null);
-                    setIsFormOpen(true);
+                    logic.setEditingLocation(null);
+                    logic.setIsFormOpen(true);
                 }}
                 className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-xl bg-emerald-600 hover:bg-emerald-700 text-white z-50"
             >
@@ -766,9 +670,9 @@ export function MobileLocationsPage() {
                         <div className="space-y-2">
                             <Label>Status</Label>
                             <Select
-                                value={statusFilter}
+                                value={logic.statusFilter}
                                 onValueChange={(value) =>
-                                    setStatusFilter(value as 'all' | 'active' | 'inactive')
+                                    logic.setStatusFilter(value as 'all' | 'active' | 'inactive')
                                 }
                             >
                                 <SelectTrigger>
@@ -792,38 +696,38 @@ export function MobileLocationsPage() {
 
             {/* Location Form Dialog */}
             <LocationFormDialog
-                open={isFormOpen}
+                open={logic.isFormOpen}
                 onOpenChange={(open) => {
-                    setIsFormOpen(open);
-                    if (!open) setEditingLocation(null);
+                    logic.setIsFormOpen(open);
+                    if (!open) logic.setEditingLocation(null);
                 }}
-                location={editingLocation}
-                onSubmit={editingLocation ? handleUpdate : handleCreate}
-                isLoading={isLoading}
+                location={logic.editingLocation}
+                onSubmit={(data) => logic.editingLocation ? logic.handleUpdate(data, () => logic.setIsFormOpen(false)) : logic.handleCreate(data, () => logic.setIsFormOpen(false))}
+                isLoading={logic.isLoading}
             />
 
             {/* Assign Employees Dialog */}
             <AssignEmployeesDialog
-                open={!!assigningLocation}
-                onOpenChange={(open) => !open && setAssigningLocation(null)}
-                location={assigningLocation}
-                onSubmit={handleAssignEmployees}
-                isLoading={isLoading}
+                open={!!logic.assigningLocation}
+                onOpenChange={(open) => !open && logic.setAssigningLocation(null)}
+                location={logic.assigningLocation}
+                onSubmit={(id, ids) => logic.handleAssignEmployees(id, ids, logic.fetchLocations)}
+                isLoading={logic.isLoading}
             />
 
             {/* Delete Confirmation */}
-            <AlertDialog open={!!deletingLocation} onOpenChange={() => setDeletingLocation(null)}>
+            <AlertDialog open={!!logic.deletingLocation} onOpenChange={() => logic.setDeletingLocation(null)}>
                 <AlertDialogContent className="w-[90%] rounded-2xl">
                     <AlertDialogHeader>
                         <AlertDialogTitle>Hapus Lokasi?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Yakin ingin menghapus <strong>{deletingLocation?.name}</strong>?
+                            Yakin ingin menghapus <strong>{logic.deletingLocation?.name}</strong>?
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="flex-row gap-2 justify-end">
                         <AlertDialogCancel className="mt-0">Batal</AlertDialogCancel>
                         <AlertDialogAction
-                            onClick={handleDelete}
+                            onClick={() => logic.handleDelete()}
                             className="bg-destructive hover:bg-destructive/90"
                         >
                             Hapus

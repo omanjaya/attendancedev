@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import {
   ChevronLeft,
   ChevronRight,
@@ -126,10 +127,10 @@ export default function HolidaysCalendarPage() {
           </p>
         </div>
         <Button asChild>
-          <a href="/admin/holidays/create">
+          <Link to="/admin/holidays/create">
             <Plus className="h-4 w-4 mr-2" />
             Tambah Hari Libur
-          </a>
+          </Link>
         </Button>
       </div>
 

@@ -64,8 +64,8 @@ export function useUpdateProfile() {
       const response = await apiClient.put<{ success: boolean; data: any }>('user', data);
       return transformUserToProfile(response.data.data);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['profile'] });
     },
   });
 }
@@ -98,8 +98,8 @@ export function useUploadAvatar() {
       );
       return response.data.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['profile'] });
     },
   });
 }
@@ -112,8 +112,8 @@ export function useDeleteAvatar() {
       const response = await apiClient.delete<{ success: boolean }>('auth/avatar');
       return response.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['profile'] });
     },
   });
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
+import { useNavigate, Link } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -191,9 +191,9 @@ export default function LoginPage() {
                       Ingat saya
                     </Label>
                   </div>
-                  <a href="/auth/forgot-password" className="text-sm text-primary font-medium hover:underline">
+                  <Link to="/auth/forgot-password" className="text-sm text-primary font-medium hover:underline">
                     Lupa password?
-                  </a>
+                  </Link>
                 </div>
 
                 {/* Submit button */}

@@ -72,12 +72,8 @@ export function useRegisterFace() {
   const { success, error } = useNotificationStore();
 
   return useMutation({
-    mutationFn: (data: RegisterFaceRequest) => {
-      console.log('API: Registering face...', data);
-      return registerFace(data);
-    },
+    mutationFn: (data: RegisterFaceRequest) => registerFace(data),
     onSuccess: (_response: unknown, variables: RegisterFaceRequest) => {
-      console.log('API: Face registered successfully for', variables.employee_id);
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: faceRecognitionKeys.registeredFaces() });
       queryClient.invalidateQueries({ queryKey: faceRecognitionKeys.statistics() });
@@ -86,7 +82,6 @@ export function useRegisterFace() {
       success('Berhasil', 'Wajah berhasil didaftarkan');
     },
     onError: (err: Error) => {
-      console.error('API: Face registration failed:', err);
       error('Gagal', err.message || 'Gagal mendaftarkan wajah');
     },
   });

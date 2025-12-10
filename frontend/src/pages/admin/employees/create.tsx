@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate, Link } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -43,6 +43,7 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCreateEmployee } from '@/hooks';
 import { useLocations } from '@/hooks/use-locations';
+import type { Location } from '@/types/location';
 import { useNotificationStore } from '@/stores';
 import { useEmployeeTypes, useDepartments, usePositions, useSubjects } from '@/hooks/use-master-data';
 
@@ -125,7 +126,7 @@ export default function EmployeeCreatePage() {
   const createEmployeeMutation = useCreateEmployee();
 
   // Fetch locations for dropdown
-  const { locations, fetchLocations } = useLocations();
+  const { data: locations = [] } = useLocations();
 
   // Employee Types hook
   const { data: employeeTypesData } = useEmployeeTypes({ is_active: true });
@@ -142,11 +143,6 @@ export default function EmployeeCreatePage() {
   // Subjects hook (Mata Pelajaran)
   const { data: subjectsData } = useSubjects({ is_active: true });
   const subjects = subjectsData?.data || [];
-
-  // Load locations on mount
-  useEffect(() => {
-    fetchLocations({ is_active: true });
-  }, [fetchLocations]);
 
   const {
     register,
@@ -622,7 +618,7 @@ Password harus diganti saat login pertama kali.`;
                         <SelectValue placeholder="Pilih lokasi" />
                       </SelectTrigger>
                       <SelectContent>
-                        {locations.map((location) => (
+                        {locations.map((location: Location) => (
                           <SelectItem key={location.id} value={location.id}>
                             {location.name}
                           </SelectItem>

@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import {
     Users,
     Plus,
-    Search,
     MoreHorizontal,
     Edit,
     Trash2,
@@ -12,10 +11,11 @@ import {
     Lock,
     Unlock,
     Key,
-    ChevronLeft,
     Filter,
 } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
+import { MobilePageHeader } from '@/components/mobile';
+import { SearchBar } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -313,42 +313,33 @@ export function MobileUsersPage() {
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-muted/30 via-background to-background dark:from-gray-950 dark:via-gray-900 dark:to-gray-900 pb-24">
-            {/* Header Wrapper */}
-            <div className="px-4 pt-3 pb-3 sticky top-0 z-20">
-                <div className="bg-card/80 dark:bg-card/60 backdrop-blur-md rounded-3xl p-1.5 shadow-xl border border-border/40 dark:border-border/30">
-                    <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-3 rounded-[20px] flex items-center gap-3 shadow-lg">
-                        <button
-                            onClick={() => navigate({ to: '/admin/dashboard' })}
-                            className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
-                        >
-                            <ChevronLeft className="h-5 w-5 text-white" />
-                        </button>
-                        <h1 className="text-base font-bold text-white flex-1">Manajemen Pengguna</h1>
-                        <button
-                            onClick={() => setIsFilterOpen(true)}
-                            className="relative p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
-                        >
-                            <Filter className="h-5 w-5 text-white" />
-                            {activeFiltersCount > 0 && (
-                                <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-indigo-600" />
-                            )}
-                        </button>
-                    </div>
-                </div>
-            </div>
+            {/* Header */}
+            <MobilePageHeader
+                title="Manajemen Pengguna"
+                onBack={() => navigate({ to: '/admin/dashboard' })}
+                gradient="violet"
+                actions={
+                    <button
+                        onClick={() => setIsFilterOpen(true)}
+                        className="relative p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
+                    >
+                        <Filter className="h-5 w-5 text-white" />
+                        {activeFiltersCount > 0 && (
+                            <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-indigo-600" />
+                        )}
+                    </button>
+                }
+            />
 
             {/* Search Bar */}
             <div className="px-4 mb-4">
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                        placeholder="Cari pengguna..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                        className="pl-9 bg-white dark:bg-gray-900/50 rounded-2xl border-border/50 shadow-sm"
-                    />
-                </div>
+                <SearchBar
+                    value={searchQuery}
+                    onChange={setSearchQuery}
+                    placeholder="Cari pengguna..."
+                    onSearch={handleSearch}
+                    inputClassName="bg-white dark:bg-gray-900/50 rounded-2xl border-border/50 shadow-sm"
+                />
             </div>
 
             {/* Users List */}

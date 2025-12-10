@@ -1,5 +1,3 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Calendar,
   Plane,
@@ -12,108 +10,17 @@ import {
 } from 'lucide-react';
 import { PageLayout } from '@/components/shared/PageLayout';
 import { ContentCard } from '@/components/shared/ContentCard';
-import { useAuthStore } from '@/stores';
-import { format, parseISO, differenceInDays } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
-import {
-  getLeaveBalance,
-  getLeaveRequests,
-  createLeaveRequest,
-  cancelLeaveRequest
-} from '@/lib/api/leave';
-import { toast } from 'sonner';
-import type { LeaveRequest } from '@/types';
+import { useEmployeeLeavePage } from '@/hooks/use-employee-leave-page';
 
 /**
  * Employee Leave Page
  * Request and view personal leave requests
  */
 export function DesktopEmployeeLeavePage() {
-  const { user } = useAuthStore();
-  const queryClient = useQueryClient();
-  const [showRequestForm, setShowRequestForm] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
-
-  // Form state
-  const [leaveType, setLeaveType] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [reason, setReason] = useState('');
-
-  // Fetch leave balance
-  const { data: leaveBalance } = useQuery({
-    queryKey: ['employee', 'leave-balance', user?.id],
-    queryFn: getLeaveBalance,
-  });
-
-  // Fetch leave requests
-  const { data: leaveRequestsResponse, isLoading } = useQuery({
-    queryKey: ['employee', 'leave-requests', user?.id],
-    queryFn: () => getLeaveRequests({ per_page: 50 }),
-  });
-
-  const leaveRequests = (leaveRequestsResponse?.data || []) as LeaveRequest[];
-
-  // Create leave request mutation
-  const createLeaveMutation = useMutation({
-    mutationFn: async (data: { leaveType: string; startDate: string; endDate: string; reason: string }) => {
-      return createLeaveRequest({
-        type: data.leaveType as any,
-        start_date: data.startDate,
-        end_date: data.endDate,
-        duration_type: 'full_day',
-        reason: data.reason,
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['employee', 'leave-requests'] });
-      queryClient.invalidateQueries({ queryKey: ['employee', 'leave-balance'] });
-      setShowRequestForm(false);
-      resetForm();
-      toast.success('Pengajuan cuti berhasil dikirim');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Gagal mengajukan cuti');
-    }
-  });
-
-  // Cancel leave request mutation
-  const cancelLeaveMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return cancelLeaveRequest(id);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['employee', 'leave-requests'] });
-      queryClient.invalidateQueries({ queryKey: ['employee', 'leave-balance'] });
-      toast.success('Pengajuan cuti dibatalkan');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Gagal membatalkan cuti');
-    }
-  });
-
-  const resetForm = () => {
-    setLeaveType('');
-    setStartDate('');
-    setEndDate('');
-    setReason('');
-  };
-
-  const handleSubmitRequest = (e: React.FormEvent) => {
-    e.preventDefault();
-    createLeaveMutation.mutate({
-      leaveType,
-      startDate,
-      endDate,
-      reason,
-    });
-  };
-
-  const handleCancelRequest = (id: string) => {
-    if (confirm('Apakah Anda yakin ingin membatalkan pengajuan cuti ini?')) {
-      cancelLeaveMutation.mutate(id);
-    }
-  };
+  // Use shared hook for all logic
+  const logic = useEmployeeLeavePage();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -141,31 +48,6 @@ export function DesktopEmployeeLeavePage() {
     }
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'Menunggu';
-      case 'approved':
-        return 'Disetujui';
-      case 'rejected':
-        return 'Ditolak';
-      default:
-        return status;
-    }
-  };
-
-  const filteredRequests = leaveRequests?.filter((request) => {
-    if (filterStatus === 'all') return true;
-    return request.status === filterStatus;
-  });
-
-  const calculateDays = () => {
-    if (startDate && endDate) {
-      const days = differenceInDays(parseISO(endDate), parseISO(startDate)) + 1;
-      return days > 0 ? days : 0;
-    }
-    return 0;
-  };
 
   return (
     <PageLayout
@@ -173,7 +55,7 @@ export function DesktopEmployeeLeavePage() {
       description="Ajukan dan kelola cuti pribadi"
       actions={
         <button
-          onClick={() => setShowRequestForm(true)}
+          onClick={() => logic.setShowRequestForm(true)}
           className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
         >
           <Plus className="h-4 w-4" />
@@ -191,37 +73,37 @@ export function DesktopEmployeeLeavePage() {
             <div>
               <h3 className="text-sm font-medium text-muted-foreground">Saldo Cuti Tahunan</h3>
               <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                {leaveBalance?.annual_remaining || 0} hari
+                {logic.leaveBalance?.annual_remaining || 0} hari
               </p>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
               <p className="text-xs text-muted-foreground">Total</p>
-              <p className="text-lg font-semibold">{leaveBalance?.annual_total || 0}</p>
+              <p className="text-lg font-semibold">{logic.leaveBalance?.annual_total || 0}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Terpakai</p>
-              <p className="text-lg font-semibold">{leaveBalance?.annual_used || 0}</p>
+              <p className="text-lg font-semibold">{logic.leaveBalance?.annual_used || 0}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Cuti Sakit</p>
-              <p className="text-lg font-semibold">{leaveBalance?.sick_remaining || 0}</p>
+              <p className="text-lg font-semibold">{logic.leaveBalance?.sick_remaining || 0}</p>
             </div>
           </div>
         </div>
       </ContentCard>
 
       {/* Request Form Modal */}
-      {showRequestForm && (
+      {logic.showRequestForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-background rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b">
               <h2 className="text-lg font-semibold">Ajukan Cuti Baru</h2>
               <button
                 onClick={() => {
-                  setShowRequestForm(false);
-                  resetForm();
+                  logic.setShowRequestForm(false);
+                  logic.resetForm();
                 }}
                 className="p-1 hover:bg-muted rounded"
                 aria-label="Close modal"
@@ -230,14 +112,14 @@ export function DesktopEmployeeLeavePage() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmitRequest} className="p-4 space-y-4">
+            <form onSubmit={logic.handleSubmitRequest} className="p-4 space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Jenis Cuti <span className="text-red-500">*</span>
                 </label>
                 <select
-                  value={leaveType}
-                  onChange={(e) => setLeaveType(e.target.value)}
+                  value={logic.leaveType}
+                  onChange={(e) => logic.setLeaveType(e.target.value)}
                   className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                   required
                   aria-label="Pilih jenis cuti"
@@ -257,8 +139,8 @@ export function DesktopEmployeeLeavePage() {
                   </label>
                   <input
                     type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    value={logic.startDate}
+                    onChange={(e) => logic.setStartDate(e.target.value)}
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     required
                     aria-label="Tanggal Mulai"
@@ -271,9 +153,9 @@ export function DesktopEmployeeLeavePage() {
                   </label>
                   <input
                     type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    min={startDate}
+                    value={logic.endDate}
+                    onChange={(e) => logic.setEndDate(e.target.value)}
+                    min={logic.startDate}
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     required
                     aria-label="Tanggal Selesai"
@@ -281,12 +163,12 @@ export function DesktopEmployeeLeavePage() {
                 </div>
               </div>
 
-              {startDate && endDate && (
+              {logic.startDate && logic.endDate && (
                 <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                   <p className="text-sm">
                     <span className="font-medium">Durasi:</span>{' '}
                     <span className="text-blue-600 dark:text-blue-400 font-semibold">
-                      {calculateDays()} hari
+                      {logic.calculateDays()} hari
                     </span>
                   </p>
                 </div>
@@ -297,8 +179,8 @@ export function DesktopEmployeeLeavePage() {
                   Alasan <span className="text-red-500">*</span>
                 </label>
                 <textarea
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
+                  value={logic.reason}
+                  onChange={(e) => logic.setReason(e.target.value)}
                   className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                   rows={4}
                   placeholder="Jelaskan alasan pengajuan cuti..."
@@ -310,8 +192,8 @@ export function DesktopEmployeeLeavePage() {
                 <button
                   type="button"
                   onClick={() => {
-                    setShowRequestForm(false);
-                    resetForm();
+                    logic.setShowRequestForm(false);
+                    logic.resetForm();
                   }}
                   className="flex-1 px-4 py-2 border rounded-lg hover:bg-muted transition-colors"
                 >
@@ -319,10 +201,10 @@ export function DesktopEmployeeLeavePage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={createLeaveMutation.isPending}
+                  disabled={logic.createLeaveMutation.isPending}
                   className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
                 >
-                  {createLeaveMutation.isPending ? 'Mengajukan...' : 'Ajukan Cuti'}
+                  {logic.createLeaveMutation.isPending ? 'Mengajukan...' : 'Ajukan Cuti'}
                 </button>
               </div>
             </form>
@@ -337,13 +219,13 @@ export function DesktopEmployeeLeavePage() {
           {(['all', 'pending', 'approved', 'rejected'] as const).map((status) => (
             <button
               key={status}
-              onClick={() => setFilterStatus(status)}
-              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${filterStatus === status
+              onClick={() => logic.setFilterStatus(status)}
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${logic.filterStatus === status
                 ? 'bg-primary text-primary-foreground'
                 : 'border hover:bg-muted'
                 }`}
             >
-              {status === 'all' ? 'Semua' : getStatusLabel(status)}
+              {status === 'all' ? 'Semua' : logic.getStatusLabel(status)}
             </button>
           ))}
         </div>
@@ -352,15 +234,15 @@ export function DesktopEmployeeLeavePage() {
       {/* Leave Requests List */}
       <ContentCard title="Riwayat Pengajuan Cuti">
         <div className="space-y-3">
-          {isLoading ? (
+          {logic.isLoading ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-3" />
                 <p className="text-sm text-muted-foreground">Memuat data...</p>
               </div>
             </div>
-          ) : filteredRequests && filteredRequests.length > 0 ? (
-            filteredRequests.map((request) => (
+          ) : logic.filteredRequests && logic.filteredRequests?.length > 0 ? (
+            logic.filteredRequests?.map((request) => (
               <div
                 key={request.id}
                 className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
@@ -371,7 +253,7 @@ export function DesktopEmployeeLeavePage() {
                       <h3 className="text-sm font-semibold">{request.leave_type?.name || request.leave_type_id}</h3>
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
                         {getStatusIcon(request.status)}
-                        {getStatusLabel(request.status)}
+                        {logic.getStatusLabel(request.status)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -386,8 +268,8 @@ export function DesktopEmployeeLeavePage() {
 
                   {request.status === 'pending' && (
                     <button
-                      onClick={() => handleCancelRequest(request.id)}
-                      disabled={cancelLeaveMutation.isPending}
+                      onClick={() => logic.handleCancelRequest(request.id)}
+                      disabled={logic.cancelLeaveMutation.isPending}
                       className="px-3 py-1 text-xs border border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                     >
                       Batalkan
@@ -423,9 +305,9 @@ export function DesktopEmployeeLeavePage() {
             <div className="text-center py-12">
               <Plane className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
               <p className="text-sm text-muted-foreground">
-                {filterStatus === 'all'
+                {logic.filterStatus === 'all'
                   ? 'Belum ada pengajuan cuti'
-                  : `Tidak ada cuti dengan status ${getStatusLabel(filterStatus)}`}
+                  : `Tidak ada cuti dengan status ${logic.getStatusLabel(logic.filterStatus)}`}
               </p>
             </div>
           )}

@@ -122,10 +122,10 @@ export function LocationMapPickerWithRadius({
     const [showResults, setShowResults] = useState(false);
     const [isGettingLocation, setIsGettingLocation] = useState(false);
     const [highlightedIndex, setHighlightedIndex] = useState(-1);
-    const searchTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+    const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
-    const blurTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+    const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
     // Auto-focus search input when autoFocus is true
     useEffect(() => {

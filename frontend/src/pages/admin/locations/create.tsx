@@ -3,7 +3,6 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
   MapPin,
@@ -29,9 +28,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { useNotificationStore } from '@/stores';
-import { createLocation } from '@/lib/api/locations';
-import type { LocationFormData, LocationType } from '@/types/location';
+import { useCreateLocation } from '@/hooks/use-locations';
+import type { LocationType } from '@/types/location';
 import { locationTypeLabels } from '@/types/location';
 
 // Lazy load map component
@@ -60,8 +58,6 @@ const DEFAULT_LNG = 106.8456;
 
 export default function LocationCreatePage() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { success, error: showError } = useNotificationStore();
   const [isActive, setIsActive] = useState(true);
   const [mapKey, setMapKey] = useState(0);
 
@@ -88,18 +84,7 @@ export default function LocationCreatePage() {
   const watchedRadius = watch('radius');
   const watchedType = watch('type');
 
-  const createMutation = useMutation({
-    mutationFn: (data: LocationFormData) => createLocation(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['locations'] });
-      success('Berhasil', 'Lokasi berhasil dibuat');
-      navigate({ to: '/admin/locations' });
-    },
-    onError: (err: any) => {
-      const message = err.response?.data?.message || err.message || 'Gagal membuat lokasi';
-      showError('Error', message);
-    },
-  });
+  const createMutation = useCreateLocation();
 
   const handleLocationChange = (lat: number, lng: number, address?: string) => {
     setValue('latitude', lat.toString());
@@ -113,8 +98,8 @@ export default function LocationCreatePage() {
     setValue('radius', value[0].toString());
   };
 
-  const onSubmit = (data: LocationForm) => {
-    createMutation.mutate({
+  const onSubmit = async (data: LocationForm) => {
+    await createMutation.mutateAsync({
       name: data.name,
       address: data.address,
       latitude: parseFloat(data.latitude),
@@ -125,6 +110,7 @@ export default function LocationCreatePage() {
       description: data.description || undefined,
       type: (data.type as LocationType) || undefined,
     });
+    navigate({ to: '/admin/locations' });
   };
 
   // Force map re-render when coordinates change significantly

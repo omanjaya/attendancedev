@@ -10,7 +10,6 @@ import {
   Save,
   Calendar,
   Users,
-  MapPin,
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,13 +17,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useNotificationStore } from '@/stores';
@@ -34,17 +26,12 @@ const scheduleSchema = z.object({
   check_in: z.string().min(1, 'Pilih waktu masuk'),
   check_out: z.string().min(1, 'Pilih waktu keluar'),
   late_tolerance: z.string().optional(),
-  location_id: z.string().optional(),
   description: z.string().optional(),
 });
 
 type ScheduleForm = z.infer<typeof scheduleSchema>;
 
-const locations = [
-  { id: '1', name: 'Kantor Pusat' },
-  { id: '2', name: 'Kantor Cabang A' },
-  { id: '3', name: 'Kantor Cabang B' },
-];
+
 
 const daysOfWeek = [
   { id: 'monday', label: 'Senin' },
@@ -66,7 +53,6 @@ export default function ScheduleCreatePage() {
   const {
     register,
     handleSubmit,
-    setValue,
     formState: { errors },
   } = useForm<ScheduleForm>({
     resolver: zodResolver(scheduleSchema),
@@ -145,26 +131,6 @@ export default function ScheduleCreatePage() {
                   placeholder="Deskripsi singkat tentang jadwal ini..."
                   {...register('description')}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Lokasi (Opsional)</label>
-                <Select onValueChange={(value) => setValue('location_id', value)}>
-                  <SelectTrigger>
-                    <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <SelectValue placeholder="Pilih lokasi untuk referensi" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {locations.map((loc) => (
-                      <SelectItem key={loc.id} value={loc.id}>
-                        {loc.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Validasi GPS saat check-in menggunakan lokasi yang diassign ke karyawan di Manajemen Karyawan
-                </p>
               </div>
             </CardContent>
           </Card>

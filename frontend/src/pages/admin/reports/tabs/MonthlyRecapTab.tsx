@@ -278,7 +278,7 @@ export function MonthlyRecapTab() {
             {/* Header & Filters */}
             <Card>
                 <CardHeader>
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div>
                             <CardTitle className="flex items-center gap-2">
                                 <CalendarDays className="h-5 w-5" />
@@ -288,48 +288,52 @@ export function MonthlyRecapTab() {
                                 Rekapitulasi kehadiran karyawan dengan status A/I/S/D/C
                             </CardDescription>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                            <Select
-                                value={selectedMonth.toString()}
-                                onValueChange={(v) => setSelectedMonth(parseInt(v))}
-                            >
-                                <SelectTrigger className="w-[140px]">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {MONTHS.map((month) => (
-                                        <SelectItem key={month.value} value={month.value.toString()}>
-                                            {month.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <Select
-                                value={selectedYear.toString()}
-                                onValueChange={(v) => setSelectedYear(parseInt(v))}
-                            >
-                                <SelectTrigger className="w-[100px]">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {YEARS.map((year) => (
-                                        <SelectItem key={year} value={year.toString()}>
-                                            {year}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <Button variant="outline" size="icon" onClick={() => refetch()} title="Refresh data">
-                                <Loader2 className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                            </Button>
-                            <Button variant="outline" onClick={handleExportExcel} disabled={!recapData?.data?.length}>
-                                <FileSpreadsheet className="h-4 w-4 mr-2" />
-                                Excel
-                            </Button>
-                            <Button onClick={handleExportPDF} disabled={!recapData?.data?.length}>
-                                <FileText className="h-4 w-4 mr-2" />
-                                PDF
-                            </Button>
+                        <div className="flex flex-col sm:flex-row items-center gap-3">
+                            <div className="grid grid-cols-[1fr_1fr_auto] sm:flex sm:items-center gap-2 w-full sm:w-auto">
+                                <Select
+                                    value={selectedMonth.toString()}
+                                    onValueChange={(v) => setSelectedMonth(parseInt(v))}
+                                >
+                                    <SelectTrigger className="w-full sm:w-[140px]">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {MONTHS.map((month) => (
+                                            <SelectItem key={month.value} value={month.value.toString()}>
+                                                {month.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Select
+                                    value={selectedYear.toString()}
+                                    onValueChange={(v) => setSelectedYear(parseInt(v))}
+                                >
+                                    <SelectTrigger className="w-full sm:w-[100px]">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {YEARS.map((year) => (
+                                            <SelectItem key={year} value={year.toString()}>
+                                                {year}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Button variant="outline" size="icon" onClick={() => refetch()} title="Refresh data">
+                                    <Loader2 className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                                </Button>
+                            </div>
+                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                                <Button variant="outline" className="flex-1 sm:flex-none" onClick={handleExportExcel} disabled={!recapData?.data?.length}>
+                                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                                    Excel
+                                </Button>
+                                <Button className="flex-1 sm:flex-none" onClick={handleExportPDF} disabled={!recapData?.data?.length}>
+                                    <FileText className="h-4 w-4 mr-2" />
+                                    PDF
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </CardHeader>
@@ -337,7 +341,7 @@ export function MonthlyRecapTab() {
 
             {/* Summary Cards */}
             {recapData && (
-                <div className="grid gap-4 md:grid-cols-4">
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                     <Card>
                         <CardContent className="pt-6">
                             <div className="flex items-center gap-3">
@@ -396,8 +400,8 @@ export function MonthlyRecapTab() {
             {/* Search & Table */}
             <Card>
                 <CardHeader className="pb-4">
-                    <div className="flex items-center gap-4">
-                        <div className="relative flex-1 max-w-sm">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="relative flex-1 max-w-sm w-full">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
                                 placeholder="Cari nama, NIK, atau unit kerja..."
@@ -407,46 +411,46 @@ export function MonthlyRecapTab() {
                             />
                         </div>
                         <TooltipProvider>
-                            <div className="flex items-center gap-1 text-xs">
+                            <div className="flex flex-wrap items-center justify-end gap-1.5 text-xs">
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <Badge variant="outline" className="bg-green-50 text-green-700 cursor-help">H</Badge>
+                                        <Badge variant="outline" className="bg-green-50 text-green-700 cursor-help hover:bg-green-100 transition-colors">H</Badge>
                                     </TooltipTrigger>
                                     <TooltipContent>Hadir (Tepat Waktu)</TooltipContent>
                                 </Tooltip>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 cursor-help">T</Badge>
+                                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 cursor-help hover:bg-yellow-100 transition-colors">T</Badge>
                                     </TooltipTrigger>
                                     <TooltipContent>Terlambat</TooltipContent>
                                 </Tooltip>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <Badge variant="outline" className="bg-red-50 text-red-700 cursor-help">A</Badge>
+                                        <Badge variant="outline" className="bg-red-50 text-red-700 cursor-help hover:bg-red-100 transition-colors">A</Badge>
                                     </TooltipTrigger>
                                     <TooltipContent>Alpha (Tanpa Keterangan)</TooltipContent>
                                 </Tooltip>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <Badge variant="outline" className="bg-blue-50 text-blue-700 cursor-help">I</Badge>
+                                        <Badge variant="outline" className="bg-blue-50 text-blue-700 cursor-help hover:bg-blue-100 transition-colors">I</Badge>
                                     </TooltipTrigger>
                                     <TooltipContent>Izin</TooltipContent>
                                 </Tooltip>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <Badge variant="outline" className="bg-orange-50 text-orange-700 cursor-help">S</Badge>
+                                        <Badge variant="outline" className="bg-orange-50 text-orange-700 cursor-help hover:bg-orange-100 transition-colors">S</Badge>
                                     </TooltipTrigger>
                                     <TooltipContent>Sakit</TooltipContent>
                                 </Tooltip>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <Badge variant="outline" className="bg-purple-50 text-purple-700 cursor-help">D</Badge>
+                                        <Badge variant="outline" className="bg-purple-50 text-purple-700 cursor-help hover:bg-purple-100 transition-colors">D</Badge>
                                     </TooltipTrigger>
                                     <TooltipContent>Dinas Luar</TooltipContent>
                                 </Tooltip>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <Badge variant="outline" className="bg-cyan-50 text-cyan-700 cursor-help">C</Badge>
+                                        <Badge variant="outline" className="bg-cyan-50 text-cyan-700 cursor-help hover:bg-cyan-100 transition-colors">C</Badge>
                                     </TooltipTrigger>
                                     <TooltipContent>Cuti</TooltipContent>
                                 </Tooltip>

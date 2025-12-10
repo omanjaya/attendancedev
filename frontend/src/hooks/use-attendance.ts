@@ -7,6 +7,8 @@ import {
   checkOut,
   getAttendanceStatistics,
   getAttendanceTrends,
+  updateAttendance,
+  deleteAttendance,
 } from '@/lib/api/attendance';
 import type { AttendanceFilters, CheckRequest } from '@/types';
 import { useNotificationStore } from '@/stores';
@@ -100,6 +102,45 @@ export function useCheckOut() {
     },
     onError: (err: Error) => {
       error('Check-out Gagal', err.message || 'Terjadi kesalahan saat check-out');
+    },
+  });
+}
+
+// Update attendance mutation
+export function useUpdateAttendance() {
+  const queryClient = useQueryClient();
+  const { success } = useNotificationStore();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) => {
+      return updateAttendance(id, data);
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: attendanceKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: attendanceKeys.today() }),
+        queryClient.invalidateQueries({ queryKey: attendanceKeys.statistics() }),
+      ]);
+      success('Berhasil', 'Absensi berhasil diperbarui');
+    },
+  });
+}
+
+// Delete attendance mutation
+export function useDeleteAttendance() {
+  const queryClient = useQueryClient();
+  const { success } = useNotificationStore();
+
+  return useMutation({
+    mutationFn: (id: number) => {
+      return deleteAttendance(id);
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: attendanceKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: attendanceKeys.statistics() }),
+      ]);
+      success('Berhasil', 'Absensi berhasil dihapus');
     },
   });
 }

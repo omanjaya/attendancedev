@@ -54,7 +54,7 @@ export function FaceIdentificationPanel({
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number | null>(null);
-  const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const scanIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Fetch registered faces from API
   const { data: apiRegisteredFaces, isLoading: isLoadingFaces, refetch: refetchFaces } = useRegisteredFaces();

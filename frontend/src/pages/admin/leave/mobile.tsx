@@ -5,10 +5,10 @@ import {
   CheckCircle2,
   XCircle,
   Search,
-  ArrowLeft,
   Plus,
   Loader2,
 } from 'lucide-react';
+import { MobilePageHeader } from '@/components/mobile';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -26,9 +26,8 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   useLeaveRequests,
-  useApproveLeaveRequest,
-  useRejectLeaveRequest,
 } from '@/hooks';
+import { useAdminLeavePage } from '@/hooks/use-admin-leave-page';
 import {
   leaveTypeLabels,
   leaveStatusLabels,
@@ -104,63 +103,32 @@ function RejectDrawer({
 export function MobileAdminLeavePage() {
   const navigate = useNavigate();
   const { hasPermission } = useAuthStore();
-  const [filterStatus, setFilterStatus] = useState<LeaveStatus | 'all'>('pending');
-  const [showRejectDrawer, setShowRejectDrawer] = useState(false);
-  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
 
-  // Fetch leave requests
+  // Use shared hook for common logic
+  const logic = useAdminLeavePage();
+  const [showRejectDrawer, setShowRejectDrawer] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<'all' | LeaveStatus>('all');
+
+  // Fetch leave requests (mobile uses filterStatus)
   const { data: leaveRequestsData, isLoading } = useLeaveRequests({
-    status: filterStatus === 'all' ? undefined : filterStatus,
+    status: filterStatus === 'all' ? undefined : (filterStatus as LeaveStatus),
   });
 
   const leaveRequests = leaveRequestsData?.data || [];
 
-  // Mutations
-  const approveLeaveRequestMutation = useApproveLeaveRequest();
-  const rejectLeaveRequestMutation = useRejectLeaveRequest();
-
-  const handleApprove = async (id: string) => {
-    try {
-      await approveLeaveRequestMutation.mutateAsync({ id });
-    } catch {
-      // Error handled in hook
-    }
-  };
-
-  const onRejectClick = (id: string) => {
-    setSelectedRequestId(id);
-    setShowRejectDrawer(true);
-  };
-
-  const handleRejectConfirm = async (reason: string) => {
-    if (selectedRequestId) {
-      try {
-        await rejectLeaveRequestMutation.mutateAsync({ id: selectedRequestId, reason });
-        setShowRejectDrawer(false);
-        setSelectedRequestId(null);
-      } catch {
-        // Error handled in hook
-      }
-    }
-  };
-
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b p-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate({ to: '/admin/dashboard' })}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-lg font-bold">Kelola Cuti</h1>
-            <p className="text-xs text-muted-foreground">Persetujuan & Riwayat</p>
-          </div>
-        </div>
-        <Button size="icon" variant="ghost">
-          <Search className="h-5 w-5" />
-        </Button>
-      </div>
+      <MobilePageHeader
+        title="Kelola Cuti"
+        onBack={() => navigate({ to: '/admin/dashboard' })}
+        gradient="indigo"
+        actions={
+          <button className="p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95">
+            <Search className="h-5 w-5 text-white" />
+          </button>
+        }
+      />
 
       {/* Filters */}
       <div className="px-4 py-3 overflow-x-auto border-b bg-background/50">
@@ -251,8 +219,8 @@ export function MobileAdminLeavePage() {
                             variant="outline"
                             size="sm"
                             className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive h-9"
-                            onClick={() => onRejectClick(request.id)}
-                            disabled={rejectLeaveRequestMutation.isPending}
+                            onClick={() => logic.onRejectClick(request.id)}
+                            disabled={logic.rejectLeaveRequestMutation.isPending}
                           >
                             <XCircle className="mr-2 h-4 w-4" />
                             Tolak
@@ -262,8 +230,8 @@ export function MobileAdminLeavePage() {
                           <Button
                             size="sm"
                             className="flex-1 bg-green-600 hover:bg-green-700 text-white h-9"
-                            onClick={() => handleApprove(request.id)}
-                            disabled={approveLeaveRequestMutation.isPending}
+                            onClick={() => logic.handleApprove(request.id)}
+                            disabled={logic.approveLeaveRequestMutation.isPending}
                           >
                             <CheckCircle2 className="mr-2 h-4 w-4" />
                             Setujui
@@ -296,8 +264,8 @@ export function MobileAdminLeavePage() {
       <RejectDrawer
         open={showRejectDrawer}
         onOpenChange={setShowRejectDrawer}
-        onConfirm={handleRejectConfirm}
-        isLoading={rejectLeaveRequestMutation.isPending}
+        onConfirm={logic.handleRejectConfirm}
+        isLoading={logic.rejectLeaveRequestMutation.isPending}
       />
     </div>
   );

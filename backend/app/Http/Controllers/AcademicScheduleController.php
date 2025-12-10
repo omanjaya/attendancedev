@@ -9,6 +9,7 @@ use App\Models\Subject;
 use App\Models\TimeSlot;
 use App\Models\WeeklySchedule;
 use App\Services\ScheduleService;
+use App\Services\Schedule\AcademicScheduleValidationService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,11 +19,10 @@ class AcademicScheduleController extends Controller
 {
     use ApiResponseTrait;
 
-    protected $scheduleService;
-
-    public function __construct(ScheduleService $scheduleService)
-    {
-        $this->scheduleService = $scheduleService;
+    public function __construct(
+        private ScheduleService $scheduleService,
+        private AcademicScheduleValidationService $validationService
+    ) {
         $this->middleware(['auth']);
     }
 
@@ -155,7 +155,7 @@ class AcademicScheduleController extends Controller
             $scheduleData['is_active'] = true;
 
             // Validate business rules
-            $validation = $this->validateScheduleCreation($scheduleData);
+            $validation = $this->validationService->validateScheduleCreation($scheduleData);
 
             if (! $validation['valid']) {
                 return $this->validationErrorResponse($validation['errors'], 'Validation failed');
@@ -166,7 +166,7 @@ class AcademicScheduleController extends Controller
 
             // Detect and store conflicts
             $conflicts = $schedule->detectConflicts();
-            $this->storeConflicts($schedule, $conflicts);
+            $this->validationService->storeConflicts($schedule, $conflicts);
 
             DB::commit();
 
@@ -221,7 +221,7 @@ class AcademicScheduleController extends Controller
             $newData['updated_by'] = auth()->id();
 
             // Validate business rules for update
-            $validation = $this->validateScheduleUpdate($schedule, $newData);
+            $validation = $this->validationService->validateScheduleUpdate($schedule, $newData);
 
             if (! $validation['valid']) {
                 return $this->validationErrorResponse($validation['errors'], 'Validation failed');
@@ -240,9 +240,9 @@ class AcademicScheduleController extends Controller
             );
 
             // Re-detect conflicts
-            $this->clearConflicts($schedule);
+            $this->validationService->clearConflicts($schedule);
             $conflicts = $schedule->detectConflicts();
-            $this->storeConflicts($schedule, $conflicts);
+            $this->validationService->storeConflicts($schedule, $conflicts);
 
             DB::commit();
 
@@ -277,7 +277,7 @@ class AcademicScheduleController extends Controller
             $schedule->logChange('delete', $oldData, null, auth()->id(), $request->input('reason'));
 
             // Clear conflicts
-            $this->clearConflicts($schedule);
+            $this->validationService->clearConflicts($schedule);
 
             // Soft delete
             $schedule->update(['is_active' => false, 'updated_by' => auth()->id()]);
@@ -363,14 +363,14 @@ class AcademicScheduleController extends Controller
             );
 
             // Re-detect conflicts for both
-            $this->clearConflicts($schedule1);
-            $this->clearConflicts($schedule2);
+            $this->validationService->clearConflicts($schedule1);
+            $this->validationService->clearConflicts($schedule2);
 
             $conflicts1 = $schedule1->detectConflicts();
             $conflicts2 = $schedule2->detectConflicts();
 
-            $this->storeConflicts($schedule1, $conflicts1);
-            $this->storeConflicts($schedule2, $conflicts2);
+            $this->validationService->storeConflicts($schedule1, $conflicts1);
+            $this->validationService->storeConflicts($schedule2, $conflicts2);
 
             DB::commit();
 
@@ -544,146 +544,5 @@ class AcademicScheduleController extends Controller
             ->get();
 
         return $this->successResponse($conflicts, 'Conflicts loaded successfully');
-    }
-
-    /**
-     * Validate schedule creation
-     */
-    private function validateScheduleCreation($scheduleData)
-    {
-        $errors = [];
-        $warnings = [];
-
-        // Check for class double booking
-        $classConflict = WeeklySchedule::where('academic_class_id', $scheduleData['academic_class_id'])
-            ->where('day_of_week', $scheduleData['day_of_week'])
-            ->where('time_slot_id', $scheduleData['time_slot_id'])
-            ->where('is_active', true)
-            ->exists();
-
-        if ($classConflict) {
-            $errors[] = 'Kelas sudah memiliki jadwal pada waktu yang sama';
-        }
-
-        // Check for teacher double booking
-        $teacherConflict = WeeklySchedule::where('employee_id', $scheduleData['employee_id'])
-            ->where('day_of_week', $scheduleData['day_of_week'])
-            ->where('time_slot_id', $scheduleData['time_slot_id'])
-            ->where('is_active', true)
-            ->exists();
-
-        if ($teacherConflict) {
-            $errors[] = 'Guru sudah mengajar pada waktu yang sama';
-        }
-
-        // Check subject frequency
-        $subject = Subject::find($scheduleData['subject_id']);
-        if ($subject) {
-            $validation = $subject->validateScheduleFrequency(
-                $scheduleData['academic_class_id'],
-                $scheduleData['day_of_week'],
-            );
-
-            if (! $validation['weekly_valid']) {
-                $errors[] = "Mata pelajaran {$subject->name} melebihi batas maksimal {$subject->max_meetings_per_week} pertemuan per minggu";
-            }
-
-            if (! $validation['daily_valid']) {
-                $warnings[] = "Mata pelajaran {$subject->name} sudah ada di hari yang sama";
-            }
-        }
-
-        return [
-            'valid' => empty($errors),
-            'errors' => $errors,
-            'warnings' => $warnings,
-        ];
-    }
-
-    /**
-     * Validate schedule update
-     */
-    private function validateScheduleUpdate($schedule, $newData)
-    {
-        // Similar validation as creation but excluding current schedule
-        $errors = [];
-        $warnings = [];
-
-        // Only validate if critical fields changed
-        $criticalFields = ['academic_class_id', 'employee_id', 'time_slot_id', 'day_of_week'];
-        $hasChanges = false;
-
-        foreach ($criticalFields as $field) {
-            if (isset($newData[$field]) && $newData[$field] != $schedule->$field) {
-                $hasChanges = true;
-                break;
-            }
-        }
-
-        if (! $hasChanges) {
-            return ['valid' => true, 'errors' => [], 'warnings' => []];
-        }
-
-        // Use current values if not provided in update
-        $checkData = array_merge($schedule->toArray(), $newData);
-
-        // Check for class double booking
-        $classConflict = WeeklySchedule::where('academic_class_id', $checkData['academic_class_id'])
-            ->where('day_of_week', $checkData['day_of_week'])
-            ->where('time_slot_id', $checkData['time_slot_id'])
-            ->where('is_active', true)
-            ->where('id', '!=', $schedule->id)
-            ->exists();
-
-        if ($classConflict) {
-            $errors[] = 'Kelas sudah memiliki jadwal pada waktu yang sama';
-        }
-
-        // Check for teacher double booking
-        $teacherConflict = WeeklySchedule::where('employee_id', $checkData['employee_id'])
-            ->where('day_of_week', $checkData['day_of_week'])
-            ->where('time_slot_id', $checkData['time_slot_id'])
-            ->where('is_active', true)
-            ->where('id', '!=', $schedule->id)
-            ->exists();
-
-        if ($teacherConflict) {
-            $errors[] = 'Guru sudah mengajar pada waktu yang sama';
-        }
-
-        return [
-            'valid' => empty($errors),
-            'errors' => $errors,
-            'warnings' => $warnings,
-        ];
-    }
-
-    /**
-     * Store conflicts
-     */
-    private function storeConflicts($schedule, $conflicts)
-    {
-        foreach ($conflicts as $conflict) {
-            if ($conflict['conflicting_schedule']) {
-                ScheduleConflict::create([
-                    'schedule_id_1' => $schedule->id,
-                    'schedule_id_2' => $conflict['conflicting_schedule']->id,
-                    'conflict_type' => $conflict['type'],
-                    'severity' => $conflict['severity'],
-                    'description' => $conflict['description'],
-                    'detected_at' => now(),
-                ]);
-            }
-        }
-    }
-
-    /**
-     * Clear conflicts for a schedule
-     */
-    private function clearConflicts($schedule)
-    {
-        ScheduleConflict::where('schedule_id_1', $schedule->id)
-            ->orWhere('schedule_id_2', $schedule->id)
-            ->delete();
     }
 }

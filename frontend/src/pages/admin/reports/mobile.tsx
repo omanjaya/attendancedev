@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import {
-    ChevronLeft,
     FileText,
     BarChart2,
     PieChart,
@@ -9,6 +8,7 @@ import {
     Calendar,
     Loader2,
 } from 'lucide-react';
+import { MobilePageHeader } from '@/components/mobile';
 
 import { toast } from 'sonner';
 import { generateReport, downloadReport, waitForReportCompletion } from '@/lib/api/reports';
@@ -96,20 +96,11 @@ export function MobileReportsPage() {
     return (
         <div className="min-h-screen bg-gradient-to-b from-muted/30 via-background to-background dark:from-gray-950 dark:via-gray-900 dark:to-gray-900 pb-20">
             {/* Header */}
-            <div className="px-4 pt-3 pb-3 sticky top-0 z-20">
-                <div className="bg-card/80 dark:bg-card/60 backdrop-blur-md rounded-3xl p-1.5 shadow-xl border border-border/40 dark:border-border/30">
-                    <div className="bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-900 dark:to-purple-800 px-4 py-3 rounded-[20px] flex items-center gap-3 shadow-lg">
-                        <button
-                            onClick={() => navigate({ to: '/admin/dashboard' })}
-                            className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
-                            aria-label="Kembali ke dashboard"
-                        >
-                            <ChevronLeft className="h-5 w-5 text-white" />
-                        </button>
-                        <h1 className="text-base font-bold text-white flex-1">Laporan</h1>
-                    </div>
-                </div>
-            </div>
+            <MobilePageHeader
+                title="Laporan"
+                onBack={() => navigate({ to: '/admin/dashboard' })}
+                gradient="indigo"
+            />
 
             {/* Report Cards - 2x2 Grid (Touch-Friendly) */}
             <div className="px-4 mt-4 space-y-3">

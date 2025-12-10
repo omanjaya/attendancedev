@@ -4,40 +4,34 @@ namespace App\Http\Controllers;
 
 use App\Models\Attendance;
 use App\Models\Employee;
-use App\Models\MonthlySchedule;
-use App\Models\EmployeeMonthlySchedule;
 use App\Repositories\AttendanceRepository;
 use App\Repositories\EmployeeRepository;
 use App\Services\AttendanceScheduleService;
+use App\Services\Attendance\AttendanceValidationService;
+use App\Services\Attendance\AttendanceLocationService;
+use App\Services\Attendance\AttendanceStatisticsService;
+use App\Services\Attendance\AttendanceDataTableService;
+use App\Services\Attendance\AttendanceExportImportService;
 use App\Traits\ApiResponseTrait;
-use App\Imports\AttendanceImport;
-use App\Exports\AttendanceExportTemplate;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Maatwebsite\Excel\Facades\Excel;
-use Yajra\DataTables\Facades\DataTables;
 
 class AttendanceController extends Controller
 {
     use ApiResponseTrait;
 
-    private AttendanceRepository $attendanceRepository;
-
-    private EmployeeRepository $employeeRepository;
-    
-    private AttendanceScheduleService $scheduleService;
-
     public function __construct(
-        AttendanceRepository $attendanceRepository,
-        EmployeeRepository $employeeRepository,
-        AttendanceScheduleService $scheduleService
-    ) {
-        $this->attendanceRepository = $attendanceRepository;
-        $this->employeeRepository = $employeeRepository;
-        $this->scheduleService = $scheduleService;
-    }
+        private AttendanceRepository $attendanceRepository,
+        private EmployeeRepository $employeeRepository,
+        private AttendanceScheduleService $scheduleService,
+        private AttendanceValidationService $validationService,
+        private AttendanceLocationService $locationService,
+        private AttendanceStatisticsService $statisticsService,
+        private AttendanceDataTableService $dataTableService,
+        private AttendanceExportImportService $exportImportService
+    ) {}
 
     /**
      * Display attendance management interface.
@@ -115,7 +109,7 @@ class AttendanceController extends Controller
             }
 
             // ===== PHASE 1: Validate Working Day =====
-            $workingDayValidation = $this->validateWorkingDay($employee);
+            $workingDayValidation = $this->validationService->validateWorkingDay($employee);
 
             if (!$workingDayValidation['valid']) {
                 return $this->errorResponse($workingDayValidation['message'], 400);
@@ -141,7 +135,7 @@ class AttendanceController extends Controller
             // Verify location if provided
             $locationVerified = true;
             if (isset($validated['latitude']) && isset($validated['longitude'])) {
-                $locationVerified = $this->verifyEmployeeLocation(
+                $locationVerified = $this->locationService->verifyEmployeeLocation(
                     $employee,
                     $validated['latitude'],
                     $validated['longitude'],
@@ -274,7 +268,7 @@ class AttendanceController extends Controller
             }
 
             // ===== PHASE 1: Validate Working Day =====
-            $workingDayValidation = $this->validateWorkingDay($employee);
+            $workingDayValidation = $this->validationService->validateWorkingDay($employee);
 
             if (!$workingDayValidation['valid']) {
                 return $this->errorResponse($workingDayValidation['message'], 400);
@@ -295,7 +289,7 @@ class AttendanceController extends Controller
             // Verify location if provided
             $locationVerified = $attendance->location_verified; // Keep previous verification
             if (isset($validated['latitude']) && isset($validated['longitude'])) {
-                $currentLocationVerified = $this->verifyEmployeeLocation(
+                $currentLocationVerified = $this->locationService->verifyEmployeeLocation(
                     $employee,
                     $validated['latitude'],
                     $validated['longitude'],
@@ -454,92 +448,17 @@ class AttendanceController extends Controller
     {
         $query = Attendance::with(['employee.user', 'employee.location']);
 
-        // Apply role-based filtering FIRST
-        $user = auth()->user();
-        if (!$user->hasRole(['superadmin', 'admin'])) {
-            if ($user->hasRole('kepala_sekolah')) {
-                // Principal can see attendance for their school location
-                $userLocationId = $user->employee?->location_id;
-                if ($userLocationId) {
-                    $query->whereHas('employee', function ($q) use ($userLocationId) {
-                        $q->where('location_id', $userLocationId);
-                    });
-                } else {
-                    // If no location assigned, see no data
-                    $query->whereRaw('1 = 0');
-                }
-            } elseif ($user->hasRole(['guru', 'teacher', 'pegawai', 'staff'])) {
-                // Teachers and staff can only see their own attendance
-                $query->where('employee_id', $user->employee?->id ?? 0);
-            } else {
-                // Unknown roles get no access
-                $query->whereRaw('1 = 0');
-            }
-        }
+        // Apply role-based filtering
+        $query = $this->dataTableService->applyRoleBasedFiltering($query, auth()->user());
 
         $query->orderBy('date', 'desc')
             ->orderBy('check_in_time', 'desc');
 
-        // Filter by employee if specified
-        if ($request->has('employee_id') && $request->employee_id) {
-            $query->where('employee_id', $request->employee_id);
-        }
+        // Apply filters
+        $filters = $request->only(['employee_id', 'start_date', 'end_date']);
+        $query = $this->dataTableService->applyFilters($query, $filters);
 
-        // Filter by date range
-        if ($request->has('start_date') && $request->start_date) {
-            $query->whereDate('date', '>=', $request->start_date);
-        }
-
-        if ($request->has('end_date') && $request->end_date) {
-            $query->whereDate('date', '<=', $request->end_date);
-        }
-
-        return DataTables::of($query)
-            ->addColumn('employee_name', function ($attendance) {
-                return $attendance->employee->full_name;
-            })
-            ->addColumn('employee_id', function ($attendance) {
-                return $attendance->employee->employee_id;
-            })
-            ->addColumn('date_formatted', function ($attendance) {
-                return $attendance->date->format('M d, Y');
-            })
-            ->addColumn('check_in_formatted', function ($attendance) {
-                return $attendance->formatted_check_in ?? '-';
-            })
-            ->addColumn('check_out_formatted', function ($attendance) {
-                return $attendance->formatted_check_out ?? '-';
-            })
-            ->addColumn('status_badge', function ($attendance) {
-                return '<span class="badge bg-' .
-                    $attendance->status_color .
-                    '">' .
-                    ucfirst(str_replace('_', ' ', $attendance->status)) .
-                    '</span>';
-            })
-            ->addColumn('actions', function ($attendance) {
-                $actions = '<div class="btn-list">';
-
-                if (auth()->user()->can('manage_attendance_all')) {
-                    $actions .=
-                        '<button class="btn btn-sm btn-outline-primary view-details" data-id="' .
-                        $attendance->id .
-                        '">View</button>';
-
-                    if ($attendance->status === 'incomplete') {
-                        $actions .=
-                            '<button class="btn btn-sm btn-outline-success manual-checkout" data-id="' .
-                            $attendance->id .
-                            '">Complete</button>';
-                    }
-                }
-
-                $actions .= '</div>';
-
-                return $actions;
-            })
-            ->rawColumns(['status_badge', 'actions'])
-            ->make(true);
+        return $this->dataTableService->getDataTableData($query);
     }
 
     /**
@@ -551,61 +470,17 @@ class AttendanceController extends Controller
             $startDate = $request->input('start_date', today()->startOfMonth()->format('Y-m-d'));
             $endDate = $request->input('end_date', today()->format('Y-m-d'));
 
-            $query = DB::table('attendances')
-                ->whereBetween('date', [$startDate, $endDate])
-                ->whereNull('deleted_at');
-
-            // Apply role-based filtering
-            $user = auth()->user();
-            if (!$user->hasRole(['superadmin', 'admin'])) {
-                if ($user->hasRole('kepala_sekolah')) {
-                    $userLocationId = $user->employee?->location_id;
-                    if ($userLocationId) {
-                        // Join with employees table to filter by location
-                        $query->join('employees', 'attendances.employee_id', '=', 'employees.id')
-                            ->where('employees.location_id', $userLocationId);
-                    } else {
-                        $query->whereRaw('1 = 0');
-                    }
-                } elseif ($user->hasRole(['guru', 'teacher', 'pegawai', 'staff'])) {
-                    $query->where('attendances.employee_id', $user->employee?->id ?? 0);
-                } else {
-                    $query->whereRaw('1 = 0');
-                }
-            }
-
-            $stats = $query->selectRaw('
-                COUNT(*) as total_records,
-                SUM(CASE WHEN status = "present" THEN 1 ELSE 0 END) as present_count,
-                SUM(CASE WHEN status = "late" THEN 1 ELSE 0 END) as late_count,
-                SUM(CASE WHEN status = "absent" THEN 1 ELSE 0 END) as absent_count,
-                SUM(CASE WHEN status = "incomplete" THEN 1 ELSE 0 END) as incomplete_count,
-                AVG(total_hours) as average_hours,
-                SUM(total_hours) as total_hours
-            ')->first();
-
-            $statistics = [
-                'total_records' => $stats->total_records,
-                'present_count' => $stats->present_count,
-                'late_count' => $stats->late_count,
-                'absent_count' => $stats->absent_count,
-                'incomplete_count' => $stats->incomplete_count,
-                'average_hours' => round($stats->average_hours ?? 0, 2),
-                'total_hours' => round($stats->total_hours ?? 0, 2),
-            ];
+            $statistics = $this->statisticsService->getStatistics($startDate, $endDate, auth()->user());
 
             return response()->json([
                 'success' => true,
                 'statistics' => $statistics,
             ]);
         } catch (\Exception $e) {
-            return response()->json(
-                [
-                    'success' => false,
-                    'message' => 'Failed to get statistics: ' . $e->getMessage(),
-                ],
-                500,
-            );
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get statistics: ' . $e->getMessage(),
+            ], 500);
         }
     }
 
@@ -663,304 +538,6 @@ class AttendanceController extends Controller
     }
 
     /**
-     * Verify employee location.
-     */
-    private function verifyEmployeeLocation($employee, $latitude, $longitude)
-    {
-        // Basic location verification - can be enhanced with proper geofencing
-        if (!$employee->location) {
-            return true; // No location restriction
-        }
-
-        // For now, return true - implement proper geofencing logic
-        // You could use the Haversine formula to calculate distance
-        return true;
-    }
-
-    /**
-     * Get employee's active monthly schedule for a specific date
-     *
-     * @param Employee $employee
-     * @param Carbon|null $date
-     * @return MonthlySchedule|null
-     */
-    private function getEmployeeScheduleForDate(Employee $employee, ?Carbon $date = null): ?MonthlySchedule
-    {
-        $date = $date ?? now('Asia/Makassar');
-        $month = $date->month;
-        $year = $date->year;
-
-        // Get the assigned schedule for this employee in specified month/year
-        $employeeSchedule = EmployeeMonthlySchedule::where('employee_id', $employee->id)
-            ->whereHas('monthlySchedule', function ($query) use ($month, $year) {
-                $query->where('month', $month)
-                      ->where('year', $year)
-                      ->where('is_active', true);
-            })
-            ->with('monthlySchedule')
-            ->first();
-
-        return $employeeSchedule?->monthlySchedule;
-    }
-
-    /**
-     * Check if user can bypass schedule validation
-     *
-     * @param User|null $user
-     * @param Employee $employee
-     * @param string $reason
-     * @return bool
-     */
-    private function canBypassValidation(?User $user, Employee $employee, string $reason = 'general'): bool
-    {
-        // Check maintenance mode
-        if (config('attendance.maintenance_mode', false)) {
-            if (config('attendance.log_bypass', true)) {
-                \Log::warning('Attendance validation bypassed: MAINTENANCE MODE', [
-                    'employee_id' => $employee->id,
-                    'reason' => 'maintenance_mode',
-                ]);
-            }
-            return true;
-        }
-
-        // Check if strict mode is disabled globally
-        if (!config('attendance.strict_mode', true)) {
-            if (config('attendance.log_bypass', true)) {
-                \Log::info('Attendance validation bypassed: STRICT MODE DISABLED', [
-                    'employee_id' => $employee->id,
-                    'reason' => 'strict_mode_disabled',
-                ]);
-            }
-            return true;
-        }
-
-        // Check user role bypass
-        if ($user) {
-            $bypassRoles = config('attendance.bypass_roles', ['super_admin']);
-            if ($user->hasAnyRole($bypassRoles)) {
-                if (config('attendance.log_bypass', true)) {
-                    \Log::info('Attendance validation bypassed: ROLE PRIVILEGE', [
-                        'user_id' => $user->id,
-                        'user_email' => $user->email,
-                        'user_roles' => $user->roles->pluck('name')->toArray(),
-                        'employee_id' => $employee->id,
-                        'reason' => $reason,
-                        'timestamp' => now()->toISOString(),
-                    ]);
-                }
-                return true;
-            }
-        }
-
-        // Check employee metadata bypass flag
-        if ($employee->metadata && isset($employee->metadata['bypass_schedule_validation'])) {
-            if ($employee->metadata['bypass_schedule_validation'] === true) {
-                if (config('attendance.log_bypass', true)) {
-                    \Log::info('Attendance validation bypassed: EMPLOYEE FLAG', [
-                        'employee_id' => $employee->id,
-                        'reason' => 'employee_metadata_flag',
-                    ]);
-                }
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Validate if current date is a working day according to employee's schedule
-     *
-     * @param Employee $employee
-     * @param Carbon|null $date
-     * @return array ['valid' => bool, 'message' => string|null, 'schedule' => MonthlySchedule|null]
-     */
-    private function validateWorkingDay(Employee $employee, ?Carbon $date = null): array
-    {
-        $date = $date ?? now('Asia/Makassar');
-        $dateStr = $date->toDateString(); // Format: "2025-02-01"
-
-        // ===== CHECK BYPASS CONDITIONS =====
-        $user = auth()->user();
-        if ($this->canBypassValidation($user, $employee, 'working_day_validation')) {
-            return [
-                'valid' => true,
-                'message' => null,
-                'schedule' => null,
-                'bypass' => true,
-            ];
-        }
-
-        // ===== WORKING DAY VALIDATION (if not bypassed) =====
-
-        // Check if working day validation is enabled
-        if (!config('attendance.validate_working_days', true)) {
-            return [
-                'valid' => true,
-                'message' => null,
-                'schedule' => null,
-            ];
-        }
-
-        // Get employee's schedule
-        $schedule = $this->getEmployeeScheduleForDate($employee, $date);
-
-        // If no schedule assigned, REJECT attendance (strict mode for regular employees)
-        if (!$schedule) {
-            return [
-                'valid' => false,
-                'message' => 'Anda belum memiliki jadwal kerja untuk bulan ini. Silakan hubungi admin untuk pengaturan jadwal.',
-                'schedule' => null,
-            ];
-        }
-
-        // Check if today is in the working_days array
-        $workingDays = $schedule->working_days ?? [];
-        $isWorkingDay = in_array($dateStr, $workingDays);
-
-        if (!$isWorkingDay) {
-            return [
-                'valid' => false,
-                'message' => 'Hari ini bukan hari kerja menurut jadwal Anda. Silakan hubungi admin jika terjadi kesalahan.',
-                'schedule' => $schedule,
-            ];
-        }
-
-        return [
-            'valid' => true,
-            'message' => null,
-            'schedule' => $schedule,
-        ];
-    }
-
-    /**
-     * Validate if current time is within check-in window
-     *
-     * @param MonthlySchedule|null $schedule
-     * @param Carbon|null $time
-     * @return array ['valid' => bool, 'message' => string|null, 'is_late' => bool]
-     */
-    private function validateCheckInWindow(?MonthlySchedule $schedule, ?Carbon $time = null): array
-    {
-        // Check if time window validation is enabled
-        if (!config('attendance.validate_time_windows', true)) {
-            return [
-                'valid' => true,
-                'message' => null,
-                'is_late' => false,
-            ];
-        }
-
-        // ===== BYPASS FOR ADMIN ROLES (No schedule = admin bypass) =====
-        if (!$schedule) {
-            return [
-                'valid' => true,
-                'message' => null,
-                'is_late' => false,
-                'bypass' => true,
-            ];
-        }
-
-        $time = $time ?? now('Asia/Makassar');
-        $currentTime = $time->format('H:i:s');
-
-        // Parse schedule times
-        $checkinStart = Carbon::createFromFormat('H:i', $schedule->checkin_start_time)->format('H:i:s');
-        $checkinEnd = Carbon::createFromFormat('H:i', $schedule->checkin_end_time)->format('H:i:s');
-        $workStart = Carbon::createFromFormat('H:i', $schedule->default_start_time)->format('H:i:s');
-
-        // Check if within allowed window
-        if ($currentTime < $checkinStart) {
-            return [
-                'valid' => false,
-                'message' => "Check-in hanya diperbolehkan mulai pukul {$schedule->checkin_start_time}. Saat ini terlalu awal.",
-                'is_late' => false,
-            ];
-        }
-
-        if ($currentTime > $checkinEnd) {
-            return [
-                'valid' => false,
-                'message' => "Window check-in telah berakhir pada pukul {$schedule->checkin_end_time}. Silakan hubungi admin.",
-                'is_late' => true,
-            ];
-        }
-
-        // Check if late (after work start time)
-        $isLate = $currentTime > $workStart;
-
-        return [
-            'valid' => true,
-            'message' => $isLate ? "Anda terlambat. Jam kerja dimulai pada {$schedule->default_start_time}." : null,
-            'is_late' => $isLate,
-        ];
-    }
-
-    /**
-     * Validate if current time is within check-out window
-     *
-     * @param MonthlySchedule|null $schedule
-     * @param Carbon|null $time
-     * @return array ['valid' => bool, 'message' => string|null, 'is_early' => bool]
-     */
-    private function validateCheckOutWindow(?MonthlySchedule $schedule, ?Carbon $time = null): array
-    {
-        // Check if time window validation is enabled
-        if (!config('attendance.validate_time_windows', true)) {
-            return [
-                'valid' => true,
-                'message' => null,
-                'is_early' => false,
-            ];
-        }
-
-        // ===== BYPASS FOR ADMIN ROLES (No schedule = admin bypass) =====
-        if (!$schedule) {
-            return [
-                'valid' => true,
-                'message' => null,
-                'is_early' => false,
-                'bypass' => true,
-            ];
-        }
-
-        $time = $time ?? now('Asia/Makassar');
-        $currentTime = $time->format('H:i:s');
-
-        // Parse schedule times
-        $checkoutStart = Carbon::createFromFormat('H:i', $schedule->checkout_start_time)->format('H:i:s');
-        $checkoutEnd = Carbon::createFromFormat('H:i', $schedule->checkout_end_time)->format('H:i:s');
-        $workEnd = Carbon::createFromFormat('H:i', $schedule->default_end_time)->format('H:i:s');
-
-        // Check if within allowed window
-        if ($currentTime < $checkoutStart) {
-            return [
-                'valid' => false,
-                'message' => "Check-out hanya diperbolehkan mulai pukul {$schedule->checkout_start_time}. Saat ini terlalu awal.",
-                'is_early' => true,
-            ];
-        }
-
-        if ($currentTime > $checkoutEnd) {
-            return [
-                'valid' => false,
-                'message' => "Window check-out telah berakhir pada pukul {$schedule->checkout_end_time}. Silakan hubungi admin.",
-                'is_early' => false,
-            ];
-        }
-
-        // Check if early (before work end time)
-        $isEarly = $currentTime < $workEnd;
-
-        return [
-            'valid' => true,
-            'message' => $isEarly ? "Anda pulang lebih awal. Jam kerja berakhir pada {$schedule->default_end_time}." : null,
-            'is_early' => $isEarly,
-        ];
-    }
-
-    /**
      * Get attendance details.
      */
     public function getAttendanceDetails(Attendance $attendance)
@@ -1012,82 +589,14 @@ class AttendanceController extends Controller
                 ->orderBy('check_in_time', 'desc');
 
             // Apply filters
-            if ($request->has('employee_id') && $request->employee_id) {
-                $query->where('employee_id', $request->employee_id);
-            }
-
-            if ($request->has('start_date') && $request->start_date) {
-                $query->whereDate('date', '>=', $request->start_date);
-            }
-
-            if ($request->has('end_date') && $request->end_date) {
-                $query->whereDate('date', '<=', $request->end_date);
-            }
+            $filters = $request->only(['employee_id', 'start_date', 'end_date']);
+            $query = $this->dataTableService->applyFilters($query, $filters);
 
             if ($request->has('status') && $request->status) {
                 $query->where('status', $request->status);
             }
 
-            $attendances = $query->get();
-
-            // Create CSV content
-            $csvData = [];
-            $csvData[] = [
-                'Date',
-                'Employee Name',
-                'Employee ID',
-                'Check In Time',
-                'Check Out Time',
-                'Total Hours',
-                'Status',
-                'Location Verified',
-                'Check In Confidence',
-                'Check Out Confidence',
-                'Notes',
-            ];
-
-            foreach ($attendances as $attendance) {
-                $csvData[] = [
-                    $attendance->date->format('Y-m-d'),
-                    $attendance->employee->full_name,
-                    $attendance->employee->employee_id,
-                    $attendance->check_in_time?->format('Y-m-d H:i:s') ?? '',
-                    $attendance->check_out_time?->format('Y-m-d H:i:s') ?? '',
-                    $attendance->total_hours ?? 0,
-                    ucfirst(str_replace('_', ' ', $attendance->status)),
-                    $attendance->location_verified ? 'Yes' : 'No',
-                    $attendance->check_in_confidence
-                    ? round($attendance->check_in_confidence * 100, 1) . '%'
-                    : '',
-                    $attendance->check_out_confidence
-                    ? round($attendance->check_out_confidence * 100, 1) . '%'
-                    : '',
-                    trim(($attendance->check_in_notes ?? '') . ' ' . ($attendance->check_out_notes ?? '')),
-                ];
-            }
-
-            // Generate filename
-            $filename = 'attendance_export_' . now()->format('Y-m-d_H-i-s') . '.csv';
-
-            // Create response
-            $response = response()->streamDownload(
-                function () use ($csvData) {
-                    $handle = fopen('php://output', 'w');
-
-                    foreach ($csvData as $row) {
-                        fputcsv($handle, $row);
-                    }
-
-                    fclose($handle);
-                },
-                $filename,
-                [
-                    'Content-Type' => 'text/csv',
-                    'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-                ],
-            );
-
-            return $response;
+            return $this->exportImportService->exportToCSV($query);
         } catch (\Exception $e) {
             return response()->json(
                 [
@@ -1106,30 +615,7 @@ class AttendanceController extends Controller
     {
         try {
             $format = $request->get('format', 'excel');
-
-            if ($format === 'excel') {
-                return Excel::download(new AttendanceExportTemplate(), 'attendance_import_template.xlsx');
-            } else {
-                // Generate CSV template
-                $csvData = [
-                    ['Employee ID', 'Date', 'Check In', 'Check Out', 'Status', 'Working Hours', 'Notes', 'Reason'],
-                    ['EMP001', '2025-01-20', '08:00', '17:00', 'present', '9.0', 'Regular working day', 'Bulk import example'],
-                    ['EMP002', '2025-01-20', '08:30', '17:30', 'late', '9.0', 'Late arrival', 'Traffic jam'],
-                    ['EMP003', '2025-01-20', '09:00', '', 'incomplete', '', 'Forgot to check out', 'System issue']
-                ];
-
-                return response()->streamDownload(
-                    function () use ($csvData) {
-                        $handle = fopen('php://output', 'w');
-                        foreach ($csvData as $row) {
-                            fputcsv($handle, $row);
-                        }
-                        fclose($handle);
-                    },
-                    'attendance_import_template.csv',
-                    ['Content-Type' => 'text/csv']
-                );
-            }
+            return $this->exportImportService->downloadTemplate($format);
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Failed to download template: ' . $e->getMessage());
         }
@@ -1141,7 +627,7 @@ class AttendanceController extends Controller
     public function importAttendance(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'file' => 'required|file|mimes:csv,xlsx,xls|max:10240', // Max 10MB
+            'file' => 'required|file|mimes:csv,xlsx,xls|max:10240',
             'skip_duplicates' => 'boolean',
             'update_existing' => 'boolean',
             'validate_employees' => 'boolean',
@@ -1163,41 +649,13 @@ class AttendanceController extends Controller
                 'validate_employees' => $request->boolean('validate_employees', true),
             ];
 
-            $import = new AttendanceImport($options);
-            Excel::import($import, $file);
-
-            $results = $import->getResults();
-
-            $message = "Import completed! {$results['success']} records imported successfully.";
-
-            if ($results['skipped'] > 0) {
-                $message .= " {$results['skipped']} records skipped.";
-            }
-
-            if (count($results['errors']) > 0) {
-                $message .= " " . count($results['errors']) . " errors occurred.";
-            }
-
-            $responseData = [
-                'success' => true,
-                'message' => $message,
-                'data' => [
-                    'summary' => [
-                        'total_processed' => $results['success'] + $results['skipped'] + count($results['errors']),
-                        'successful' => $results['success'],
-                        'skipped' => $results['skipped'],
-                        'failed' => count($results['errors']),
-                    ],
-                    'errors' => $results['errors'],
-                    'warnings' => $results['warnings'] ?? []
-                ]
-            ];
+            $result = $this->exportImportService->importAttendance($file, $options);
 
             if ($request->expectsJson()) {
-                return response()->json($responseData);
+                return response()->json($result);
             }
 
-            return redirect()->back()->with('success', $message);
+            return redirect()->back()->with('success', $result['message']);
 
         } catch (\Exception $e) {
             $errorMessage = 'Import failed: ' . $e->getMessage();

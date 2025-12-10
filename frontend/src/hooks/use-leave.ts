@@ -100,59 +100,59 @@ export function useCreateLeaveRequest() {
 // Cancel leave request mutation
 export function useCancelLeaveRequest() {
   const queryClient = useQueryClient();
-  const { success, error } = useNotificationStore();
+  const { success } = useNotificationStore();
 
   return useMutation({
     mutationFn: (id: string) => cancelLeaveRequest(id),
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: leaveKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: leaveKeys.detail(id) });
-      queryClient.invalidateQueries({ queryKey: leaveKeys.balance() });
-      queryClient.invalidateQueries({ queryKey: leaveKeys.statistics() });
+    onSuccess: async (_, id) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: leaveKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: leaveKeys.detail(id) }),
+        queryClient.invalidateQueries({ queryKey: leaveKeys.balance() }),
+        queryClient.invalidateQueries({ queryKey: leaveKeys.statistics() }),
+      ]);
       success('Berhasil', 'Pengajuan cuti berhasil dibatalkan');
     },
-    onError: (err: Error) => {
-      error('Gagal', err.message || 'Gagal membatalkan pengajuan cuti');
-    },
+    // onError removed - global error handler will catch it
   });
 }
 
 // Approve leave request mutation
 export function useApproveLeaveRequest() {
   const queryClient = useQueryClient();
-  const { success, error } = useNotificationStore();
+  const { success } = useNotificationStore();
 
   return useMutation({
     mutationFn: ({ id, notes }: { id: string; notes?: string }) => approveLeaveRequest(id, notes),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: leaveKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: leaveKeys.detail(id) });
-      queryClient.invalidateQueries({ queryKey: leaveKeys.pending() });
-      queryClient.invalidateQueries({ queryKey: leaveKeys.statistics() });
+    onSuccess: async (_, { id }) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: leaveKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: leaveKeys.detail(id) }),
+        queryClient.invalidateQueries({ queryKey: leaveKeys.pending() }),
+        queryClient.invalidateQueries({ queryKey: leaveKeys.statistics() }),
+      ]);
       success('Berhasil', 'Pengajuan cuti berhasil disetujui');
     },
-    onError: (err: Error) => {
-      error('Gagal', err.message || 'Gagal menyetujui pengajuan cuti');
-    },
+    // onError removed - global error handler will catch it
   });
 }
 
 // Reject leave request mutation
 export function useRejectLeaveRequest() {
   const queryClient = useQueryClient();
-  const { success, error } = useNotificationStore();
+  const { success } = useNotificationStore();
 
   return useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) => rejectLeaveRequest(id, reason),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: leaveKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: leaveKeys.detail(id) });
-      queryClient.invalidateQueries({ queryKey: leaveKeys.pending() });
-      queryClient.invalidateQueries({ queryKey: leaveKeys.statistics() });
+    onSuccess: async (_, { id }) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: leaveKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: leaveKeys.detail(id) }),
+        queryClient.invalidateQueries({ queryKey: leaveKeys.pending() }),
+        queryClient.invalidateQueries({ queryKey: leaveKeys.statistics() }),
+      ]);
       success('Berhasil', 'Pengajuan cuti berhasil ditolak');
     },
-    onError: (err: Error) => {
-      error('Gagal', err.message || 'Gagal menolak pengajuan cuti');
-    },
+    // onError removed - global error handler will catch it
   });
 }

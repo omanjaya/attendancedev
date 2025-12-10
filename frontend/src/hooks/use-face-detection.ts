@@ -99,35 +99,27 @@ export function useFaceDetection(options: UseFaceDetectionOptions = {}): UseFace
     stopDetection();
   }, []);
 
-  // Detection loop
+  // Detection loop - simplified for DeepFace backend
+  // Since actual detection is done server-side, this just provides a visual guide
   const detectLoop = useCallback(async () => {
     if (!isDetectingRef.current || !videoRef.current || !canvasRef.current) {
       return;
     }
 
     try {
-      // Use fast detection for the preview loop
-      const detected = await faceDetectionService.detectFacesFast(videoRef.current);
-      setDetections(detected);
-
-      if (detected.length === 0) {
-        setDetectionStatus('no_face');
-        setConfidence(0);
-      } else if (detected.length > 1) {
-        setDetectionStatus('multiple_faces');
-        setConfidence(0);
-      } else {
-        setDetectionStatus('detected');
-        setConfidence(detected[0].detection.score);
-      }
-
-      // Draw detections on canvas
+      // For DeepFace backend, we simulate detection being "active" when camera is ready
+      // Actual face detection/recognition happens server-side when image is captured
       const displaySize = faceDetectionService.getDisplaySize(videoRef.current);
-      canvasRef.current.width = displaySize.width;
-      canvasRef.current.height = displaySize.height;
-      faceDetectionService.drawDetections(canvasRef.current, detected, displaySize);
 
-      onDetection?.(detected);
+      // Draw face guide on canvas (oval outline to help user position face)
+      faceDetectionService.drawFaceGuide(canvasRef.current, displaySize, true);
+
+      // Simulate detection status based on camera being active
+      setDetectionStatus('detected');
+      setConfidence(0.9); // High confidence when camera is active
+      setDetections([]);
+
+      onDetection?.([]);
     } catch (err) {
       setDetectionStatus('error');
       console.error('Detection error:', err);
@@ -162,7 +154,7 @@ export function useFaceDetection(options: UseFaceDetectionOptions = {}): UseFace
     setDetections([]);
   }, []);
 
-  // Capture face descriptor
+  // Capture face descriptor - now just captures image for server-side processing
   const captureDescriptor = useCallback(
     async (): Promise<FaceData> => {
       if (!videoRef.current) {
@@ -171,10 +163,19 @@ export function useFaceDetection(options: UseFaceDetectionOptions = {}): UseFace
 
       setIsProcessing(true);
       try {
-        const faceData = await faceDetectionService.captureFaceDescriptor(
-          videoRef.current
-        );
-        return faceData;
+        // Capture image file for server-side processing
+        const imageFile = await faceDetectionService.captureImage(videoRef.current);
+
+        // Return face data structure (descriptor will be computed server-side)
+        return {
+          descriptor: [], // Empty - will be computed by DeepFace
+          confidence: 0.9,
+          face_bounds: { x: 0, y: 0, width: 0, height: 0 },
+          timestamp: Date.now(),
+          landmarks: undefined,
+          expressions: undefined,
+          imageData: await fileToBase64(imageFile),
+        } as FaceData & { imageData: string };
       } finally {
         setIsProcessing(false);
       }
@@ -182,16 +183,23 @@ export function useFaceDetection(options: UseFaceDetectionOptions = {}): UseFace
     []
   );
 
-  // Recognize face
+  // Recognize face - now returns a placeholder since actual recognition is server-side
   const recognizeFace = useCallback(
-    async (knownDescriptors: KnownFaceDescriptor[]): Promise<RecognitionResult> => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    async (_knownDescriptors: KnownFaceDescriptor[]): Promise<RecognitionResult> => {
       if (!videoRef.current) {
         return { success: false, message: 'Video not ready', confidence: 0 };
       }
 
       setIsProcessing(true);
       try {
-        return await faceDetectionService.recognizeFace(videoRef.current, knownDescriptors);
+        // Face recognition is handled server-side with DeepFace
+        // This function is kept for interface compatibility
+        return {
+          success: false,
+          message: 'Use server-side face recognition via API',
+          confidence: 0,
+        };
       } finally {
         setIsProcessing(false);
       }
@@ -231,6 +239,16 @@ export function useFaceDetection(options: UseFaceDetectionOptions = {}): UseFace
     recognizeFace,
     clearError,
   };
+}
+
+// Helper function to convert File to base64
+async function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 export default useFaceDetection;

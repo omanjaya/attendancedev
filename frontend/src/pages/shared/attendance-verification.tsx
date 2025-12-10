@@ -10,11 +10,11 @@ import {
     Navigation,
     User,
     AlertTriangle,
+    ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { verifyLocation } from '@/lib/api/attendance';
-import { verifyFaceDeepFace } from '@/lib/api/face-recognition';
 import { checkIn, checkOut } from '@/lib/api/attendance';
 import { useAuthStore } from '@/stores';
 import { AutoCaptureFace } from '@/components/attendance/auto-capture-face';
@@ -23,7 +23,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getEmployeeDashboardData } from '@/lib/api/employees';
 import type { CheckRequest } from '@/types/attendance';
 
-type Step = 'location' | 'face' | 'submitting' | 'success' | 'error';
+type Step = 'location' | 'location_verified' | 'face' | 'submitting' | 'success' | 'error';
 
 interface VerificationState {
     step: Step;
@@ -146,17 +146,8 @@ export function AttendanceVerificationPage() {
                                 locationName: result.location?.name || null,
                                 message: 'Lokasi terverifikasi!',
                                 progress: 40,
+                                step: 'location_verified', // Show button instead of auto-transition
                             }));
-
-                            // Auto-transition to face after 800ms
-                            setTimeout(() => {
-                                setState(prev => ({
-                                    ...prev,
-                                    step: 'face',
-                                    message: 'Posisikan wajah Anda...',
-                                    progress: 50,
-                                }));
-                            }, 800);
                         } else {
                             setState(prev => ({
                                 ...prev,
@@ -200,7 +191,17 @@ export function AttendanceVerificationPage() {
         }
     }, [state.step, scheduleChecked, isLoadingSchedule]);
 
-    // Face captured handler
+    // Handler for "Lanjut" button after location verified
+    const handleContinueToFace = useCallback(() => {
+        setState(prev => ({
+            ...prev,
+            step: 'face',
+            message: 'Silakan Senyum 😊',
+            progress: 50,
+        }));
+    }, []);
+
+    // Face captured handler - verify face with DeepFace after liveness check
     const onFaceCaptured = useCallback(async (videoElement: HTMLVideoElement) => {
         setState(prev => ({
             ...prev,
@@ -239,6 +240,8 @@ export function AttendanceVerificationPage() {
             const imageFile = new File([blob], 'capture.jpg', { type: 'image/jpeg' });
 
             try {
+                // Import and call verifyFaceDeepFace
+                const { verifyFaceDeepFace } = await import('@/lib/api/face-recognition');
                 const result = await verifyFaceDeepFace(imageFile);
                 const resultData = result.data || result;
                 const employee = result.employee || resultData.employee || resultData.employee_data;
@@ -254,7 +257,7 @@ export function AttendanceVerificationPage() {
                         progress: 90,
                     }));
 
-                    // Auto submit after short delay
+                    // Auto submit after face verified
                     setTimeout(() => submitAttendance(), 500);
                 } else {
                     setState(prev => ({
@@ -277,7 +280,7 @@ export function AttendanceVerificationPage() {
         }, 'image/jpeg', 0.95);
     }, []);
 
-    // Submit attendance
+    // Submit attendance - use stored location from state (no need to re-fetch GPS)
     const submitAttendance = async (forceOverwrite: boolean = false) => {
         setState(prev => ({
             ...prev,
@@ -296,27 +299,29 @@ export function AttendanceVerificationPage() {
             return;
         }
 
-        try {
-            // Fresh location for submission
-            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(resolve, reject, {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0,
-                });
-            });
+        // Use stored location from state (already verified)
+        if (!state.latitude || !state.longitude) {
+            setState(prev => ({
+                ...prev,
+                step: 'error',
+                faceError: 'Data lokasi tidak tersedia',
+                message: 'Error lokasi',
+            }));
+            return;
+        }
 
+        try {
             const attendanceData: CheckRequest = {
                 employee_id: user.employee.id,
                 action: type === 'check-in' ? 'check_in' : 'check_out',
                 location: {
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude,
+                    latitude: state.latitude,
+                    longitude: state.longitude,
                 },
                 type: type === 'check-in' ? 'check_in' : 'check_out',
                 face_confidence: state.confidence ?? 0,
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude,
+                latitude: state.latitude,
+                longitude: state.longitude,
                 notes: `${type === 'check-in' ? 'Check-in' : 'Check-out'} via unified verification`,
                 metadata: {
                     device: navigator.userAgent,
@@ -339,8 +344,7 @@ export function AttendanceVerificationPage() {
                 progress: 100,
             }));
 
-            // Auto-navigate after countdown
-            setCountdown(3);
+            // No auto countdown - user clicks "Selesai"
         } catch (error: any) {
             const errorMessage = error.response?.data?.message || 'Gagal menyimpan absensi';
 
@@ -363,14 +367,13 @@ export function AttendanceVerificationPage() {
         }
     };
 
-    // Countdown for success
+    // Countdown for success (optional - now user clicks Selesai)
     useEffect(() => {
         if (state.step === 'success' && countdown > 0) {
             const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
             return () => clearTimeout(timer);
-        } else if (state.step === 'success' && countdown === 0) {
-            handleBack();
         }
+        // Don't auto-navigate, let user click "Selesai"
     }, [state.step, countdown]);
 
     const handleBack = () => {
@@ -404,7 +407,7 @@ export function AttendanceVerificationPage() {
         submitAttendance(true);
     };
 
-    const stepNumber = state.step === 'location' ? 1 : state.step === 'face' ? 2 : 3;
+    const stepNumber = state.step === 'location' || state.step === 'location_verified' ? 1 : state.step === 'face' ? 2 : 3;
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-black flex flex-col">
@@ -484,6 +487,32 @@ export function AttendanceVerificationPage() {
                         </div>
                         <p className="text-white font-medium mt-6">{state.message}</p>
                         <p className="text-white/50 text-sm mt-2">Pastikan GPS aktif</p>
+                    </div>
+                )}
+
+                {/* Location Verified Step - Show "Lanjut" button */}
+                {state.step === 'location_verified' && (
+                    <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+                        <div className="h-24 w-24 rounded-full bg-emerald-500 flex items-center justify-center animate-in zoom-in">
+                            <CheckCircle2 className="h-12 w-12 text-white" />
+                        </div>
+                        <h2 className="text-white font-bold text-xl mt-6">Lokasi Terverifikasi</h2>
+                        <div className="flex items-center gap-2 mt-3 bg-white/10 px-4 py-2 rounded-full">
+                            <MapPin className="h-4 w-4 text-emerald-400" />
+                            <span className="text-emerald-400 text-sm">
+                                {state.locationName} • {state.distance?.toFixed(0)}m
+                            </span>
+                        </div>
+                        <p className="text-white/50 text-sm mt-4 max-w-xs">
+                            Lanjutkan untuk verifikasi liveness dengan senyuman
+                        </p>
+                        <Button
+                            className="mt-6 bg-emerald-600 hover:bg-emerald-700 px-8 py-3 text-lg"
+                            onClick={handleContinueToFace}
+                        >
+                            Lanjut
+                            <ChevronRight className="ml-2 h-5 w-5" />
+                        </Button>
                     </div>
                 )}
 

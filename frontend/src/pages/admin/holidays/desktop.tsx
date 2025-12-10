@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
     Calendar as CalendarIcon,
     Plus,
@@ -65,7 +65,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useHolidays } from '@/hooks/use-holidays';
+import { useHolidaysPage } from '@/hooks/use-holidays-page';
 import {
     holidayTypeLabels,
     holidayTypeColors,
@@ -75,7 +75,6 @@ import {
     type Holiday,
     type HolidayType,
     type HolidayFormData,
-    type HolidayStatistics,
 } from '@/types/holiday';
 import { GenerateHolidaysDialog } from './GenerateHolidaysDialog';
 
@@ -396,103 +395,36 @@ function HolidayFormDialog({
 }
 
 export function DesktopHolidaysPage() {
-    const {
-        isLoading,
-        holidays,
-        fetchHolidays,
-        createHoliday,
-        updateHoliday,
-        deleteHoliday,
-        cancelHoliday,
-        getStatistics,
-    } = useHolidays();
+    // Use shared hook for all logic
+    const logic = useHolidaysPage();
 
-    const [searchQuery, setSearchQuery] = useState('');
-    const [typeFilter, setTypeFilter] = useState<HolidayType | 'all'>('all');
-    const [yearFilter, setYearFilter] = useState(new Date().getFullYear());
+    // Desktop-specific state only
     const [isGenerateOpen, setIsGenerateOpen] = useState(false);
-    const [isFormOpen, setIsFormOpen] = useState(false);
-    const [editingHoliday, setEditingHoliday] = useState<Holiday | null>(null);
-    const [deletingHoliday, setDeletingHoliday] = useState<Holiday | null>(null);
-    const [stats, setStats] = useState<HolidayStatistics | null>(null);
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [activeTab, setActiveTab] = useState("list");
 
-    useEffect(() => {
-        fetchHolidays({ year: yearFilter });
-        getStatistics(yearFilter).then(setStats);
-    }, [fetchHolidays, yearFilter, getStatistics]);
-
-    const handleSearch = () => {
-        fetchHolidays({
-            type: typeFilter !== 'all' ? typeFilter : undefined,
-            year: yearFilter,
-            search: searchQuery || undefined,
-        });
-    };
-
-    useEffect(() => {
-        handleSearch();
-    }, [typeFilter, yearFilter]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    const handleCreate = async (data: HolidayFormData) => {
-        await createHoliday(data);
-        const newStats = await getStatistics(yearFilter);
-        setStats(newStats);
-    };
-
-    const handleUpdate = async (data: HolidayFormData) => {
-        if (editingHoliday) {
-            await updateHoliday(editingHoliday.id, data);
-            setEditingHoliday(null);
-            const newStats = await getStatistics(yearFilter);
-            setStats(newStats);
-        }
-    };
-
-    const handleDelete = async () => {
-        if (deletingHoliday) {
-            await deleteHoliday(deletingHoliday.id);
-            setDeletingHoliday(null);
-            const newStats = await getStatistics(yearFilter);
-            setStats(newStats);
-        }
-    };
-
-    const formatDate = (date: string) => {
-        return new Date(date).toLocaleDateString('id-ID', {
-            weekday: 'short',
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-        });
-    };
-
-    const currentYear = new Date().getFullYear();
-    const yearOptions = [currentYear - 1, currentYear, currentYear + 1];
-
-    const statsItems: StatItem[] = stats ? [
+    const statsItems: StatItem[] = logic.stats ? [
         {
             label: 'Tahun Ini',
-            value: stats.holidays_this_year,
+            value: logic.stats.holidays_this_year,
             icon: CalendarDays,
             color: 'primary',
         },
         {
             label: 'Bulan Ini',
-            value: stats.holidays_this_month,
+            value: logic.stats.holidays_this_month,
             icon: CalendarCheck,
             color: 'success',
         },
         {
             label: 'Berulang',
-            value: stats.recurring_holidays,
+            value: logic.stats.recurring_holidays,
             icon: Repeat,
             color: 'warning',
         },
         {
             label: 'Berbayar',
-            value: stats.paid_holidays,
+            value: logic.stats.paid_holidays,
             icon: CalendarIcon,
             color: 'info',
         },
@@ -511,8 +443,8 @@ export function DesktopHolidaysPage() {
                             Generate Otomatis
                         </Button>
                         <Button onClick={() => {
-                            setEditingHoliday(null);
-                            setIsFormOpen(true);
+                            logic.setEditingHoliday(null);
+                            logic.setIsFormOpen(true);
                         }}>
                             <Plus className="mr-2 h-4 w-4" />
                             Tambah Hari Libur
@@ -522,7 +454,7 @@ export function DesktopHolidaysPage() {
             />
 
             {/* Stats */}
-            {stats && <StatsGrid stats={statsItems} columns={4} variant="cards" />}
+            {logic.stats && <StatsGrid stats={statsItems} columns={4} variant="cards" />}
 
             <GenerateHolidaysDialog
                 open={isGenerateOpen}
@@ -546,20 +478,20 @@ export function DesktopHolidaysPage() {
                                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                         <Input
                                             placeholder="Cari hari libur..."
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                                            value={logic.searchQuery}
+                                            onChange={(e) => logic.setSearchQuery(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && logic.handleSearch()}
                                             className="pl-9"
                                         />
                                     </div>
-                                    <Button variant="outline" onClick={handleSearch}>
+                                    <Button variant="outline" onClick={logic.handleSearch}>
                                         Cari
                                     </Button>
                                 </div>
                                 <div className="flex gap-2">
                                     <Select
-                                        value={typeFilter}
-                                        onValueChange={(value) => setTypeFilter(value as HolidayType | 'all')}
+                                        value={logic.typeFilter}
+                                        onValueChange={(value) => logic.setTypeFilter(value as HolidayType | 'all')}
                                     >
                                         <SelectTrigger className="w-[160px]">
                                             <SelectValue placeholder="Semua Tipe" />
@@ -574,14 +506,14 @@ export function DesktopHolidaysPage() {
                                         </SelectContent>
                                     </Select>
                                     <Select
-                                        value={yearFilter.toString()}
-                                        onValueChange={(value) => setYearFilter(parseInt(value))}
+                                        value={logic.yearFilter.toString()}
+                                        onValueChange={(value) => logic.setYearFilter(parseInt(value))}
                                     >
                                         <SelectTrigger className="w-[100px]">
                                             <SelectValue placeholder="Tahun" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {yearOptions.map((year) => (
+                                            {logic.yearOptions.map((year) => (
                                                 <SelectItem key={year} value={year.toString()}>
                                                     {year}
                                                 </SelectItem>
@@ -598,15 +530,15 @@ export function DesktopHolidaysPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <CalendarDays className="h-5 w-5" />
-                                Daftar Hari Libur ({holidays.length})
+                                Daftar Hari Libur ({logic.holidays.length})
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            {isLoading ? (
+                            {logic.isLoading ? (
                                 <div className="flex items-center justify-center py-8">
                                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                                 </div>
-                            ) : holidays.length === 0 ? (
+                            ) : logic.holidays.length === 0 ? (
                                 <div className="py-8 text-center text-muted-foreground">
                                     Tidak ada hari libur ditemukan
                                 </div>
@@ -624,7 +556,7 @@ export function DesktopHolidaysPage() {
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {holidays.map((holiday) => (
+                                            {logic.holidays.map((holiday) => (
                                                 <TableRow key={holiday.id}>
                                                     <TableCell>
                                                         <div className="flex items-center gap-3">
@@ -644,10 +576,10 @@ export function DesktopHolidaysPage() {
                                                     </TableCell>
                                                     <TableCell>
                                                         <div className="text-sm">
-                                                            {formatDate(holiday.date)}
+                                                            {logic.formatDate(holiday.date)}
                                                             {holiday.end_date && holiday.end_date !== holiday.date && (
                                                                 <div className="text-muted-foreground">
-                                                                    s/d {formatDate(holiday.end_date)}
+                                                                    s/d {logic.formatDate(holiday.end_date)}
                                                                 </div>
                                                             )}
                                                         </div>
@@ -690,15 +622,15 @@ export function DesktopHolidaysPage() {
                                                             <DropdownMenuContent align="end">
                                                                 <DropdownMenuItem
                                                                     onClick={() => {
-                                                                        setEditingHoliday(holiday);
-                                                                        setIsFormOpen(true);
+                                                                        logic.setEditingHoliday(holiday);
+                                                                        logic.setIsFormOpen(true);
                                                                     }}
                                                                 >
                                                                     <Edit className="mr-2 h-4 w-4" />
                                                                     Edit
                                                                 </DropdownMenuItem>
                                                                 {holiday.status === 'active' && (
-                                                                    <DropdownMenuItem onClick={() => cancelHoliday(holiday.id)}>
+                                                                    <DropdownMenuItem onClick={() => logic.handleCancel(holiday.id)}>
                                                                         <XCircle className="mr-2 h-4 w-4" />
                                                                         Batalkan
                                                                     </DropdownMenuItem>
@@ -706,7 +638,7 @@ export function DesktopHolidaysPage() {
                                                                 <DropdownMenuSeparator />
                                                                 <DropdownMenuItem
                                                                     className="text-destructive"
-                                                                    onClick={() => setDeletingHoliday(holiday)}
+                                                                    onClick={() => logic.setDeletingHoliday(holiday)}
                                                                 >
                                                                     <Trash2 className="mr-2 h-4 w-4" />
                                                                     Hapus
@@ -726,7 +658,7 @@ export function DesktopHolidaysPage() {
 
                 <TabsContent value="calendar">
                     <CalendarView
-                        holidays={holidays}
+                        holidays={logic.holidays}
                         currentMonth={currentMonth}
                         onMonthChange={setCurrentMonth}
                     />
@@ -735,31 +667,31 @@ export function DesktopHolidaysPage() {
 
             {/* Holiday Form Dialog */}
             <HolidayFormDialog
-                key={`${isFormOpen}-${editingHoliday?.id || 'new'}`}
-                open={isFormOpen}
+                key={`${logic.isFormOpen}-${logic.editingHoliday?.id || 'new'}`}
+                open={logic.isFormOpen}
                 onOpenChange={(open) => {
-                    setIsFormOpen(open);
-                    if (!open) setEditingHoliday(null);
+                    logic.setIsFormOpen(open);
+                    if (!open) logic.setEditingHoliday(null);
                 }}
-                holiday={editingHoliday}
-                onSubmit={editingHoliday ? handleUpdate : handleCreate}
-                isLoading={isLoading}
+                holiday={logic.editingHoliday}
+                onSubmit={logic.editingHoliday ? logic.handleUpdate : logic.handleCreate}
+                isLoading={logic.isLoading}
             />
 
             {/* Delete Confirmation */}
-            <AlertDialog open={!!deletingHoliday} onOpenChange={() => setDeletingHoliday(null)}>
+            <AlertDialog open={!!logic.deletingHoliday} onOpenChange={() => logic.setDeletingHoliday(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Hapus Hari Libur?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Anda yakin ingin menghapus hari libur <strong>{deletingHoliday?.name}</strong>?
+                            Anda yakin ingin menghapus hari libur <strong>{logic.deletingHoliday?.name}</strong>?
                             Tindakan ini tidak dapat dibatalkan.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Batal</AlertDialogCancel>
                         <AlertDialogAction
-                            onClick={handleDelete}
+                            onClick={() => logic.handleDelete()}
                             className="bg-destructive hover:bg-destructive/90"
                         >
                             Hapus

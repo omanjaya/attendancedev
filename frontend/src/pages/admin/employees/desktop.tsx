@@ -64,9 +64,10 @@ import {
 } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PageHeader } from '@/components/shared';
-import { useEmployees, useDeleteEmployee } from '@/hooks/use-employees';
+import { useEmployees } from '@/hooks/use-employees';
+import { useEmployeesPage } from '@/hooks/use-employees-page';
 import { LoadingState } from '@/components/states';
-import { resetEmployeePassword, bulkEmployeeAction, type ResetPasswordResponse, type BulkActionResult } from '@/lib/api/employees';
+import { bulkEmployeeAction, type BulkActionResult } from '@/lib/api/employees';
 import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -76,24 +77,19 @@ import { importEmployees, getEmployeeTemplateUrl } from '@/lib/api/imports';
 export function DesktopEmployeesPage() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const [searchQuery, setSearchQuery] = useState('');
+
+    // Use shared hook for common logic
+    const logic = useEmployeesPage();
+
+    // Desktop-specific state
     const [currentPage, setCurrentPage] = useState(1);
     const perPage = 50;
 
     const { data: employeesData, isLoading, refetch } = useEmployees({
-        search: searchQuery,
+        search: logic.searchQuery,
         per_page: perPage,
         page: currentPage,
     });
-    const deleteEmployeeMutation = useDeleteEmployee();
-    const [employeeToDelete, setEmployeeToDelete] = useState<{ id: string; name: string } | null>(null);
-
-    // Reset password states
-    const [employeeToReset, setEmployeeToReset] = useState<{ id: string; name: string; email: string } | null>(null);
-    const [isResetting, setIsResetting] = useState(false);
-    const [resetResult, setResetResult] = useState<ResetPasswordResponse | null>(null);
-    const [showPassword, setShowPassword] = useState(false);
-    const [customPassword, setCustomPassword] = useState('');
 
     // Bulk selection states
     const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
@@ -135,53 +131,6 @@ export function DesktopEmployeesPage() {
         toast.success('Import berhasil!', {
             description: 'Data karyawan telah diperbarui.',
         });
-    };
-
-    const handleDelete = async () => {
-        if (!employeeToDelete) return;
-        try {
-            await deleteEmployeeMutation.mutateAsync(employeeToDelete.id);
-            setEmployeeToDelete(null);
-        } catch (error) {
-            console.error('Failed to delete employee:', error);
-        }
-    };
-
-    const handleResetPassword = async () => {
-        if (!employeeToReset) return;
-
-        setIsResetting(true);
-        try {
-            const result = await resetEmployeePassword(
-                employeeToReset.id,
-                customPassword || undefined
-            );
-            setResetResult(result);
-            toast.success('Password berhasil direset!', {
-                description: 'Password baru telah dibuat.',
-            });
-        } catch (error) {
-            console.error('Failed to reset password:', error);
-            toast.error('Gagal mereset password', {
-                description: error instanceof Error ? error.message : 'Terjadi kesalahan.',
-            });
-        } finally {
-            setIsResetting(false);
-        }
-    };
-
-    const handleCopyPassword = () => {
-        if (resetResult?.temporary_password) {
-            navigator.clipboard.writeText(resetResult.temporary_password);
-            toast.success('Password disalin ke clipboard');
-        }
-    };
-
-    const handleCloseResetDialog = () => {
-        setEmployeeToReset(null);
-        setResetResult(null);
-        setCustomPassword('');
-        setShowPassword(false);
     };
 
     // Bulk selection handlers
@@ -261,16 +210,6 @@ export function DesktopEmployeesPage() {
     const handlePageChange = (page: number) => {
         setCurrentPage(page);
         setSelectedEmployees([]); // Clear selection when changing page
-    };
-
-    const getInitials = (name: string) => {
-        if (!name) return '??';
-        return name
-            .split(' ')
-            .map((n) => n[0])
-            .join('')
-            .toUpperCase()
-            .slice(0, 2);
     };
 
     const getStatusBadge = (status: string) => {
@@ -401,8 +340,8 @@ export function DesktopEmployeesPage() {
                                         type="search"
                                         placeholder="Cari nama, NIP, atau email..."
                                         className="pl-9 w-full bg-background/50 border-muted-foreground/20 focus:bg-background transition-all"
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        value={logic.searchQuery}
+                                        onChange={(e) => logic.setSearchQuery(e.target.value)}
                                     />
                                 </div>
                                 <Button variant="outline" size="icon" className="shrink-0 bg-background/50 border-muted-foreground/20">
@@ -480,8 +419,8 @@ export function DesktopEmployeesPage() {
                                     <Users className="h-8 w-8 text-muted-foreground/50" />
                                 </div>
                                 <p>Tidak ada data karyawan ditemukan</p>
-                                {searchQuery && (
-                                    <Button variant="link" onClick={() => setSearchQuery('')} className="text-primary">
+                                {logic.searchQuery && (
+                                    <Button variant="link" onClick={() => logic.setSearchQuery('')} className="text-primary">
                                         Hapus pencarian
                                     </Button>
                                 )}
@@ -523,7 +462,7 @@ export function DesktopEmployeesPage() {
                                                     <Avatar className="h-10 w-10 border-2 border-background shadow-sm group-hover:scale-105 transition-transform">
                                                         <AvatarImage src={employee.avatar || undefined} alt={employee.name} className="object-cover" />
                                                         <AvatarFallback className="bg-primary/10 text-primary font-medium">
-                                                            {getInitials(employee.name)}
+                                                            {logic.getInitials(employee.name)}
                                                         </AvatarFallback>
                                                     </Avatar>
                                                     <div>
@@ -585,7 +524,7 @@ export function DesktopEmployeesPage() {
                                                         <DropdownMenuSeparator />
                                                         <DropdownMenuItem
                                                             className="cursor-pointer"
-                                                            onClick={() => setEmployeeToReset({
+                                                            onClick={() => logic.setEmployeeToReset({
                                                                 id: employee.id,
                                                                 name: employee.name,
                                                                 email: employee.email
@@ -597,7 +536,7 @@ export function DesktopEmployeesPage() {
                                                         <DropdownMenuSeparator />
                                                         <DropdownMenuItem
                                                             className="text-destructive focus:text-destructive cursor-pointer"
-                                                            onClick={() => setEmployeeToDelete({ id: employee.id, name: employee.name })}
+                                                            onClick={() => logic.setEmployeeToDelete({ id: employee.id, name: employee.name })}
                                                         >
                                                             <Trash2 className="mr-2 h-4 w-4" />
                                                             Hapus
@@ -669,30 +608,30 @@ export function DesktopEmployeesPage() {
             </div>
 
             {/* Delete Confirmation Dialog */}
-            <AlertDialog open={!!employeeToDelete} onOpenChange={(open) => !open && setEmployeeToDelete(null)}>
+            <AlertDialog open={!!logic.employeeToDelete} onOpenChange={(open) => !open && logic.setEmployeeToDelete(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Hapus Karyawan?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Apakah Anda yakin ingin menghapus karyawan <strong>{employeeToDelete?.name}</strong>?
+                            Apakah Anda yakin ingin menghapus karyawan <strong>{logic.employeeToDelete?.name}</strong>?
                             Tindakan ini tidak dapat dibatalkan dan akan menghapus semua data terkait.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Batal</AlertDialogCancel>
                         <AlertDialogAction
-                            onClick={handleDelete}
+                            onClick={() => logic.handleDelete()}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            disabled={deleteEmployeeMutation.isPending}
+                            disabled={logic.deleteEmployeeMutation.isPending}
                         >
-                            {deleteEmployeeMutation.isPending ? 'Menghapus...' : 'Hapus'}
+                            {logic.deleteEmployeeMutation.isPending ? 'Menghapus...' : 'Hapus'}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
 
             {/* Reset Password Dialog */}
-            <Dialog open={!!employeeToReset} onOpenChange={(open) => !open && handleCloseResetDialog()}>
+            <Dialog open={!!logic.employeeToReset} onOpenChange={(open) => !open && logic.handleCloseResetDialog()}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
@@ -700,16 +639,16 @@ export function DesktopEmployeesPage() {
                             Reset Password
                         </DialogTitle>
                         <DialogDescription>
-                            Reset password untuk karyawan <strong>{employeeToReset?.name}</strong>
-                            {employeeToReset?.email && (
+                            Reset password untuk karyawan <strong>{logic.employeeToReset?.name}</strong>
+                            {logic.employeeToReset?.email && (
                                 <span className="block text-xs text-muted-foreground mt-1">
-                                    ({employeeToReset.email})
+                                    ({logic.employeeToReset.email})
                                 </span>
                             )}
                         </DialogDescription>
                     </DialogHeader>
 
-                    {resetResult ? (
+                    {logic.resetResult ? (
                         // Show result after reset
                         <div className="space-y-4 py-4">
                             <div className="rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-4">
@@ -719,8 +658,8 @@ export function DesktopEmployeesPage() {
                                 <div className="flex items-center gap-2">
                                     <div className="flex-1 relative">
                                         <Input
-                                            type={showPassword ? 'text' : 'password'}
-                                            value={resetResult.temporary_password}
+                                            type={logic.showPassword ? 'text' : 'password'}
+                                            value={logic.resetResult.temporary_password}
                                             readOnly
                                             className="pr-20 font-mono bg-white dark:bg-gray-900"
                                         />
@@ -730,16 +669,16 @@ export function DesktopEmployeesPage() {
                                                 variant="ghost"
                                                 size="icon"
                                                 className="h-7 w-7"
-                                                onClick={() => setShowPassword(!showPassword)}
+                                                onClick={() => logic.setShowPassword(!logic.showPassword)}
                                             >
-                                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                {logic.showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                             </Button>
                                             <Button
                                                 type="button"
                                                 variant="ghost"
                                                 size="icon"
                                                 className="h-7 w-7"
-                                                onClick={handleCopyPassword}
+                                                onClick={logic.handleCopyPassword}
                                             >
                                                 <Copy className="h-4 w-4" />
                                             </Button>
@@ -762,10 +701,10 @@ export function DesktopEmployeesPage() {
                                 <div className="relative">
                                     <Input
                                         id="custom-password"
-                                        type={showPassword ? 'text' : 'password'}
+                                        type={logic.showPassword ? 'text' : 'password'}
                                         placeholder="Kosongkan untuk generate otomatis..."
-                                        value={customPassword}
-                                        onChange={(e) => setCustomPassword(e.target.value)}
+                                        value={logic.customPassword}
+                                        onChange={(e) => logic.setCustomPassword(e.target.value)}
                                         className="pr-10"
                                     />
                                     <Button
@@ -773,9 +712,9 @@ export function DesktopEmployeesPage() {
                                         variant="ghost"
                                         size="icon"
                                         className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                                        onClick={() => setShowPassword(!showPassword)}
+                                        onClick={() => logic.setShowPassword(!logic.showPassword)}
                                     >
-                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        {logic.showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                     </Button>
                                 </div>
                                 <p className="text-xs text-muted-foreground">
@@ -791,20 +730,20 @@ export function DesktopEmployeesPage() {
                     )}
 
                     <DialogFooter>
-                        {resetResult ? (
-                            <Button onClick={handleCloseResetDialog} className="w-full">
+                        {logic.resetResult ? (
+                            <Button onClick={logic.handleCloseResetDialog} className="w-full">
                                 Selesai
                             </Button>
                         ) : (
                             <>
-                                <Button variant="outline" onClick={handleCloseResetDialog} disabled={isResetting}>
+                                <Button variant="outline" onClick={logic.handleCloseResetDialog} disabled={logic.isResetting}>
                                     Batal
                                 </Button>
                                 <Button
-                                    onClick={handleResetPassword}
-                                    disabled={isResetting || (customPassword.length > 0 && customPassword.length < 8)}
+                                    onClick={logic.handleResetPassword}
+                                    disabled={logic.isResetting || (logic.customPassword.length > 0 && logic.customPassword.length < 8)}
                                 >
-                                    {isResetting ? 'Mereset...' : 'Reset Password'}
+                                    {logic.isResetting ? 'Mereset...' : 'Reset Password'}
                                 </Button>
                             </>
                         )}

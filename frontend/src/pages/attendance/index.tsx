@@ -24,7 +24,6 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { DataTable, PageHeader, StatsGrid, type Column, type StatItem } from '@/components/shared';
-import { ResponsiveDataView } from '@/components/mobile';
 import { useAttendance, useAttendanceStatistics } from '@/hooks';
 import type { Attendance, AttendanceStatus, AttendanceFilters } from '@/types';
 import { AttendanceBadge, StatusBadge } from '@/components/status';
@@ -229,74 +228,23 @@ function DesktopAttendancePage() {
             {/* Data Table / Mobile Cards */}
             <Card>
                 <CardContent className="p-4">
-                    <ResponsiveDataView
-                        items={filteredData}
-                        renderCard={(attendance) => (
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-3">
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                                        <span className="text-sm font-medium text-primary">
-                                            {(attendance.employee_name || '').split(' ').map((n) => n[0]).join('').slice(0, 2)}
-                                        </span>
-                                    </div>
-                                    <div className="flex-1">
-                                        <p className="font-medium text-foreground">{attendance.employee_name}</p>
-                                        <p className="text-xs text-muted-foreground">
-                                            {new Date(attendance.date).toLocaleDateString('id-ID', {
-                                                day: 'numeric',
-                                                month: 'short',
-                                                year: 'numeric',
-                                            })}
-                                        </p>
-                                    </div>
-                                    {getStatusBadge(attendance.status)}
-                                </div>
-                                <div className="grid grid-cols-2 gap-2 pl-[52px]">
-                                    <div className="flex items-center gap-1 text-sm">
-                                        <LogIn className="h-3 w-3 text-success" />
-                                        <span>{attendance.check_in || '-'}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1 text-sm">
-                                        <LogOut className="h-3 w-3 text-primary" />
-                                        <span>{attendance.check_out || '-'}</span>
-                                    </div>
-                                    {attendance.work_hours && (
-                                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                            <Clock className="h-3 w-3" />
-                                            <span>{attendance.work_hours.toFixed(1)} jam</span>
-                                        </div>
-                                    )}
-                                    {attendance.face_verified && (
-                                        <div className="flex items-center gap-1 text-sm text-success">
-                                            <ScanFace className="h-3 w-3" />
-                                            <span>Verified</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                        desktopView={
-                            <DataTable
-                                columns={columns}
-                                data={filteredData}
-                                searchPlaceholder="Cari karyawan..."
-                                searchValue={search}
-                                onSearchChange={setSearch}
-                                page={page}
-                                pageSize={pageSize}
-                                totalPages={totalPages}
-                                totalItems={totalItems}
-                                onPageChange={setPage}
-                                onPageSizeChange={(size) => {
-                                    setPageSize(size);
-                                    setPage(1);
-                                }}
-                                emptyMessage="Tidak ada data absensi"
-                                isLoading={isLoadingAttendance}
-                            />
-                        }
-                        loading={isLoadingAttendance}
+                    <DataTable
+                        columns={columns}
+                        data={filteredData}
+                        searchPlaceholder="Cari karyawan..."
+                        searchValue={search}
+                        onSearchChange={setSearch}
+                        page={page}
+                        pageSize={pageSize}
+                        totalPages={totalPages}
+                        totalItems={totalItems}
+                        onPageChange={setPage}
+                        onPageSizeChange={(size) => {
+                            setPageSize(size);
+                            setPage(1);
+                        }}
                         emptyMessage="Tidak ada data absensi"
+                        isLoading={isLoadingAttendance}
                     />
                 </CardContent>
             </Card>

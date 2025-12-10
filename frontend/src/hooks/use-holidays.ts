@@ -51,14 +51,11 @@ export function useHolidays(filters?: HolidayFilters) {
   const updateHolidayMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<HolidayFormData> }) =>
       updateHolidayApi(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['holidays'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['holidays'] });
       success('Berhasil', 'Hari libur berhasil diupdate');
     },
-    onError: (err: any) => {
-      const message = err?.response?.data?.message || 'Gagal mengupdate hari libur';
-      showError('Error', message);
-    },
+    // onError removed - global error handler will catch it
   });
 
   // Delete holiday mutation

@@ -71,9 +71,11 @@ export function useCancelCorrection() {
 
     return useMutation({
         mutationFn: (id: string) => cancelAttendanceCorrection(id),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.corrections] });
-            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.statistics] });
+        onSuccess: async () => {
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.corrections] }),
+                queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.statistics] }),
+            ]);
         },
     });
 }
@@ -87,9 +89,11 @@ export function useApproveCorrection() {
     return useMutation({
         mutationFn: ({ id, notes }: { id: string; notes?: string }) =>
             approveAttendanceCorrection(id, notes),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.corrections] });
-            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.statistics] });
+        onSuccess: async () => {
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.corrections] }),
+                queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.statistics] }),
+            ]);
         },
     });
 }
@@ -103,9 +107,11 @@ export function useRejectCorrection() {
     return useMutation({
         mutationFn: ({ id, notes }: { id: string; notes: string }) =>
             rejectAttendanceCorrection(id, notes),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.corrections] });
-            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.statistics] });
+        onSuccess: async () => {
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.corrections] }),
+                queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.statistics] }),
+            ]);
         },
     });
 }

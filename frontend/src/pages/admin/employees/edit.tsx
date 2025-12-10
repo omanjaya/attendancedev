@@ -49,6 +49,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useNotificationStore } from '@/stores';
 import { useEmployee, useUpdateEmployee } from '@/hooks';
 import { useLocations } from '@/hooks/use-locations';
+import type { Location } from '@/types/location';
 import { useEmployeeTypes, useDepartments, usePositions, useSubjects } from '@/hooks/use-master-data';
 import { FaceEnrollmentFromPhoto, FaceEnrollmentWizard } from '@/components/face-recognition';
 import { useFaceData, useDeleteFace } from '@/hooks/use-face-recognition-api';
@@ -135,7 +136,7 @@ export default function EmployeeEditPage() {
   const hasFaceData = faceData?.has_face_data ?? false;
 
   // Locations hook
-  const { locations, fetchLocations } = useLocations();
+  const { data: locations = [] } = useLocations();
 
   // Employee Types hook
   const { data: employeeTypesData } = useEmployeeTypes({ is_active: true });
@@ -153,10 +154,6 @@ export default function EmployeeEditPage() {
   const { data: subjectsData } = useSubjects({ is_active: true });
   const subjects = subjectsData?.data || [];
 
-  // Load locations on mount
-  useEffect(() => {
-    fetchLocations({ is_active: true });
-  }, [fetchLocations]);
 
   const {
     register,
@@ -616,7 +613,7 @@ export default function EmployeeEditPage() {
                           <SelectValue placeholder="Pilih lokasi" />
                         </SelectTrigger>
                         <SelectContent>
-                          {locations.map((location) => (
+                          {locations.map((location: Location) => (
                             <SelectItem key={location.id} value={location.id}>{location.name}</SelectItem>
                           ))}
                         </SelectContent>

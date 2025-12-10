@@ -4,10 +4,10 @@ import type { Holiday } from '@/types/holiday';
 import { useNavigate } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import {
-  ChevronLeft,
   Calendar as CalendarIcon,
   Download,
   ChevronRight,
+  ChevronLeft,
   Check,
   Minus,
   Clock,
@@ -17,6 +17,7 @@ import {
   Settings,
   FileText
 } from 'lucide-react';
+import { MobilePageHeader } from '@/components/mobile';
 import { useAuthStore } from '@/stores';
 import { getAttendance } from '@/lib/api/attendance';
 import { getHolidays } from '@/lib/api/holidays';
@@ -78,19 +79,11 @@ function AdminScheduleView() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-muted/30 via-background to-background dark:from-gray-950 dark:via-gray-900 dark:to-gray-900 pb-20">
       {/* Header */}
-      <div className="px-4 pt-3 pb-3 sticky top-0 z-20">
-        <div className="bg-card/80 dark:bg-card/60 backdrop-blur-md rounded-3xl p-1.5 shadow-xl border border-border/40 dark:border-border/30">
-          <div className="bg-gradient-to-r from-indigo-600 to-blue-600 dark:from-indigo-900 dark:to-blue-800 px-4 py-3 rounded-[20px] flex items-center gap-3 shadow-lg">
-            <button
-              onClick={() => navigate({ to: '/admin/dashboard' })}
-              className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
-            >
-              <ChevronLeft className="h-5 w-5 text-white" />
-            </button>
-            <h1 className="text-base font-bold text-white flex-1">Manajemen Jadwal</h1>
-          </div>
-        </div>
-      </div>
+      <MobilePageHeader
+        title="Manajemen Jadwal"
+        onBack={() => navigate({ to: '/admin/dashboard' })}
+        gradient="indigo"
+      />
 
       <div className="px-4 mt-4 space-y-4">
         {/* Menu Grid */}
@@ -274,26 +267,20 @@ function MyScheduleView() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-muted/30 via-background to-background dark:from-gray-950 dark:via-gray-900 dark:to-gray-900 pb-20">
-      {/* Header Wrapper */}
-      <div className="px-4 pt-3 pb-3 sticky top-0 z-20">
-        <div className="bg-card/80 dark:bg-card/60 backdrop-blur-md rounded-3xl p-1.5 shadow-xl border border-border/40 dark:border-border/30">
-          <div className="bg-gradient-to-r from-gray-900 to-gray-800 dark:from-black dark:to-gray-900 px-4 py-3 rounded-[20px] flex items-center gap-3 shadow-lg">
-            <button
-              onClick={() => navigate({ to: '/employee/dashboard' })}
-              className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
-            >
-              <ChevronLeft className="h-5 w-5 text-white" />
-            </button>
-            <h1 className="text-base font-bold text-white flex-1">Jadwal Saya</h1>
-            <button
-              onClick={() => setShowMonthPicker(true)}
-              className="p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
-            >
-              <CalendarIcon className="h-5 w-5 text-white" />
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* Header */}
+      <MobilePageHeader
+        title="Jadwal Saya"
+        onBack={() => navigate({ to: '/employee/dashboard' })}
+        gradient="gray"
+        actions={
+          <button
+            onClick={() => setShowMonthPicker(true)}
+            className="p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
+          >
+            <CalendarIcon className="h-5 w-5 text-white" />
+          </button>
+        }
+      />
 
       {/* Content */}
       <div className="px-4 space-y-4">

@@ -10,7 +10,6 @@ import {
   Loader2,
   Save,
   CalendarDays,
-  Sparkles,
   Briefcase,
   CheckCircle2,
 } from 'lucide-react';
@@ -30,9 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { useNotificationStore } from '@/stores';
 import {
   createMonthlyAttendanceSchedule,
-  generateWorkingDays,
   type MonthlyAttendanceScheduleFormData,
-  type GenerateWorkingDaysParams,
 } from '@/lib/api/schedules';
 import { getHolidaysByMonth } from '@/lib/api/holidays';
 import { cn } from '@/lib/utils';
@@ -41,7 +38,7 @@ const monthlyScheduleSchema = z.object({
   name: z.string().min(2, 'Nama jadwal minimal 2 karakter'),
   month: z.number().min(1).max(12),
   year: z.number().min(2024).max(2030),
-  location_id: z.string().optional(), // Optional - handled by backend default
+
   default_start_time: z.string().min(1, 'Pilih jam kerja awal'),
   default_end_time: z.string().min(1, 'Pilih jam kerja akhir'),
   checkin_start_time: z.string().min(1, 'Pilih jam absen masuk awal'),
@@ -71,15 +68,7 @@ const months = [
 
 const years = Array.from({ length: 7 }, (_, i) => new Date().getFullYear() + i);
 
-const daysOfWeek = [
-  { id: 'monday', label: 'Senin' },
-  { id: 'tuesday', label: 'Selasa' },
-  { id: 'wednesday', label: 'Rabu' },
-  { id: 'thursday', label: 'Kamis' },
-  { id: 'friday', label: 'Jumat' },
-  { id: 'saturday', label: 'Sabtu' },
-  { id: 'sunday', label: 'Minggu' },
-];
+
 
 const TIME_PRESETS = [
   {
@@ -123,11 +112,9 @@ const TIME_PRESETS = [
 export default function MonthlyScheduleCreatePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { success, error: showError } = useNotificationStore();
+  const { success } = useNotificationStore();
 
-  const [selectedDayPattern, setSelectedDayPattern] = useState(['monday', 'tuesday', 'wednesday', 'thursday', 'friday']);
   const [generatedWorkingDays, setGeneratedWorkingDays] = useState<string[]>([]);
-  const [isGeneratingDays, setIsGeneratingDays] = useState(false);
   const [holidays, setHolidays] = useState<string[]>([]);
 
   const {
@@ -139,8 +126,10 @@ export default function MonthlyScheduleCreatePage() {
   } = useForm<MonthlyScheduleForm>({
     resolver: zodResolver(monthlyScheduleSchema),
     defaultValues: {
-      month: new Date().getMonth() + 1,
-      year: new Date().getFullYear(),
+      // Month and year intentionally left undefined
+      // Calendar will only show after user selects both
+      month: undefined as unknown as number,
+      year: undefined as unknown as number,
       default_start_time: '08:00',
       default_end_time: '17:00',
       checkin_start_time: '07:00',
@@ -155,6 +144,9 @@ export default function MonthlyScheduleCreatePage() {
   const selectedYear = watch('year');
   const workingDays = watch('working_days');
 
+  // Check if both month and year are selected for showing calendar
+  const isCalendarReady = selectedMonth && selectedYear;
+
   // Fetch holidays for selected month
   useEffect(() => {
     if (selectedMonth && selectedYear) {
@@ -168,49 +160,6 @@ export default function MonthlyScheduleCreatePage() {
     }
   }, [selectedMonth, selectedYear]);
 
-  // Auto-generate working days when month/year changes
-  useEffect(() => {
-    if (selectedMonth && selectedYear && selectedDayPattern.length > 0) {
-      handleGenerateWorkingDays(true);
-    }
-  }, [selectedMonth, selectedYear]);
-
-  const handleGenerateWorkingDays = async (silent = false) => {
-    if (!selectedMonth || !selectedYear) return;
-
-    setIsGeneratingDays(true);
-    try {
-      const params: GenerateWorkingDaysParams = {
-        month: selectedMonth,
-        year: selectedYear,
-        working_day_pattern: selectedDayPattern,
-      };
-
-      const result = await generateWorkingDays(params);
-      setGeneratedWorkingDays(result.working_days);
-      setValue('working_days', result.working_days);
-
-      if (!silent) {
-        success(
-          'Hari kerja berhasil dibuat',
-          `${result.total_working_days} hari kerja (${result.total_holidays} hari libur dikecualikan)`
-        );
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Gagal generate hari kerja';
-      showError('Error', message);
-    } finally {
-      setIsGeneratingDays(false);
-    }
-  };
-
-  const toggleDayPattern = (dayId: string) => {
-    setSelectedDayPattern(prev =>
-      prev.includes(dayId)
-        ? prev.filter(d => d !== dayId)
-        : [...prev, dayId]
-    );
-  };
 
   const toggleWorkingDay = (date: string) => {
     const currentDays = watch('working_days') || [];
@@ -230,15 +179,13 @@ export default function MonthlyScheduleCreatePage() {
 
   const createScheduleMutation = useMutation({
     mutationFn: (data: MonthlyAttendanceScheduleFormData) => createMonthlyAttendanceSchedule(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['monthly-schedules'] });
+    onSuccess: async () => {
+      // Await query invalidation to ensure data is refreshed before navigation
+      await queryClient.invalidateQueries({ queryKey: ['monthly-schedules'] });
       success('Berhasil', 'Jadwal bulanan berhasil dibuat');
       navigate({ to: '/admin/schedules/monthly' });
     },
-    onError: (err: any) => {
-      const message = err?.response?.data?.message || 'Gagal membuat jadwal bulanan';
-      showError('Error', message);
-    },
+    // onError removed - global error handler will catch it
   });
 
   const onSubmit = async (data: MonthlyScheduleForm) => {
@@ -263,7 +210,12 @@ export default function MonthlyScheduleCreatePage() {
 
     for (let day = 1; day <= lastDay.getDate(); day++) {
       const date = new Date(selectedYear, selectedMonth - 1, day);
-      const dateStr = date.toISOString().split('T')[0];
+      // Use local date string to avoid timezone shifts
+      const dateStr = [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, '0'),
+        String(date.getDate()).padStart(2, '0')
+      ].join('-');
       days.push({
         day,
         date: dateStr,
@@ -321,9 +273,9 @@ export default function MonthlyScheduleCreatePage() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Column: Basic Info (4 cols) */}
-          <div className="lg:col-span-4 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column: Basic Info */}
+          <div className="space-y-6">
             <Card className="h-full border-none shadow-md">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -350,51 +302,46 @@ export default function MonthlyScheduleCreatePage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Bulan <span className="text-destructive">*</span>
+                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Periode Jadwal
                     </label>
-                    <Select
-                      value={selectedMonth?.toString()}
-                      onValueChange={(value) => setValue('month', parseInt(value))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Bulan" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {months.map((month) => (
-                          <SelectItem key={month.value} value={month.value.toString()}>
-                            {month.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.month && (
-                      <p className="text-xs text-destructive">{errors.month.message}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Tahun <span className="text-destructive">*</span>
-                    </label>
-                    <Select
-                      value={selectedYear?.toString()}
-                      onValueChange={(value) => setValue('year', parseInt(value))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Tahun" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {years.map((year) => (
-                          <SelectItem key={year} value={year.toString()}>
-                            {year}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.year && (
-                      <p className="text-xs text-destructive">{errors.year.message}</p>
-                    )}
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <CalendarDays className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground z-10" />
+                        <Select
+                          onValueChange={(v) => setValue('month', parseInt(v))}
+                          value={watch('month')?.toString()}
+                        >
+                          <SelectTrigger className="pl-9 bg-muted/30 border-muted-foreground/20 focus:ring-primary/20 transition-all hover:bg-muted/50">
+                            <SelectValue placeholder="Bulan" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {months.map((month) => (
+                              <SelectItem key={month.value} value={month.value.toString()}>
+                                {month.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Select
+                        onValueChange={(v) => setValue('year', parseInt(v))}
+                        value={watch('year')?.toString()}
+                      >
+                        <SelectTrigger className="w-[100px] bg-muted/30 border-muted-foreground/20 focus:ring-primary/20 transition-all hover:bg-muted/50">
+                          <SelectValue placeholder="Tahun" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {years.map((year) => (
+                            <SelectItem key={year} value={year.toString()}>
+                              {year}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {errors.month && <p className="text-xs text-destructive">{errors.month.message}</p>}
+                    {errors.year && <p className="text-xs text-destructive">{errors.year.message}</p>}
                   </div>
                 </div>
 
@@ -410,8 +357,8 @@ export default function MonthlyScheduleCreatePage() {
             </Card>
           </div>
 
-          {/* Right Column: Time Settings (8 cols) */}
-          <div className="lg:col-span-8 space-y-6">
+          {/* Right Column: Time Settings */}
+          <div className="space-y-6">
             <Card className="h-full border-none shadow-md">
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
@@ -425,14 +372,14 @@ export default function MonthlyScheduleCreatePage() {
                     </CardDescription>
                   </div>
                   <div className="flex gap-2">
-                    {TIME_PRESETS.map((preset, idx) => (
+                    {TIME_PRESETS.map((preset) => (
                       <Button
-                        key={idx}
+                        key={preset.label}
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={() => applyPreset(preset)}
-                        className="text-xs h-8"
+                        className="h-7 text-xs rounded-full border-muted-foreground/20 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all"
                       >
                         {preset.label}
                       </Button>
@@ -441,21 +388,21 @@ export default function MonthlyScheduleCreatePage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid md:grid-cols-3 gap-6">
-                  {/* Jam Kerja */}
-                  <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Jam Kerja - Full Width */}
+                  <div className="sm:col-span-2 space-y-4 p-4 bg-muted/30 rounded-lg border">
                     <h3 className="text-sm font-semibold flex items-center gap-2">
-                      <Briefcase className="h-4 w-4 text-muted-foreground" />
-                      Jam Kerja
+                      <Briefcase className="h-4 w-4 text-primary" />
+                      Jam Kerja Utama
                     </h3>
-                    <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">Masuk</label>
+                        <label className="text-xs font-medium text-muted-foreground">Jam Masuk</label>
                         <Input type="time" step="60" {...register('default_start_time')} className="bg-background" />
                         {errors.default_start_time && <p className="text-xs text-destructive">{errors.default_start_time.message}</p>}
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">Pulang</label>
+                        <label className="text-xs font-medium text-muted-foreground">Jam Pulang</label>
                         <Input type="time" step="60" {...register('default_end_time')} className="bg-background" />
                         {errors.default_end_time && <p className="text-xs text-destructive">{errors.default_end_time.message}</p>}
                       </div>
@@ -465,17 +412,17 @@ export default function MonthlyScheduleCreatePage() {
                   {/* Window Check-In */}
                   <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
                     <h3 className="text-sm font-semibold flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                      Batas Masuk
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      Batas Absen Masuk
                     </h3>
                     <div className="space-y-3">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">Mulai</label>
+                        <label className="text-xs font-medium text-muted-foreground">Mulai Absen</label>
                         <Input type="time" step="60" {...register('checkin_start_time')} className="bg-background" />
                         {errors.checkin_start_time && <p className="text-xs text-destructive">{errors.checkin_start_time.message}</p>}
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">Sampai</label>
+                        <label className="text-xs font-medium text-muted-foreground">Batas Terlambat</label>
                         <Input type="time" step="60" {...register('checkin_end_time')} className="bg-background" />
                         {errors.checkin_end_time && <p className="text-xs text-destructive">{errors.checkin_end_time.message}</p>}
                       </div>
@@ -485,17 +432,17 @@ export default function MonthlyScheduleCreatePage() {
                   {/* Window Check-Out */}
                   <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
                     <h3 className="text-sm font-semibold flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                      Batas Pulang
+                      <CheckCircle2 className="h-4 w-4 text-orange-600" />
+                      Batas Absen Pulang
                     </h3>
                     <div className="space-y-3">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">Mulai</label>
+                        <label className="text-xs font-medium text-muted-foreground">Mulai Absen</label>
                         <Input type="time" step="60" {...register('checkout_start_time')} className="bg-background" />
                         {errors.checkout_start_time && <p className="text-xs text-destructive">{errors.checkout_start_time.message}</p>}
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">Sampai</label>
+                        <label className="text-xs font-medium text-muted-foreground">Batas Akhir</label>
                         <Input type="time" step="60" {...register('checkout_end_time')} className="bg-background" />
                         {errors.checkout_end_time && <p className="text-xs text-destructive">{errors.checkout_end_time.message}</p>}
                       </div>
@@ -517,113 +464,115 @@ export default function MonthlyScheduleCreatePage() {
                   Kalender Hari Kerja
                 </CardTitle>
                 <CardDescription>
-                  Pilih hari kerja dalam sebulan
+                  {isCalendarReady
+                    ? 'Pilih hari kerja dalam sebulan'
+                    : 'Pilih bulan dan tahun terlebih dahulu'
+                  }
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 text-sm bg-muted px-3 py-1.5 rounded-md">
-                  <span className="text-muted-foreground">Pola:</span>
-                  <div className="flex gap-1">
-                    {daysOfWeek.map((day) => (
-                      <div
-                        key={day.id}
-                        onClick={() => toggleDayPattern(day.id)}
-                        className={cn(
-                          "w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold cursor-pointer transition-colors",
-                          selectedDayPattern.includes(day.id)
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-background text-muted-foreground border hover:bg-muted-foreground/10"
-                        )}
-                        title={day.label}
-                      >
-                        {day.label.substring(0, 1)}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => handleGenerateWorkingDays(false)}
-                  disabled={isGeneratingDays}
-                >
-                  {isGeneratingDays ? (
-                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                  ) : (
-                    <Sparkles className="mr-2 h-3 w-3" />
-                  )}
-                  Terapkan
-                </Button>
-              </div>
+              {isCalendarReady && (
+                <p className="text-xs text-muted-foreground">Klik tanggal untuk memilih/membatalkan hari kerja</p>
+              )}
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="grid grid-cols-7 gap-1 sm:gap-4">
-                {['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'].map(d => (
-                  <div key={d} className="text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider py-2">
-                    {d}
-                  </div>
-                ))}
-
-                {generateCalendarDays().map((day, idx) => (
-                  day === null ? (
-                    <div key={`empty-${idx}`} className="aspect-square bg-muted/5 rounded-lg" />
-                  ) : (
-                    <button
-                      key={day.date}
-                      type="button"
-                      onClick={() => toggleWorkingDay(day.date)}
-                      disabled={day.isHoliday}
-                      className={cn(
-                        "aspect-square rounded-lg flex flex-col items-center justify-center text-sm transition-all border relative group",
-                        day.isHoliday
-                          ? "bg-red-50 text-red-600 border-red-100 cursor-not-allowed"
-                          : day.isSelected
-                            ? "bg-primary text-primary-foreground border-primary shadow-sm hover:bg-primary/90"
-                            : "bg-card hover:bg-accent border-border text-foreground"
-                      )}
-                    >
-                      <span className="font-semibold text-lg">{day.day}</span>
-                      {day.isHoliday && (
-                        <Badge variant="destructive" className="absolute bottom-2 text-[10px] px-1.5 py-0 h-4">
-                          Libur
-                        </Badge>
-                      )}
-                      {!day.isHoliday && day.isSelected && (
-                        <span className="text-[10px] opacity-80 mt-1">Kerja</span>
-                      )}
-                    </button>
-                  )
-                ))}
-              </div>
-
-              <div className="flex justify-between items-center pt-4 text-xs text-muted-foreground border-t">
-                <div>
-                  Total Hari Kerja: <span className="font-medium text-foreground">{workingDays?.length || 0} hari</span>
+            {!isCalendarReady ? (
+              /* Placeholder when month/year not selected */
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+                  <CalendarDays className="h-10 w-10 text-muted-foreground/50" />
                 </div>
-                <div className="flex gap-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded bg-primary" />
-                    <span>Hari Kerja</span>
+                <h3 className="text-lg font-medium text-muted-foreground mb-2">
+                  Kalender Belum Tersedia
+                </h3>
+                <p className="text-sm text-muted-foreground/70 max-w-md">
+                  Untuk menampilkan kalender hari kerja, silakan pilih <strong>Bulan</strong> dan <strong>Tahun</strong> pada form di atas terlebih dahulu.
+                </p>
+              </div>
+            ) : (
+              /* Calendar grid when month/year are selected */
+              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="grid grid-cols-7 gap-1 sm:gap-4">
+                  {['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'].map(d => (
+                    <div key={d} className="text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider py-2">
+                      {d}
+                    </div>
+                  ))}
+
+                  {generateCalendarDays().map((day, idx) => (
+                    day === null ? (
+                      <div key={`empty-${idx}`} className="aspect-square bg-muted/5 rounded-lg" />
+                    ) : (
+                      <button
+                        key={day.date}
+                        type="button"
+                        onClick={() => toggleWorkingDay(day.date)}
+                        disabled={day.isHoliday}
+                        className={cn(
+                          "aspect-square rounded-lg flex flex-col items-center justify-center text-sm transition-all border relative group",
+                          day.isHoliday
+                            ? "bg-red-50 text-red-600 border-red-100 cursor-not-allowed"
+                            : day.isSelected
+                              ? "bg-primary text-primary-foreground border-primary shadow-sm hover:bg-primary/90"
+                              : "bg-card hover:bg-accent border-border text-foreground"
+                        )}
+                      >
+                        <span className="font-semibold text-lg">{day.day}</span>
+                        {day.isHoliday && (
+                          <Badge variant="destructive" className="absolute bottom-2 text-[10px] px-1.5 py-0 h-4">
+                            Libur
+                          </Badge>
+                        )}
+                        {!day.isHoliday && day.isSelected && (
+                          <span className="text-[10px] opacity-80 mt-1">Kerja</span>
+                        )}
+                      </button>
+                    )
+                  ))}
+                </div>
+
+                <div className="flex justify-between items-center pt-4 text-xs text-muted-foreground border-t">
+                  <div>
+                    Total Hari Kerja: <span className="font-medium text-foreground">{workingDays?.length || 0} hari</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded bg-red-100 border border-red-200" />
-                    <span>Hari Libur</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded bg-card border" />
-                    <span>Hari Libur (Off)</span>
+                  <div className="flex gap-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded bg-primary" />
+                      <span>Hari Kerja</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded bg-red-100 border border-red-200" />
+                      <span>Hari Libur</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded bg-card border" />
+                      <span>Hari Libur (Off)</span>
+                    </div>
                   </div>
                 </div>
+                {errors.working_days && (
+                  <p className="text-xs text-destructive mt-2">{errors.working_days.message}</p>
+                )}
               </div>
-              {errors.working_days && (
-                <p className="text-xs text-destructive mt-2">{errors.working_days.message}</p>
-              )}
-            </div>
+            )}
           </CardContent>
         </Card>
+
+        <div className="flex items-center justify-end pt-4 pb-8">
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full sm:w-auto bg-gradient-to-r from-primary to-primary/90 shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:-translate-y-0.5 transition-all duration-200"
+            disabled={createScheduleMutation.isPending}
+          >
+            {createScheduleMutation.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-2 h-4 w-4" />
+            )}
+            Simpan Jadwal
+          </Button>
+        </div>
       </form>
     </div>
   );

@@ -3,7 +3,6 @@ import { useNavigate, Link } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMutation } from '@tanstack/react-query';
 import {
   ArrowLeft,
   Calendar,
@@ -25,8 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useNotificationStore } from '@/stores';
-import { createLeaveRequest } from '@/lib/api/leave';
+import { useCreateLeaveRequest } from '@/hooks/use-leave';
 import type { LeaveDurationType, LeaveType } from '@/types/leave';
 
 const leaveSchema = z.object({
@@ -52,7 +50,6 @@ const leaveTypes = [
 
 export default function LeaveCreatePage() {
   const navigate = useNavigate();
-  const { success, error: showError } = useNotificationStore();
   const [selectedType, setSelectedType] = useState<string>('');
 
   const {
@@ -81,23 +78,15 @@ export default function LeaveCreatePage() {
 
   const selectedLeaveType = leaveTypes.find(t => t.value === selectedType);
 
-  const createMutation = useMutation({
-    mutationFn: (data: LeaveForm) => createLeaveRequest({
+  const createMutation = useCreateLeaveRequest();
+
+  const onSubmit = async (data: LeaveForm) => {
+    await createMutation.mutateAsync({
       ...data,
       type: data.type as LeaveType,
       duration_type: data.duration_type as LeaveDurationType,
-    }),
-    onSuccess: () => {
-      success('Berhasil', 'Pengajuan cuti berhasil dikirim');
-      navigate({ to: '/admin/leave' });
-    },
-    onError: (err: any) => {
-      showError('Gagal', err.message || 'Gagal mengajukan cuti');
-    },
-  });
-
-  const onSubmit = (data: LeaveForm) => {
-    createMutation.mutate(data);
+    });
+    navigate({ to: '/admin/leave' });
   };
 
   return (

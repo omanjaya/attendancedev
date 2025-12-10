@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\System\SystemMonitoringService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\Process;
@@ -10,6 +11,11 @@ use Symfony\Component\Process\Exception\ProcessFailedException;
 
 class SystemController extends Controller
 {
+    public function __construct(
+        private SystemMonitoringService $monitoringService
+    ) {
+    }
+
     /**
      * Docker compose project name
      */
@@ -72,11 +78,11 @@ class SystemController extends Controller
             $services = [];
 
             foreach (self::SERVICES as $key => $config) {
-                $services[$key] = $this->getServiceStatus($key, $config);
+                $services[$key] = $this->monitoringService->getServiceStatus($key, $config);
             }
 
             // Get overall system info
-            $systemInfo = $this->getSystemInfo();
+            $systemInfo = $this->monitoringService->getSystemInfo(count(self::SERVICES));
 
             return response()->json([
                 'success' => true,
@@ -92,7 +98,7 @@ class SystemController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get services status: ' . $e->getMessage(),
-            ], 500);
+            ], 200);
         }
     }
 
@@ -110,7 +116,7 @@ class SystemController extends Controller
 
         try {
             $config = self::SERVICES[$service];
-            $status = $this->getServiceStatus($service, $config);
+            $status = $this->monitoringService->getServiceStatus($service, $config);
 
             return response()->json([
                 'success' => true,
@@ -120,7 +126,7 @@ class SystemController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get service status: ' . $e->getMessage(),
-            ], 500);
+            ], 200);
         }
     }
 
@@ -148,7 +154,7 @@ class SystemController extends Controller
             ]);
 
             $command = "docker restart {$container}";
-            $result = $this->executeCommand($command);
+            $result = $this->monitoringService->executeCommand($command);
 
             if ($result['success']) {
                 return response()->json([
@@ -157,10 +163,20 @@ class SystemController extends Controller
                     'output' => $result['output'],
                 ]);
             } else {
+                // Detect permission error
+                $errorMessage = 'Failed to restart service';
+                if (str_contains($result['error'], 'permission denied')) {
+                    $errorMessage = 'Docker permission denied. See DOCKER_PERMISSION_FIX.md for solution.';
+                } elseif (str_contains($result['error'], 'Cannot connect')) {
+                    $errorMessage = 'Docker daemon not accessible';
+                } elseif ($result['error']) {
+                    $errorMessage = 'Failed to restart service: ' . $result['error'];
+                }
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to restart service: ' . $result['error'],
-                ], 500);
+                    'message' => $errorMessage,
+                ], 200);
             }
         } catch (\Exception $e) {
             Log::error('Service restart failed', [
@@ -171,7 +187,7 @@ class SystemController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to restart service: ' . $e->getMessage(),
-            ], 500);
+            ], 200);
         }
     }
 
@@ -196,7 +212,7 @@ class SystemController extends Controller
             ]);
 
             $command = "docker start {$container}";
-            $result = $this->executeCommand($command);
+            $result = $this->monitoringService->executeCommand($command);
 
             if ($result['success']) {
                 return response()->json([
@@ -204,16 +220,26 @@ class SystemController extends Controller
                     'message' => self::SERVICES[$service]['name'] . ' started successfully',
                 ]);
             } else {
+                // Detect permission error
+                $errorMessage = 'Failed to start service';
+                if (str_contains($result['error'], 'permission denied')) {
+                    $errorMessage = 'Docker permission denied. See DOCKER_PERMISSION_FIX.md for solution.';
+                } elseif (str_contains($result['error'], 'Cannot connect')) {
+                    $errorMessage = 'Docker daemon not accessible';
+                } elseif ($result['error']) {
+                    $errorMessage = 'Failed to start service: ' . $result['error'];
+                }
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to start service: ' . $result['error'],
-                ], 500);
+                    'message' => $errorMessage,
+                ], 200);
             }
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to start service: ' . $e->getMessage(),
-            ], 500);
+            ], 200);
         }
     }
 
@@ -238,7 +264,7 @@ class SystemController extends Controller
             ]);
 
             $command = "docker stop {$container}";
-            $result = $this->executeCommand($command);
+            $result = $this->monitoringService->executeCommand($command);
 
             if ($result['success']) {
                 return response()->json([
@@ -246,16 +272,26 @@ class SystemController extends Controller
                     'message' => self::SERVICES[$service]['name'] . ' stopped successfully',
                 ]);
             } else {
+                // Detect permission error
+                $errorMessage = 'Failed to stop service';
+                if (str_contains($result['error'], 'permission denied')) {
+                    $errorMessage = 'Docker permission denied. See DOCKER_PERMISSION_FIX.md for solution.';
+                } elseif (str_contains($result['error'], 'Cannot connect')) {
+                    $errorMessage = 'Docker daemon not accessible';
+                } elseif ($result['error']) {
+                    $errorMessage = 'Failed to stop service: ' . $result['error'];
+                }
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to stop service: ' . $result['error'],
-                ], 500);
+                    'message' => $errorMessage,
+                ], 200);
             }
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to stop service: ' . $e->getMessage(),
-            ], 500);
+            ], 200);
         }
     }
 
@@ -276,7 +312,7 @@ class SystemController extends Controller
             $lines = $request->input('lines', 100);
 
             $command = "docker logs --tail {$lines} {$container} 2>&1";
-            $result = $this->executeCommand($command, 30);
+            $result = $this->monitoringService->executeCommand($command, 30);
 
             if ($result['success']) {
                 return response()->json([
@@ -285,16 +321,28 @@ class SystemController extends Controller
                     'lines' => $lines,
                 ]);
             } else {
+                // Detect permission error
+                $errorMessage = 'Failed to get logs';
+                if (str_contains($result['error'], 'permission denied')) {
+                    $errorMessage = 'Docker permission denied. Container logs unavailable. See DOCKER_PERMISSION_FIX.md for solution.';
+                } elseif (str_contains($result['error'], 'Cannot connect')) {
+                    $errorMessage = 'Docker daemon not accessible';
+                } elseif ($result['error']) {
+                    $errorMessage = 'Failed to get logs: ' . $result['error'];
+                }
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to get logs: ' . ($result['error'] ?: $result['output']),
-                ], 500);
+                    'message' => $errorMessage,
+                    'logs' => '',
+                ], 200);
             }
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get logs: ' . $e->getMessage(),
-            ], 500);
+                'logs' => '',
+            ], 200);
         }
     }
 
@@ -315,7 +363,7 @@ class SystemController extends Controller
 
             // Get container stats
             $command = "docker stats {$container} --no-stream --format json";
-            $result = $this->executeCommand($command);
+            $result = $this->monitoringService->executeCommand($command);
 
             if ($result['success']) {
                 $stats = json_decode($result['output'], true);
@@ -325,16 +373,26 @@ class SystemController extends Controller
                     'metrics' => $stats,
                 ]);
             } else {
+                // Detect permission error
+                $errorMessage = 'Failed to get metrics';
+                if (str_contains($result['error'], 'permission denied')) {
+                    $errorMessage = 'Docker permission denied. See DOCKER_PERMISSION_FIX.md for solution.';
+                } elseif (str_contains($result['error'], 'Cannot connect')) {
+                    $errorMessage = 'Docker daemon not accessible';
+                }
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to get metrics',
-                ], 500);
+                    'message' => $errorMessage,
+                    'metrics' => null,
+                ], 200);
             }
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get metrics: ' . $e->getMessage(),
-            ], 500);
+                'metrics' => null,
+            ], 200);
         }
     }
 
@@ -363,7 +421,7 @@ class SystemController extends Controller
 
                 $container = $config['container'];
                 $command = "docker restart {$container}";
-                $result = $this->executeCommand($command, 60);
+                $result = $this->monitoringService->executeCommand($command, 60);
 
                 if ($result['success']) {
                     $results[] = "{$config['name']} restarted";
@@ -383,135 +441,14 @@ class SystemController extends Controller
                     'success' => false,
                     'message' => 'Some services failed to restart: ' . implode(', ', $failures),
                     'details' => $results
-                ], 500);
+                ], 200);
             }
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to restart all services: ' . $e->getMessage(),
-            ], 500);
+            ], 200);
         }
     }
 
-    /**
-     * Get service status details
-     */
-    private function getServiceStatus($key, $config)
-    {
-        $container = $config['container'];
-
-        // Get container inspect
-        $inspectCommand = "docker inspect {$container} --format json";
-        $inspectResult = $this->executeCommand($inspectCommand);
-
-        if (!$inspectResult['success']) {
-            return [
-                'key' => $key,
-                'name' => $config['name'],
-                'container' => $container,
-                'icon' => $config['icon'],
-                'description' => $config['description'],
-                'status' => 'unknown',
-                'health' => 'unknown',
-                'uptime' => null,
-                'error' => 'Container not found',
-            ];
-        }
-
-        $inspect = json_decode($inspectResult['output'], true)[0] ?? [];
-
-        // Parse status
-        $state = $inspect['State'] ?? [];
-        $isRunning = $state['Running'] ?? false;
-        $status = $isRunning ? 'running' : 'stopped';
-
-        // Calculate uptime
-        $uptime = null;
-        if ($isRunning && isset($state['StartedAt'])) {
-            $startTime = new \DateTime($state['StartedAt']);
-            $now = new \DateTime();
-            $uptime = $now->getTimestamp() - $startTime->getTimestamp();
-        }
-
-        // Get stats
-        $statsCommand = "docker stats {$container} --no-stream --format \"{{.CPUPerc}}|{{.MemUsage}}|{{.MemPerc}}\"";
-        $statsResult = $this->executeCommand($statsCommand);
-
-        $cpu = null;
-        $memory = null;
-        $memoryPercent = null;
-
-        if ($statsResult['success'] && $isRunning) {
-            $parts = explode('|', trim($statsResult['output']));
-            $cpu = str_replace('%', '', $parts[0] ?? '0');
-            $memory = $parts[1] ?? 'N/A';
-            $memoryPercent = str_replace('%', '', $parts[2] ?? '0');
-        }
-
-        return [
-            'key' => $key,
-            'name' => $config['name'],
-            'container' => $container,
-            'icon' => $config['icon'],
-            'description' => $config['description'],
-            'status' => $status,
-            'health' => $isRunning ? 'healthy' : 'down',
-            'uptime' => $uptime,
-            'cpu' => $cpu ? floatval($cpu) : null,
-            'memory' => $memory,
-            'memory_percent' => $memoryPercent ? floatval($memoryPercent) : null,
-            'restart_count' => $inspect['RestartCount'] ?? 0,
-        ];
-    }
-
-    /**
-     * Get system information
-     */
-    private function getSystemInfo()
-    {
-        // Docker version
-        $dockerVersion = $this->executeCommand('docker --version');
-
-        // Docker compose version
-        $composeVersion = $this->executeCommand('docker compose version');
-
-        // Disk usage
-        $diskUsage = $this->executeCommand('df -h / | tail -1');
-
-        // Running containers count
-        $containersCommand = "docker ps --filter \"name=attendancedev\" --format \"{{.Names}}\" | wc -l";
-        $runningContainers = $this->executeCommand($containersCommand);
-
-        return [
-            'docker_version' => trim($dockerVersion['output'] ?? 'Unknown'),
-            'compose_version' => trim($composeVersion['output'] ?? 'Unknown'),
-            'disk_usage' => trim($diskUsage['output'] ?? 'Unknown'),
-            'running_containers' => intval(trim($runningContainers['output'] ?? 0)),
-            'total_containers' => count(self::SERVICES),
-        ];
-    }
-
-    /**
-     * Execute shell command safely
-     */
-    private function executeCommand($command, $timeout = 10)
-    {
-        try {
-            $process = Process::fromShellCommandline($command);
-            $process->setTimeout($timeout);
-            $process->run();
-
-            return [
-                'success' => $process->isSuccessful(),
-                'output' => $process->getOutput(),
-                'error' => $process->getErrorOutput(),
-            ];
-        } catch (\Exception $e) {
-            return [
-                'success' => false,
-                'output' => '',
-                'error' => $e->getMessage(),
-            ];
-        }
-    }
 }

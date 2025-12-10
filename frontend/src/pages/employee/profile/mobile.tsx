@@ -1,8 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { useQueryClient } from '@tanstack/react-query';
 import {
-    ChevronLeft,
     Camera,
     User,
     Calendar,
@@ -23,17 +21,9 @@ import {
     XCircle,
     RefreshCw,
 } from 'lucide-react';
+import { MobilePageHeader } from '@/components/mobile';
 import { useAuthStore } from '@/stores';
-import {
-    useProfile,
-    useProfileStatistics,
-    useUpdateProfile,
-    useChangePassword,
-    useUploadAvatar,
-} from '@/hooks/use-profile';
-import { useCameraCapture } from '@/hooks/use-camera-capture';
-import { useFaceData, useDeleteFace, faceRecognitionKeys } from '@/hooks/use-face-recognition-api';
-import { extractEmbeddingDeepFace, registerFace, updateFace } from '@/lib/api/face-recognition';
+import { useProfilePage } from '@/hooks/use-profile-page';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -65,263 +55,19 @@ import { LoadingState } from '@/components/states';
 
 export function MobileProfilePage() {
     const navigate = useNavigate();
-    const queryClient = useQueryClient();
     const { logout } = useAuthStore();
-    const { data: profile, isLoading } = useProfile();
-    const { data: statistics } = useProfileStatistics();
-    const updateProfile = useUpdateProfile();
-    const changePassword = useChangePassword();
-    const uploadAvatar = useUploadAvatar();
 
-    // Face recognition hooks
-    const { data: faceData, refetch: refetchFaceData } = useFaceData(profile?.employee_pk || '');
-    const deleteFaceMutation = useDeleteFace();
-    const {
-        videoRef,
-        errorMessage,
-        startCamera,
-        stopCamera,
-        captureImage,
-    } = useCameraCapture();
-
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    // State
-    const [isEditOpen, setIsEditOpen] = useState(false);
-    const [isPasswordOpen, setIsPasswordOpen] = useState(false);
+    // All logic extracted to shared hook
+    const logic = useProfilePage();
     const [isLogoutOpen, setIsLogoutOpen] = useState(false);
-    const [isFaceEnrollmentOpen, setIsFaceEnrollmentOpen] = useState(false);
-    const [isDeleteFaceOpen, setIsDeleteFaceOpen] = useState(false);
-    const [enrollmentStep, setEnrollmentStep] = useState<'idle' | 'ready' | 'countdown' | 'processing' | 'success' | 'error'>('idle');
-    const [enrollmentError, setEnrollmentError] = useState<string | null>(null);
-    const [countdown, setCountdown] = useState<number>(3);
-    const [registrationAction, setRegistrationAction] = useState<'register' | 'update' | null>(null);
 
-    const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        phone: '',
-    });
-
-    const [passwordForm, setPasswordForm] = useState({
-        current_password: '',
-        password: '',
-        password_confirmation: '',
-    });
-    const [passwordError, setPasswordError] = useState<string | null>(null);
-
-    const handleEditOpen = () => {
-        if (profile) {
-            setFormData({
-                name: profile.name,
-                email: profile.email,
-                phone: profile.phone || '',
-            });
-            setIsEditOpen(true);
-        }
-    };
-
-    const handleSaveProfile = async () => {
-        try {
-            await updateProfile.mutateAsync(formData);
-            setIsEditOpen(false);
-        } catch {
-            // Error handled by mutation
-        }
-    };
-
-    const handleChangePassword = async () => {
-        setPasswordError(null);
-        try {
-            await changePassword.mutateAsync(passwordForm);
-            setIsPasswordOpen(false);
-            setPasswordForm({ current_password: '', password: '', password_confirmation: '' });
-        } catch (err) {
-            setPasswordError(err instanceof Error ? err.message : 'Gagal mengubah password');
-        }
-    };
-
-    const handleLogout = async () => {
-        await logout();
+    const handleLogout = () => {
+        logout();
         navigate({ to: '/login' });
     };
 
-    const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            try {
-                await uploadAvatar.mutateAsync(file);
-            } catch {
-                // Error handled by mutation
-            }
-        }
-    };
 
-    // Auto-refetch face data when profile loads to ensure fresh data
-    useEffect(() => {
-        if (profile?.employee_pk) {
-            console.log('Profile loaded, employee_pk:', profile.employee_pk);
-            console.log('Fetching face data for employee:', profile.employee_pk);
-            refetchFaceData();
-        }
-    }, [profile?.employee_pk, refetchFaceData]);
-
-    // Auto-countdown effect for face enrollment
-    useEffect(() => {
-        let timer: ReturnType<typeof setTimeout>;
-        if (enrollmentStep === 'countdown' && countdown > 0) {
-            timer = setTimeout(() => {
-                setCountdown(prev => prev - 1);
-            }, 1000);
-        } else if (enrollmentStep === 'countdown' && countdown === 0) {
-            handleCaptureFace(); // Trigger capture when countdown finishes
-        }
-        return () => clearTimeout(timer);
-    }, [enrollmentStep, countdown]); // handleCaptureFace is defined below, so it's not a dependency here
-
-    // Face enrollment handlers
-    const handleStartFaceEnrollment = async () => {
-        setIsFaceEnrollmentOpen(true);
-        setEnrollmentStep('ready');
-        setEnrollmentError(null);
-        setCountdown(3); // Reset countdown
-
-        try {
-            await startCamera();
-        } catch (error) {
-            console.error('Face Registration: Camera error:', error);
-            setEnrollmentStep('error');
-            setEnrollmentError(errorMessage || 'Gagal mengakses kamera');
-        }
-    };
-
-    const handleCaptureNow = () => {
-        setEnrollmentStep('countdown');
-    };
-
-    const handleCaptureFace = async () => {
-        if (!profile?.employee_pk) {
-            console.error('Face Registration: Missing employee_pk');
-            return;
-        }
-
-        console.log('Face Registration: Starting capture for employee:', profile.employee_pk);
-        setEnrollmentStep('processing');
-        setEnrollmentError(null);
-
-        try {
-            // Capture image from video
-            console.log('Face Registration: Capturing image...');
-            const imageFile = await captureImage();
-            console.log('Face Registration: Image captured, size:', imageFile.size);
-
-            // Send to DeepFace for processing
-            console.log('Face Registration: Sending to DeepFace...');
-            const result = await extractEmbeddingDeepFace(imageFile);
-            console.log('Face Registration: DeepFace response:', result);
-
-            if (!result.success || !result.embedding) {
-                throw new Error(result.message || 'Gagal mengekstrak data wajah');
-            }
-
-            // Check image quality from DeepFace
-            if (result.quality && !result.quality.quality_ok) {
-                throw new Error('Kualitas gambar tidak memenuhi standar. Coba lagi dengan pencahayaan lebih baik.');
-            }
-
-            console.log('Face Registration: Saving to database...');
-
-            // Check if face is already registered, use update instead of register
-            const hasFaceData = faceData?.has_face_data;
-            console.log('Face Registration: Has existing face data:', hasFaceData);
-
-            // Set registration action for success message
-            const action = hasFaceData ? 'update' : 'register';
-            setRegistrationAction(action);
-
-            let saveResult;
-            if (hasFaceData) {
-                // Update existing face data
-                console.log('Face Registration: Updating existing face data...');
-                saveResult = await updateFace({
-                    employee_id: profile.employee_pk,
-                    descriptor: result.embedding,
-                    confidence: result.confidence || 0.95,
-                });
-            } else {
-                // Register new face data
-                console.log('Face Registration: Registering new face data...');
-                saveResult = await registerFace({
-                    employee_id: profile.employee_pk,
-                    descriptor: result.embedding,
-                    confidence: result.confidence || 0.95,
-                    algorithm: 'deepface-arcface',
-                    model_version: result.model || 'ArcFace',
-                });
-            }
-
-            if (!saveResult.success) {
-                throw new Error(saveResult.message || 'Gagal menyimpan data wajah');
-            }
-
-            console.log('Face Registration: Successful!', action === 'update' ? '(Updated)' : '(Registered)');
-            setEnrollmentStep('success');
-
-            // Force invalidate and refetch face data
-            console.log('Face Registration: Invalidating and refetching face data for employee:', profile.employee_pk);
-            await queryClient.invalidateQueries({
-                queryKey: faceRecognitionKeys.faceData(profile.employee_pk)
-            });
-            await refetchFaceData();
-
-            // Increase delay to 3 seconds to ensure UI updates
-            setTimeout(() => {
-                handleCloseFaceEnrollment();
-            }, 3000);
-        } catch (error) {
-            console.error('Face Registration: Error:', error);
-            setEnrollmentStep('error');
-            setEnrollmentError(error instanceof Error ? error.message : 'Gagal mendaftarkan wajah');
-        }
-    };
-
-    const handleCloseFaceEnrollment = () => {
-        stopCamera();
-        setIsFaceEnrollmentOpen(false);
-        setEnrollmentStep('idle');
-        setEnrollmentError(null);
-        setCountdown(3);
-    };
-
-    const handleDeleteFace = async () => {
-        if (!profile?.employee_pk) return;
-
-        try {
-            await deleteFaceMutation.mutateAsync(profile.employee_pk);
-            setIsDeleteFaceOpen(false);
-            await refetchFaceData();
-        } catch {
-            // Error handled by mutation
-        }
-    };
-
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => {
-            stopCamera();
-        };
-    }, []);
-
-    const getInitials = (name: string) => {
-        return name
-            .split(' ')
-            .map((n) => n[0])
-            .join('')
-            .toUpperCase()
-            .slice(0, 2);
-    };
-
-    if (isLoading) {
+    if (logic.isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
                 <LoadingState message="Memuat profil..." />
@@ -329,25 +75,16 @@ export function MobileProfilePage() {
         );
     }
 
-    if (!profile) return null;
+    if (!logic.profile) return null;
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-muted/30 via-background to-background dark:from-gray-950 dark:via-gray-900 dark:to-gray-900 pb-20">
             {/* Header */}
-            <div className="px-4 pt-3 pb-3 sticky top-0 z-20">
-                <div className="bg-card/80 dark:bg-card/60 backdrop-blur-md rounded-3xl p-1.5 shadow-xl border border-border/40 dark:border-border/30">
-                    <div className="bg-gradient-to-r from-violet-600 to-indigo-600 dark:from-violet-900 dark:to-indigo-800 px-4 py-3 rounded-[20px] flex items-center gap-3 shadow-lg">
-                        <button
-                            onClick={() => navigate({ to: '/employee/dashboard' })}
-                            className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
-                            aria-label="Kembali ke Dashboard"
-                        >
-                            <ChevronLeft className="h-5 w-5 text-white" />
-                        </button>
-                        <h1 className="text-base font-bold text-white flex-1">Profil Saya</h1>
-                    </div>
-                </div>
-            </div>
+            <MobilePageHeader
+                title="Profil Saya"
+                onBack={() => navigate({ to: '/employee/dashboard' })}
+                gradient="violet"
+            />
 
             <div className="px-4 space-y-5 mt-2">
                 {/* Profile Card */}
@@ -356,13 +93,13 @@ export function MobileProfilePage() {
 
                     <div className="relative mb-4">
                         <Avatar className="h-24 w-24 border-4 border-white dark:border-gray-900 shadow-lg">
-                            <AvatarImage src={profile.avatar || undefined} alt={profile.name} />
+                            <AvatarImage src={logic.profile.avatar || undefined} alt={logic.profile.name} />
                             <AvatarFallback className="text-2xl bg-violet-100 text-violet-600">
-                                {getInitials(profile.name)}
+                                {logic.getInitials(logic.profile.name)}
                             </AvatarFallback>
                         </Avatar>
                         <button
-                            onClick={() => fileInputRef.current?.click()}
+                            onClick={() => logic.fileInputRef.current?.click()}
                             className="absolute bottom-0 right-0 p-2 bg-primary text-primary-foreground rounded-full shadow-md hover:bg-primary/90 transition-colors"
                             aria-label="Ubah Foto Profil"
                         >
@@ -370,39 +107,39 @@ export function MobileProfilePage() {
                         </button>
                         <input
                             type="file"
-                            ref={fileInputRef}
+                            ref={logic.fileInputRef}
                             className="hidden"
                             accept="image/*"
-                            onChange={handleAvatarUpload}
+                            onChange={logic.handleAvatarUpload}
                             title="Ubah Foto Profil"
                             aria-label="Ubah Foto Profil"
                         />
                     </div>
 
-                    <h2 className="text-xl font-bold text-foreground">{profile.name}</h2>
-                    <p className="text-sm text-muted-foreground mb-3">{profile.email}</p>
+                    <h2 className="text-xl font-bold text-foreground">{logic.profile.name}</h2>
+                    <p className="text-sm text-muted-foreground mb-3">{logic.profile.email}</p>
 
                     <div className="flex flex-wrap justify-center gap-2">
                         <Badge variant="secondary" className="bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 border-0">
-                            {profile.role}
+                            {logic.profile.role}
                         </Badge>
-                        {profile.department && (
+                        {logic.profile.department && (
                             <Badge variant="outline" className="border-border/60">
-                                {profile.department}
+                                {logic.profile.department}
                             </Badge>
                         )}
                     </div>
                 </div>
 
                 {/* Stats Grid */}
-                {statistics && (
+                {logic.statistics && (
                     <div className="grid grid-cols-2 gap-3">
                         <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-border/50 shadow-sm">
                             <div className="flex items-center gap-2 mb-2 text-emerald-600 dark:text-emerald-400">
                                 <UserCheck className="h-5 w-5" />
                                 <span className="text-xs font-medium">Hadir</span>
                             </div>
-                            <p className="text-2xl font-bold">{statistics.present_days}</p>
+                            <p className="text-2xl font-bold">{logic.statistics.present_days}</p>
                             <p className="text-xs text-muted-foreground">Hari</p>
                         </div>
                         <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-border/50 shadow-sm">
@@ -410,7 +147,7 @@ export function MobileProfilePage() {
                                 <Clock className="h-5 w-5" />
                                 <span className="text-xs font-medium">Terlambat</span>
                             </div>
-                            <p className="text-2xl font-bold">{statistics.late_days}</p>
+                            <p className="text-2xl font-bold">{logic.statistics.late_days}</p>
                             <p className="text-xs text-muted-foreground">Kali</p>
                         </div>
                         <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-border/50 shadow-sm">
@@ -418,7 +155,7 @@ export function MobileProfilePage() {
                                 <Calendar className="h-5 w-5" />
                                 <span className="text-xs font-medium">Cuti</span>
                             </div>
-                            <p className="text-2xl font-bold">{statistics.leave_days}</p>
+                            <p className="text-2xl font-bold">{logic.statistics.leave_days}</p>
                             <p className="text-xs text-muted-foreground">Hari</p>
                         </div>
                         <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-border/50 shadow-sm">
@@ -426,7 +163,7 @@ export function MobileProfilePage() {
                                 <TrendingUp className="h-5 w-5" />
                                 <span className="text-xs font-medium">Rate</span>
                             </div>
-                            <p className="text-2xl font-bold">{statistics.current_month_attendance_rate}%</p>
+                            <p className="text-2xl font-bold">{logic.statistics.current_month_attendance_rate}%</p>
                             <p className="text-xs text-muted-foreground">Bulan Ini</p>
                         </div>
                     </div>
@@ -435,7 +172,7 @@ export function MobileProfilePage() {
                 {/* Menu List */}
                 <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-border/50 overflow-hidden">
                     <div
-                        onClick={handleEditOpen}
+                        onClick={logic.handleEditClick}
                         className="p-4 flex items-center justify-between border-b border-border/50 active:bg-muted/50 transition-colors cursor-pointer"
                     >
                         <div className="flex items-center gap-3">
@@ -452,7 +189,7 @@ export function MobileProfilePage() {
                             <div className="flex items-center gap-3">
                                 <div className={cn(
                                     "h-9 w-9 rounded-full flex items-center justify-center",
-                                    faceData?.has_face_data
+                                    logic.faceData?.has_face_data
                                         ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
                                         : "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400"
                                 )}>
@@ -465,11 +202,11 @@ export function MobileProfilePage() {
                                     </span>
                                 </div>
                             </div>
-                            {faceData?.has_face_data && (
+                            {logic.faceData?.has_face_data && (
                                 <button
                                     onClick={(e: React.MouseEvent) => {
                                         e.stopPropagation();
-                                        setIsDeleteFaceOpen(true);
+                                        logic.setDeleteFaceOpen(true);
                                     }}
                                     className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
                                     aria-label="Hapus Data Wajah"
@@ -481,7 +218,7 @@ export function MobileProfilePage() {
 
                         {/* Status Info */}
                         <div className="mt-3">
-                            {faceData?.has_face_data ? (
+                            {logic.faceData?.has_face_data ? (
                                 <div className="bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800 rounded-lg p-3 space-y-2">
                                     <div className="flex items-center gap-2">
                                         <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -489,21 +226,21 @@ export function MobileProfilePage() {
                                             Data wajah Anda sudah terdaftar
                                         </span>
                                     </div>
-                                    {faceData.face_data && (
+                                    {logic.faceData.face_data && (
                                         <div className="text-xs text-emerald-600 dark:text-emerald-400 space-y-1 pl-6">
-                                            {faceData.face_data.algorithm && (
-                                                <div>Model: {faceData.face_data.algorithm}</div>
+                                            {logic.faceData.face_data.algorithm && (
+                                                <div>Model: {logic.faceData.face_data.algorithm}</div>
                                             )}
-                                            {faceData.face_data.confidence && (
-                                                <div>Confidence: {(faceData.face_data.confidence * 100).toFixed(1)}%</div>
+                                            {logic.faceData.face_data.confidence && (
+                                                <div>Confidence: {(logic.faceData.face_data.confidence * 100).toFixed(1)}%</div>
                                             )}
-                                            {faceData.face_data.registered_at && (
-                                                <div>Terdaftar: {new Date(faceData.face_data.registered_at).toLocaleDateString('id-ID')}</div>
+                                            {logic.faceData.face_data.registered_at && (
+                                                <div>Terdaftar: {new Date(logic.faceData.face_data.registered_at).toLocaleDateString('id-ID')}</div>
                                             )}
                                         </div>
                                     )}
                                     <Button
-                                        onClick={handleStartFaceEnrollment}
+                                        onClick={logic.handleStartFaceEnrollment}
                                         variant="outline"
                                         size="sm"
                                         className="w-full mt-2 border-emerald-300 hover:bg-emerald-100 dark:border-emerald-700 dark:hover:bg-emerald-900/20"
@@ -524,7 +261,7 @@ export function MobileProfilePage() {
                                         Daftarkan wajah Anda untuk menggunakan fitur face recognition saat absensi.
                                     </p>
                                     <Button
-                                        onClick={handleStartFaceEnrollment}
+                                        onClick={logic.handleStartFaceEnrollment}
                                         size="sm"
                                         className="w-full mt-2 bg-amber-600 hover:bg-amber-700"
                                     >
@@ -537,7 +274,7 @@ export function MobileProfilePage() {
                     </div>
 
                     <div
-                        onClick={() => setIsPasswordOpen(true)}
+                        onClick={() => logic.setPasswordDialog(true)}
                         className="p-4 flex items-center justify-between border-b border-border/50 active:bg-muted/50 transition-colors cursor-pointer"
                     >
                         <div className="flex items-center gap-3">
@@ -553,16 +290,16 @@ export function MobileProfilePage() {
                         <div className="flex items-center gap-3">
                             <div className={cn(
                                 "h-9 w-9 rounded-full flex items-center justify-center",
-                                profile.two_factor_enabled
+                                logic.profile.two_factor_enabled
                                     ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
                                     : "bg-gray-100 dark:bg-gray-800 text-gray-500"
                             )}>
-                                {profile.two_factor_enabled ? <ShieldCheck className="h-5 w-5" /> : <Shield className="h-5 w-5" />}
+                                {logic.profile.two_factor_enabled ? <ShieldCheck className="h-5 w-5" /> : <Shield className="h-5 w-5" />}
                             </div>
                             <div className="flex flex-col">
                                 <span className="font-medium text-sm">Two-Factor Auth</span>
                                 <span className="text-xs text-muted-foreground">
-                                    {profile.two_factor_enabled ? 'Aktif' : 'Tidak Aktif'}
+                                    {logic.profile.two_factor_enabled ? 'Aktif' : 'Tidak Aktif'}
                                 </span>
                             </div>
                         </div>
@@ -584,7 +321,7 @@ export function MobileProfilePage() {
             </div >
 
             {/* Edit Profile Drawer */}
-            < Drawer open={isEditOpen} onOpenChange={setIsEditOpen} >
+            < Drawer open={logic.editMode} onOpenChange={logic.setEditMode} >
                 <DrawerContent>
                     <DrawerHeader>
                         <DrawerTitle>Edit Profil</DrawerTitle>
@@ -595,8 +332,8 @@ export function MobileProfilePage() {
                             <Label htmlFor="name">Nama Lengkap</Label>
                             <Input
                                 id="name"
-                                value={formData.name}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
+                                value={logic.formData.name}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => logic.setFormData({ ...logic.formData, name: e.target.value })}
                             />
                         </div>
                         <div className="space-y-2">
@@ -604,22 +341,22 @@ export function MobileProfilePage() {
                             <Input
                                 id="email"
                                 type="email"
-                                value={formData.email}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, email: e.target.value })}
+                                value={logic.formData.email}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => logic.setFormData({ ...logic.formData, email: e.target.value })}
                             />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="phone">No. Telepon</Label>
                             <Input
                                 id="phone"
-                                value={formData.phone}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, phone: e.target.value })}
+                                value={logic.formData.phone}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => logic.setFormData({ ...logic.formData, phone: e.target.value })}
                             />
                         </div>
                     </div>
                     <DrawerFooter>
-                        <Button onClick={handleSaveProfile} disabled={updateProfile.isPending}>
-                            {updateProfile.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                        <Button onClick={logic.handleSaveProfile} disabled={logic.updateProfileMutation.isPending}>
+                            {logic.updateProfileMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                             Simpan
                         </Button>
                         <DrawerClose asChild>
@@ -630,17 +367,17 @@ export function MobileProfilePage() {
             </Drawer >
 
             {/* Change Password Drawer */}
-            < Drawer open={isPasswordOpen} onOpenChange={setIsPasswordOpen} >
+            < Drawer open={logic.passwordDialog} onOpenChange={logic.setPasswordDialog} >
                 <DrawerContent>
                     <DrawerHeader>
                         <DrawerTitle>Ubah Password</DrawerTitle>
                         <DrawerDescription>Pastikan password baru Anda aman.</DrawerDescription>
                     </DrawerHeader>
                     <div className="p-4 space-y-4">
-                        {passwordError && (
+                        {logic.passwordError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
-                                <AlertDescription>{passwordError}</AlertDescription>
+                                <AlertDescription>{logic.passwordError}</AlertDescription>
                             </Alert>
                         )}
                         <div className="space-y-2">
@@ -648,8 +385,8 @@ export function MobileProfilePage() {
                             <Input
                                 id="current_password"
                                 type="password"
-                                value={passwordForm.current_password}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPasswordForm({ ...passwordForm, current_password: e.target.value })}
+                                value={logic.passwordForm.current_password}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => logic.setPasswordForm({ ...logic.passwordForm, current_password: e.target.value })}
                             />
                         </div>
                         <div className="space-y-2">
@@ -657,8 +394,8 @@ export function MobileProfilePage() {
                             <Input
                                 id="new_password"
                                 type="password"
-                                value={passwordForm.password}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPasswordForm({ ...passwordForm, password: e.target.value })}
+                                value={logic.passwordForm.password}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => logic.setPasswordForm({ ...logic.passwordForm, password: e.target.value })}
                             />
                         </div>
                         <div className="space-y-2">
@@ -666,14 +403,14 @@ export function MobileProfilePage() {
                             <Input
                                 id="confirm_password"
                                 type="password"
-                                value={passwordForm.password_confirmation}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPasswordForm({ ...passwordForm, password_confirmation: e.target.value })}
+                                value={logic.passwordForm.password_confirmation}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => logic.setPasswordForm({ ...logic.passwordForm, password_confirmation: e.target.value })}
                             />
                         </div>
                     </div>
                     <DrawerFooter>
-                        <Button onClick={handleChangePassword} disabled={changePassword.isPending}>
-                            {changePassword.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                        <Button onClick={logic.handleChangePassword} disabled={logic.changePasswordMutation.isPending}>
+                            {logic.changePasswordMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                             Ubah Password
                         </Button>
                         <DrawerClose asChild>
@@ -702,19 +439,19 @@ export function MobileProfilePage() {
             </AlertDialog >
 
             {/* Face Enrollment Drawer - DeepFace */}
-            < Drawer open={isFaceEnrollmentOpen} onOpenChange={(open: boolean) => !open && handleCloseFaceEnrollment()
+            < Drawer open={logic.faceEnrollmentOpen} onOpenChange={(open: boolean) => !open && logic.handleCloseFaceEnrollment()
             }>
                 <DrawerContent>
                     <DrawerHeader>
                         <DrawerTitle>
-                            {faceData?.has_face_data ? 'Perbarui Data Wajah' : 'Daftar Wajah'} - DeepFace ArcFace
+                            {logic.faceData?.has_face_data ? 'Perbarui Data Wajah' : 'Daftar Wajah'} - DeepFace ArcFace
                         </DrawerTitle>
                         <DrawerDescription>
-                            {enrollmentStep === 'success'
-                                ? faceData?.has_face_data
+                            {logic.enrollmentStep === 'success'
+                                ? logic.faceData?.has_face_data
                                     ? 'Data wajah Anda berhasil diperbarui!'
                                     : 'Wajah Anda berhasil didaftarkan!'
-                                : faceData?.has_face_data
+                                : logic.faceData?.has_face_data
                                     ? 'Perbarui data wajah untuk meningkatkan akurasi pengenalan saat absensi.'
                                     : 'Posisikan wajah Anda di tengah, sistem akan mengambil gambar otomatis.'}
                         </DrawerDescription>
@@ -724,7 +461,7 @@ export function MobileProfilePage() {
                         {/* Camera Preview */}
                         <div className="relative w-full aspect-[4/3] bg-black rounded-xl overflow-hidden">
                             <video
-                                ref={videoRef}
+                                ref={logic.videoRef}
                                 autoPlay
                                 playsInline
                                 muted
@@ -734,7 +471,7 @@ export function MobileProfilePage() {
 
 
                             {/* Ready State - Show Capture Button */}
-                            {enrollmentStep === 'ready' && (
+                            {logic.enrollmentStep === 'ready' && (
                                 <div className="absolute inset-0 flex items-center justify-center">
                                     <div className="absolute top-4 left-1/2 transform -translate-x-1/2">
                                         <div className="bg-blue-500/90 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg">
@@ -744,20 +481,8 @@ export function MobileProfilePage() {
                                 </div>
                             )}
 
-                            {/* Countdown State */}
-                            {enrollmentStep === 'countdown' && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                                    <div className="text-center">
-                                        <div className="bg-white rounded-full h-32 w-32 flex items-center justify-center border-4 border-emerald-500 shadow-2xl">
-                                            <span className="text-6xl font-bold text-emerald-600">{countdown}</span>
-                                        </div>
-                                        <p className="text-white text-lg font-semibold mt-4">Tahan posisi...</p>
-                                    </div>
-                                </div>
-                            )}
-
                             {/* Processing Overlay */}
-                            {enrollmentStep === 'processing' && (
+                            {logic.enrollmentStep === 'processing' && (
                                 <div className="absolute inset-0 flex items-center justify-center bg-black/80">
                                     <div className="text-center text-white">
                                         <Loader2 className="h-12 w-12 mx-auto mb-3 animate-spin" />
@@ -768,27 +493,27 @@ export function MobileProfilePage() {
                             )}
 
                             {/* Success Overlay */}
-                            {enrollmentStep === 'success' && (
+                            {logic.enrollmentStep === 'success' && (
                                 <div className="absolute inset-0 flex items-center justify-center bg-emerald-500/95">
                                     <div className="text-center text-white">
                                         <CheckCircle2 className="h-16 w-16 mx-auto mb-3" />
                                         <p className="text-2xl font-bold">Berhasil!</p>
                                         <p className="text-sm mt-2">
-                                            {registrationAction === 'update' ? 'Data wajah telah diperbarui' : 'Wajah Anda telah terdaftar'}
+                                            {logic.registrationAction === 'update' ? 'Data wajah telah diperbarui' : 'Wajah Anda telah terdaftar'}
                                         </p>
-                                        <p className="text-xs mt-1 text-white/80">ArcFace 512-d {registrationAction === 'update' ? 'updated' : 'registered'}</p>
+                                        <p className="text-xs mt-1 text-white/80">ArcFace 512-d {logic.registrationAction === 'update' ? 'updated' : 'registered'}</p>
                                     </div>
                                 </div>
                             )}
 
                             {/* Error Overlay */}
-                            {enrollmentStep === 'error' && (
+                            {logic.enrollmentStep === 'error' && (
                                 <div className="absolute inset-0 flex items-center justify-center bg-red-500/95">
                                     <div className="text-center text-white px-6">
                                         <XCircle className="h-16 w-16 mx-auto mb-3" />
                                         <p className="text-2xl font-bold">Gagal!</p>
-                                        {enrollmentError && (
-                                            <p className="text-sm mt-2">{enrollmentError}</p>
+                                        {logic.enrollmentError && (
+                                            <p className="text-sm mt-2">{logic.enrollmentError}</p>
                                         )}
                                         <p className="text-xs mt-2 text-white/80">Mencoba lagi dalam 3 detik...</p>
                                     </div>
@@ -797,7 +522,7 @@ export function MobileProfilePage() {
                         </div>
 
                         {/* Instructions */}
-                        {enrollmentStep === 'ready' && (
+                        {logic.enrollmentStep === 'ready' && (
                             <Alert>
                                 <AlertTriangle className="h-4 w-4" />
                                 <AlertDescription>
@@ -805,27 +530,27 @@ export function MobileProfilePage() {
                                     <ul className="list-disc list-inside mt-1 text-sm space-y-1">
                                         <li>Posisikan wajah di tengah kamera</li>
                                         <li>Pastikan pencahayaan cukup terang</li>
-                                        <li>Tekan tombol "Mulai" untuk countdown 3 detik</li>
-                                        <li>Tahan posisi saat countdown berlangsung</li>
+                                        <li>Tekan tombol "Ambil Foto" untuk memotret</li>
+                                        <li>Tahan posisi saat foto diambil</li>
                                     </ul>
                                 </AlertDescription>
                             </Alert>
                         )}
 
                         {/* Action Buttons - Moved here for better visibility */}
-                        {enrollmentStep === 'ready' && (
+                        {logic.enrollmentStep === 'ready' && (
                             <Button
-                                onClick={handleCaptureNow}
+                                onClick={logic.handleCaptureFace}
                                 className="bg-emerald-600 hover:bg-emerald-700 w-full"
                                 size="lg"
                             >
                                 <Camera className="h-5 w-5 mr-2" />
-                                Mulai (3 Detik Countdown)
+                                Ambil Foto
                             </Button>
                         )}
-                        {enrollmentStep === 'error' && (
+                        {logic.enrollmentStep === 'error' && (
                             <Button
-                                onClick={handleStartFaceEnrollment}
+                                onClick={logic.handleStartFaceEnrollment}
                                 variant="destructive"
                                 className="w-full"
                             >
@@ -839,11 +564,11 @@ export function MobileProfilePage() {
                         <DrawerClose asChild>
                             <Button
                                 variant="outline"
-                                onClick={handleCloseFaceEnrollment}
-                                disabled={enrollmentStep === 'processing' || enrollmentStep === 'countdown'}
+                                onClick={logic.handleCloseFaceEnrollment}
+                                disabled={logic.enrollmentStep === 'processing'}
                                 className="w-full"
                             >
-                                {enrollmentStep === 'success' ? 'Selesai' : 'Batal'}
+                                {logic.enrollmentStep === 'success' ? 'Selesai' : 'Batal'}
                             </Button>
                         </DrawerClose>
                     </DrawerFooter>
@@ -851,7 +576,7 @@ export function MobileProfilePage() {
             </Drawer >
 
             {/* Delete Face Alert */}
-            < AlertDialog open={isDeleteFaceOpen} onOpenChange={setIsDeleteFaceOpen} >
+            < AlertDialog open={logic.deleteFaceOpen} onOpenChange={logic.setDeleteFaceOpen} >
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Hapus Data Wajah?</AlertDialogTitle>
@@ -862,11 +587,11 @@ export function MobileProfilePage() {
                     <AlertDialogFooter>
                         <AlertDialogCancel>Batal</AlertDialogCancel>
                         <AlertDialogAction
-                            onClick={handleDeleteFace}
-                            disabled={deleteFaceMutation.isPending}
+                            onClick={logic.handleDeleteFace}
+                            disabled={logic.deleteFaceMutation.isPending}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
-                            {deleteFaceMutation.isPending ? (
+                            {logic.deleteFaceMutation.isPending ? (
                                 <>
                                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                     Menghapus...

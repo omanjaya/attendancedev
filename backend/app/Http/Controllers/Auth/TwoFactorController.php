@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\UserDevice;
+use App\Services\Auth\TwoFactorSecurityService;
 use App\Services\DeviceService;
 use App\Services\SecurityLogger;
 use App\Services\SecurityNotificationService;
@@ -15,28 +16,14 @@ use Illuminate\Validation\ValidationException;
 
 class TwoFactorController extends Controller
 {
-    private TwoFactorService $twoFactorService;
-
-    private SecurityService $securityService;
-
-    private SecurityLogger $securityLogger;
-
-    private DeviceService $deviceService;
-
-    private SecurityNotificationService $notificationService;
-
     public function __construct(
-        TwoFactorService $twoFactorService,
-        SecurityService $securityService,
-        SecurityLogger $securityLogger,
-        DeviceService $deviceService,
-        SecurityNotificationService $notificationService,
+        private TwoFactorService $twoFactorService,
+        private SecurityService $securityService,
+        private SecurityLogger $securityLogger,
+        private DeviceService $deviceService,
+        private SecurityNotificationService $notificationService,
+        private TwoFactorSecurityService $twoFactorSecurityService
     ) {
-        $this->twoFactorService = $twoFactorService;
-        $this->securityService = $securityService;
-        $this->securityLogger = $securityLogger;
-        $this->deviceService = $deviceService;
-        $this->notificationService = $notificationService;
         $this->middleware('auth');
     }
 
@@ -160,7 +147,7 @@ class TwoFactorController extends Controller
         $this->securityService->recordGlobal2FAFailure($request->ip(), $user->id);
 
         // Log failed attempt for security monitoring
-        $this->logFailedVerification($request, $user, $type);
+        $this->twoFactorSecurityService->logFailedVerification($request, $user, $type);
 
         // Check if admin intervention is required
         if ($attemptResult['requires_admin_intervention']) {
@@ -271,7 +258,7 @@ class TwoFactorController extends Controller
         cache()->put("emergency_recovery_{$user->id}_".time(), $recoveryData, now()->addHours(24));
 
         // Send notification to admins
-        $this->notifyAdminsOfEmergencyRecovery($user, $recoveryData);
+        $this->twoFactorSecurityService->notifyAdminsOfEmergencyRecovery($user, $recoveryData);
 
         // Log emergency recovery request using SecurityLogger
         $this->securityLogger->logEmergencyRecovery($user, $recoveryData, $request);
@@ -288,85 +275,6 @@ class TwoFactorController extends Controller
     public function showAccountRecovery()
     {
         return view('pages.auth.2fa.account-recovery');
-    }
-
-    /**
-     * Log failed verification attempt.
-     */
-    private function logFailedVerification(Request $request, $user, string $type): void
-    {
-        $attemptData = [
-            'user_id' => $user->id,
-            'attempt_type' => $type,
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'session_id' => session()->getId(),
-            'timestamp' => now()->toISOString(),
-        ];
-
-        // Log to security channel
-        logger()->channel('security')->warning('Failed 2FA Verification', $attemptData);
-
-        // Increment failed attempts counter
-        $failureKey = "2fa_failures_{$user->id}";
-        $failures = cache()->get($failureKey, 0);
-        $failures++;
-
-        cache()->put($failureKey, $failures, now()->addMinutes(30));
-
-        // Lock account after too many failures
-        if ($failures >= 5) {
-            $user->lockAccount(now()->addMinutes(30));
-
-            logger()->channel('security')->critical('Account Locked Due to 2FA Failures', $attemptData);
-
-            // Send security alert
-            $this->sendSecurityAlert($user, 'Account locked due to repeated 2FA failures');
-        }
-    }
-
-    /**
-     * Notify admins of emergency recovery request.
-     */
-    private function notifyAdminsOfEmergencyRecovery($user, array $recoveryData): void
-    {
-        // Get all admin users
-        $admins = \App\Models\User::role(['admin', 'superadmin'])->get();
-
-        foreach ($admins as $admin) {
-            // Send email notification (implement with your mail system)
-            \Mail::send(
-                'emails.emergency-recovery-request',
-                [
-                    'user' => $user,
-                    'admin' => $admin,
-                    'recovery_data' => $recoveryData,
-                ],
-                function ($message) use ($admin) {
-                    $message->to($admin->email)->subject('Emergency 2FA Recovery Request');
-                },
-            );
-        }
-    }
-
-    /**
-     * Send security alert notification.
-     */
-    private function sendSecurityAlert($user, string $message): void
-    {
-        // Send email to user
-        \Mail::send(
-            'emails.security-alert',
-            [
-                'user' => $user,
-                'message' => $message,
-                'timestamp' => now(),
-                'ip_address' => request()->ip(),
-            ],
-            function ($mail) use ($user) {
-                $mail->to($user->email)->subject('Security Alert - '.config('app.name'));
-            },
-        );
     }
 
     /**

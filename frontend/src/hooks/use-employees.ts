@@ -79,19 +79,19 @@ export function useCreateEmployee() {
 // Update employee mutation
 export function useUpdateEmployee() {
   const queryClient = useQueryClient();
-  const { success, error } = useNotificationStore();
+  const { success } = useNotificationStore();
 
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<EmployeeFormData> }) =>
       updateEmployee(id, data),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: employeeKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: employeeKeys.detail(variables.id) });
+    onSuccess: async (_, variables) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: employeeKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: employeeKeys.detail(variables.id) }),
+      ]);
       success('Berhasil', 'Data karyawan berhasil diperbarui');
     },
-    onError: (err: Error) => {
-      error('Gagal', err.message || 'Gagal memperbarui data karyawan');
-    },
+    // onError removed - global error handler will catch it
   });
 }
 
@@ -116,36 +116,36 @@ export function useDeleteEmployee() {
 // Upload employee avatar mutation
 export function useUploadEmployeeAvatar() {
   const queryClient = useQueryClient();
-  const { success, error } = useNotificationStore();
+  const { success } = useNotificationStore();
 
   return useMutation({
     mutationFn: ({ employeeId, file }: { employeeId: string; file: File }) =>
       uploadEmployeeAvatar(employeeId, file),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: employeeKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: employeeKeys.detail(variables.employeeId) });
+    onSuccess: async (_, variables) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: employeeKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: employeeKeys.detail(variables.employeeId) }),
+      ]);
       success('Berhasil', 'Avatar berhasil diunggah');
     },
-    onError: (err: Error) => {
-      error('Gagal', err.message || 'Gagal mengunggah avatar');
-    },
+    // onError removed - global error handler will catch it
   });
 }
 
 // Delete employee avatar mutation
 export function useDeleteEmployeeAvatar() {
   const queryClient = useQueryClient();
-  const { success, error } = useNotificationStore();
+  const { success } = useNotificationStore();
 
   return useMutation({
     mutationFn: (employeeId: string) => deleteEmployeeAvatar(employeeId),
-    onSuccess: (_, employeeId) => {
-      queryClient.invalidateQueries({ queryKey: employeeKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: employeeKeys.detail(employeeId) });
+    onSuccess: async (_, employeeId) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: employeeKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: employeeKeys.detail(employeeId) }),
+      ]);
       success('Berhasil', 'Avatar berhasil dihapus');
     },
-    onError: (err: Error) => {
-      error('Gagal', err.message || 'Gagal menghapus avatar');
-    },
+    // onError removed - global error handler will catch it
   });
 }

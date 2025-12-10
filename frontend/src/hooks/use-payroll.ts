@@ -127,7 +127,7 @@ export function useCreatePayrollPeriod() {
 // Update payroll period mutation
 export function useUpdatePayrollPeriod() {
   const queryClient = useQueryClient();
-  const { success, error } = useNotificationStore();
+  const { success } = useNotificationStore();
 
   return useMutation({
     mutationFn: ({
@@ -137,14 +137,14 @@ export function useUpdatePayrollPeriod() {
       id: string;
       data: Partial<{ name: string; pay_date: string; notes: string }>;
     }) => updatePayrollPeriod(id, data),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: payrollKeys.periodDetail(id) });
-      queryClient.invalidateQueries({ queryKey: payrollKeys.periods() });
+    onSuccess: async (_, { id }) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: payrollKeys.periodDetail(id) }),
+        queryClient.invalidateQueries({ queryKey: payrollKeys.periods() }),
+      ]);
       success('Berhasil', 'Periode penggajian berhasil diperbarui');
     },
-    onError: (err: Error) => {
-      error('Gagal', err.message || 'Gagal memperbarui periode penggajian');
-    },
+    // onError removed - global error handler will catch it
   });
 }
 
@@ -169,7 +169,7 @@ export function useDeletePayrollPeriod() {
 // Update employee payroll mutation
 export function useUpdatePayrollEmployee() {
   const queryClient = useQueryClient();
-  const { success, error } = useNotificationStore();
+  const { success } = useNotificationStore();
 
   return useMutation({
     mutationFn: ({
@@ -187,15 +187,15 @@ export function useUpdatePayrollEmployee() {
         notes: string;
       }>;
     }) => updatePayrollEmployee(periodId, employeeId, data),
-    onSuccess: (_, { periodId, employeeId }) => {
-      queryClient.invalidateQueries({ queryKey: payrollKeys.employeeDetail(periodId, employeeId) });
-      queryClient.invalidateQueries({ queryKey: payrollKeys.employees(periodId) });
-      queryClient.invalidateQueries({ queryKey: payrollKeys.summary(periodId) });
+    onSuccess: async (_, { periodId, employeeId }) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: payrollKeys.employeeDetail(periodId, employeeId) }),
+        queryClient.invalidateQueries({ queryKey: payrollKeys.employees(periodId) }),
+        queryClient.invalidateQueries({ queryKey: payrollKeys.summary(periodId) }),
+      ]);
       success('Berhasil', 'Data gaji karyawan berhasil diperbarui');
     },
-    onError: (err: Error) => {
-      error('Gagal', err.message || 'Gagal memperbarui data gaji karyawan');
-    },
+    // onError removed - global error handler will catch it
   });
 }
 
@@ -223,44 +223,44 @@ export function useCalculatePayroll() {
 // Approve payroll mutation
 export function useApprovePayroll() {
   const queryClient = useQueryClient();
-  const { success, error } = useNotificationStore();
+  const { success } = useNotificationStore();
 
   return useMutation({
     mutationFn: ({ id, notes }: { id: string; notes?: string }) => approvePayroll(id, notes),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: payrollKeys.periodDetail(id) });
-      queryClient.invalidateQueries({ queryKey: payrollKeys.periods() });
-      queryClient.invalidateQueries({ queryKey: payrollKeys.statistics() });
+    onSuccess: async (_, { id }) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: payrollKeys.periodDetail(id) }),
+        queryClient.invalidateQueries({ queryKey: payrollKeys.periods() }),
+        queryClient.invalidateQueries({ queryKey: payrollKeys.statistics() }),
+      ]);
       success('Berhasil', 'Penggajian berhasil disetujui');
     },
-    onError: (err: Error) => {
-      error('Gagal', err.message || 'Gagal menyetujui penggajian');
-    },
+    // onError removed - global error handler will catch it
   });
 }
 
 // Reject payroll mutation
 export function useRejectPayroll() {
   const queryClient = useQueryClient();
-  const { success, error } = useNotificationStore();
+  const { success } = useNotificationStore();
 
   return useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) => rejectPayroll(id, reason),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: payrollKeys.periodDetail(id) });
-      queryClient.invalidateQueries({ queryKey: payrollKeys.periods() });
+    onSuccess: async (_, { id }) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: payrollKeys.periodDetail(id) }),
+        queryClient.invalidateQueries({ queryKey: payrollKeys.periods() }),
+      ]);
       success('Berhasil', 'Penggajian berhasil ditolak');
     },
-    onError: (err: Error) => {
-      error('Gagal', err.message || 'Gagal menolak penggajian');
-    },
+    // onError removed - global error handler will catch it
   });
 }
 
 // Mark payroll as paid mutation
 export function useMarkPayrollPaid() {
   const queryClient = useQueryClient();
-  const { success, error } = useNotificationStore();
+  const { success } = useNotificationStore();
 
   return useMutation({
     mutationFn: ({
@@ -270,52 +270,50 @@ export function useMarkPayrollPaid() {
       id: string;
       data: { payment_date: string; payment_method: string; notes?: string };
     }) => markPayrollPaid(id, data),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: payrollKeys.periodDetail(id) });
-      queryClient.invalidateQueries({ queryKey: payrollKeys.periods() });
-      queryClient.invalidateQueries({ queryKey: payrollKeys.employees(id) });
-      queryClient.invalidateQueries({ queryKey: payrollKeys.statistics() });
+    onSuccess: async (_, { id }) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: payrollKeys.periodDetail(id) }),
+        queryClient.invalidateQueries({ queryKey: payrollKeys.periods() }),
+        queryClient.invalidateQueries({ queryKey: payrollKeys.employees(id) }),
+        queryClient.invalidateQueries({ queryKey: payrollKeys.statistics() }),
+      ]);
       success('Berhasil', 'Penggajian berhasil ditandai sebagai dibayar');
     },
-    onError: (err: Error) => {
-      error('Gagal', err.message || 'Gagal menandai penggajian sebagai dibayar');
-    },
+    // onError removed - global error handler will catch it
   });
 }
 
 // Cancel payroll mutation
 export function useCancelPayroll() {
   const queryClient = useQueryClient();
-  const { success, error } = useNotificationStore();
+  const { success } = useNotificationStore();
 
   return useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) => cancelPayroll(id, reason),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: payrollKeys.periodDetail(id) });
-      queryClient.invalidateQueries({ queryKey: payrollKeys.periods() });
-      queryClient.invalidateQueries({ queryKey: payrollKeys.statistics() });
+    onSuccess: async (_, { id }) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: payrollKeys.periodDetail(id) }),
+        queryClient.invalidateQueries({ queryKey: payrollKeys.periods() }),
+        queryClient.invalidateQueries({ queryKey: payrollKeys.statistics() }),
+      ]);
       success('Berhasil', 'Penggajian berhasil dibatalkan');
     },
-    onError: (err: Error) => {
-      error('Gagal', err.message || 'Gagal membatalkan penggajian');
-    },
+    // onError removed - global error handler will catch it
   });
 }
 
 // Update payroll config mutation
 export function useUpdatePayrollConfig() {
   const queryClient = useQueryClient();
-  const { success, error } = useNotificationStore();
+  const { success } = useNotificationStore();
 
   return useMutation({
     mutationFn: (data: Partial<PayrollConfig>) => updatePayrollConfig(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: payrollKeys.config() });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: payrollKeys.config() });
       success('Berhasil', 'Konfigurasi penggajian berhasil diperbarui');
     },
-    onError: (err: Error) => {
-      error('Gagal', err.message || 'Gagal memperbarui konfigurasi penggajian');
-    },
+    // onError removed - global error handler will catch it
   });
 }
 
