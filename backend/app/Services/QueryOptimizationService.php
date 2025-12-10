@@ -59,11 +59,26 @@ class QueryOptimizationService
 
     /**
      * Create index if it doesn't exist
+     * Note: Only called with hardcoded values from $indexes array above.
+     * Validation added as defense-in-depth measure.
      */
     private static function createIndexIfNotExists(string $table, array $columns): void
     {
+        // Validate table and column names (alphanumeric + underscore only)
+        $validNamePattern = '/^[a-zA-Z_][a-zA-Z0-9_]*$/';
+
+        if (!preg_match($validNamePattern, $table)) {
+            throw new \InvalidArgumentException("Invalid table name: {$table}");
+        }
+
+        foreach ($columns as $column) {
+            if (!preg_match($validNamePattern, $column)) {
+                throw new \InvalidArgumentException("Invalid column name: {$column}");
+            }
+        }
+
         $indexName = $table . '_' . implode('_', $columns) . '_index';
-        
+
         if (!self::indexExists($table, $indexName)) {
             $columnsString = implode(', ', $columns);
             DB::statement("CREATE INDEX {$indexName} ON {$table} ({$columnsString})");

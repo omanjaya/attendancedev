@@ -12,7 +12,6 @@ import {
   BarChart3,
   MapPin,
   Edit3,
-  Server,
 } from 'lucide-react';
 import type { UserRole, Permission } from '@/types/auth';
 
@@ -109,13 +108,14 @@ export const adminNavigation: NavGroup[] = [
         icon: Settings,
         description: 'Lokasi, libur, users & keamanan',
       },
-      {
-        title: 'Services',
-        href: '/admin/services',
-        icon: Server,
-        description: 'Monitor & kelola system services',
-        roles: ['super-admin'],
-      },
+      // Services menu disabled - use Portainer at :9443 for container management
+      // {
+      //   title: 'Services',
+      //   href: '/admin/services',
+      //   icon: Server,
+      //   description: 'Monitor & kelola system services',
+      //   roles: ['super-admin'],
+      // },
     ],
   },
 ];
