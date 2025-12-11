@@ -685,4 +685,140 @@ class Employee extends Model
         ];
     }
 
+    // ========== GURU HONORER HELPER METHODS ==========
+
+    /**
+     * Check if employee is Guru Honorer (uses TeachingSchedule for attendance)
+     * Checks EmployeeType relationship first (can_override_by_teaching flag)
+     * Only falls back to employee_type field if no EmployeeType is assigned
+     */
+    public function isGuruHonorer(): bool
+    {
+        // Check via EmployeeType relationship (preferred - uses can_override_by_teaching flag)
+        $employeeType = $this->employeeTypeRelation;
+        if ($employeeType) {
+            // If EmployeeType is assigned, use its can_override_by_teaching flag
+            return (bool) $employeeType->can_override_by_teaching;
+        }
+
+        // Fallback: Only if no EmployeeType assigned, check via employee_type field
+        $honorTypes = ['guru_honorer', 'guru_honor', 'guru-honor'];
+        return in_array(strtolower($this->employee_type ?? ''), $honorTypes);
+    }
+
+    /**
+     * Get first teaching session for a specific date
+     * Used for check-in validation (earliest session)
+     */
+    public function getFirstTeachingSessionForDate($date): ?TeachingSchedule
+    {
+        $schedules = $this->getTeachingSchedulesForDate($date);
+        return $schedules->sortBy('teaching_start_time')->first();
+    }
+
+    /**
+     * Get last teaching session for a specific date
+     * Used for check-out validation (latest session)
+     */
+    public function getLastTeachingSessionForDate($date): ?TeachingSchedule
+    {
+        $schedules = $this->getTeachingSchedulesForDate($date);
+        return $schedules->sortByDesc('teaching_end_time')->first();
+    }
+
+    /**
+     * Get total teaching hours for a specific date
+     * Sum of all teaching session durations (not range)
+     */
+    public function getTotalTeachingHoursForDate($date): float
+    {
+        $schedules = $this->getTeachingSchedulesForDate($date);
+
+        return $schedules->sum(function ($schedule) {
+            return $schedule->teaching_duration_hours ?? 0;
+        });
+    }
+
+    /**
+     * Get check-in time boundaries for Guru Honorer
+     * Returns: [can_checkin_from, late_after, sessions]
+     */
+    public function getGuruHonorerCheckInBoundaries($date): array
+    {
+        $firstSession = $this->getFirstTeachingSessionForDate($date);
+
+        if (!$firstSession) {
+            return [
+                'has_schedule' => false,
+                'can_checkin_from' => null,
+                'late_after' => null,
+                'first_session_start' => null,
+                'message' => 'Tidak ada jadwal mengajar hari ini',
+            ];
+        }
+
+        $sessionStart = $firstSession->teaching_start_time;
+
+        // Can check-in 30 minutes before first session
+        $canCheckinFrom = $sessionStart->copy()->subMinutes(30);
+
+        // Late if check-in after session start (no tolerance for guru honorer)
+        $lateAfter = $sessionStart->copy();
+
+        return [
+            'has_schedule' => true,
+            'can_checkin_from' => $canCheckinFrom,
+            'late_after' => $lateAfter,
+            'first_session_start' => $sessionStart,
+            'first_session' => [
+                'start_time' => $sessionStart->format('H:i'),
+                'end_time' => $firstSession->teaching_end_time->format('H:i'),
+                'subject' => $firstSession->subject?->name ?? 'Unknown',
+                'class_name' => $firstSession->class_name,
+            ],
+            'message' => 'Sesi pertama: ' . $sessionStart->format('H:i'),
+        ];
+    }
+
+    /**
+     * Get check-out time boundaries for Guru Honorer
+     * Returns: [can_checkout_from, early_leave_before, sessions]
+     */
+    public function getGuruHonorerCheckOutBoundaries($date): array
+    {
+        $lastSession = $this->getLastTeachingSessionForDate($date);
+
+        if (!$lastSession) {
+            return [
+                'has_schedule' => false,
+                'can_checkout_from' => null,
+                'early_leave_before' => null,
+                'last_session_end' => null,
+                'message' => 'Tidak ada jadwal mengajar hari ini',
+            ];
+        }
+
+        $sessionEnd = $lastSession->teaching_end_time;
+
+        // Can check-out 1 minute before session ends (small tolerance)
+        $canCheckoutFrom = $sessionEnd->copy()->subMinutes(1);
+
+        // Early leave if check-out before session end
+        $earlyLeaveBefore = $sessionEnd->copy();
+
+        return [
+            'has_schedule' => true,
+            'can_checkout_from' => $canCheckoutFrom,
+            'early_leave_before' => $earlyLeaveBefore,
+            'last_session_end' => $sessionEnd,
+            'last_session' => [
+                'start_time' => $lastSession->teaching_start_time->format('H:i'),
+                'end_time' => $sessionEnd->format('H:i'),
+                'subject' => $lastSession->subject?->name ?? 'Unknown',
+                'class_name' => $lastSession->class_name,
+            ],
+            'message' => 'Sesi terakhir selesai: ' . $sessionEnd->format('H:i'),
+        ];
+    }
+
 }

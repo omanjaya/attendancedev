@@ -465,6 +465,15 @@ class AttendanceService implements AttendanceServiceInterface
             return 0;
         }
 
+        // Get the employee for this attendance
+        $employee = $attendance->employee;
+
+        // === GURU HONORER: Use sum of teaching hours, not range ===
+        if ($employee && $employee->isGuruHonorer()) {
+            return $this->calculateWorkingHoursForGuruHonorer($employee, $attendance->date);
+        }
+
+        // === REGULAR EMPLOYEE: Use check-in to check-out range ===
         $checkIn = Carbon::parse($attendance->check_in_time);
         $checkOut = Carbon::parse($attendance->check_out_time);
 
@@ -512,6 +521,12 @@ class AttendanceService implements AttendanceServiceInterface
      */
     private function determineStatus(Carbon $time, string $type, Employee $employee): string
     {
+        // === GURU HONORER: Use TeachingSchedule for late detection ===
+        if ($employee->isGuruHonorer()) {
+            return $this->determineStatusForGuruHonorer($time, $type, $employee);
+        }
+
+        // === REGULAR EMPLOYEE: Use MonthlySchedule ===
         // Get employee's schedule for today
         $employeeSchedule = $employee->getScheduleForDate($time);
 
@@ -542,11 +557,37 @@ class AttendanceService implements AttendanceServiceInterface
     }
 
     /**
+     * Determine attendance status for Guru Honorer
+     * Late = check_in_time > teaching_start_time (first session, no tolerance)
+     */
+    private function determineStatusForGuruHonorer(Carbon $time, string $type, Employee $employee): string
+    {
+        if ($type === 'check_in') {
+            $boundaries = $employee->getGuruHonorerCheckInBoundaries($time);
+
+            if ($boundaries['has_schedule'] && $boundaries['late_after']) {
+                // Late if check-in after teaching_start_time (no tolerance)
+                if ($time->gt($boundaries['late_after'])) {
+                    return 'late';
+                }
+            }
+        }
+
+        return 'present';
+    }
+
+    /**
      * Determine check-out status
      * - 'early_leave' if time < default_end_time (jam pulang)
      */
     private function determineCheckOutStatus(Carbon $time, Employee $employee): ?string
     {
+        // === GURU HONORER: Use TeachingSchedule for early leave detection ===
+        if ($employee->isGuruHonorer()) {
+            return $this->determineCheckOutStatusForGuruHonorer($time, $employee);
+        }
+
+        // === REGULAR EMPLOYEE: Use MonthlySchedule ===
         $employeeSchedule = $employee->getScheduleForDate($time);
 
         if ($employeeSchedule && $employeeSchedule->monthlySchedule) {
@@ -556,6 +597,24 @@ class AttendanceService implements AttendanceServiceInterface
                 if ($time->lt($endTimeThreshold)) {
                     return 'early_leave';
                 }
+            }
+        }
+
+        return null; // No status change needed
+    }
+
+    /**
+     * Determine check-out status for Guru Honorer
+     * Early leave = check_out_time < teaching_end_time (last session)
+     */
+    private function determineCheckOutStatusForGuruHonorer(Carbon $time, Employee $employee): ?string
+    {
+        $boundaries = $employee->getGuruHonorerCheckOutBoundaries($time);
+
+        if ($boundaries['has_schedule'] && $boundaries['early_leave_before']) {
+            // Early leave if check-out before teaching_end_time (last session)
+            if ($time->lt($boundaries['early_leave_before'])) {
+                return 'early_leave';
             }
         }
 
@@ -616,6 +675,14 @@ class AttendanceService implements AttendanceServiceInterface
     private function validateCheckInTime(Employee $employee): void
     {
         $now = $this->timeService->now();
+
+        // === GURU HONORER: Use TeachingSchedule for validation ===
+        if ($employee->isGuruHonorer()) {
+            $this->validateCheckInTimeForGuruHonorer($employee, $now);
+            return;
+        }
+
+        // === REGULAR EMPLOYEE: Use MonthlySchedule ===
         $currentTime = $now->format('H:i:s');
 
         // Get employee's schedule for today
@@ -640,6 +707,31 @@ class AttendanceService implements AttendanceServiceInterface
     }
 
     /**
+     * Validate check-in time for Guru Honorer
+     * Can check-in 30 minutes before first teaching session
+     */
+    private function validateCheckInTimeForGuruHonorer(Employee $employee, Carbon $now): void
+    {
+        $boundaries = $employee->getGuruHonorerCheckInBoundaries($now);
+
+        if (!$boundaries['has_schedule']) {
+            throw new \Exception($boundaries['message']);
+        }
+
+        $canCheckinFrom = $boundaries['can_checkin_from'];
+
+        // Check if too early (more than 30 min before first session)
+        if ($now->lt($canCheckinFrom)) {
+            $formattedTime = $canCheckinFrom->format('H:i');
+            $sessionTime = $boundaries['first_session_start']->format('H:i');
+            throw new \Exception("Belum waktunya absen masuk. Sesi pertama dimulai pukul {$sessionTime}. Anda dapat absen mulai pukul {$formattedTime}");
+        }
+
+        // Guru honorer can always check-in after can_checkin_from (even if late)
+        // Late status will be determined by determineStatus()
+    }
+
+    /**
      * Validate check-out time boundaries
      * - Must be >= checkout_start_time (mulai absen pulang)
      * - Must be <= checkout_end_time (batas akhir absen pulang)
@@ -647,6 +739,14 @@ class AttendanceService implements AttendanceServiceInterface
     private function validateCheckOutTime(Employee $employee): void
     {
         $now = $this->timeService->now();
+
+        // === GURU HONORER: Use TeachingSchedule for validation ===
+        if ($employee->isGuruHonorer()) {
+            $this->validateCheckOutTimeForGuruHonorer($employee, $now);
+            return;
+        }
+
+        // === REGULAR EMPLOYEE: Use MonthlySchedule ===
         $currentTime = $now->format('H:i:s');
 
         // Get employee's schedule for today
@@ -672,5 +772,38 @@ class AttendanceService implements AttendanceServiceInterface
             $formattedTime = Carbon::parse($checkoutEndTime)->format('H:i');
             throw new \Exception("Sudah lewat batas absen pulang. Batas akhir absen pulang adalah pukul {$formattedTime}");
         }
+    }
+
+    /**
+     * Validate check-out time for Guru Honorer
+     * Can check-out 1 minute before last teaching session ends
+     */
+    private function validateCheckOutTimeForGuruHonorer(Employee $employee, Carbon $now): void
+    {
+        $boundaries = $employee->getGuruHonorerCheckOutBoundaries($now);
+
+        if (!$boundaries['has_schedule']) {
+            throw new \Exception($boundaries['message']);
+        }
+
+        $canCheckoutFrom = $boundaries['can_checkout_from'];
+
+        // Check if too early (before last session ends - 1 min tolerance)
+        if ($now->lt($canCheckoutFrom)) {
+            $sessionEndTime = $boundaries['last_session_end']->format('H:i');
+            throw new \Exception("Belum waktunya absen pulang. Sesi terakhir selesai pukul {$sessionEndTime}");
+        }
+
+        // Guru honorer can always check-out after can_checkout_from (even if early leave)
+        // Early leave status will be determined by determineCheckOutStatus()
+    }
+
+    /**
+     * Calculate working hours for Guru Honorer
+     * Returns sum of teaching hours (not range between check-in and check-out)
+     */
+    public function calculateWorkingHoursForGuruHonorer(Employee $employee, $date): float
+    {
+        return $employee->getTotalTeachingHoursForDate($date);
     }
 }
