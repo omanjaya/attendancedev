@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { Clock, Calendar, Plane, DollarSign, User, CheckCircle, AlertCircle } from 'lucide-react';
 import { PageLayout } from '@/components/shared/PageLayout';
