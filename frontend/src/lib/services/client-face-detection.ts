@@ -392,7 +392,7 @@ class ClientFaceDetectionService {
     canvas: HTMLCanvasElement,
     dims: { width: number; height: number },
     detected: boolean = false,
-    faces: ClientFaceDetection[] = []
+    _faces: ClientFaceDetection[] = []
   ): void {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -403,28 +403,20 @@ class ClientFaceDetectionService {
     // Clear
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw oval guide
+    // Draw circle guide (not oval)
     const centerX = dims.width / 2;
     const centerY = dims.height / 2;
-    const radiusX = dims.width * 0.25;
-    const radiusY = dims.height * 0.35;
+    const radius = Math.min(dims.width, dims.height) * 0.3; // Circle with uniform radius
 
     ctx.beginPath();
-    ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
+    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
     ctx.strokeStyle = detected ? '#22c55e' : '#64748b';
     ctx.lineWidth = 3;
     ctx.setLineDash([10, 5]);
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Draw face boxes if detected
-    if (detected && faces.length > 0) {
-      faces.forEach(face => {
-        ctx.strokeStyle = '#22c55e';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(face.box.x, face.box.y, face.box.width, face.box.height);
-      });
-    }
+    // No detection box - cleaner UI
   }
 
   /**

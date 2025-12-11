@@ -237,7 +237,7 @@ export function AttendanceVerificationPage() {
             setState(prev => ({
                 ...prev,
                 step: 'face',
-                message: 'Silakan Senyum 😊',
+                message: 'Verifikasi wajah...',
                 progress: 50,
             }));
         } catch (err) {
@@ -667,7 +667,7 @@ export function AttendanceVerificationPage() {
                             </div>
                         )}
                         <p className="text-white/50 text-sm mt-4">Kembali dalam {countdown}...</p>
-                        <Button variant="outline" className="mt-6 border-white/20 text-white" onClick={handleBack}>
+                        <Button className="mt-6 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleBack}>
                             Selesai
                         </Button>
                     </div>
