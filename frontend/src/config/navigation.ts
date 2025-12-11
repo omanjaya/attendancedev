@@ -12,6 +12,7 @@ import {
   BarChart3,
   MapPin,
   Edit3,
+  GraduationCap,
 } from 'lucide-react';
 import type { UserRole, Permission } from '@/types/auth';
 
@@ -159,6 +160,12 @@ export const employeeNavigation: NavGroup[] = [
         href: '/employee/schedule',
         icon: Calendar,
         description: 'Jadwal kerja Anda',
+      },
+      {
+        title: 'Jadwal Mengajar',
+        href: '/employee/teaching-schedule',
+        icon: GraduationCap,
+        description: 'Jadwal mengajar (untuk Guru)',
       },
       {
         title: 'Cuti Saya',

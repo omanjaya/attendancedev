@@ -179,6 +179,7 @@ Route::prefix('v1')->group(function () {
             
             // Teaching Schedule routes (for Excel import integration)
             Route::get('/teaching', [App\Http\Controllers\Api\ScheduleApiController::class, 'getTeachingSchedules']);
+            Route::get('/teaching/my-schedule', [App\Http\Controllers\Api\ScheduleApiController::class, 'myTeachingSchedules']); // For teachers
             Route::post('/teaching/bulk-import', [App\Http\Controllers\Api\ScheduleApiController::class, 'bulkImportTeachingSchedules']);
             Route::post('/teaching/match-teachers', [App\Http\Controllers\Api\ScheduleApiController::class, 'matchTeachers']);
             Route::delete('/teaching/clear', [App\Http\Controllers\Api\ScheduleApiController::class, 'clearTeachingSchedules']);

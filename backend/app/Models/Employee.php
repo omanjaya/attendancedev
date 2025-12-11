@@ -741,7 +741,8 @@ class Employee extends Model
 
     /**
      * Get check-in time boundaries for Guru Honorer
-     * Returns: [can_checkin_from, late_after, sessions]
+     * Returns: [late_after, sessions]
+     * NOTE: No blocking - guru honorer can check-in anytime, but will be marked late if after session start
      */
     public function getGuruHonorerCheckInBoundaries($date): array
     {
@@ -750,7 +751,6 @@ class Employee extends Model
         if (!$firstSession) {
             return [
                 'has_schedule' => false,
-                'can_checkin_from' => null,
                 'late_after' => null,
                 'first_session_start' => null,
                 'message' => 'Tidak ada jadwal mengajar hari ini',
@@ -759,15 +759,11 @@ class Employee extends Model
 
         $sessionStart = $firstSession->teaching_start_time;
 
-        // Can check-in 30 minutes before first session
-        $canCheckinFrom = $sessionStart->copy()->subMinutes(30);
-
         // Late if check-in after session start (no tolerance for guru honorer)
         $lateAfter = $sessionStart->copy();
 
         return [
             'has_schedule' => true,
-            'can_checkin_from' => $canCheckinFrom,
             'late_after' => $lateAfter,
             'first_session_start' => $sessionStart,
             'first_session' => [
@@ -782,7 +778,8 @@ class Employee extends Model
 
     /**
      * Get check-out time boundaries for Guru Honorer
-     * Returns: [can_checkout_from, early_leave_before, sessions]
+     * Returns: [early_leave_before, sessions]
+     * NOTE: No blocking - guru honorer can check-out anytime, but will be marked early_leave if before session end
      */
     public function getGuruHonorerCheckOutBoundaries($date): array
     {
@@ -791,7 +788,6 @@ class Employee extends Model
         if (!$lastSession) {
             return [
                 'has_schedule' => false,
-                'can_checkout_from' => null,
                 'early_leave_before' => null,
                 'last_session_end' => null,
                 'message' => 'Tidak ada jadwal mengajar hari ini',
@@ -800,15 +796,11 @@ class Employee extends Model
 
         $sessionEnd = $lastSession->teaching_end_time;
 
-        // Can check-out 1 minute before session ends (small tolerance)
-        $canCheckoutFrom = $sessionEnd->copy()->subMinutes(1);
-
         // Early leave if check-out before session end
         $earlyLeaveBefore = $sessionEnd->copy();
 
         return [
             'has_schedule' => true,
-            'can_checkout_from' => $canCheckoutFrom,
             'early_leave_before' => $earlyLeaveBefore,
             'last_session_end' => $sessionEnd,
             'last_session' => [

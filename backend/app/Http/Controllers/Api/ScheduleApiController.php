@@ -268,15 +268,172 @@ class ScheduleApiController extends BaseApiController
     {
         $month = $request->get('month', now()->month);
         $year = $request->get('year', now()->year);
-        
+
         $startDate = \Carbon\Carbon::create($year, $month, 1)->startOfMonth();
         $endDate = \Carbon\Carbon::create($year, $month, 1)->endOfMonth();
-        
+
         $schedules = \App\Models\MonthlySchedule::whereBetween('effective_date', [$startDate, $endDate])
             ->with('employee')
             ->get()
             ->groupBy(fn($s) => $s->effective_date->format('Y-m-d'));
-        
+
         return $this->apiResponse($schedules, 'Calendar schedules retrieved');
+    }
+
+    /**
+     * Get teaching schedules for admin/management
+     */
+    public function getTeachingSchedules(Request $request)
+    {
+        $filters = $request->only(['teacher_id', 'subject_id', 'day_of_week', 'is_active']);
+
+        $query = \App\Models\TeachingSchedule::with(['teacher', 'subject'])
+            ->where('is_active', true)
+            ->where('effective_from', '<=', now())
+            ->where(function ($q) {
+                $q->whereNull('effective_until')
+                  ->orWhere('effective_until', '>=', now());
+            });
+
+        if (!empty($filters['teacher_id'])) {
+            $query->where('teacher_id', $filters['teacher_id']);
+        }
+        if (!empty($filters['subject_id'])) {
+            $query->where('subject_id', $filters['subject_id']);
+        }
+        if (!empty($filters['day_of_week'])) {
+            $query->where('day_of_week', $filters['day_of_week']);
+        }
+
+        $schedules = $query->orderBy('day_of_week')
+            ->orderBy('teaching_start_time')
+            ->get();
+
+        return $this->apiResponse($schedules, 'Teaching schedules retrieved');
+    }
+
+    /**
+     * Get current user's (teacher) teaching schedules - "Jadwal Mengajar Saya"
+     */
+    public function myTeachingSchedules(Request $request)
+    {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+        $employee = $user->employee;
+
+        if (!$employee) {
+            return $this->errorResponse('Employee not found', 404);
+        }
+
+        $now = now();
+
+        // Get all active teaching schedules for this employee
+        $schedules = \App\Models\TeachingSchedule::with(['subject'])
+            ->where('teacher_id', $employee->id)
+            ->where('is_active', true)
+            ->where('effective_from', '<=', $now)
+            ->where(function ($q) use ($now) {
+                $q->whereNull('effective_until')
+                  ->orWhere('effective_until', '>=', $now);
+            })
+            ->orderBy('day_of_week')
+            ->orderBy('teaching_start_time')
+            ->get();
+
+        // Group by day of week for easier display
+        $grouped = $schedules->groupBy('day_of_week');
+
+        // Calculate statistics
+        $totalHoursPerWeek = $schedules->sum(function ($schedule) {
+            return $schedule->teaching_duration_hours ?? 0;
+        });
+
+        $totalSessions = $schedules->count();
+
+        // Get today's schedule
+        $todayDayOfWeek = strtolower($now->format('l'));
+        $todaySchedules = $schedules->where('day_of_week', $todayDayOfWeek)->values();
+
+        // Day order for sorting
+        $dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        $sortedGrouped = collect($dayOrder)
+            ->filter(fn($day) => $grouped->has($day))
+            ->mapWithKeys(fn($day) => [$day => $grouped->get($day)]);
+
+        return $this->apiResponse([
+            'schedules' => $sortedGrouped,
+            'today' => [
+                'day_of_week' => $todayDayOfWeek,
+                'schedules' => $todaySchedules,
+                'total_hours' => $todaySchedules->sum(fn($s) => $s->teaching_duration_hours ?? 0),
+            ],
+            'statistics' => [
+                'total_sessions_per_week' => $totalSessions,
+                'total_hours_per_week' => round($totalHoursPerWeek, 2),
+                'subjects_count' => $schedules->pluck('subject_id')->unique()->count(),
+                'classes_count' => $schedules->pluck('class_name')->unique()->count(),
+            ],
+            'employee' => [
+                'id' => $employee->id,
+                'name' => $employee->full_name,
+                'type' => $employee->employee_type,
+                'is_guru_honorer' => $employee->isGuruHonorer(),
+            ],
+        ], 'My teaching schedules retrieved');
+    }
+
+    /**
+     * Clear teaching schedules (admin only)
+     */
+    public function clearTeachingSchedules(Request $request)
+    {
+        $validated = $request->validate([
+            'teacher_id' => 'nullable|exists:employees,id',
+            'confirm' => 'required|boolean|accepted',
+        ]);
+
+        try {
+            $query = \App\Models\TeachingSchedule::query();
+
+            if (!empty($validated['teacher_id'])) {
+                $query->where('teacher_id', $validated['teacher_id']);
+            }
+
+            $count = $query->count();
+            $query->delete();
+
+            return $this->apiResponse(['deleted_count' => $count], 'Teaching schedules cleared');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to clear teaching schedules: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Match teachers for bulk import (helper endpoint)
+     */
+    public function matchTeachers(Request $request)
+    {
+        $validated = $request->validate([
+            'names' => 'required|array',
+            'names.*' => 'required|string',
+        ]);
+
+        $results = [];
+        foreach ($validated['names'] as $name) {
+            $employee = \App\Models\Employee::where('full_name', 'like', "%{$name}%")
+                ->orWhere('employee_id', $name)
+                ->first();
+
+            $results[] = [
+                'input' => $name,
+                'matched' => $employee ? [
+                    'id' => $employee->id,
+                    'name' => $employee->full_name,
+                    'employee_id' => $employee->employee_id,
+                ] : null,
+            ];
+        }
+
+        return $this->apiResponse($results, 'Teachers matched');
     }
 }

@@ -494,6 +494,7 @@ export interface BulkImportResult {
 
 const TEACHING_ENDPOINTS = {
   list: '/schedules/teaching',
+  mySchedule: '/schedules/teaching/my-schedule',
   bulkImport: '/schedules/teaching/bulk-import',
   matchTeachers: '/schedules/teaching/match-teachers',
   clear: '/schedules/teaching/clear',
@@ -556,6 +557,58 @@ export async function clearTeachingSchedules(params: {
   const response = await apiClient.delete<{ data: { deleted_count: number } }>(
     TEACHING_ENDPOINTS.clear,
     { data: params }
+  );
+  return response.data.data;
+}
+
+// ====================================
+// My Teaching Schedule (for Teachers/Guru)
+// ====================================
+
+export interface TeachingSession {
+  id: string;
+  subject_id: string;
+  subject?: {
+    id: string;
+    name: string;
+    code?: string;
+  };
+  day_of_week: string;
+  teaching_start_time: string;
+  teaching_end_time: string;
+  teaching_duration_hours?: number;
+  class_name?: string;
+  room?: string;
+  effective_from: string;
+  effective_until?: string;
+  is_active: boolean;
+}
+
+export interface MyTeachingScheduleResponse {
+  schedules: Record<string, TeachingSession[]>; // Grouped by day of week
+  today: {
+    day_of_week: string;
+    schedules: TeachingSession[];
+    total_hours: number;
+  };
+  statistics: {
+    total_sessions_per_week: number;
+    total_hours_per_week: number;
+    subjects_count: number;
+    classes_count: number;
+  };
+  employee: {
+    id: string;
+    name: string;
+    type: string;
+    is_guru_honorer: boolean;
+  };
+}
+
+// Get current teacher's teaching schedule
+export async function getMyTeachingSchedule(): Promise<MyTeachingScheduleResponse> {
+  const response = await apiClient.get<{ data: MyTeachingScheduleResponse }>(
+    TEACHING_ENDPOINTS.mySchedule
   );
   return response.data.data;
 }

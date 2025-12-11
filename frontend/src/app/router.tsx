@@ -17,6 +17,7 @@ const AdminAttendancePage = lazy(() => import('@/pages/admin/attendance'));
 const EmployeeDashboard = lazy(() => import('@/pages/employee/dashboard'));
 const EmployeeAttendancePage = lazy(() => import('@/pages/employee/attendance'));
 const EmployeeSchedulePage = lazy(() => import('@/pages/employee/schedule'));
+const EmployeeTeachingSchedulePage = lazy(() => import('@/pages/employee/teaching-schedule'));
 const EmployeeLeavePage = lazy(() => import('@/pages/employee/leave'));
 const EmployeePayrollPage = lazy(() => import('@/pages/employee/payroll'));
 const EmployeeReportsPage = lazy(() => import('@/pages/employee/reports'));
@@ -605,12 +606,20 @@ const employeeAttendanceRoute = createRoute({
   component: EmployeeAttendancePage,
 });
 
-// Employee Schedule
+// Employee Schedule (Monthly/Attendance Schedule)
 const employeeScheduleRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/employee/schedule',
   beforeLoad: requireEmployee,
   component: EmployeeSchedulePage,
+});
+
+// Employee Teaching Schedule (Jadwal Mengajar)
+const employeeTeachingScheduleRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/employee/teaching-schedule',
+  beforeLoad: requireEmployee,
+  component: EmployeeTeachingSchedulePage,
 });
 
 // Employee Leave
@@ -785,6 +794,7 @@ const routeTree = rootRoute.addChildren([
     employeeDashboardRoute,
     employeeAttendanceRoute,
     employeeScheduleRoute,
+    employeeTeachingScheduleRoute,
     employeeLeaveRoute,
     employeeLeaveCreateRoute,
     employeePayrollRoute,

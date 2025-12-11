@@ -708,27 +708,13 @@ class AttendanceService implements AttendanceServiceInterface
 
     /**
      * Validate check-in time for Guru Honorer
-     * Can check-in 30 minutes before first teaching session
+     * NOTE: No blocking - guru honorer can check-in anytime
+     * Late status will be determined by determineStatus()
      */
     private function validateCheckInTimeForGuruHonorer(Employee $employee, Carbon $now): void
     {
-        $boundaries = $employee->getGuruHonorerCheckInBoundaries($now);
-
-        if (!$boundaries['has_schedule']) {
-            throw new \Exception($boundaries['message']);
-        }
-
-        $canCheckinFrom = $boundaries['can_checkin_from'];
-
-        // Check if too early (more than 30 min before first session)
-        if ($now->lt($canCheckinFrom)) {
-            $formattedTime = $canCheckinFrom->format('H:i');
-            $sessionTime = $boundaries['first_session_start']->format('H:i');
-            throw new \Exception("Belum waktunya absen masuk. Sesi pertama dimulai pukul {$sessionTime}. Anda dapat absen mulai pukul {$formattedTime}");
-        }
-
-        // Guru honorer can always check-in after can_checkin_from (even if late)
-        // Late status will be determined by determineStatus()
+        // No blocking for guru honorer - they can check-in anytime
+        // Late status will be determined by determineStatusForGuruHonorer()
     }
 
     /**
@@ -776,26 +762,13 @@ class AttendanceService implements AttendanceServiceInterface
 
     /**
      * Validate check-out time for Guru Honorer
-     * Can check-out 1 minute before last teaching session ends
+     * NOTE: No blocking - guru honorer can check-out anytime
+     * Early leave status will be determined by determineCheckOutStatus()
      */
     private function validateCheckOutTimeForGuruHonorer(Employee $employee, Carbon $now): void
     {
-        $boundaries = $employee->getGuruHonorerCheckOutBoundaries($now);
-
-        if (!$boundaries['has_schedule']) {
-            throw new \Exception($boundaries['message']);
-        }
-
-        $canCheckoutFrom = $boundaries['can_checkout_from'];
-
-        // Check if too early (before last session ends - 1 min tolerance)
-        if ($now->lt($canCheckoutFrom)) {
-            $sessionEndTime = $boundaries['last_session_end']->format('H:i');
-            throw new \Exception("Belum waktunya absen pulang. Sesi terakhir selesai pukul {$sessionEndTime}");
-        }
-
-        // Guru honorer can always check-out after can_checkout_from (even if early leave)
-        // Early leave status will be determined by determineCheckOutStatus()
+        // No blocking for guru honorer - they can check-out anytime
+        // Early leave status will be determined by determineCheckOutStatusForGuruHonorer()
     }
 
     /**

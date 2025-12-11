@@ -218,55 +218,36 @@ class AttendanceApiController extends BaseApiController
     /**
      * Validate attendance time for Guru Honorer
      * Uses TeachingSchedule instead of MonthlySchedule
+     * NOTE: No blocking - guru honorer can check-in/out anytime, but status will be determined
      */
     private function validateTimeForGuruHonorer($employee, string $type, Carbon $now)
     {
-        $currentTime = $now->format('H:i:s');
-
         if ($type === 'check_in') {
             // Get check-in boundaries from TeachingSchedule
             $boundaries = $employee->getGuruHonorerCheckInBoundaries($now);
 
             if (!$boundaries['has_schedule']) {
+                // No teaching schedule, but still allow check-in (will be recorded without schedule reference)
                 return $this->apiResponse([
-                    'allowed' => false,
-                    'message' => $boundaries['message'],
+                    'allowed' => true,
+                    'message' => 'Tidak ada jadwal mengajar hari ini, namun Anda tetap dapat melakukan absensi',
                     'server_time' => $now->format('H:i:s'),
                     'schedule_type' => 'no_teaching',
-                ], 'No teaching schedule');
+                    'has_teaching_schedule' => false,
+                ], 'Validation passed');
             }
 
-            $canCheckinFrom = $boundaries['can_checkin_from'];
-
-            // Check if too early (more than 30 min before first session)
-            if ($now->lt($canCheckinFrom)) {
-                $formattedTime = $canCheckinFrom->format('H:i');
-                $sessionTime = $boundaries['first_session_start']->format('H:i');
-                return $this->apiResponse([
-                    'allowed' => false,
-                    'message' => "Belum waktunya absen masuk. Sesi pertama dimulai pukul {$sessionTime}. Anda dapat absen mulai pukul {$formattedTime}",
-                    'server_time' => $now->format('H:i:s'),
-                    'schedule_type' => 'teaching_based',
-                    'boundary' => [
-                        'start_time' => $formattedTime,
-                        'session_start' => $sessionTime,
-                        'type' => 'too_early',
-                    ],
-                    'first_session' => $boundaries['first_session'] ?? null,
-                ], 'Check-in not allowed yet');
-            }
-
-            // Guru honorer can always check-in after can_checkin_from
-            // Late status will be determined during actual check-in
-            $isLate = $now->gt($boundaries['late_after']);
+            // Check if will be late (after first session start)
+            $isLate = $boundaries['late_after'] && $now->gt($boundaries['late_after']);
 
             return $this->apiResponse([
                 'allowed' => true,
                 'message' => $isLate
-                    ? 'Anda terlambat, namun masih dapat melakukan absensi'
+                    ? 'Anda terlambat dari jadwal sesi pertama'
                     : 'Silakan lanjutkan absensi',
                 'server_time' => $now->format('H:i:s'),
                 'schedule_type' => 'teaching_based',
+                'has_teaching_schedule' => true,
                 'will_be_late' => $isLate,
                 'first_session' => $boundaries['first_session'] ?? null,
             ], 'Validation passed');
@@ -276,42 +257,27 @@ class AttendanceApiController extends BaseApiController
             $boundaries = $employee->getGuruHonorerCheckOutBoundaries($now);
 
             if (!$boundaries['has_schedule']) {
+                // No teaching schedule, but still allow check-out
                 return $this->apiResponse([
-                    'allowed' => false,
-                    'message' => $boundaries['message'],
+                    'allowed' => true,
+                    'message' => 'Tidak ada jadwal mengajar hari ini, namun Anda tetap dapat melakukan absensi pulang',
                     'server_time' => $now->format('H:i:s'),
                     'schedule_type' => 'no_teaching',
-                ], 'No teaching schedule');
+                    'has_teaching_schedule' => false,
+                ], 'Validation passed');
             }
 
-            $canCheckoutFrom = $boundaries['can_checkout_from'];
-
-            // Check if too early (before last session ends - 1 min tolerance)
-            if ($now->lt($canCheckoutFrom)) {
-                $sessionEndTime = $boundaries['last_session_end']->format('H:i');
-                return $this->apiResponse([
-                    'allowed' => false,
-                    'message' => "Belum waktunya absen pulang. Sesi terakhir selesai pukul {$sessionEndTime}",
-                    'server_time' => $now->format('H:i:s'),
-                    'schedule_type' => 'teaching_based',
-                    'boundary' => [
-                        'end_time' => $sessionEndTime,
-                        'type' => 'too_early',
-                    ],
-                    'last_session' => $boundaries['last_session'] ?? null,
-                ], 'Check-out not allowed yet');
-            }
-
-            // Check if will be early leave
-            $isEarlyLeave = $now->lt($boundaries['early_leave_before']);
+            // Check if will be early leave (before last session ends)
+            $isEarlyLeave = $boundaries['early_leave_before'] && $now->lt($boundaries['early_leave_before']);
 
             return $this->apiResponse([
                 'allowed' => true,
                 'message' => $isEarlyLeave
-                    ? 'Anda akan tercatat pulang cepat'
+                    ? 'Anda akan tercatat pulang cepat (sebelum sesi terakhir selesai)'
                     : 'Silakan lanjutkan absensi',
                 'server_time' => $now->format('H:i:s'),
                 'schedule_type' => 'teaching_based',
+                'has_teaching_schedule' => true,
                 'will_be_early_leave' => $isEarlyLeave,
                 'last_session' => $boundaries['last_session'] ?? null,
             ], 'Validation passed');
