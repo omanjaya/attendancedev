@@ -10,7 +10,9 @@ class MonthlyScheduleService
 {
     public function getMonthlySchedules(array $filters = [])
     {
-        $query = MonthlySchedule::query()->with(['creator']);
+        $query = MonthlySchedule::query()
+            ->with(['creator'])
+            ->withCount('employeeSchedules as assigned_employees_count');
 
         if (isset($filters['year'])) {
             $query->where('year', $filters['year']);

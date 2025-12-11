@@ -151,6 +151,32 @@ services:
         limits:
           memory: 2G
 
+  deepface-2:
+    image: ${DOCKERHUB_USERNAME}/attendancedev-deepface:${IMAGE_TAG:-latest}
+    container_name: attendancedev-deepface-2
+    restart: always
+    volumes:
+      - deepface_models:/app/.deepface
+      - face_data:/app/face_data
+    environment:
+      - FLASK_ENV=production
+      - DEEPFACE_MODEL=${DEEPFACE_MODEL:-ArcFace}
+      - DEEPFACE_DETECTOR=${DEEPFACE_DETECTOR:-retinaface}
+      - DEEPFACE_THRESHOLD=${DEEPFACE_THRESHOLD:-0.68}
+      - DEEPFACE_LIVENESS_ENABLED=true
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8001/health" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    networks:
+      - attendance_internal
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
   # ==========================================
   # Nginx Reverse Proxy
   # ==========================================
@@ -170,6 +196,7 @@ services:
       - backend
       - frontend
       - deepface-1
+      - deepface-2
     networks:
       - attendance_internal
       - attendance_external

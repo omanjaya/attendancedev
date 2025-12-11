@@ -44,24 +44,27 @@ class AttendanceService implements AttendanceServiceInterface
             // IMPORTANT: Default to FALSE if can_attend is not set (strict validation)
             $effectiveSchedule = $employee->getEffectiveScheduleForDate(now());
             $canAttend = $effectiveSchedule['can_attend'] ?? false;
-            
+
             if (!$canAttend) {
                 $scheduleType = $effectiveSchedule['schedule_type'] ?? 'none';
                 $message = $effectiveSchedule['message'] ?? 'Tidak memiliki jadwal untuk absen hari ini';
-                
+
                 // Provide specific error messages based on schedule type
                 if ($scheduleType === 'none') {
                     $message = 'Tidak ada jadwal yang di-assign untuk hari ini';
                 } elseif ($scheduleType === 'holiday') {
-                    $message = $effectiveSchedule['holiday_name'] 
+                    $message = $effectiveSchedule['holiday_name']
                         ? 'Hari ini adalah hari libur: ' . $effectiveSchedule['holiday_name']
                         : 'Hari ini adalah hari libur';
                 } elseif ($scheduleType === 'no_teaching') {
                     $message = 'Tidak ada jadwal mengajar hari ini';
                 }
-                
+
                 throw new \Exception($message);
             }
+
+            // === Validate check-in time boundaries ===
+            $this->validateCheckInTime($employee);
 
             // Validate location if required
             if (config('attendance.require_location_verification')) {
@@ -217,6 +220,9 @@ class AttendanceService implements AttendanceServiceInterface
                 throw new \Exception('Already checked out today');
             }
 
+            // === Validate check-out time boundaries ===
+            $this->validateCheckOutTime($employee);
+
             // Validate location if required
             if (config('attendance.require_location_verification')) {
                 if (!$this->validateLocation($locationData, $employee)) {
@@ -261,8 +267,11 @@ class AttendanceService implements AttendanceServiceInterface
             }
             $metadata['overtime_hours'] = $overtimeHours;
 
+            // Determine if early leave
+            $checkOutStatus = $this->determineCheckOutStatus($currentTime, $employee);
+
             // Update attendance record
-            $attendance->update([
+            $updateData = [
                 'check_out_time' => $currentTime,
                 'check_out_latitude' => $locationData['latitude'] ?? null,
                 'check_out_longitude' => $locationData['longitude'] ?? null,
@@ -270,7 +279,14 @@ class AttendanceService implements AttendanceServiceInterface
                 'total_hours' => $totalHours,
                 'time_verification' => $attendanceTime['verification'],
                 'metadata' => $metadata,
-            ]);
+            ];
+
+            // Update status if early leave
+            if ($checkOutStatus === 'early_leave') {
+                $updateData['status'] = 'early_leave';
+            }
+
+            $attendance->update($updateData);
 
             // Send notification
             $this->notificationService->send(
@@ -491,28 +507,59 @@ class AttendanceService implements AttendanceServiceInterface
 
     /**
      * Determine attendance status
+     * - Check-in: 'late' if time > checkin_end_time (batas terlambat)
+     * - Check-out: 'early_leave' if time < default_end_time (jam pulang)
      */
     private function determineStatus(Carbon $time, string $type, Employee $employee): string
     {
-        // Use effective schedule which considers employee type and teaching schedules
-        $effectiveSchedule = $employee->getEffectiveScheduleForDate($time);
-        
-        // If no schedule or cannot attend, return present (validation should happen before)
-        if (!($effectiveSchedule['can_attend'] ?? false) || !$effectiveSchedule['start_time']) {
-            return 'present';
-        }
+        // Get employee's schedule for today
+        $employeeSchedule = $employee->getScheduleForDate($time);
 
         if ($type === 'check_in') {
-            $scheduledTime = Carbon::parse($effectiveSchedule['start_time']);
-            // Use dynamic late tolerance from employee type
-            $graceMinutes = $effectiveSchedule['late_tolerance'] ?? config('attendance.late_grace_minutes', 15);
+            // Check late status using checkin_end_time (batas terlambat)
+            if ($employeeSchedule && $employeeSchedule->monthlySchedule) {
+                $checkinEndTime = $employeeSchedule->monthlySchedule->getRawOriginal('checkin_end_time');
+                if ($checkinEndTime) {
+                    $lateThreshold = Carbon::parse($time->format('Y-m-d') . ' ' . $checkinEndTime);
+                    if ($time->gt($lateThreshold)) {
+                        return 'late';
+                    }
+                }
+            }
 
-            if ($time->gt($scheduledTime->addMinutes($graceMinutes))) {
-                return 'late';
+            // Fallback to effective schedule logic
+            $effectiveSchedule = $employee->getEffectiveScheduleForDate($time);
+            if (($effectiveSchedule['can_attend'] ?? false) && $effectiveSchedule['start_time']) {
+                $scheduledTime = Carbon::parse($effectiveSchedule['start_time']);
+                $graceMinutes = $effectiveSchedule['late_tolerance'] ?? config('attendance.late_grace_minutes', 15);
+                if ($time->gt($scheduledTime->addMinutes($graceMinutes))) {
+                    return 'late';
+                }
             }
         }
 
         return 'present';
+    }
+
+    /**
+     * Determine check-out status
+     * - 'early_leave' if time < default_end_time (jam pulang)
+     */
+    private function determineCheckOutStatus(Carbon $time, Employee $employee): ?string
+    {
+        $employeeSchedule = $employee->getScheduleForDate($time);
+
+        if ($employeeSchedule && $employeeSchedule->monthlySchedule) {
+            $defaultEndTime = $employeeSchedule->monthlySchedule->getRawOriginal('default_end_time');
+            if ($defaultEndTime) {
+                $endTimeThreshold = Carbon::parse($time->format('Y-m-d') . ' ' . $defaultEndTime);
+                if ($time->lt($endTimeThreshold)) {
+                    return 'early_leave';
+                }
+            }
+        }
+
+        return null; // No status change needed
     }
 
     /**
@@ -560,5 +607,70 @@ class AttendanceService implements AttendanceServiceInterface
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
 
         return $earthRadius * $c;
+    }
+
+    /**
+     * Validate check-in time boundaries
+     * - Must be >= checkin_start_time (mulai absen masuk)
+     */
+    private function validateCheckInTime(Employee $employee): void
+    {
+        $now = $this->timeService->now();
+        $currentTime = $now->format('H:i:s');
+
+        // Get employee's schedule for today
+        $employeeSchedule = $employee->getScheduleForDate($now);
+        if (!$employeeSchedule || !$employeeSchedule->monthlySchedule) {
+            return; // No schedule, skip time validation
+        }
+
+        $monthlySchedule = $employeeSchedule->monthlySchedule;
+
+        // Get check-in start time (mulai absen masuk)
+        $checkinStartTime = $monthlySchedule->getRawOriginal('checkin_start_time');
+        if (!$checkinStartTime) {
+            return; // No boundary set, allow check-in
+        }
+
+        // Compare times
+        if ($currentTime < $checkinStartTime) {
+            $formattedTime = Carbon::parse($checkinStartTime)->format('H:i');
+            throw new \Exception("Belum waktunya absen masuk. Absen masuk dibuka mulai pukul {$formattedTime}");
+        }
+    }
+
+    /**
+     * Validate check-out time boundaries
+     * - Must be >= checkout_start_time (mulai absen pulang)
+     * - Must be <= checkout_end_time (batas akhir absen pulang)
+     */
+    private function validateCheckOutTime(Employee $employee): void
+    {
+        $now = $this->timeService->now();
+        $currentTime = $now->format('H:i:s');
+
+        // Get employee's schedule for today
+        $employeeSchedule = $employee->getScheduleForDate($now);
+        if (!$employeeSchedule || !$employeeSchedule->monthlySchedule) {
+            return; // No schedule, skip time validation
+        }
+
+        $monthlySchedule = $employeeSchedule->monthlySchedule;
+
+        // Get check-out time boundaries
+        $checkoutStartTime = $monthlySchedule->getRawOriginal('checkout_start_time');
+        $checkoutEndTime = $monthlySchedule->getRawOriginal('checkout_end_time');
+
+        // Validate check-out start time (mulai absen pulang)
+        if ($checkoutStartTime && $currentTime < $checkoutStartTime) {
+            $formattedTime = Carbon::parse($checkoutStartTime)->format('H:i');
+            throw new \Exception("Belum waktunya absen pulang. Absen pulang dibuka mulai pukul {$formattedTime}");
+        }
+
+        // Validate check-out end time (batas akhir)
+        if ($checkoutEndTime && $currentTime > $checkoutEndTime) {
+            $formattedTime = Carbon::parse($checkoutEndTime)->format('H:i');
+            throw new \Exception("Sudah lewat batas absen pulang. Batas akhir absen pulang adalah pukul {$formattedTime}");
+        }
     }
 }

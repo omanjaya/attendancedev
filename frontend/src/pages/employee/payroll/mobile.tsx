@@ -7,97 +7,45 @@ import {
     TrendingDown,
     ArrowLeft,
 } from 'lucide-react';
-import { useAuthStore } from '@/stores';
 import { format, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingState } from '@/components/states';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { getMyPayroll, downloadMyPayslip, type EmployeePayrollItem } from '@/lib/api/payroll';
 
 interface PayrollItem {
     id: number;
     period: string; // YYYY-MM
-    payDate: string;
-    basicSalary: number;
-    allowances: {
-        transport: number;
-        meal: number;
-        position: number;
-        other: number;
-    };
-    deductions: {
-        tax: number;
-        insurance: number;
-        bpjs: number;
-        other: number;
-    };
-    overtime: number;
-    bonus: number;
+    payDate: string | null;
     grossSalary: number;
     totalDeductions: number;
+    totalBonuses: number;
     netSalary: number;
-    status: 'paid' | 'pending' | 'processing';
+    status: 'draft' | 'calculated' | 'approved' | 'paid' | 'cancelled';
     paidAt?: string;
 }
 
 export function MobileEmployeePayrollPage() {
-    const { user } = useAuthStore();
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const [selectedPayroll, setSelectedPayroll] = useState<PayrollItem | null>(null);
 
     // Fetch payroll data
     const { data: payrollData, isLoading } = useQuery({
-        queryKey: ['employee', 'payroll', user?.id, selectedYear],
-        queryFn: async () => {
-            // TODO: Replace with actual API call
-            return [
-                {
-                    id: 1,
-                    period: '2025-12',
-                    payDate: '2025-12-25',
-                    basicSalary: 8000000,
-                    allowances: { transport: 500000, meal: 400000, position: 1000000, other: 100000 },
-                    deductions: { tax: 850000, insurance: 200000, bpjs: 150000, other: 0 },
-                    overtime: 300000,
-                    bonus: 0,
-                    grossSalary: 10300000,
-                    totalDeductions: 1200000,
-                    netSalary: 9100000,
-                    status: 'processing' as const,
-                },
-                {
-                    id: 2,
-                    period: '2025-11',
-                    payDate: '2025-11-25',
-                    basicSalary: 8000000,
-                    allowances: { transport: 500000, meal: 400000, position: 1000000, other: 100000 },
-                    deductions: { tax: 850000, insurance: 200000, bpjs: 150000, other: 0 },
-                    overtime: 200000,
-                    bonus: 0,
-                    grossSalary: 10200000,
-                    totalDeductions: 1200000,
-                    netSalary: 9000000,
-                    status: 'paid' as const,
-                    paidAt: '2025-11-25T10:00:00',
-                },
-                {
-                    id: 3,
-                    period: '2025-10',
-                    payDate: '2025-10-25',
-                    basicSalary: 8000000,
-                    allowances: { transport: 500000, meal: 400000, position: 1000000, other: 100000 },
-                    deductions: { tax: 850000, insurance: 200000, bpjs: 150000, other: 0 },
-                    overtime: 150000,
-                    bonus: 500000,
-                    grossSalary: 10650000,
-                    totalDeductions: 1200000,
-                    netSalary: 9450000,
-                    status: 'paid' as const,
-                    paidAt: '2025-10-25T10:00:00',
-                },
-            ] as PayrollItem[];
-        },
+        queryKey: ['employee', 'payroll', selectedYear],
+        queryFn: () => getMyPayroll(selectedYear),
+        select: (data): PayrollItem[] => data.map((item: EmployeePayrollItem) => ({
+            id: item.id,
+            period: `${item.year}-${String(new Date(`${item.month} 1, ${item.year}`).getMonth() + 1).padStart(2, '0')}`,
+            payDate: item.pay_date,
+            grossSalary: item.gross_salary,
+            totalDeductions: item.total_deductions,
+            totalBonuses: item.total_bonuses,
+            netSalary: item.net_salary,
+            status: item.status,
+            paidAt: item.approved_at || undefined,
+        })),
     });
 
     const formatCurrency = (amount: number) => {
@@ -111,8 +59,10 @@ export function MobileEmployeePayrollPage() {
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'paid': return 'bg-green-100 text-green-700 border-green-200';
-            case 'processing': return 'bg-blue-100 text-blue-700 border-blue-200';
-            case 'pending': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+            case 'approved': return 'bg-blue-100 text-blue-700 border-blue-200';
+            case 'calculated': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+            case 'draft': return 'bg-gray-100 text-gray-700 border-gray-200';
+            case 'cancelled': return 'bg-red-100 text-red-700 border-red-200';
             default: return 'bg-gray-100 text-gray-700 border-gray-200';
         }
     };
@@ -120,9 +70,27 @@ export function MobileEmployeePayrollPage() {
     const getStatusLabel = (status: string) => {
         switch (status) {
             case 'paid': return 'Dibayar';
-            case 'processing': return 'Diproses';
-            case 'pending': return 'Menunggu';
+            case 'approved': return 'Disetujui';
+            case 'calculated': return 'Dihitung';
+            case 'draft': return 'Draft';
+            case 'cancelled': return 'Dibatalkan';
             default: return status;
+        }
+    };
+
+    const handleDownload = async (payrollId: number) => {
+        try {
+            const blob = await downloadMyPayslip(payrollId);
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `payslip-${payrollId}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error('Failed to download payslip:', error);
         }
     };
 
@@ -271,30 +239,18 @@ export function MobileEmployeePayrollPage() {
                                     </h3>
                                     <div className="space-y-2 text-sm">
                                         <div className="flex justify-between py-1 border-b border-border/50">
-                                            <span className="text-muted-foreground">Gaji Pokok</span>
-                                            <span className="font-medium">{formatCurrency(selectedPayroll.basicSalary)}</span>
+                                            <span className="text-muted-foreground">Gaji Kotor</span>
+                                            <span className="font-medium">{formatCurrency(selectedPayroll.grossSalary)}</span>
                                         </div>
-                                        <div className="flex justify-between py-1 border-b border-border/50">
-                                            <span className="text-muted-foreground">Tunjangan Transport</span>
-                                            <span className="font-medium">{formatCurrency(selectedPayroll.allowances.transport)}</span>
-                                        </div>
-                                        <div className="flex justify-between py-1 border-b border-border/50">
-                                            <span className="text-muted-foreground">Tunjangan Makan</span>
-                                            <span className="font-medium">{formatCurrency(selectedPayroll.allowances.meal)}</span>
-                                        </div>
-                                        <div className="flex justify-between py-1 border-b border-border/50">
-                                            <span className="text-muted-foreground">Tunjangan Jabatan</span>
-                                            <span className="font-medium">{formatCurrency(selectedPayroll.allowances.position)}</span>
-                                        </div>
-                                        {selectedPayroll.overtime > 0 && (
+                                        {selectedPayroll.totalBonuses > 0 && (
                                             <div className="flex justify-between py-1 border-b border-border/50">
-                                                <span className="text-muted-foreground">Lembur</span>
-                                                <span className="font-medium">{formatCurrency(selectedPayroll.overtime)}</span>
+                                                <span className="text-muted-foreground">Bonus</span>
+                                                <span className="font-medium">{formatCurrency(selectedPayroll.totalBonuses)}</span>
                                             </div>
                                         )}
                                         <div className="flex justify-between py-2 font-bold mt-1">
                                             <span>Total Pendapatan</span>
-                                            <span className="text-green-600">{formatCurrency(selectedPayroll.grossSalary)}</span>
+                                            <span className="text-green-600">{formatCurrency(selectedPayroll.grossSalary + selectedPayroll.totalBonuses)}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -306,17 +262,7 @@ export function MobileEmployeePayrollPage() {
                                         Potongan
                                     </h3>
                                     <div className="space-y-2 text-sm">
-                                        <div className="flex justify-between py-1 border-b border-border/50">
-                                            <span className="text-muted-foreground">Pajak (PPh 21)</span>
-                                            <span className="font-medium text-red-600">-{formatCurrency(selectedPayroll.deductions.tax)}</span>
-                                        </div>
-                                        <div className="flex justify-between py-1 border-b border-border/50">
-                                            <span className="text-muted-foreground">BPJS & Asuransi</span>
-                                            <span className="font-medium text-red-600">
-                                                -{formatCurrency(selectedPayroll.deductions.insurance + selectedPayroll.deductions.bpjs)}
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between py-2 font-bold mt-1">
+                                        <div className="flex justify-between py-2 font-bold">
                                             <span>Total Potongan</span>
                                             <span className="text-red-600">-{formatCurrency(selectedPayroll.totalDeductions)}</span>
                                         </div>
@@ -325,7 +271,7 @@ export function MobileEmployeePayrollPage() {
                             </div>
 
                             <div className="p-4 border-t bg-background">
-                                <Button className="w-full" onClick={() => console.log('Download PDF')}>
+                                <Button className="w-full" onClick={() => handleDownload(selectedPayroll.id)}>
                                     <Download className="mr-2 h-4 w-4" />
                                     Download PDF
                                 </Button>

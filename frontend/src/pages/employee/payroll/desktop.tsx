@@ -15,30 +15,17 @@ import { ContentCard } from '@/components/shared/ContentCard';
 import { useAuthStore } from '@/stores';
 import { format, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { getMyPayroll, downloadMyPayslip, type EmployeePayrollItem } from '@/lib/api/payroll';
 
 interface PayrollItem {
   id: number;
   period: string; // YYYY-MM
-  payDate: string;
-  basicSalary: number;
-  allowances: {
-    transport: number;
-    meal: number;
-    position: number;
-    other: number;
-  };
-  deductions: {
-    tax: number;
-    insurance: number;
-    bpjs: number;
-    other: number;
-  };
-  overtime: number;
-  bonus: number;
+  payDate: string | null;
   grossSalary: number;
   totalDeductions: number;
+  totalBonuses: number;
   netSalary: number;
-  status: 'paid' | 'pending' | 'processing';
+  status: 'draft' | 'calculated' | 'approved' | 'paid' | 'cancelled';
   paidAt?: string;
 }
 
@@ -53,101 +40,49 @@ export function DesktopEmployeePayrollPage() {
 
   // Fetch payroll data
   const { data: payrollData, isLoading } = useQuery({
-    queryKey: ['employee', 'payroll', user?.id, selectedYear],
-    queryFn: async () => {
-      // TODO: Replace with actual API call
-      return [
-        {
-          id: 1,
-          period: '2025-12',
-          payDate: '2025-12-25',
-          basicSalary: 8000000,
-          allowances: {
-            transport: 500000,
-            meal: 400000,
-            position: 1000000,
-            other: 100000,
-          },
-          deductions: {
-            tax: 850000,
-            insurance: 200000,
-            bpjs: 150000,
-            other: 0,
-          },
-          overtime: 300000,
-          bonus: 0,
-          grossSalary: 10300000,
-          totalDeductions: 1200000,
-          netSalary: 9100000,
-          status: 'processing' as const,
-        },
-        {
-          id: 2,
-          period: '2025-11',
-          payDate: '2025-11-25',
-          basicSalary: 8000000,
-          allowances: {
-            transport: 500000,
-            meal: 400000,
-            position: 1000000,
-            other: 100000,
-          },
-          deductions: {
-            tax: 850000,
-            insurance: 200000,
-            bpjs: 150000,
-            other: 0,
-          },
-          overtime: 200000,
-          bonus: 0,
-          grossSalary: 10200000,
-          totalDeductions: 1200000,
-          netSalary: 9000000,
-          status: 'paid' as const,
-          paidAt: '2025-11-25T10:00:00',
-        },
-        {
-          id: 3,
-          period: '2025-10',
-          payDate: '2025-10-25',
-          basicSalary: 8000000,
-          allowances: {
-            transport: 500000,
-            meal: 400000,
-            position: 1000000,
-            other: 100000,
-          },
-          deductions: {
-            tax: 850000,
-            insurance: 200000,
-            bpjs: 150000,
-            other: 0,
-          },
-          overtime: 150000,
-          bonus: 500000,
-          grossSalary: 10650000,
-          totalDeductions: 1200000,
-          netSalary: 9450000,
-          status: 'paid' as const,
-          paidAt: '2025-10-25T10:00:00',
-        },
-      ] as PayrollItem[];
-    },
+    queryKey: ['employee', 'payroll', selectedYear],
+    queryFn: () => getMyPayroll(selectedYear),
+    select: (data): PayrollItem[] => data.map((item: EmployeePayrollItem) => ({
+      id: item.id,
+      period: `${item.year}-${String(new Date(`${item.month} 1, ${item.year}`).getMonth() + 1).padStart(2, '0')}`,
+      payDate: item.pay_date,
+      grossSalary: item.gross_salary,
+      totalDeductions: item.total_deductions,
+      totalBonuses: item.total_bonuses,
+      netSalary: item.net_salary,
+      status: item.status,
+      paidAt: item.approved_at || undefined,
+    })),
   });
 
-  const handleDownloadPayslip = (payroll: PayrollItem) => {
-    // TODO: Implement PDF download
-    console.log('Download payslip:', payroll.id);
+  const handleDownloadPayslip = async (payroll: PayrollItem) => {
+    try {
+      const blob = await downloadMyPayslip(payroll.id);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `payslip-${payroll.period}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Failed to download payslip:', error);
+    }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'paid':
         return 'text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/30';
-      case 'processing':
+      case 'approved':
         return 'text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30';
-      case 'pending':
+      case 'calculated':
         return 'text-yellow-700 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-900/30';
+      case 'draft':
+        return 'text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-900/30';
+      case 'cancelled':
+        return 'text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/30';
       default:
         return 'text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-900/30';
     }
@@ -157,10 +92,14 @@ export function DesktopEmployeePayrollPage() {
     switch (status) {
       case 'paid':
         return 'Dibayar';
-      case 'processing':
-        return 'Diproses';
-      case 'pending':
-        return 'Menunggu';
+      case 'approved':
+        return 'Disetujui';
+      case 'calculated':
+        return 'Dihitung';
+      case 'draft':
+        return 'Draft';
+      case 'cancelled':
+        return 'Dibatalkan';
       default:
         return status;
     }
@@ -295,19 +234,12 @@ export function DesktopEmployeePayrollPage() {
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                       <div>
-                        <p className="text-xs text-muted-foreground">Gaji Pokok</p>
-                        <p className="font-medium">{formatCurrency(payroll.basicSalary)}</p>
+                        <p className="text-xs text-muted-foreground">Pendapatan Kotor</p>
+                        <p className="font-medium">{formatCurrency(payroll.grossSalary)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Tunjangan</p>
-                        <p className="font-medium">
-                          {formatCurrency(
-                            payroll.allowances.transport +
-                            payroll.allowances.meal +
-                            payroll.allowances.position +
-                            payroll.allowances.other
-                          )}
-                        </p>
+                        <p className="text-xs text-muted-foreground">Bonus</p>
+                        <p className="font-medium">{formatCurrency(payroll.totalBonuses)}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Potongan</p>
@@ -399,36 +331,18 @@ export function DesktopEmployeePayrollPage() {
                 </h3>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm p-2 bg-muted/20 rounded">
-                    <span>Gaji Pokok</span>
-                    <span className="font-medium">{formatCurrency(selectedPayroll.basicSalary)}</span>
+                    <span>Gaji Kotor</span>
+                    <span className="font-medium">{formatCurrency(selectedPayroll.grossSalary)}</span>
                   </div>
-                  <div className="flex justify-between text-sm p-2">
-                    <span>Tunjangan Transport</span>
-                    <span className="font-medium">{formatCurrency(selectedPayroll.allowances.transport)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm p-2 bg-muted/20 rounded">
-                    <span>Tunjangan Makan</span>
-                    <span className="font-medium">{formatCurrency(selectedPayroll.allowances.meal)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm p-2">
-                    <span>Tunjangan Jabatan</span>
-                    <span className="font-medium">{formatCurrency(selectedPayroll.allowances.position)}</span>
-                  </div>
-                  {selectedPayroll.overtime > 0 && (
-                    <div className="flex justify-between text-sm p-2 bg-muted/20 rounded">
-                      <span>Lembur</span>
-                      <span className="font-medium">{formatCurrency(selectedPayroll.overtime)}</span>
-                    </div>
-                  )}
-                  {selectedPayroll.bonus > 0 && (
+                  {selectedPayroll.totalBonuses > 0 && (
                     <div className="flex justify-between text-sm p-2">
                       <span>Bonus</span>
-                      <span className="font-medium">{formatCurrency(selectedPayroll.bonus)}</span>
+                      <span className="font-medium">{formatCurrency(selectedPayroll.totalBonuses)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-sm font-semibold p-2 bg-green-50 dark:bg-green-900/20 rounded border-t-2 border-green-200 dark:border-green-800 mt-2">
                     <span>Total Pendapatan</span>
-                    <span className="text-green-600 dark:text-green-400">{formatCurrency(selectedPayroll.grossSalary)}</span>
+                    <span className="text-green-600 dark:text-green-400">{formatCurrency(selectedPayroll.grossSalary + selectedPayroll.totalBonuses)}</span>
                   </div>
                 </div>
               </div>
@@ -440,25 +354,7 @@ export function DesktopEmployeePayrollPage() {
                   Potongan
                 </h3>
                 <div className="space-y-2">
-                  <div className="flex justify-between text-sm p-2 bg-muted/20 rounded">
-                    <span>Pajak (PPh 21)</span>
-                    <span className="font-medium text-red-600 dark:text-red-400">
-                      -{formatCurrency(selectedPayroll.deductions.tax)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm p-2">
-                    <span>Asuransi</span>
-                    <span className="font-medium text-red-600 dark:text-red-400">
-                      -{formatCurrency(selectedPayroll.deductions.insurance)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm p-2 bg-muted/20 rounded">
-                    <span>BPJS</span>
-                    <span className="font-medium text-red-600 dark:text-red-400">
-                      -{formatCurrency(selectedPayroll.deductions.bpjs)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm font-semibold p-2 bg-red-50 dark:bg-red-900/20 rounded border-t-2 border-red-200 dark:border-red-800 mt-2">
+                  <div className="flex justify-between text-sm font-semibold p-2 bg-red-50 dark:bg-red-900/20 rounded border-t-2 border-red-200 dark:border-red-800">
                     <span>Total Potongan</span>
                     <span className="text-red-600 dark:text-red-400">
                       -{formatCurrency(selectedPayroll.totalDeductions)}

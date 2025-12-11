@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
   ArrowRight,
@@ -37,29 +38,14 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useNotificationStore } from '@/stores';
-
-// Mock data
-const mockStats = {
-  total_employees: 45,
-  with_users: 38,
-  without_users: 7,
-  percentage_with_users: 84,
-};
-
-const mockEmployeesWithoutUsers = [
-  { id: 1, full_name: 'Andi Prasetyo', email: 'andi.prasetyo@school.id', employee_type: 'guru', location: 'SD Negeri 1', hire_date: '2024-01-15' },
-  { id: 2, full_name: 'Siti Rahayu', email: 'siti.rahayu@school.id', employee_type: 'guru', location: 'SD Negeri 1', hire_date: '2024-02-01' },
-  { id: 3, full_name: 'Budi Santoso', email: 'budi.santoso@school.id', employee_type: 'staff', location: 'Kantor Pusat', hire_date: '2024-03-10' },
-  { id: 4, full_name: 'Dewi Lestari', email: 'dewi.lestari@school.id', employee_type: 'guru', location: 'SD Negeri 2', hire_date: '2024-01-20' },
-  { id: 5, full_name: 'Eko Widodo', email: 'eko.widodo@school.id', employee_type: 'staff', location: 'Kantor Pusat', hire_date: '2024-04-01' },
-];
-
-const mockEmployeesWithUsers = [
-  { id: 6, full_name: 'Ahmad Fauzi', email: 'ahmad.fauzi@school.id', role: 'guru', last_login: '2024-11-28 08:30', created_at: '2024-01-10' },
-  { id: 7, full_name: 'Rina Wati', email: 'rina.wati@school.id', role: 'admin', last_login: '2024-11-28 09:15', created_at: '2024-01-05' },
-  { id: 8, full_name: 'Joko Susilo', email: 'joko.susilo@school.id', role: 'guru', last_login: '2024-11-27 14:00', created_at: '2024-02-15' },
-  { id: 9, full_name: 'Maya Sari', email: 'maya.sari@school.id', role: 'kepala_sekolah', last_login: '2024-11-28 07:45', created_at: '2024-01-01' },
-];
+import {
+  getCredentialStats,
+  getEmployeesWithoutUsers,
+  getEmployeesWithUsers,
+  createUsersForEmployees,
+  resetPasswordsForEmployees,
+  type CreateUserResult,
+} from '@/lib/api/credentials';
 
 interface CreatedUser {
   employee_name: string;
@@ -68,31 +54,41 @@ interface CreatedUser {
   role: string;
 }
 
-// Stats data for shadcnblocks Stats8 style
-const stats = [
-  { id: 'stat-1', value: `${mockStats.total_employees}`, label: 'total karyawan terdaftar' },
-  { id: 'stat-2', value: `${mockStats.with_users}`, label: 'sudah memiliki akun user' },
-  { id: 'stat-3', value: `${mockStats.without_users}`, label: 'belum memiliki akun user' },
-  { id: 'stat-4', value: `${mockStats.percentage_with_users}%`, label: 'tingkat kelengkapan akun' },
-];
-
 export default function EmployeeCredentialsPage() {
+  const queryClient = useQueryClient();
   const { success, error: showError } = useNotificationStore();
   const [activeTab, setActiveTab] = useState('create-users');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedWithoutUsers, setSelectedWithoutUsers] = useState<number[]>([]);
   const [selectedWithUsers, setSelectedWithUsers] = useState<number[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [showResultsDialog, setShowResultsDialog] = useState(false);
   const [createdUsers, setCreatedUsers] = useState<CreatedUser[]>([]);
 
+  // Fetch credential stats
+  const { data: stats } = useQuery({
+    queryKey: ['credentials', 'stats'],
+    queryFn: getCredentialStats,
+  });
+
+  // Fetch employees without users
+  const { data: employeesWithoutUsers = [] } = useQuery({
+    queryKey: ['credentials', 'without-users'],
+    queryFn: getEmployeesWithoutUsers,
+  });
+
+  // Fetch employees with users
+  const { data: employeesWithUsers = [] } = useQuery({
+    queryKey: ['credentials', 'with-users'],
+    queryFn: getEmployeesWithUsers,
+  });
+
   // Filter employees
-  const filteredWithoutUsers = mockEmployeesWithoutUsers.filter(emp =>
+  const filteredWithoutUsers = employeesWithoutUsers.filter(emp =>
     emp.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     emp.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredWithUsers = mockEmployeesWithUsers.filter(emp =>
+  const filteredWithUsers = employeesWithUsers.filter(emp =>
     emp.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     emp.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -114,59 +110,57 @@ export default function EmployeeCredentialsPage() {
     }
   };
 
-  // Create users
-  const handleCreateUsers = async (employeeIds: number[]) => {
-    setIsLoading(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      const results: CreatedUser[] = employeeIds.map(id => {
-        const emp = mockEmployeesWithoutUsers.find(e => e.id === id);
-        return {
-          employee_name: emp?.full_name || '',
-          employee_email: emp?.email || '',
-          password: Math.random().toString(36).slice(-8) + 'A1!',
-          role: emp?.employee_type || 'pegawai',
-        };
-      });
-
-      setCreatedUsers(results);
+  // Create users mutation
+  const createUsersMutation = useMutation({
+    mutationFn: createUsersForEmployees,
+    onSuccess: (results: CreateUserResult[]) => {
+      const formatted: CreatedUser[] = results.map(r => ({
+        employee_name: r.employee_name,
+        employee_email: r.email,
+        password: r.password,
+        role: 'pegawai', // Default role
+      }));
+      setCreatedUsers(formatted);
       setShowResultsDialog(true);
       setSelectedWithoutUsers([]);
+      queryClient.invalidateQueries({ queryKey: ['credentials'] });
       success('Berhasil', `${results.length} user berhasil dibuat`);
-    } catch {
+    },
+    onError: () => {
       showError('Error', 'Gagal membuat user');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+  });
 
-  // Reset passwords
-  const handleResetPasswords = async (employeeIds: number[]) => {
-    setIsLoading(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      const results: CreatedUser[] = employeeIds.map(id => {
-        const emp = mockEmployeesWithUsers.find(e => e.id === id);
-        return {
-          employee_name: emp?.full_name || '',
-          employee_email: emp?.email || '',
-          password: Math.random().toString(36).slice(-8) + 'B2@',
-          role: emp?.role || 'pegawai',
-        };
-      });
-
-      setCreatedUsers(results);
+  // Reset passwords mutation
+  const resetPasswordsMutation = useMutation({
+    mutationFn: resetPasswordsForEmployees,
+    onSuccess: (results: CreateUserResult[]) => {
+      const formatted: CreatedUser[] = results.map(r => ({
+        employee_name: r.employee_name,
+        employee_email: r.email,
+        password: r.password,
+        role: 'pegawai',
+      }));
+      setCreatedUsers(formatted);
       setShowResultsDialog(true);
       setSelectedWithUsers([]);
+      queryClient.invalidateQueries({ queryKey: ['credentials'] });
       success('Berhasil', `Password ${results.length} user berhasil direset`);
-    } catch {
+    },
+    onError: () => {
       showError('Error', 'Gagal reset password');
-    } finally {
-      setIsLoading(false);
-    }
+    },
+  });
+
+  const handleCreateUsers = (employeeIds: number[]) => {
+    createUsersMutation.mutate(employeeIds);
   };
+
+  const handleResetPasswords = (employeeIds: number[]) => {
+    resetPasswordsMutation.mutate(employeeIds);
+  };
+
+  const isLoading = createUsersMutation.isPending || resetPasswordsMutation.isPending;
 
   // Copy password
   const handleCopyPassword = (password: string) => {
@@ -218,12 +212,22 @@ export default function EmployeeCredentialsPage() {
 
           {/* Stats Grid - shadcnblocks Stats8 style */}
           <div className="grid gap-x-5 gap-y-8 md:grid-cols-2 lg:grid-cols-4">
-            {stats.map((stat) => (
-              <div key={stat.id} className="flex flex-col gap-4">
-                <div className="text-5xl font-bold md:text-6xl">{stat.value}</div>
-                <p className="text-muted-foreground">{stat.label}</p>
-              </div>
-            ))}
+            <div className="flex flex-col gap-4">
+              <div className="text-5xl font-bold md:text-6xl">{stats?.total_employees || 0}</div>
+              <p className="text-muted-foreground">total karyawan terdaftar</p>
+            </div>
+            <div className="flex flex-col gap-4">
+              <div className="text-5xl font-bold md:text-6xl">{stats?.with_users || 0}</div>
+              <p className="text-muted-foreground">sudah memiliki akun user</p>
+            </div>
+            <div className="flex flex-col gap-4">
+              <div className="text-5xl font-bold md:text-6xl">{stats?.without_users || 0}</div>
+              <p className="text-muted-foreground">belum memiliki akun user</p>
+            </div>
+            <div className="flex flex-col gap-4">
+              <div className="text-5xl font-bold md:text-6xl">{stats?.percentage_with_users || 0}%</div>
+              <p className="text-muted-foreground">tingkat kelengkapan akun</p>
+            </div>
           </div>
         </div>
 
@@ -233,12 +237,12 @@ export default function EmployeeCredentialsPage() {
             <TabsTrigger value="create-users" className="gap-2">
               <UserPlus className="h-4 w-4" />
               Buat User Baru
-              <Badge variant="destructive" className="ml-1">{mockStats.without_users}</Badge>
+              <Badge variant="destructive" className="ml-1">{stats?.without_users || 0}</Badge>
             </TabsTrigger>
             <TabsTrigger value="reset-passwords" className="gap-2">
               <Key className="h-4 w-4" />
               Reset Password
-              <Badge variant="secondary" className="ml-1">{mockStats.with_users}</Badge>
+              <Badge variant="secondary" className="ml-1">{stats?.with_users || 0}</Badge>
             </TabsTrigger>
           </TabsList>
 
@@ -316,7 +320,7 @@ export default function EmployeeCredentialsPage() {
                           <Badge variant="outline">{employee.employee_type}</Badge>
                         </TableCell>
                         <TableCell>{employee.location}</TableCell>
-                        <TableCell>{new Date(employee.hire_date).toLocaleDateString('id-ID')}</TableCell>
+                        <TableCell>{employee.hire_date ? new Date(employee.hire_date).toLocaleDateString('id-ID') : '-'}</TableCell>
                         <TableCell>
                           <Button
                             size="sm"
@@ -418,7 +422,7 @@ export default function EmployeeCredentialsPage() {
                           <Badge variant="secondary">{employee.role}</Badge>
                         </TableCell>
                         <TableCell>{employee.last_login || 'Belum login'}</TableCell>
-                        <TableCell>{new Date(employee.created_at).toLocaleDateString('id-ID')}</TableCell>
+                        <TableCell>{employee.created_at ? new Date(employee.created_at).toLocaleDateString('id-ID') : '-'}</TableCell>
                         <TableCell>
                           <Button
                             size="sm"

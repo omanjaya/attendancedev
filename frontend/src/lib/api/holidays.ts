@@ -98,6 +98,14 @@ export async function updateHoliday(id: string, data: Partial<HolidayFormData>):
   return response.data.data;
 }
 
+// Get single holiday (new V1 API)
+export async function getHoliday(id: string): Promise<Holiday> {
+  const response = await apiClient.get<{ success: boolean; data: Holiday }>(
+    ENDPOINTS.v1Detail(id)
+  );
+  return response.data.data;
+}
+
 // Delete holiday (new V1 API)
 export async function deleteHoliday(id: string): Promise<void> {
   await apiClient.delete(ENDPOINTS.v1Detail(id));

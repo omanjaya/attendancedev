@@ -369,9 +369,11 @@ class EmployeeMonthlySchedule extends Model
             if (!$model->scheduled_hours || $model->scheduled_hours == 0) {
                 $model->scheduled_hours = $model->working_hours;
             }
-            
-            // Auto-detect weekend
-            $model->is_weekend = $model->effective_date->isWeekend();
+
+            // Auto-detect weekend (only if effective_date is set)
+            if ($model->effective_date) {
+                $model->is_weekend = $model->effective_date->isWeekend();
+            }
         });
         
         static::created(function ($model) {

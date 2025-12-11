@@ -203,6 +203,7 @@ const V1_ENDPOINTS = {
   monthlyScheduleDetail: (id: string) => `/monthly-schedules/${id}`,
   monthlyScheduleAssign: (id: string) => `/monthly-schedules/${id}/assign`,
   monthlyScheduleUnassign: (id: string) => `/monthly-schedules/${id}/unassign`,
+  monthlyScheduleSync: (id: string) => `/monthly-schedules/${id}/sync`,
   monthlyScheduleEmployees: (id: string) => `/monthly-schedules/${id}/employees`,
   generateWorkingDays: '/monthly-schedules/generate-working-days',
 } as const;
@@ -362,6 +363,28 @@ export async function unassignEmployeeFromSchedule(
   await apiClient.post(V1_ENDPOINTS.monthlyScheduleUnassign(id), {
     employee_id: employeeId,
   });
+}
+
+// Sync schedule employees (assign selected, unassign unselected)
+export interface SyncScheduleParams {
+  employee_ids: string[];
+}
+
+export interface SyncScheduleResponse {
+  assigned_count: number;
+  unassigned_count: number;
+  total_employees: number;
+}
+
+export async function syncScheduleEmployees(
+  id: string,
+  params: SyncScheduleParams
+): Promise<SyncScheduleResponse> {
+  const response = await apiClient.post<{ success: boolean; data: SyncScheduleResponse }>(
+    V1_ENDPOINTS.monthlyScheduleSync(id),
+    params
+  );
+  return response.data.data;
 }
 
 // Get employees assigned to schedule

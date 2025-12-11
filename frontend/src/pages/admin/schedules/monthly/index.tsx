@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -65,7 +65,7 @@ import { useNotificationStore } from '@/stores';
 import {
   getMonthlyAttendanceSchedules,
   deleteMonthlyAttendanceSchedule,
-  assignEmployeesToSchedule,
+  syncScheduleEmployees,
   getScheduleEmployees,
   type MonthlyAttendanceSchedule,
 } from '@/lib/api/schedules';
@@ -116,6 +116,13 @@ export function MonthlyScheduleList({ showHeader = true }: { showHeader?: boolea
 
   const employees = employeesData?.data || [];
 
+  // Fetch assigned employees for assign dialog (to pre-select)
+  const { data: assignedForDialog, isLoading: isLoadingAssignedForDialog } = useQuery({
+    queryKey: ['schedule-employees', assignDialog.schedule?.id],
+    queryFn: () => getScheduleEmployees(assignDialog.schedule!.id),
+    enabled: assignDialog.open && !!assignDialog.schedule,
+  });
+
   // Fetch assigned employees for view dialog
   const { data: assignedEmployeesData, isLoading: isLoadingAssignedEmployees } = useQuery({
     queryKey: ['schedule-employees', viewDialog.schedule?.id],
@@ -124,6 +131,14 @@ export function MonthlyScheduleList({ showHeader = true }: { showHeader?: boolea
   });
 
   const assignedEmployees = assignedEmployeesData || [];
+
+  // Pre-select assigned employees when dialog opens and data is loaded
+  useEffect(() => {
+    if (assignDialog.open && assignedForDialog && !isLoadingAssignedForDialog) {
+      const ids = assignedForDialog.map((e: any) => String(e.id));
+      setSelectedEmployees(ids);
+    }
+  }, [assignDialog.open, assignedForDialog, isLoadingAssignedForDialog]);
 
   // Delete mutation
   const deleteMutation = useMutation({
@@ -139,22 +154,22 @@ export function MonthlyScheduleList({ showHeader = true }: { showHeader?: boolea
     },
   });
 
-  // Assign mutation
-  const assignMutation = useMutation({
+  // Sync mutation - will assign selected and unassign unselected
+  const syncMutation = useMutation({
     mutationFn: ({ scheduleId, employeeIds }: { scheduleId: string; employeeIds: string[] }) =>
-      assignEmployeesToSchedule(scheduleId, { employee_ids: employeeIds }),
+      syncScheduleEmployees(scheduleId, { employee_ids: employeeIds }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['monthly-schedules'] });
-      const replacedMsg = data.replaced_count > 0 ? ` (${data.replaced_count} jadwal di-replace)` : '';
+      queryClient.invalidateQueries({ queryKey: ['schedule-employees'] });
       success(
         'Berhasil',
-        `✓ Jadwal berhasil di-assign ke ${data.assigned_count} pegawai${replacedMsg}`
+        `✓ ${data.assigned_count} pegawai di-assign, ${data.unassigned_count} pegawai di-unassign`
       );
       setAssignDialog({ open: false, schedule: null });
       setSelectedEmployees([]);
     },
     onError: (err: any) => {
-      const message = err?.response?.data?.message || 'Gagal assign jadwal';
+      const message = err?.response?.data?.message || 'Gagal sync jadwal';
       showError('Error', message);
     },
   });
@@ -172,10 +187,10 @@ export function MonthlyScheduleList({ showHeader = true }: { showHeader?: boolea
     }
   };
 
-  // Handle assign
+  // Handle assign (sync - assign selected, unassign unselected)
   const handleAssign = () => {
-    if (assignDialog.schedule && selectedEmployees.length > 0) {
-      assignMutation.mutate({
+    if (assignDialog.schedule) {
+      syncMutation.mutate({
         scheduleId: assignDialog.schedule.id,
         employeeIds: selectedEmployees,
       });
@@ -460,17 +475,17 @@ export function MonthlyScheduleList({ showHeader = true }: { showHeader?: boolea
             </Button>
             <Button
               onClick={handleAssign}
-              disabled={selectedEmployees.length === 0 || assignMutation.isPending}
+              disabled={syncMutation.isPending || isLoadingAssignedForDialog}
             >
-              {assignMutation.isPending ? (
+              {syncMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Meng-assign...
+                  Menyimpan...
                 </>
               ) : (
                 <>
                   <UserPlus className="mr-2 h-4 w-4" />
-                  Assign {selectedEmployees.length} Pegawai
+                  Simpan ({selectedEmployees.length} Pegawai)
                 </>
               )}
             </Button>

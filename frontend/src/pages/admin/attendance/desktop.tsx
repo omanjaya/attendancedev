@@ -19,8 +19,15 @@ import { StatsGrid } from '@/components/shared/StatsGrid';
 import { ContentCard } from '@/components/shared/ContentCard';
 import { format, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { getAttendance, getAttendanceStatistics } from '@/lib/api/attendance';
+import {
+  getAttendance,
+  getAttendanceStatistics,
+  approveAttendance,
+  rejectAttendance,
+  createManualAttendance,
+} from '@/lib/api/attendance';
 import type { AttendanceStatus } from '@/types/attendance';
+import { useNotificationStore } from '@/stores';
 
 interface AttendanceRecord {
   id: number;
@@ -73,50 +80,58 @@ export function DesktopAdminAttendancePage() {
 
 
 
+  const { success, error: showError } = useNotificationStore();
+
   // Approve attendance mutation
   const approveAttendanceMutation = useMutation({
-    mutationFn: async (id: number) => {
-      // TODO: Replace with actual API call
-      console.log('Approving attendance:', id);
-      return { success: true };
-    },
+    mutationFn: (id: number) => approveAttendance(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'attendance-records'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'attendance-stats'] });
+      success('Berhasil', 'Absensi berhasil disetujui');
+    },
+    onError: () => {
+      showError('Gagal', 'Gagal menyetujui absensi');
     },
   });
 
   // Reject attendance mutation
   const rejectAttendanceMutation = useMutation({
-    mutationFn: async ({ id, reason }: { id: number; reason: string }) => {
-      // TODO: Replace with actual API call
-      console.log('Rejecting attendance:', id, reason);
-      return { success: true };
-    },
+    mutationFn: ({ id, reason }: { id: number; reason: string }) => rejectAttendance(id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'attendance-records'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'attendance-stats'] });
+      success('Berhasil', 'Absensi berhasil ditolak');
+    },
+    onError: () => {
+      showError('Gagal', 'Gagal menolak absensi');
     },
   });
 
   // Manual entry mutation
   const manualEntryMutation = useMutation({
-    mutationFn: async (data: {
+    mutationFn: (data: {
       employeeId: string;
       date: string;
       checkIn: string;
       checkOut: string;
       notes: string;
-    }) => {
-      // TODO: Replace with actual API call
-      console.log('Creating manual entry:', data);
-      return { success: true };
-    },
+    }) => createManualAttendance({
+      employee_id: parseInt(data.employeeId, 10),
+      date: data.date,
+      check_in: data.checkIn,
+      check_out: data.checkOut || undefined,
+      notes: data.notes || undefined,
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'attendance-records'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'attendance-stats'] });
       setShowManualEntry(false);
       resetManualForm();
+      success('Berhasil', 'Absensi manual berhasil dibuat');
+    },
+    onError: () => {
+      showError('Gagal', 'Gagal membuat absensi manual');
     },
   });
 

@@ -86,15 +86,32 @@ Route::prefix('v1')->group(function () {
             Route::get('/check-employee/{employeeId}', [App\Http\Controllers\Api\UserApiController::class, 'checkEmployeeHasUser']);
         });
 
+        // Employee credentials management
+        Route::prefix('employees/credentials')->group(function () {
+            Route::get('/stats', [App\Http\Controllers\Api\EmployeeCredentialController::class, 'stats']);
+            Route::get('/without-users', [App\Http\Controllers\Api\EmployeeCredentialController::class, 'withoutUsers']);
+            Route::get('/with-users', [App\Http\Controllers\Api\EmployeeCredentialController::class, 'withUsers']);
+            Route::post('/create-users', [App\Http\Controllers\Api\EmployeeCredentialController::class, 'createUsers']);
+            Route::post('/reset-passwords', [App\Http\Controllers\Api\EmployeeCredentialController::class, 'resetPasswords']);
+        });
+
         // Attendance management endpoints (React frontend)
         Route::prefix('attendance')->group(function () {
             Route::get('/', [App\Http\Controllers\Api\AttendanceApiController::class, 'index']);
             Route::get('/today', [App\Http\Controllers\Api\AttendanceApiController::class, 'today']);
+            Route::post('/validate-time', [App\Http\Controllers\Api\AttendanceApiController::class, 'validateTime']);
             Route::get('/statistics', [App\Http\Controllers\Api\AttendanceApiController::class, 'statistics']);
             Route::get('/trends', [App\Http\Controllers\Api\AttendanceApiController::class, 'trends']);
             Route::get('/{id}', [App\Http\Controllers\Api\AttendanceApiController::class, 'show']);
             Route::put('/{id}', [App\Http\Controllers\Api\AttendanceApiController::class, 'update']);
             Route::delete('/{id}', [App\Http\Controllers\Api\AttendanceApiController::class, 'destroy']);
+            
+            // Admin attendance management
+            Route::get('/admin/stats', [App\Http\Controllers\Api\AttendanceApiController::class, 'adminStats']);
+            Route::get('/admin/records', [App\Http\Controllers\Api\AttendanceApiController::class, 'adminRecords']);
+            Route::post('/{id}/approve', [App\Http\Controllers\Api\AttendanceApiController::class, 'approve']);
+            Route::post('/{id}/reject', [App\Http\Controllers\Api\AttendanceApiController::class, 'reject']);
+            Route::post('/manual', [App\Http\Controllers\Api\AttendanceApiController::class, 'manualEntry']);
         });
 
         // Attendance Corrections endpoints
@@ -118,6 +135,8 @@ Route::prefix('v1')->group(function () {
             Route::delete('/periods/{id}', [App\Http\Controllers\Api\PayrollApiController::class, 'destroyPeriod']);
             Route::get('/statistics', [App\Http\Controllers\Api\PayrollApiController::class, 'statistics']);
             Route::get('/config', [App\Http\Controllers\Api\PayrollApiController::class, 'config']);
+            Route::get('/employee', [App\Http\Controllers\Api\PayrollApiController::class, 'employeePayroll']);
+            Route::get('/{id}/download', [App\Http\Controllers\Api\PayrollApiController::class, 'downloadPayslip']);
         });
 
         // Leave management endpoints
@@ -142,12 +161,14 @@ Route::prefix('v1')->group(function () {
             Route::get('/balance', [App\Http\Controllers\Api\LeaveApiController::class, 'balance']);
             Route::get('/balance/{employeeId}', [App\Http\Controllers\Api\LeaveApiController::class, 'balanceByEmployee']);
             Route::get('/statistics', [App\Http\Controllers\Api\LeaveApiController::class, 'statistics']);
+            Route::get('/calendar', [App\Http\Controllers\Api\LeaveApiController::class, 'calendar']);
         });
 
         // Schedule management endpoints (Academic/Weekly Schedules)
         Route::prefix('schedules')->group(function () {
             Route::get('/', [App\Http\Controllers\Api\ScheduleApiController::class, 'index']);
             Route::post('/', [App\Http\Controllers\Api\ScheduleApiController::class, 'store']);
+            Route::get('/calendar', [App\Http\Controllers\Api\ScheduleApiController::class, 'calendar']);
             Route::get('/statistics', [App\Http\Controllers\Api\ScheduleApiController::class, 'statistics']);
             Route::get('/conflicts', [App\Http\Controllers\Api\ScheduleApiController::class, 'conflicts']);
             Route::get('/time-slots', [App\Http\Controllers\Api\ScheduleApiController::class, 'timeSlots']);
@@ -187,6 +208,7 @@ Route::prefix('v1')->group(function () {
             // Assignment endpoints
             Route::post('/{id}/assign', [App\Http\Controllers\Api\MonthlyScheduleApiController::class, 'assign']);
             Route::post('/{id}/unassign', [App\Http\Controllers\Api\MonthlyScheduleApiController::class, 'unassign']);
+            Route::post('/{id}/sync', [App\Http\Controllers\Api\MonthlyScheduleApiController::class, 'sync']);
             Route::get('/{id}/employees', [App\Http\Controllers\Api\MonthlyScheduleApiController::class, 'getEmployees']);
 
             // Helper endpoint

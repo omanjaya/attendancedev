@@ -263,4 +263,20 @@ class ScheduleApiController extends BaseApiController
             return $this->errorResponse('Bulk import failed: ' . $e->getMessage(), 500);
         }
     }
+
+    public function calendar(Request $request)
+    {
+        $month = $request->get('month', now()->month);
+        $year = $request->get('year', now()->year);
+        
+        $startDate = \Carbon\Carbon::create($year, $month, 1)->startOfMonth();
+        $endDate = \Carbon\Carbon::create($year, $month, 1)->endOfMonth();
+        
+        $schedules = \App\Models\MonthlySchedule::whereBetween('effective_date', [$startDate, $endDate])
+            ->with('employee')
+            ->get()
+            ->groupBy(fn($s) => $s->effective_date->format('Y-m-d'));
+        
+        return $this->apiResponse($schedules, 'Calendar schedules retrieved');
+    }
 }

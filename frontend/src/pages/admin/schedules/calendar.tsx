@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   ChevronLeft,
   ChevronRight,
@@ -8,6 +9,7 @@ import {
   Users,
   LayoutGrid,
   List,
+  Loader2,
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,33 +29,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { getMonthlyAttendanceSchedules } from '@/lib/api/schedules';
 
-// Mock schedule data
-const mockSchedules: Record<string, Array<{
-  id: number;
+interface ScheduleEvent {
+  id: string;
   title: string;
   time: string;
   type: 'shift' | 'meeting' | 'event';
   employees?: number;
-}>> = {
-  '2024-11-25': [
-    { id: 1, title: 'Shift Pagi', time: '08:00 - 17:00', type: 'shift', employees: 15 },
-  ],
-  '2024-11-26': [
-    { id: 2, title: 'Shift Pagi', time: '08:00 - 17:00', type: 'shift', employees: 15 },
-    { id: 3, title: 'Meeting Tim IT', time: '10:00 - 11:00', type: 'meeting', employees: 5 },
-  ],
-  '2024-11-27': [
-    { id: 4, title: 'Shift Pagi', time: '08:00 - 17:00', type: 'shift', employees: 15 },
-  ],
-  '2024-11-28': [
-    { id: 5, title: 'Shift Pagi', time: '08:00 - 17:00', type: 'shift', employees: 15 },
-    { id: 6, title: 'Training Karyawan', time: '14:00 - 16:00', type: 'event', employees: 20 },
-  ],
-  '2024-11-29': [
-    { id: 7, title: 'Shift Pagi', time: '08:00 - 17:00', type: 'shift', employees: 12 },
-  ],
-};
+}
 
 const daysOfWeek = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 const months = [
@@ -62,9 +46,46 @@ const months = [
 ];
 
 export default function ScheduleCalendarPage() {
-  const [currentDate, setCurrentDate] = useState(new Date(2024, 10, 1)); // November 2024
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
+  // Fetch monthly attendance schedules
+  const { data: schedulesData, isLoading: schedulesLoading } = useQuery({
+    queryKey: ['schedules', 'monthly', currentDate.getFullYear(), currentDate.getMonth() + 1],
+    queryFn: () => getMonthlyAttendanceSchedules({
+      year: currentDate.getFullYear(),
+      month: currentDate.getMonth() + 1,
+      per_page: 100,
+    }),
+  });
+
+  // Note: Schedule statistics are available via getScheduleStatistics() API if needed
+
+  // Transform schedules data to calendar format
+  const schedulesByDate = useMemo(() => {
+    const result: Record<string, ScheduleEvent[]> = {};
+
+    if (schedulesData?.data) {
+      schedulesData.data.forEach((schedule) => {
+        // Add schedule to each working day
+        schedule.working_days?.forEach((dateStr: string) => {
+          if (!result[dateStr]) {
+            result[dateStr] = [];
+          }
+          result[dateStr].push({
+            id: schedule.id,
+            title: schedule.name,
+            time: `${schedule.default_start_time} - ${schedule.default_end_time}`,
+            type: 'shift',
+            employees: schedule.assigned_employees_count || 0,
+          });
+        });
+      });
+    }
+
+    return result;
+  }, [schedulesData]);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -227,7 +248,7 @@ export default function ScheduleCalendarPage() {
 
                 {/* Days */}
                 {days.map((day, index) => {
-                  const schedules = mockSchedules[day.dateString] || [];
+                  const schedules = schedulesByDate[day.dateString] || [];
                   const isToday = day.dateString === today;
 
                   return (
@@ -247,18 +268,24 @@ export default function ScheduleCalendarPage() {
                         {day.date}
                       </div>
                       <div className="space-y-1">
-                        {schedules.slice(0, 2).map((schedule) => (
-                          <div
-                            key={schedule.id}
-                            className={`text-xs p-1 rounded border truncate ${getScheduleTypeColor(schedule.type)}`}
-                          >
-                            {schedule.title}
-                          </div>
-                        ))}
-                        {schedules.length > 2 && (
-                          <div className="text-xs text-muted-foreground">
-                            +{schedules.length - 2} lainnya
-                          </div>
+                        {schedulesLoading ? (
+                          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                        ) : (
+                          <>
+                            {schedules.slice(0, 2).map((schedule) => (
+                              <div
+                                key={schedule.id}
+                                className={`text-xs p-1 rounded border truncate ${getScheduleTypeColor(schedule.type)}`}
+                              >
+                                {schedule.title}
+                              </div>
+                            ))}
+                            {schedules.length > 2 && (
+                              <div className="text-xs text-muted-foreground">
+                                +{schedules.length - 2} lainnya
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -286,9 +313,9 @@ export default function ScheduleCalendarPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {selectedDate && mockSchedules[selectedDate] ? (
+              {selectedDate && schedulesByDate[selectedDate]?.length > 0 ? (
                 <div className="space-y-3">
-                  {mockSchedules[selectedDate].map((schedule) => (
+                  {schedulesByDate[selectedDate].map((schedule) => (
                     <div
                       key={schedule.id}
                       className={`p-3 rounded-lg border ${getScheduleTypeColor(schedule.type)}`}
@@ -298,7 +325,7 @@ export default function ScheduleCalendarPage() {
                         <Clock className="h-3 w-3" />
                         {schedule.time}
                       </div>
-                      {schedule.employees && (
+                      {schedule.employees !== undefined && (
                         <div className="flex items-center gap-2 mt-1 text-xs opacity-80">
                           <Users className="h-3 w-3" />
                           {schedule.employees} karyawan
@@ -344,19 +371,23 @@ export default function ScheduleCalendarPage() {
             <CardContent className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Total Jadwal</span>
-                <Badge variant="outline">28</Badge>
+                <Badge variant="outline">{schedulesData?.data?.length || 0}</Badge>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Shift</span>
-                <Badge variant="outline">22</Badge>
+                <span className="text-sm text-muted-foreground">Jadwal Aktif</span>
+                <Badge variant="outline">{schedulesData?.data?.filter(s => s.is_active).length || 0}</Badge>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Meeting</span>
-                <Badge variant="outline">4</Badge>
+                <span className="text-sm text-muted-foreground">Total Working Days</span>
+                <Badge variant="outline">
+                  {schedulesData?.data?.reduce((acc, s) => acc + (s.total_working_days || 0), 0) || 0}
+                </Badge>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Event</span>
-                <Badge variant="outline">2</Badge>
+                <span className="text-sm text-muted-foreground">Total Karyawan</span>
+                <Badge variant="outline">
+                  {schedulesData?.data?.reduce((acc, s) => acc + (s.assigned_employees_count || 0), 0) || 0}
+                </Badge>
               </div>
             </CardContent>
           </Card>

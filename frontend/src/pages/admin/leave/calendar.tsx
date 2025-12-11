@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
 import {
   ChevronLeft,
   ChevronRight,
@@ -9,6 +10,7 @@ import {
   Stethoscope,
   Baby,
   User,
+  Loader2,
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,34 +21,15 @@ import { Badge } from '@/components/ui/badge';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
+import { getLeaveRequests, getLeaveStatistics } from '@/lib/api/leave';
+import type { LeaveType } from '@/types';
 
-// Mock leave data
-const mockLeaves: Record<string, Array<{
-  id: number;
+interface LeaveCalendarItem {
+  id: string;
   employee: string;
-  type: 'annual' | 'sick' | 'maternity' | 'personal';
-  status: 'approved' | 'pending';
-}>> = {
-  '2024-11-25': [
-    { id: 1, employee: 'Ahmad Fauzi', type: 'annual', status: 'approved' },
-  ],
-  '2024-11-26': [
-    { id: 2, employee: 'Siti Rahayu', type: 'sick', status: 'approved' },
-    { id: 3, employee: 'Ahmad Fauzi', type: 'annual', status: 'approved' },
-  ],
-  '2024-11-27': [
-    { id: 4, employee: 'Budi Santoso', type: 'personal', status: 'pending' },
-    { id: 5, employee: 'Siti Rahayu', type: 'sick', status: 'approved' },
-    { id: 6, employee: 'Ahmad Fauzi', type: 'annual', status: 'approved' },
-  ],
-  '2024-11-28': [
-    { id: 7, employee: 'Dewi Putri', type: 'maternity', status: 'approved' },
-    { id: 8, employee: 'Budi Santoso', type: 'personal', status: 'pending' },
-  ],
-  '2024-11-29': [
-    { id: 9, employee: 'Dewi Putri', type: 'maternity', status: 'approved' },
-  ],
-};
+  type: LeaveType;
+  status: 'approved' | 'pending' | 'rejected' | 'cancelled';
+}
 
 const daysOfWeek = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 const months = [
@@ -54,16 +37,68 @@ const months = [
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
 ];
 
-const leaveTypeConfig = {
+const leaveTypeConfig: Record<string, { label: string; icon: typeof Palmtree; color: string }> = {
   annual: { label: 'Cuti Tahunan', icon: Palmtree, color: 'bg-primary/10 text-primary' },
   sick: { label: 'Cuti Sakit', icon: Stethoscope, color: 'bg-destructive/10 text-destructive' },
   maternity: { label: 'Cuti Melahirkan', icon: Baby, color: 'bg-pink-100 text-pink-600' },
   personal: { label: 'Cuti Pribadi', icon: User, color: 'bg-warning/10 text-warning' },
+  other: { label: 'Cuti Lainnya', icon: User, color: 'bg-muted text-muted-foreground' },
 };
 
 export default function LeaveCalendarPage() {
-  const [currentDate, setCurrentDate] = useState(new Date(2024, 10, 1));
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth() + 1;
+
+  // Calculate start and end dates for the month
+  const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+  const endDate = `${year}-${String(month).padStart(2, '0')}-${new Date(year, month, 0).getDate()}`;
+
+  // Fetch leave requests for the month
+  const { data: leavesData, isLoading: leavesLoading } = useQuery({
+    queryKey: ['leave-requests', 'calendar', year, month],
+    queryFn: () => getLeaveRequests({
+      start_date: startDate,
+      end_date: endDate,
+      per_page: 100,
+    }),
+  });
+
+  // Fetch leave statistics
+  const { data: stats } = useQuery({
+    queryKey: ['leave', 'statistics'],
+    queryFn: getLeaveStatistics,
+  });
+
+  // Transform leave data to calendar format
+  const leavesByDate = useMemo(() => {
+    const result: Record<string, LeaveCalendarItem[]> = {};
+
+    if (leavesData?.data) {
+      leavesData.data.forEach((leave) => {
+        // Add leave to each day in the range
+        const start = new Date(leave.start_date);
+        const end = new Date(leave.end_date);
+
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          const dateStr = d.toISOString().split('T')[0];
+          if (!result[dateStr]) {
+            result[dateStr] = [];
+          }
+          result[dateStr].push({
+            id: String(leave.id),
+            employee: leave.employee_name || 'Unknown',
+            type: (leave.type || leave.leave_type?.code || 'other') as LeaveType,
+            status: leave.status as 'approved' | 'pending' | 'rejected' | 'cancelled',
+          });
+        }
+      });
+    }
+
+    return result;
+  }, [leavesData]);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -171,7 +206,7 @@ export default function LeaveCalendarPage() {
                 ))}
 
                 {days.map((day, index) => {
-                  const leaves = mockLeaves[day.dateString] || [];
+                  const leaves = leavesByDate[day.dateString] || [];
                   const isToday = day.dateString === today;
 
                   return (
@@ -191,22 +226,28 @@ export default function LeaveCalendarPage() {
                         {day.date}
                       </div>
                       <div className="space-y-1">
-                        {leaves.slice(0, 2).map((leave) => {
-                          const config = leaveTypeConfig[leave.type];
-                          return (
-                            <div
-                              key={leave.id}
-                              className={`text-xs p-1 rounded truncate flex items-center gap-1 ${config.color}`}
-                            >
-                              <config.icon className="h-3 w-3" />
-                              {leave.employee.split(' ')[0]}
-                            </div>
-                          );
-                        })}
-                        {leaves.length > 2 && (
-                          <div className="text-xs text-muted-foreground">
-                            +{leaves.length - 2} lainnya
-                          </div>
+                        {leavesLoading ? (
+                          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                        ) : (
+                          <>
+                            {leaves.slice(0, 2).map((leave) => {
+                              const config = leaveTypeConfig[leave.type] || leaveTypeConfig.personal;
+                              return (
+                                <div
+                                  key={leave.id}
+                                  className={`text-xs p-1 rounded truncate flex items-center gap-1 ${config.color}`}
+                                >
+                                  <config.icon className="h-3 w-3" />
+                                  {leave.employee.split(' ')[0]}
+                                </div>
+                              );
+                            })}
+                            {leaves.length > 2 && (
+                              <div className="text-xs text-muted-foreground">
+                                +{leaves.length - 2} lainnya
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -234,10 +275,10 @@ export default function LeaveCalendarPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {selectedDate && mockLeaves[selectedDate] ? (
+              {selectedDate && leavesByDate[selectedDate]?.length > 0 ? (
                 <div className="space-y-3">
-                  {mockLeaves[selectedDate].map((leave) => {
-                    const config = leaveTypeConfig[leave.type];
+                  {leavesByDate[selectedDate].map((leave) => {
+                    const config = leaveTypeConfig[leave.type] || leaveTypeConfig.personal;
                     return (
                       <div
                         key={leave.id}
@@ -254,9 +295,15 @@ export default function LeaveCalendarPage() {
                         </div>
                         <Badge
                           variant="outline"
-                          className={leave.status === 'approved' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}
+                          className={
+                            leave.status === 'approved' ? 'bg-success/10 text-success' :
+                            leave.status === 'rejected' ? 'bg-destructive/10 text-destructive' :
+                            'bg-warning/10 text-warning'
+                          }
                         >
-                          {leave.status === 'approved' ? 'Disetujui' : 'Pending'}
+                          {leave.status === 'approved' ? 'Disetujui' :
+                           leave.status === 'rejected' ? 'Ditolak' :
+                           leave.status === 'cancelled' ? 'Dibatalkan' : 'Pending'}
                         </Badge>
                       </div>
                     );
@@ -292,21 +339,25 @@ export default function LeaveCalendarPage() {
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Users className="h-4 w-4 text-primary" />
-                Bulan Ini
+                Statistik
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Total Cuti</span>
-                <Badge variant="outline">15</Badge>
+                <Badge variant="outline">{stats?.total_requests || leavesData?.data?.length || 0}</Badge>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Disetujui</span>
-                <Badge className="bg-success/10 text-success">12</Badge>
+                <Badge className="bg-success/10 text-success">{stats?.approved_requests || 0}</Badge>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Pending</span>
-                <Badge className="bg-warning/10 text-warning">3</Badge>
+                <Badge className="bg-warning/10 text-warning">{stats?.pending_requests || 0}</Badge>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Ditolak</span>
+                <Badge className="bg-destructive/10 text-destructive">{stats?.rejected_requests || 0}</Badge>
               </div>
             </CardContent>
           </Card>

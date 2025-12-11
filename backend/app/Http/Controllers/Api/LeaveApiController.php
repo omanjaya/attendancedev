@@ -237,4 +237,26 @@ class LeaveApiController extends BaseApiController
 
         return $this->apiResponse($requests, 'Pending requests retrieved');
     }
+
+    public function calendar(Request $request)
+    {
+        $month = $request->get('month', now()->month);
+        $year = $request->get('year', now()->year);
+        
+        $startDate = \Carbon\Carbon::create($year, $month, 1)->startOfMonth();
+        $endDate = \Carbon\Carbon::create($year, $month, 1)->endOfMonth();
+        
+        $leaves = Leave::where('status', 'approved')
+            ->where(function($q) use ($startDate, $endDate) {
+                $q->whereDate('start_date', '>=', $startDate)
+                  ->orWhereDate('end_date', '>=', $startDate);
+                $q->whereDate('start_date', '<=', $endDate)
+                  ->orWhereDate('end_date', '<=', $endDate);
+            })
+            ->with('employee')
+            ->get()
+            ->groupBy(fn($leave) => $leave->start_date->format('Y-m-d'));
+        
+        return $this->apiResponse($leaves, 'Calendar leaves retrieved');
+    }
 }

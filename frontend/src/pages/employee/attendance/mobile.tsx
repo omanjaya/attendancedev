@@ -13,6 +13,7 @@ import {
   ScanFace,
   AlertCircle,
   AlertTriangle,
+  Loader2,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -26,7 +27,7 @@ import {
 } from '@/components/ui/dialog';
 import { useAuthStore } from '@/stores';
 import { useQuery } from '@tanstack/react-query';
-import { getTodayAttendance } from '@/lib/api/attendance';
+import { getTodayAttendance, validateAttendanceTime } from '@/lib/api/attendance';
 import { getEmployeeDashboardData } from '@/lib/api/employees';
 
 export function MobileEmployeeAttendancePage() {
@@ -38,6 +39,14 @@ export function MobileEmployeeAttendancePage() {
   // State for re-attendance confirmation
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<'check_in' | 'check_out' | null>(null);
+
+  // State for no schedule modal
+  const [showNoScheduleModal, setShowNoScheduleModal] = useState(false);
+
+  // State for time validation
+  const [isValidating, setIsValidating] = useState(false);
+  const [showTimeErrorModal, setShowTimeErrorModal] = useState(false);
+  const [timeErrorMessage, setTimeErrorMessage] = useState('');
 
   // Get today's date for cache key (ensures fresh data each day)
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
@@ -60,7 +69,6 @@ export function MobileEmployeeAttendancePage() {
   });
 
   const canAttend = dashboardStats?.schedule.today.can_attend ?? true;
-  const scheduleMessage = dashboardStats?.schedule.today.message;
   const scheduleType = dashboardStats?.schedule.today.schedule_type;
 
   useEffect(() => {
@@ -88,11 +96,33 @@ export function MobileEmployeeAttendancePage() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleActionClick = (type: 'check_in' | 'check_out') => {
+  const handleActionClick = async (type: 'check_in' | 'check_out') => {
+    // Show modal if no schedule instead of blocking
     if (!canAttend) {
-      // We can show a toast or modal here, but for now rely on the UI state
+      setShowNoScheduleModal(true);
       return;
     }
+
+    // Validate time with server before proceeding
+    setIsValidating(true);
+    try {
+      const validation = await validateAttendanceTime(type);
+
+      if (!validation.allowed) {
+        setTimeErrorMessage(validation.message);
+        setShowTimeErrorModal(true);
+        setIsValidating(false);
+        return;
+      }
+    } catch (error) {
+      console.error('Time validation error:', error);
+      // If validation fails, show generic error
+      setTimeErrorMessage('Gagal memvalidasi waktu absensi. Silakan coba lagi.');
+      setShowTimeErrorModal(true);
+      setIsValidating(false);
+      return;
+    }
+    setIsValidating(false);
 
     // Check if already attended
     const alreadyAttended = type === 'check_in'
@@ -261,36 +291,40 @@ export function MobileEmployeeAttendancePage() {
             {/* Datang (Check In) */}
             <button
               onClick={() => handleActionClick('check_in')}
-              disabled={!canAttend}
-              className={`w-full rounded-xl p-3 shadow-lg transition-all active:scale-[0.98] group ${canAttend
-                ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 dark:from-emerald-600 dark:to-emerald-700 dark:hover:from-emerald-700 dark:hover:to-emerald-800 shadow-emerald-500/30 dark:shadow-emerald-600/20'
-                : 'bg-muted cursor-not-allowed opacity-70'
-                }`}
+              disabled={isValidating}
+              className="w-full rounded-xl p-3 shadow-lg transition-all active:scale-[0.98] group bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 dark:from-emerald-600 dark:to-emerald-700 dark:hover:from-emerald-700 dark:hover:to-emerald-800 shadow-emerald-500/30 dark:shadow-emerald-600/20 disabled:opacity-70"
             >
               <div className="flex items-center gap-2.5">
-                <div className={`backdrop-blur-sm rounded-lg p-2 border border-white/10 ${canAttend ? 'bg-white/20 dark:bg-white/10' : 'bg-gray-400/20'}`}>
-                  <LogIn className={`h-5 w-5 drop-shadow-sm ${canAttend ? 'text-white' : 'text-muted-foreground'}`} />
+                <div className="backdrop-blur-sm rounded-lg p-2 border border-white/10 bg-white/20 dark:bg-white/10">
+                  {isValidating ? (
+                    <Loader2 className="h-5 w-5 text-white animate-spin" />
+                  ) : (
+                    <LogIn className="h-5 w-5 drop-shadow-sm text-white" />
+                  )}
                 </div>
                 <div className="flex-1 text-left">
-                  <h3 className={`text-base font-bold drop-shadow-sm ${canAttend ? 'text-white' : 'text-muted-foreground'}`}>
-                    {canAttend ? 'Datang' : (scheduleType === 'holiday' ? 'Libur' : 'Tidak Ada Jadwal')}
-                  </h3>
-                  <p className={`text-xs line-clamp-1 ${canAttend ? 'text-white/90 dark:text-white/80' : 'text-muted-foreground'}`}>
-                    {canAttend ? 'Absensi wajib yang dipergunakan pada saat datang di hari kerja' : (scheduleMessage || 'Absensi tidak tersedia hari ini')}
+                  <h3 className="text-base font-bold drop-shadow-sm text-white">Datang</h3>
+                  <p className="text-xs line-clamp-1 text-white/90 dark:text-white/80">
+                    Absensi wajib yang dipergunakan pada saat datang di hari kerja
                   </p>
                 </div>
-                {canAttend && <ChevronRight className="h-5 w-5 text-white/90 group-hover:translate-x-1 transition-transform" />}
+                <ChevronRight className="h-5 w-5 text-white/90 group-hover:translate-x-1 transition-transform" />
               </div>
             </button>
 
             {/* Pulang (Check Out) */}
             <button
               onClick={() => handleActionClick('check_out')}
-              className="w-full bg-gradient-to-br from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 dark:from-rose-600 dark:to-rose-700 dark:hover:from-rose-700 dark:hover:to-rose-800 rounded-xl p-3 shadow-lg shadow-rose-500/30 dark:shadow-rose-600/20 transition-all active:scale-[0.98] group"
+              disabled={isValidating}
+              className="w-full bg-gradient-to-br from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 dark:from-rose-600 dark:to-rose-700 dark:hover:from-rose-700 dark:hover:to-rose-800 rounded-xl p-3 shadow-lg shadow-rose-500/30 dark:shadow-rose-600/20 transition-all active:scale-[0.98] group disabled:opacity-70"
             >
               <div className="flex items-center gap-2.5">
                 <div className="bg-white/20 dark:bg-white/10 backdrop-blur-sm rounded-lg p-2 border border-white/10">
-                  <LogOut className="h-5 w-5 text-white drop-shadow-sm" />
+                  {isValidating ? (
+                    <Loader2 className="h-5 w-5 text-white animate-spin" />
+                  ) : (
+                    <LogOut className="h-5 w-5 text-white drop-shadow-sm" />
+                  )}
                 </div>
                 <div className="flex-1 text-left">
                   <h3 className="text-base font-bold text-white drop-shadow-sm">Pulang</h3>
@@ -441,6 +475,102 @@ export function MobileEmployeeAttendancePage() {
                 Batal
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* No Schedule Modal */}
+      <Dialog open={showNoScheduleModal} onOpenChange={setShowNoScheduleModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-muted-foreground" />
+              Tidak Dapat Absen
+            </DialogTitle>
+            <DialogDescription>
+              {scheduleType === 'holiday' ? 'Hari ini adalah hari libur' : 'Anda belum memiliki jadwal'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <Alert className="border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/30">
+              <AlertCircle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+              <AlertTitle className="text-orange-800 dark:text-orange-200">
+                {scheduleType === 'holiday' ? 'Hari Libur' : 'Jadwal Tidak Ditemukan'}
+              </AlertTitle>
+              <AlertDescription className="text-orange-700 dark:text-orange-300 space-y-2">
+                {scheduleType === 'holiday' ? (
+                  <p>
+                    Hari ini adalah hari libur. Anda tidak perlu melakukan absensi.
+                  </p>
+                ) : (
+                  <>
+                    <p>
+                      Anda belum memiliki jadwal kerja untuk hari ini. Silakan hubungi administrator untuk melakukan assign jadwal.
+                    </p>
+                    <p className="text-sm mt-2">
+                      Buka menu <strong>Jadwal Saya</strong> untuk melihat jadwal yang sudah di-assign kepada Anda.
+                    </p>
+                  </>
+                )}
+              </AlertDescription>
+            </Alert>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowNoScheduleModal(false)}
+                className="flex-1"
+              >
+                Tutup
+              </Button>
+              {scheduleType !== 'holiday' && (
+                <Button
+                  onClick={() => {
+                    setShowNoScheduleModal(false);
+                    navigate({ to: '/employee/schedule' });
+                  }}
+                  className="flex-1"
+                >
+                  Lihat Jadwal
+                </Button>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Time Validation Error Modal */}
+      <Dialog open={showTimeErrorModal} onOpenChange={setShowTimeErrorModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-orange-500" />
+              Tidak Dapat Absen
+            </DialogTitle>
+            <DialogDescription>
+              Waktu absensi di luar batas yang ditentukan
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <Alert className="border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/30">
+              <Clock className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+              <AlertTitle className="text-orange-800 dark:text-orange-200">
+                Batas Waktu Absensi
+              </AlertTitle>
+              <AlertDescription className="text-orange-700 dark:text-orange-300">
+                {timeErrorMessage}
+              </AlertDescription>
+            </Alert>
+
+            <Button
+              variant="outline"
+              onClick={() => setShowTimeErrorModal(false)}
+              className="w-full"
+            >
+              Tutup
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

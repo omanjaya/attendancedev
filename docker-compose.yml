@@ -85,7 +85,7 @@ services:
       - CACHE_DRIVER=redis
       - SESSION_DRIVER=redis
       - QUEUE_CONNECTION=database
-      - DEEPFACE_BASE_URL=http://deepface:8001
+      - DEEPFACE_BASE_URL=http://deepface-1:8001
     depends_on:
       postgres:
         condition: service_healthy
@@ -150,11 +150,11 @@ services:
   # ==========================================
   # Python DeepFace Service
   # ==========================================
-  deepface:
+  deepface-1:
     build:
       context: .
       dockerfile: docker/python/Dockerfile
-    container_name: attendancedev-deepface
+    container_name: attendancedev-deepface-1
     restart: unless-stopped
     volumes:
       - ./python-services/face-recognition:/app
@@ -162,6 +162,32 @@ services:
       - face_data:/app/face_data
     ports:
       - "8001:8001"
+    environment:
+      - FLASK_ENV=${FLASK_ENV:-development}
+      - DEEPFACE_MODEL=${DEEPFACE_MODEL:-ArcFace}
+      - DEEPFACE_DETECTOR=${DEEPFACE_DETECTOR:-retinaface}
+      - DEEPFACE_THRESHOLD=${DEEPFACE_THRESHOLD:-0.68}
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8001/health" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    networks:
+      - attendance_network
+
+  deepface-2:
+    build:
+      context: .
+      dockerfile: docker/python/Dockerfile
+    container_name: attendancedev-deepface-2
+    restart: unless-stopped
+    volumes:
+      - ./python-services/face-recognition:/app
+      - deepface_models:/app/.deepface
+      - face_data:/app/face_data
+    ports:
+      - "8002:8001"
     environment:
       - FLASK_ENV=${FLASK_ENV:-development}
       - DEEPFACE_MODEL=${DEEPFACE_MODEL:-ArcFace}
@@ -196,6 +222,7 @@ services:
     depends_on:
       - backend
       - frontend
+      - deepface-1
     networks:
       - attendance_network
 

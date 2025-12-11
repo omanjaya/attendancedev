@@ -63,11 +63,19 @@ export interface Employee {
 // Employee form data for create/update
 // Employee form data for create/update
 export interface EmployeeFormData {
-  name: string;
-  email: string;
+  // Frontend field names
+  name?: string;
+  email?: string;
   phone?: string;
-  position: string;
+  position?: string;
   department?: string;
+  status?: EmployeeStatus;
+  join_date?: string;
+
+  // Backend field names (for API calls)
+  full_name?: string;
+  hire_date?: string;
+  is_active?: boolean;
 
   // Dynamic linking fields
   subject_id?: string;
@@ -75,8 +83,6 @@ export interface EmployeeFormData {
   position_id?: string;
 
   employee_type_id?: string;
-  status: EmployeeStatus;
-  join_date: string;
   address?: string;
   birth_date?: string;
   gender?: 'male' | 'female';

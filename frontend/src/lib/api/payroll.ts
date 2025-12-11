@@ -213,3 +213,36 @@ export async function generatePayslip(periodId: string, employeeId: string): Pro
   });
   return response.data;
 }
+
+// Employee payroll types
+export interface EmployeePayrollItem {
+  id: number;
+  month: string;
+  year: number;
+  period_start: string;
+  period_end: string;
+  pay_date: string | null;
+  gross_salary: number;
+  total_deductions: number;
+  total_bonuses: number;
+  net_salary: number;
+  status: 'draft' | 'calculated' | 'approved' | 'paid' | 'cancelled';
+  approved_at: string | null;
+  processed_at: string | null;
+}
+
+// Get employee's own payroll history
+export async function getMyPayroll(year?: number): Promise<EmployeePayrollItem[]> {
+  const response = await apiClient.get<{ data: EmployeePayrollItem[] }>('/payroll/employee', {
+    params: { year },
+  });
+  return response.data.data;
+}
+
+// Download employee's payslip
+export async function downloadMyPayslip(payrollId: number): Promise<Blob> {
+  const response = await apiClient.get(`/payroll/${payrollId}/download`, {
+    responseType: 'blob',
+  });
+  return response.data;
+}

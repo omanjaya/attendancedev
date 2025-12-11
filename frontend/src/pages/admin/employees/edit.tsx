@@ -183,6 +183,19 @@ export default function EmployeeEditPage() {
   // Populate form when employee data loads
   useEffect(() => {
     if (employee) {
+      // Format join_date to yyyy-MM-dd for HTML date input
+      let formattedJoinDate = '';
+      if (employee.join_date) {
+        // Handle ISO datetime string (e.g., "2025-12-10T00:00:00+08:00")
+        const dateObj = new Date(employee.join_date);
+        if (!isNaN(dateObj.getTime())) {
+          formattedJoinDate = dateObj.toISOString().split('T')[0];
+        } else if (typeof employee.join_date === 'string' && employee.join_date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          // Already in correct format
+          formattedJoinDate = employee.join_date;
+        }
+      }
+
       reset({
         name: employee.name,
         email: employee.email,
@@ -198,7 +211,7 @@ export default function EmployeeEditPage() {
         department: employee.department || '',
         position: employee.position || '',
 
-        join_date: employee.join_date,
+        join_date: formattedJoinDate,
         address: employee.address || '',
         location_id: employee.location?.id || '',
         is_active: employee.status === 'active',
@@ -228,13 +241,21 @@ export default function EmployeeEditPage() {
       await updateEmployeeMutation.mutateAsync({
         id: id,
         data: {
-          ...data,
-          // Ensure we send IDs if they are selected
+          // Map frontend field names to backend field names
+          full_name: data.name,
+          phone: data.phone || undefined,
+          employee_type_id: data.employee_type_id,
+          hire_date: data.join_date,
+          is_active: data.is_active,
+          location_id: data.location_id,
+          // Optional IDs
           subject_id: data.subject_id || undefined,
           department_id: data.department_id || undefined,
           position_id: data.position_id || undefined,
-          location_id: data.location_id,
-          status: data.is_active ? 'active' : 'inactive',
+          // Metadata fields
+          address: data.address || undefined,
+          department: data.department || undefined,
+          position: data.position || undefined,
         },
       });
       navigate({ to: '/admin/employees' });

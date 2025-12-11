@@ -388,9 +388,18 @@ class Employee extends Model
 
     public function getScheduleForDate($date): ?EmployeeMonthlySchedule
     {
+        $dateCarbon = $date instanceof \Carbon\Carbon ? $date : \Carbon\Carbon::parse($date);
+        $dateString = $dateCarbon->format('Y-m-d');
+
+        // Find employee monthly schedule where the date is in the working_days of the parent MonthlySchedule
         return $this->monthlySchedules()
-            ->whereDate('effective_date', $date instanceof \Carbon\Carbon ? $date : $date)
             ->where('status', '!=', 'suspended')
+            ->whereHas('monthlySchedule', function ($query) use ($dateCarbon, $dateString) {
+                $query->where('year', $dateCarbon->year)
+                      ->where('month', $dateCarbon->month)
+                      ->where('is_active', true)
+                      ->whereJsonContains('working_days', $dateString);
+            })
             ->first();
     }
 

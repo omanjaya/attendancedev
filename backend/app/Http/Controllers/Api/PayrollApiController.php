@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\Payroll;
 use App\Models\PayrollPeriod;
+use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -119,5 +121,74 @@ class PayrollApiController extends BaseApiController
         ];
 
         return $this->apiResponse($config, 'Config retrieved');
+    }
+
+    public function employeePayroll(Request $request)
+    {
+        $employee = $request->user()->employee;
+        
+        if (!$employee) {
+            return $this->errorResponse('Employee not found', 404);
+        }
+
+        $year = $request->get('year', now()->year);
+        
+        $payrolls = Payroll::where('employee_id', $employee->id)
+            ->whereYear('payroll_period_start', $year)
+            ->orderBy('payroll_period_start', 'desc')
+            ->get();
+        
+        $result = $payrolls->map(function ($payroll) {
+            return [
+                'id' => $payroll->id,
+                'month' => \Carbon\Carbon::parse($payroll->payroll_period_start)->format('F'),
+                'year' => \Carbon\Carbon::parse($payroll->payroll_period_start)->year,
+                'period_start' => $payroll->payroll_period_start->format('Y-m-d'),
+                'period_end' => $payroll->payroll_period_end->format('Y-m-d'),
+                'pay_date' => $payroll->pay_date?->format('Y-m-d'),
+                'gross_salary' => $payroll->gross_salary,
+                'total_deductions' => $payroll->total_deductions,
+                'total_bonuses' => $payroll->total_bonuses,
+                'net_salary' => $payroll->net_salary,
+                'status' => $payroll->status,
+                'approved_at' => $payroll->approved_at?->format('Y-m-d H:i:s'),
+                'processed_at' => $payroll->processed_at?->format('Y-m-d H:i:s'),
+            ];
+        });
+
+        return $this->apiResponse($result, 'Employee payroll retrieved');
+    }
+
+    public function downloadPayslip(Request $request, $id)
+    {
+        $employee = $request->user()->employee;
+        
+        if (!$employee) {
+            return $this->errorResponse('Employee not found', 404);
+        }
+
+        $payroll = Payroll::where('id', $id)
+            ->where('employee_id', $employee->id)
+            ->first();
+
+        if (!$payroll) {
+            return $this->errorResponse('Payroll not found', 404);
+        }
+
+        // Generate PDF (simplified version - in real implementation, you would use a PDF library)
+        $pdfData = [
+            'employee_name' => $employee->full_name,
+            'employee_id' => $employee->employee_id,
+            'period' => $payroll->payroll_period_start->format('F Y'),
+            'gross_salary' => $payroll->gross_salary,
+            'deductions' => $payroll->total_deductions,
+            'net_salary' => $payroll->net_salary,
+            'pay_date' => $payroll->pay_date?->format('d F Y'),
+        ];
+
+        // Return PDF response
+        return response($pdfData)
+            ->header('Content-Type', 'application/json')
+            ->header('Content-Disposition', 'attachment; filename="payslip-' . $payroll->id . '.json"');
     }
 }

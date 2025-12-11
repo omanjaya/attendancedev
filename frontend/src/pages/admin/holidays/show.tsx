@@ -1,4 +1,5 @@
-import { Link } from '@tanstack/react-router';
+import { Link, useParams, useNavigate } from '@tanstack/react-router';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
   Calendar,
@@ -9,6 +10,7 @@ import {
   Trash2,
   Clock,
   RefreshCw,
+  Loader2,
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,29 +27,66 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { useNotificationStore } from '@/stores';
+import { getHoliday, deleteHoliday } from '@/lib/api/holidays';
 
-// Mock holiday data
-const mockHoliday = {
-  id: 1,
-  name: 'Hari Raya Idul Fitri',
-  date: '2024-04-10',
-  end_date: '2024-04-11',
-  type: 'religious',
-  description: 'Hari Raya Idul Fitri 1445 Hijriyah. Libur nasional untuk seluruh karyawan.',
-  is_recurring: true,
-  created_at: '2024-01-15',
-  updated_at: '2024-03-20',
-};
-
-const holidayTypeConfig = {
+const holidayTypeConfig: Record<string, { label: string; icon: typeof Flag; color: string }> = {
+  public_holiday: { label: 'Nasional', icon: Flag, color: 'bg-destructive/10 text-destructive border-destructive/20' },
+  religious_holiday: { label: 'Keagamaan', icon: Star, color: 'bg-chart-5/10 text-chart-5 border-chart-5/20' },
+  school_holiday: { label: 'Sekolah', icon: Palmtree, color: 'bg-success/10 text-success border-success/20' },
+  substitute_holiday: { label: 'Cuti Bersama', icon: Calendar, color: 'bg-primary/10 text-primary border-primary/20' },
+  // Legacy types for backward compatibility
   national: { label: 'Nasional', icon: Flag, color: 'bg-destructive/10 text-destructive border-destructive/20' },
   religious: { label: 'Keagamaan', icon: Star, color: 'bg-chart-5/10 text-chart-5 border-chart-5/20' },
   company: { label: 'Perusahaan', icon: Palmtree, color: 'bg-success/10 text-success border-success/20' },
 };
 
 export default function HolidayShowPage() {
-  const holiday = mockHoliday;
-  const config = holidayTypeConfig[holiday.type as keyof typeof holidayTypeConfig];
+  const { id } = useParams({ strict: false }) as { id: string };
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { success, error: showError } = useNotificationStore();
+
+  // Fetch holiday data
+  const { data: holiday, isLoading, error } = useQuery({
+    queryKey: ['holidays', id],
+    queryFn: () => getHoliday(id),
+    enabled: !!id,
+  });
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteHoliday(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['holidays'] });
+      success('Berhasil', 'Hari libur berhasil dihapus');
+      navigate({ to: '/admin/holidays' });
+    },
+    onError: () => {
+      showError('Gagal', 'Gagal menghapus hari libur');
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error || !holiday) {
+    return (
+      <div className="p-4 sm:p-6 text-center">
+        <p className="text-muted-foreground">Hari libur tidak ditemukan</p>
+        <Button asChild className="mt-4">
+          <Link to="/admin/holidays">Kembali</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  const config = holidayTypeConfig[holiday.type] || holidayTypeConfig.national;
   const TypeIcon = config.icon;
 
   const getDuration = () => {
@@ -92,8 +131,12 @@ export default function HolidayShowPage() {
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive">
-                  <Trash2 className="h-4 w-4 mr-2" />
+                <Button variant="destructive" disabled={deleteMutation.isPending}>
+                  {deleteMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4 mr-2" />
+                  )}
                   Hapus
                 </Button>
               </AlertDialogTrigger>
@@ -106,7 +149,10 @@ export default function HolidayShowPage() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Batal</AlertDialogCancel>
-                  <AlertDialogAction className="bg-destructive text-destructive-foreground">
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground"
+                    onClick={() => deleteMutation.mutate()}
+                  >
                     Hapus
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -197,9 +243,10 @@ export default function HolidayShowPage() {
                 <div>
                   <p className="font-semibold">{config.label}</p>
                   <p className="text-sm opacity-80">
-                    {holiday.type === 'national' && 'Hari libur resmi yang ditetapkan oleh pemerintah'}
-                    {holiday.type === 'religious' && 'Hari raya keagamaan yang diakui sebagai libur nasional'}
-                    {holiday.type === 'company' && 'Hari libur tambahan yang ditetapkan oleh perusahaan'}
+                    {(['national', 'public_holiday'].includes(holiday.type)) && 'Hari libur resmi yang ditetapkan oleh pemerintah'}
+                    {(['religious', 'religious_holiday'].includes(holiday.type)) && 'Hari raya keagamaan yang diakui sebagai libur nasional'}
+                    {(['company', 'school_holiday'].includes(holiday.type)) && 'Hari libur tambahan yang ditetapkan oleh perusahaan'}
+                    {holiday.type === 'substitute_holiday' && 'Cuti bersama yang ditetapkan pemerintah'}
                   </p>
                 </div>
               </div>
