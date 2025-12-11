@@ -215,53 +215,15 @@ export function AttendanceVerificationPage() {
         }
     }, [state.step, scheduleChecked, isLoadingSchedule]);
 
-    // Handler for "Lanjut" button after location verified - request camera permission first
-    const handleContinueToFace = useCallback(async () => {
+    // Handler for "Lanjut" button after location verified - go directly to face step
+    // Camera permission will be requested by AutoCaptureFace component (only once)
+    const handleContinueToFace = useCallback(() => {
         setState(prev => ({
             ...prev,
-            message: 'Meminta izin kamera...',
-            progress: 45,
+            step: 'face',
+            message: 'Verifikasi wajah...',
+            progress: 50,
         }));
-
-        try {
-            // Request camera permission before proceeding
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'user' },
-                audio: false
-            });
-
-            // Permission granted - stop the test stream
-            stream.getTracks().forEach(track => track.stop());
-
-            // Now proceed to face step
-            setState(prev => ({
-                ...prev,
-                step: 'face',
-                message: 'Verifikasi wajah...',
-                progress: 50,
-            }));
-        } catch (err) {
-            console.error('Camera permission error:', err);
-
-            let errorMessage = 'Gagal mengakses kamera';
-            if (err instanceof Error) {
-                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                    errorMessage = 'Izin kamera ditolak. Silakan aktifkan izin kamera di pengaturan browser.';
-                } else if (err.name === 'NotFoundError') {
-                    errorMessage = 'Kamera tidak ditemukan pada perangkat ini.';
-                } else if (err.name === 'NotReadableError') {
-                    errorMessage = 'Kamera sedang digunakan aplikasi lain.';
-                }
-            }
-
-            setState(prev => ({
-                ...prev,
-                step: 'error',
-                faceError: errorMessage,
-                message: 'Error kamera',
-                progress: 40,
-            }));
-        }
     }, []);
 
     // Face captured handler - verify face with DeepFace after liveness check
