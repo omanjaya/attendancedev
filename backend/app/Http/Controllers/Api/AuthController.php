@@ -13,6 +13,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Validation\Rules;
+use Illuminate\Support\Facades\Http;
 
 class AuthController extends Controller
 {
@@ -22,7 +23,24 @@ class AuthController extends Controller
             'email' => 'required|email',
             'password' => 'required',
             'device_name' => 'nullable',
+            'turnstile_token' => 'required|string',
         ]);
+
+        // Verify Cloudflare Turnstile token
+        $turnstileSecret = env('TURNSTILE_SECRET_KEY');
+        if ($turnstileSecret) {
+            $response = Http::asForm()->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
+                'secret' => $turnstileSecret,
+                'response' => $request->turnstile_token,
+                'remoteip' => $request->ip(),
+            ]);
+
+            if (!$response->successful() || !$response->json('success')) {
+                throw ValidationException::withMessages([
+                    'turnstile' => ['Verifikasi keamanan gagal. Silakan coba lagi.'],
+                ]);
+            }
+        }
 
         $user = User::where('email', $request->email)->first();
 
@@ -209,22 +227,26 @@ class AuthController extends Controller
             $request->only('email')
         );
 
-        if ($status === Password::RESET_LINK_SENT) {
+        // Always return success message to prevent user enumeration
+        // Even if email doesn't exist, we show the same message
+        if ($status === Password::RESET_LINK_SENT || $status === Password::INVALID_USER) {
             return response()->json([
                 'success' => true,
-                'message' => 'Link reset password telah dikirim ke email Anda.',
+                'message' => 'Jika email terdaftar di sistem kami, Anda akan menerima link reset password.',
             ]);
         }
 
-        // Handle different error statuses
-        $messages = [
-            Password::INVALID_USER => 'Email tidak ditemukan dalam sistem kami.',
-            Password::RESET_THROTTLED => 'Terlalu banyak permintaan. Silakan tunggu beberapa menit.',
-        ];
+        // Only show error for rate limiting (throttle)
+        if ($status === Password::RESET_THROTTLED) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terlalu banyak permintaan. Silakan tunggu beberapa menit.',
+            ], 429);
+        }
 
         return response()->json([
             'success' => false,
-            'message' => $messages[$status] ?? 'Gagal mengirim link reset password.',
+            'message' => 'Gagal memproses permintaan. Silakan coba lagi.',
         ], 400);
     }
 

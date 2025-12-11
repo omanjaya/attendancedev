@@ -249,7 +249,7 @@ export function VerifyLocationPage() {
                     Lanjut ke Foto Wajah
                   </Button>
                 ) : (
-                  <Button className="w-full" variant="outline" size="lg" onClick={handleVerifyLocation}>
+                  <Button className="w-full bg-destructive hover:bg-destructive/90 text-white shadow-lg shadow-destructive/20" size="lg" onClick={handleVerifyLocation}>
                     <Navigation className="h-4 w-4 mr-2" />
                     Cek Lokasi Lagi
                   </Button>

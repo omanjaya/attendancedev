@@ -164,13 +164,42 @@ export function DesktopEmployeeLeavePage() {
               </div>
 
               {logic.startDate && logic.endDate && (
-                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <p className="text-sm">
-                    <span className="font-medium">Durasi:</span>{' '}
-                    <span className="text-blue-600 dark:text-blue-400 font-semibold">
-                      {logic.calculateDays()} hari
-                    </span>
-                  </p>
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg space-y-2">
+                  {logic.isLoadingWorkingDays ? (
+                    <p className="text-sm text-muted-foreground">Menghitung hari kerja...</p>
+                  ) : logic.workingDaysPreview ? (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">Hari Kerja:</span>
+                        <span className="text-blue-600 dark:text-blue-400 font-bold text-lg">
+                          {logic.workingDaysPreview.working_days} hari
+                        </span>
+                      </div>
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        <p>Total kalender: {logic.workingDaysPreview.total_calendar_days} hari</p>
+                        {logic.workingDaysPreview.skipped_weekends.length > 0 && (
+                          <p>Weekend: -{logic.workingDaysPreview.skipped_weekends.length} hari</p>
+                        )}
+                        {logic.workingDaysPreview.skipped_holidays.length > 0 && (
+                          <div>
+                            <p>Libur: -{logic.workingDaysPreview.skipped_holidays.length} hari</p>
+                            <ul className="ml-3 text-yellow-600 dark:text-yellow-400">
+                              {logic.workingDaysPreview.skipped_holidays.map((h) => (
+                                <li key={h.date}>• {h.holiday_name} ({h.date})</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm">
+                      <span className="font-medium">Durasi:</span>{' '}
+                      <span className="text-blue-600 dark:text-blue-400 font-semibold">
+                        {logic.calculateDays()} hari
+                      </span>
+                    </p>
+                  )}
                 </div>
               )}
 

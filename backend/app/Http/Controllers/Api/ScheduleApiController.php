@@ -436,4 +436,209 @@ class ScheduleApiController extends BaseApiController
 
         return $this->apiResponse($results, 'Teachers matched');
     }
+
+    /**
+     * Save grade schedule from Grade Schedule Builder
+     * This creates/updates TeachingSchedule entries for Guru Honorer attendance
+     */
+    public function saveGradeSchedule(Request $request)
+    {
+        $validated = $request->validate([
+            'grade' => 'required|string|in:7,8,9',
+            'academic_year' => 'required|string',
+            'semester' => 'required|integer|in:1,2',
+            'effective_from' => 'required|date',
+            'effective_until' => 'nullable|date|after_or_equal:effective_from',
+            'schedules' => 'required|array',
+            'schedules.*.class_name' => 'required|string',
+            'schedules.*.day' => 'required|string|in:monday,tuesday,wednesday,thursday,friday,saturday',
+            'schedules.*.period' => 'required|integer|min:1|max:12',
+            'schedules.*.time_start' => 'required|string',
+            'schedules.*.time_end' => 'required|string',
+            'schedules.*.teacher_id' => 'nullable|string|exists:employees,id',
+            'schedules.*.teacher_code' => 'nullable|string',
+            'schedules.*.subject' => 'nullable|string',
+            'schedules.*.is_locked' => 'boolean',
+        ]);
+
+        $userId = $request->user()->id;
+        $effectiveFrom = $validated['effective_from'];
+        $effectiveUntil = $validated['effective_until'] ?? null;
+        $grade = $validated['grade'];
+
+        $created = 0;
+        $updated = 0;
+        $deleted = 0;
+        $errors = [];
+
+        \DB::beginTransaction();
+        try {
+            // Get all classes for this grade from the schedules
+            $classNames = collect($validated['schedules'])
+                ->pluck('class_name')
+                ->unique()
+                ->values()
+                ->toArray();
+
+            // Delete existing schedules for this grade's classes in the effective period
+            $existingQuery = \App\Models\TeachingSchedule::whereIn('class_name', $classNames)
+                ->where('effective_from', $effectiveFrom);
+
+            if ($effectiveUntil) {
+                $existingQuery->where('effective_until', $effectiveUntil);
+            }
+
+            $deleted = $existingQuery->count();
+            $existingQuery->delete();
+
+            // Process each schedule entry
+            foreach ($validated['schedules'] as $entry) {
+                // Skip empty cells
+                if (empty($entry['teacher_id']) && empty($entry['teacher_code'])) {
+                    continue;
+                }
+
+                // Find teacher by ID or code
+                $teacherId = $entry['teacher_id'] ?? null;
+                if (!$teacherId && !empty($entry['teacher_code'])) {
+                    $employee = \App\Models\Employee::where('employee_id', $entry['teacher_code'])->first();
+                    $teacherId = $employee?->id;
+                }
+
+                if (!$teacherId) {
+                    $errors[] = [
+                        'entry' => $entry,
+                        'error' => "Teacher not found: " . ($entry['teacher_code'] ?? 'unknown'),
+                    ];
+                    continue;
+                }
+
+                // Find or create subject
+                $subjectId = null;
+                if (!empty($entry['subject'])) {
+                    $subject = \App\Models\Subject::firstOrCreate(
+                        ['name' => $entry['subject']],
+                        [
+                            'code' => strtoupper(substr(preg_replace('/[^a-zA-Z]/', '', $entry['subject']), 0, 5)),
+                            'is_active' => true,
+                        ]
+                    );
+                    $subjectId = $subject->id;
+                }
+
+                // Create the teaching schedule
+                $schedule = \App\Models\TeachingSchedule::create([
+                    'teacher_id' => $teacherId,
+                    'subject_id' => $subjectId,
+                    'day_of_week' => strtolower($entry['day']),
+                    'teaching_start_time' => $entry['time_start'],
+                    'teaching_end_time' => $entry['time_end'],
+                    'class_name' => $entry['class_name'],
+                    'effective_from' => $effectiveFrom,
+                    'effective_until' => $effectiveUntil,
+                    'is_active' => true,
+                    'status' => 'scheduled',
+                    'override_attendance' => true, // This enables Guru Honorer attendance
+                    'strict_timing' => true,
+                    'late_threshold_minutes' => 15,
+                    'metadata' => [
+                        'grade' => $grade,
+                        'academic_year' => $validated['academic_year'],
+                        'semester' => $validated['semester'],
+                        'period' => $entry['period'],
+                        'is_locked' => $entry['is_locked'] ?? false,
+                        'teacher_code' => $entry['teacher_code'] ?? null,
+                    ],
+                    'created_by' => $userId,
+                    'updated_by' => $userId,
+                ]);
+
+                $created++;
+            }
+
+            \DB::commit();
+
+            return $this->apiResponse([
+                'grade' => $grade,
+                'created' => $created,
+                'deleted' => $deleted,
+                'errors' => $errors,
+                'effective_from' => $effectiveFrom,
+                'effective_until' => $effectiveUntil,
+            ], "Grade {$grade} schedule saved successfully. Created: {$created}, Replaced: {$deleted}");
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            return $this->errorResponse('Failed to save grade schedule: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Load grade schedule for Grade Schedule Builder
+     */
+    public function loadGradeSchedule(Request $request, string $grade)
+    {
+        if (!in_array($grade, ['7', '8', '9'])) {
+            return $this->errorResponse('Invalid grade. Must be 7, 8, or 9', 400);
+        }
+
+        $effectiveFrom = $request->get('effective_from', now()->format('Y-m-d'));
+
+        // Get all teaching schedules for this grade
+        $schedules = \App\Models\TeachingSchedule::with(['teacher', 'subject'])
+            ->where('is_active', true)
+            ->where('effective_from', '<=', $effectiveFrom)
+            ->where(function ($q) use ($effectiveFrom) {
+                $q->whereNull('effective_until')
+                  ->orWhere('effective_until', '>=', $effectiveFrom);
+            })
+            ->whereJsonContains('metadata->grade', $grade)
+            ->get();
+
+        // Transform to grid format
+        $gridData = [];
+        foreach ($schedules as $schedule) {
+            $className = $schedule->class_name;
+            $day = $schedule->day_of_week;
+            $period = $schedule->metadata['period'] ?? 1;
+            $rowKey = "{$day}-{$period}";
+
+            if (!isset($gridData[$className])) {
+                $gridData[$className] = [];
+            }
+
+            $gridData[$className][$rowKey] = [
+                'teacherCode' => $schedule->metadata['teacher_code'] ?? $schedule->teacher?->employee_id,
+                'teacherId' => $schedule->teacher_id,
+                'teacherName' => $schedule->teacher?->full_name,
+                'subject' => $schedule->subject?->name ?? $schedule->metadata['subject'] ?? null,
+                'isLocked' => $schedule->metadata['is_locked'] ?? false,
+                'scheduleId' => $schedule->id,
+            ];
+        }
+
+        // Get unique teachers used in this grade
+        $teacherIds = $schedules->pluck('teacher_id')->unique()->filter()->values();
+        $teachers = \App\Models\Employee::whereIn('id', $teacherIds)
+            ->get()
+            ->map(fn($emp) => [
+                'id' => $emp->id,
+                'code' => $emp->employee_id,
+                'name' => $emp->full_name,
+                'position' => $emp->position,
+            ]);
+
+        return $this->apiResponse([
+            'grade' => $grade,
+            'grid' => $gridData,
+            'teachers' => $teachers,
+            'metadata' => [
+                'academic_year' => $schedules->first()?->metadata['academic_year'] ?? null,
+                'semester' => $schedules->first()?->metadata['semester'] ?? null,
+                'effective_from' => $schedules->first()?->effective_from?->format('Y-m-d') ?? null,
+                'effective_until' => $schedules->first()?->effective_until?->format('Y-m-d') ?? null,
+            ],
+            'total_schedules' => $schedules->count(),
+        ], "Grade {$grade} schedule loaded");
+    }
 }

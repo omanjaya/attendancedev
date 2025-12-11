@@ -73,7 +73,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useQueryClient } from '@tanstack/react-query';
 import { ExcelImportDialog, type ExcelColumn, type ImportResult } from '@/components/shared/ExcelImportDialog';
-import { importEmployees, getEmployeeTemplateUrl } from '@/lib/api/imports';
+import { importEmployees } from '@/lib/api/imports';
 export function DesktopEmployeesPage() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
@@ -107,15 +107,9 @@ export function DesktopEmployeesPage() {
     const employeeImportColumns: ExcelColumn[] = [
         { key: 'full_name', label: 'Nama Lengkap', required: true, type: 'string', width: 25 },
         { key: 'email', label: 'Email', required: true, type: 'email', width: 25 },
-        { key: 'phone', label: 'Telepon', required: false, type: 'string', width: 15 },
-        { key: 'employee_id', label: 'NIP/NIK', required: false, type: 'string', width: 15 },
+        { key: 'password', label: 'Password', required: true, type: 'string', width: 15 },
         { key: 'employee_type', label: 'Jenis Pegawai', required: true, type: 'string', width: 15 },
-        { key: 'department', label: 'Unit Kerja', required: false, type: 'string', width: 15 },
-        { key: 'position', label: 'Jabatan', required: false, type: 'string', width: 15 },
         { key: 'hire_date', label: 'Tanggal Masuk', required: true, type: 'date', width: 15 },
-        { key: 'birth_date', label: 'Tanggal Lahir', required: false, type: 'date', width: 15 },
-        { key: 'gender', label: 'Jenis Kelamin', required: false, type: 'string', width: 12 },
-        { key: 'address', label: 'Alamat', required: false, type: 'string', width: 30 },
     ];
 
     // Handle employee file import using backend API
@@ -861,7 +855,7 @@ export function DesktopEmployeesPage() {
                 onOpenChange={setIsImportDialogOpen}
                 title="Import Data Karyawan"
                 description="Upload file Excel untuk menambahkan data karyawan secara massal. Password sementara akan otomatis dibuat untuk setiap karyawan baru."
-                templateUrl={getEmployeeTemplateUrl()}
+                templateName="template-import-karyawan.xlsx"
                 expectedColumns={employeeImportColumns}
                 onFileImport={handleFileImport}
                 onSuccess={handleImportSuccess}

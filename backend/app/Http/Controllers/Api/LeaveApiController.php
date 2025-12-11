@@ -151,7 +151,7 @@ class LeaveApiController extends BaseApiController
 
     /**
      * Cancel a leave request
-     * 
+     *
      * Security: IDOR protection - users can only cancel their own leave requests
      */
     public function cancel($id)
@@ -167,14 +167,34 @@ class LeaveApiController extends BaseApiController
             return $this->errorResponse('Unauthorized to cancel this leave request', 403);
         }
 
-        // Only pending requests can be cancelled
-        if ($leaveRequest->status !== 'pending') {
-            return $this->errorResponse('Only pending leave requests can be cancelled', 422);
+        try {
+            $cancelledLeave = $this->leaveService->cancelRequest($leaveRequest);
+            return $this->apiResponse($cancelledLeave, 'Leave request cancelled');
+        } catch (\Exception $e) {
+            return $this->errorResponse($e->getMessage(), 422);
+        }
+    }
+
+    /**
+     * Get affected teaching schedules for a leave request (preview before approval)
+     */
+    public function affectedSchedules($id)
+    {
+        $leaveRequest = Leave::with('employee')->find($id);
+
+        if (!$leaveRequest) {
+            return $this->errorResponse('Leave request not found', 404);
         }
 
-        $leaveRequest->update(['status' => 'cancelled']);
+        $affectedSchedules = $this->leaveService->getAffectedTeachingSchedules($leaveRequest);
 
-        return $this->apiResponse($leaveRequest->fresh(), 'Leave request cancelled');
+        return $this->apiResponse([
+            'leave_id' => $leaveRequest->id,
+            'employee_name' => $leaveRequest->employee->full_name ?? 'Unknown',
+            'is_teacher' => in_array($leaveRequest->employee->employee_type ?? '', ['guru', 'guru_honorer']),
+            'affected_schedules' => $affectedSchedules,
+            'affected_count' => count($affectedSchedules),
+        ], 'Affected schedules retrieved');
     }
 
     public function balance()
@@ -236,6 +256,21 @@ class LeaveApiController extends BaseApiController
             ->get();
 
         return $this->apiResponse($requests, 'Pending requests retrieved');
+    }
+
+    /**
+     * Preview working days calculation for a date range
+     */
+    public function previewWorkingDays(Request $request)
+    {
+        $validated = $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+        ]);
+
+        $details = Leave::calculateWorkingDaysDetailed($validated['start_date'], $validated['end_date']);
+
+        return $this->apiResponse($details, 'Working days calculated');
     }
 
     public function calendar(Request $request)

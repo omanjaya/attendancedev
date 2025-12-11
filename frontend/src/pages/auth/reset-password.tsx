@@ -40,6 +40,9 @@ export default function ResetPasswordPage() {
   const token = search?.token || '';
   const emailFromUrl = search?.email || '';
 
+  // Validate token format (should be at least 20 chars, alphanumeric)
+  const isValidTokenFormat = token.length >= 20 && /^[a-zA-Z0-9]+$/.test(token);
+
   const {
     register,
     handleSubmit,
@@ -100,8 +103,8 @@ export default function ResetPasswordPage() {
     }
   };
 
-  // Show error if no token
-  if (!token) {
+  // Show error if no token or invalid format
+  if (!token || !isValidTokenFormat) {
     return (
       <section className="bg-muted min-h-screen flex items-center justify-center p-6">
         <div className="w-full max-w-md">

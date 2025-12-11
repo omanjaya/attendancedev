@@ -20,8 +20,13 @@ class AttendanceReportService
      * S = Sakit (Sick)
      * D = Dinas (Official duty)
      * C = Cuti (Leave/Vacation)
+     *
+     * @param int $month
+     * @param int $year
+     * @param string|null $departmentFilter
+     * @param string|null $employeeType Filter by role: 'guru', 'pegawai', or null for all
      */
-    public function getMonthlyRecap(int $month, int $year, ?string $departmentFilter = null): array
+    public function getMonthlyRecap(int $month, int $year, ?string $departmentFilter = null, ?string $employeeType = null): array
     {
         // Calculate date range
         $startDate = Carbon::create($year, $month, 1)->startOfMonth();
@@ -45,6 +50,17 @@ class AttendanceReportService
 
         if ($departmentFilter) {
             $employeesQuery->where('department', $departmentFilter);
+        }
+
+        // Filter by employee type (guru or pegawai based on user role)
+        if ($employeeType === 'guru') {
+            $employeesQuery->whereHas('user.roles', function ($q) {
+                $q->where('name', 'guru');
+            });
+        } elseif ($employeeType === 'pegawai') {
+            $employeesQuery->whereHas('user.roles', function ($q) {
+                $q->where('name', 'pegawai');
+            });
         }
 
         $employees = $employeesQuery->get();
@@ -102,6 +118,11 @@ class AttendanceReportService
                 'start_date' => $startDate->format('Y-m-d'),
                 'end_date' => $endDate->format('Y-m-d'),
             ],
+            'filters' => [
+                'department' => $departmentFilter,
+                'employee_type' => $employeeType,
+                'employee_type_label' => $this->getEmployeeTypeLabel($employeeType),
+            ],
             'working_days' => $workingDays,
             'total_employees' => $totalEmployees,
             'holidays_count' => count($holidays),
@@ -126,6 +147,18 @@ class AttendanceReportService
                 'C' => 'Cuti',
             ],
         ];
+    }
+
+    /**
+     * Get employee type label for display
+     */
+    private function getEmployeeTypeLabel(?string $employeeType): string
+    {
+        return match ($employeeType) {
+            'guru' => 'Guru',
+            'pegawai' => 'Pegawai',
+            default => 'Semua Karyawan',
+        };
     }
 
     /**

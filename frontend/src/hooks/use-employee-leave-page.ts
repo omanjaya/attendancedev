@@ -5,11 +5,11 @@ import {
     getLeaveBalance,
     getLeaveRequests,
     createLeaveRequest,
-    cancelLeaveRequest
+    cancelLeaveRequest,
+    previewWorkingDays,
 } from '@/lib/api/leave';
 import { toast } from 'sonner';
 import type { LeaveRequest } from '@/types';
-import { differenceInDays, parseISO } from 'date-fns';
 
 /**
  * Shared hook for employee leave pages (desktop + mobile)
@@ -43,6 +43,13 @@ export function useEmployeeLeavePage() {
     });
 
     const leaveRequests = (leaveRequestsResponse?.data || []) as LeaveRequest[];
+
+    // Fetch working days preview when dates are selected
+    const { data: workingDaysPreview, isLoading: isLoadingWorkingDays } = useQuery({
+        queryKey: ['leave', 'working-days-preview', startDate, endDate],
+        queryFn: () => previewWorkingDays(startDate, endDate),
+        enabled: !!startDate && !!endDate && startDate <= endDate,
+    });
 
     // Create leave request mutation
     const createLeaveMutation = useMutation({
@@ -143,12 +150,12 @@ export function useEmployeeLeavePage() {
     });
 
     /**
-     * Calculate number of days between start and end date
+     * Calculate number of working days (uses API preview if available, else simple calculation)
      */
     const calculateDays = () => {
-        if (startDate && endDate) {
-            const days = differenceInDays(parseISO(endDate), parseISO(startDate)) + 1;
-            return days > 0 ? days : 0;
+        // Use API preview if available (excludes weekends & holidays)
+        if (workingDaysPreview) {
+            return workingDaysPreview.working_days;
         }
         return 0;
     };
@@ -159,6 +166,8 @@ export function useEmployeeLeavePage() {
         leaveRequests,
         filteredRequests,
         isLoading,
+        workingDaysPreview,
+        isLoadingWorkingDays,
 
         // Mutations
         createLeaveMutation,

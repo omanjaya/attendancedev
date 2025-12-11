@@ -7,6 +7,7 @@ import {
   RefreshCw,
   FileText,
   CalendarDays,
+  GraduationCap,
 } from 'lucide-react';
 import { PageHeader } from '@/components/shared';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -18,6 +19,7 @@ import { getGeneratedReports, downloadReport } from '@/lib/api/reports';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { MonthlyRecapTab } from './tabs/MonthlyRecapTab';
+import { TeachingScheduleTab } from './tabs/TeachingScheduleTab';
 
 export function DesktopReportsPage() {
   const [activeTab, setActiveTab] = useState('recap');
@@ -61,12 +63,16 @@ export function DesktopReportsPage() {
         icon={BarChart2}
       />
 
-      {/* Main Content Tabs - Simplified to 2 tabs */}
+      {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="w-full max-w-md h-12 p-1.5 gap-1 grid grid-cols-2">
+        <TabsList className="w-full max-w-2xl h-12 p-1.5 gap-1 grid grid-cols-3">
           <TabsTrigger value="recap" className="py-2.5 text-sm font-medium">
             <CalendarDays className="mr-2 h-4 w-4" />
             Rekap Bulanan
+          </TabsTrigger>
+          <TabsTrigger value="teaching" className="py-2.5 text-sm font-medium">
+            <GraduationCap className="mr-2 h-4 w-4" />
+            Jadwal Mengajar
           </TabsTrigger>
           <TabsTrigger value="history" className="py-2.5 text-sm font-medium">
             <History className="mr-2 h-4 w-4" />
@@ -74,9 +80,14 @@ export function DesktopReportsPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Monthly Recap Tab */}
+        {/* Monthly Recap Tab - with Guru/Pegawai sub-tabs */}
         <TabsContent value="recap" className="space-y-4">
           <MonthlyRecapTab />
+        </TabsContent>
+
+        {/* Teaching Schedule Tab */}
+        <TabsContent value="teaching" className="space-y-4">
+          <TeachingScheduleTab />
         </TabsContent>
 
         {/* History Tab - Riwayat Laporan */}

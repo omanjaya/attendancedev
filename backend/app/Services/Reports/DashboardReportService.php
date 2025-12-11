@@ -28,6 +28,9 @@ class DashboardReportService
         $late = $attendanceToday->where('status', 'late')->count();
         $absent = $attendanceToday->where('status', 'absent')->count();
 
+        // Get stats by employee type (guru vs pegawai)
+        $statsByType = $this->getStatsByEmployeeType($today);
+
         // On leave today
         $onLeaveToday = Leave::where('status', 'approved')
             ->whereDate('start_date', '<=', $today)
@@ -87,6 +90,8 @@ class DashboardReportService
                 'today' => $present + $late + $absent,
                 'attendance_rate' => $activeEmployees > 0 ? min(100, round(($present + $late) / $activeEmployees * 100, 1)) : 0,
             ],
+            // Separate attendance stats by employee type (guru vs pegawai)
+            'attendance_by_type' => $statsByType,
             'employees' => [
                 'total' => $totalEmployees,
                 'active' => $activeEmployees,
@@ -286,5 +291,99 @@ class DashboardReportService
         }
 
         return $workDays;
+    }
+
+    /**
+     * Get attendance statistics by employee type (guru vs pegawai)
+     */
+    private function getStatsByEmployeeType(string $date): array
+    {
+        $result = [
+            'guru' => [
+                'total' => 0,
+                'present' => 0,
+                'late' => 0,
+                'absent' => 0,
+                'on_leave' => 0,
+                'attendance_rate' => 0,
+            ],
+            'pegawai' => [
+                'total' => 0,
+                'present' => 0,
+                'late' => 0,
+                'absent' => 0,
+                'on_leave' => 0,
+                'attendance_rate' => 0,
+            ],
+        ];
+
+        // Get guru employees (those with 'guru' role)
+        $guruEmployeeIds = Employee::where('is_active', true)
+            ->whereHas('user.roles', function ($q) {
+                $q->where('name', 'guru');
+            })
+            ->pluck('id')
+            ->toArray();
+
+        // Get pegawai employees (those with 'pegawai' role)
+        $pegawaiEmployeeIds = Employee::where('is_active', true)
+            ->whereHas('user.roles', function ($q) {
+                $q->where('name', 'pegawai');
+            })
+            ->pluck('id')
+            ->toArray();
+
+        $result['guru']['total'] = count($guruEmployeeIds);
+        $result['pegawai']['total'] = count($pegawaiEmployeeIds);
+
+        // Get attendance for guru
+        if (!empty($guruEmployeeIds)) {
+            $guruAttendance = Attendance::forDate($date)
+                ->whereIn('employee_id', $guruEmployeeIds)
+                ->get();
+
+            $result['guru']['present'] = $guruAttendance->where('status', 'present')->count();
+            $result['guru']['late'] = $guruAttendance->where('status', 'late')->count();
+            $result['guru']['absent'] = $guruAttendance->where('status', 'absent')->count();
+
+            // On leave today
+            $result['guru']['on_leave'] = Leave::where('status', 'approved')
+                ->whereIn('employee_id', $guruEmployeeIds)
+                ->whereDate('start_date', '<=', $date)
+                ->whereDate('end_date', '>=', $date)
+                ->count();
+
+            // Calculate attendance rate
+            if ($result['guru']['total'] > 0) {
+                $attended = $result['guru']['present'] + $result['guru']['late'];
+                $result['guru']['attendance_rate'] = min(100, round(($attended / $result['guru']['total']) * 100, 1));
+            }
+        }
+
+        // Get attendance for pegawai
+        if (!empty($pegawaiEmployeeIds)) {
+            $pegawaiAttendance = Attendance::forDate($date)
+                ->whereIn('employee_id', $pegawaiEmployeeIds)
+                ->get();
+
+            $result['pegawai']['present'] = $pegawaiAttendance->where('status', 'present')->count();
+            $result['pegawai']['late'] = $pegawaiAttendance->where('status', 'late')->count();
+            $result['pegawai']['absent'] = $pegawaiAttendance->where('status', 'absent')->count();
+
+            // On leave today
+            $result['pegawai']['on_leave'] = Leave::where('status', 'approved')
+                ->whereIn('employee_id', $pegawaiEmployeeIds)
+                ->whereDate('start_date', '<=', $date)
+                ->whereDate('end_date', '>=', $date)
+                ->count();
+
+            // Calculate attendance rate
+            if ($result['pegawai']['total'] > 0) {
+                $attended = $result['pegawai']['present'] + $result['pegawai']['late'];
+                $result['pegawai']['attendance_rate'] = min(100, round(($attended / $result['pegawai']['total']) * 100, 1));
+            }
+        }
+
+        return $result;
     }
 }

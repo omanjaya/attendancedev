@@ -85,9 +85,52 @@ export function MobileEmployeeLeavePage() {
                             </div>
 
                             {logic.startDate && logic.endDate && (
-                                <div className="p-3 bg-blue-50 rounded-lg flex justify-between items-center">
-                                    <span className="text-sm">Durasi Cuti</span>
-                                    <span className="font-bold text-blue-700">{logic.calculateDays()} hari</span>
+                                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg space-y-2">
+                                    {logic.isLoadingWorkingDays ? (
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm">Menghitung...</span>
+                                            <span className="text-sm text-muted-foreground">⏳</span>
+                                        </div>
+                                    ) : logic.workingDaysPreview ? (
+                                        <>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm font-medium">Hari Kerja</span>
+                                                <span className="font-bold text-blue-700 dark:text-blue-400 text-lg">
+                                                    {logic.workingDaysPreview.working_days} hari
+                                                </span>
+                                            </div>
+                                            <div className="text-xs text-muted-foreground space-y-0.5 border-t pt-2">
+                                                <div className="flex justify-between">
+                                                    <span>Total kalender</span>
+                                                    <span>{logic.workingDaysPreview.total_calendar_days} hari</span>
+                                                </div>
+                                                {logic.workingDaysPreview.skipped_weekends.length > 0 && (
+                                                    <div className="flex justify-between">
+                                                        <span>Weekend</span>
+                                                        <span>-{logic.workingDaysPreview.skipped_weekends.length} hari</span>
+                                                    </div>
+                                                )}
+                                                {logic.workingDaysPreview.skipped_holidays.length > 0 && (
+                                                    <div className="space-y-1">
+                                                        <div className="flex justify-between">
+                                                            <span>Hari Libur</span>
+                                                            <span>-{logic.workingDaysPreview.skipped_holidays.length} hari</span>
+                                                        </div>
+                                                        <div className="text-yellow-600 dark:text-yellow-400 pl-2">
+                                                            {logic.workingDaysPreview.skipped_holidays.map((h) => (
+                                                                <div key={h.date}>• {h.holiday_name}</div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm">Durasi Cuti</span>
+                                            <span className="font-bold text-blue-700">{logic.calculateDays()} hari</span>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 

@@ -200,6 +200,7 @@ class Leave extends Model
 
     /**
      * Calculate the number of working days between start and end dates.
+     * Skips weekends and holidays.
      */
     public static function calculateWorkingDays($startDate, $endDate)
     {
@@ -212,12 +213,58 @@ class Leave extends Model
         while ($current <= $end) {
             // Skip weekends (Saturday = 6, Sunday = 0)
             if (! $current->isWeekend()) {
-                $workingDays++;
+                // Skip holidays
+                if (! Holiday::isHoliday($current)) {
+                    $workingDays++;
+                }
             }
             $current->addDay();
         }
 
         return $workingDays;
+    }
+
+    /**
+     * Calculate working days with detailed breakdown.
+     * Returns count and list of skipped dates.
+     */
+    public static function calculateWorkingDaysDetailed($startDate, $endDate): array
+    {
+        $start = Carbon::parse($startDate);
+        $end = Carbon::parse($endDate);
+
+        $workingDays = 0;
+        $skippedWeekends = [];
+        $skippedHolidays = [];
+        $workingDates = [];
+        $current = $start->copy();
+
+        while ($current <= $end) {
+            if ($current->isWeekend()) {
+                $skippedWeekends[] = [
+                    'date' => $current->format('Y-m-d'),
+                    'day' => $current->format('l'),
+                ];
+            } elseif (Holiday::isHoliday($current)) {
+                $holidays = Holiday::getHolidaysForDate($current);
+                $skippedHolidays[] = [
+                    'date' => $current->format('Y-m-d'),
+                    'holiday_name' => $holidays->first()?->name ?? 'Holiday',
+                ];
+            } else {
+                $workingDays++;
+                $workingDates[] = $current->format('Y-m-d');
+            }
+            $current->addDay();
+        }
+
+        return [
+            'working_days' => $workingDays,
+            'working_dates' => $workingDates,
+            'skipped_weekends' => $skippedWeekends,
+            'skipped_holidays' => $skippedHolidays,
+            'total_calendar_days' => $start->diffInDays($end) + 1,
+        ];
     }
 
     /**

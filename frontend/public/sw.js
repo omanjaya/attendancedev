@@ -1,7 +1,7 @@
 // Service Worker for PWA (Minimal - No Offline Mode)
 // This enables the app to be "installable" as a PWA
 
-const CACHE_NAME = 'attendance-v1';
+const CACHE_NAME = 'attendance-v2-grade-builder';
 const STATIC_ASSETS = [
     '/',
     '/manifest.json',

@@ -61,6 +61,7 @@ const LeaveCreatePage = lazy(() => import('@/pages/admin/leave/create'));
 const PayrollPage = lazy(() => import('@/pages/admin/payroll'));
 const PayrollShowPage = lazy(() => import('@/pages/admin/payroll/show'));
 const PayrollEditPage = lazy(() => import('@/pages/admin/payroll/edit'));
+const PayrollFormulasPage = lazy(() => import('@/pages/admin/payroll/formulas'));
 
 // Admin - Reports
 const ReportsPage = lazy(() => import('@/pages/admin/reports'));
@@ -397,6 +398,13 @@ const adminPayrollEditRoute = createRoute({
   path: '/admin/payroll/$periodId/employee/$employeeId/edit',
   beforeLoad: requireAdmin,
   component: PayrollEditPage,
+});
+
+const adminPayrollFormulasRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/admin/payroll/formulas',
+  beforeLoad: requireAdmin,
+  component: PayrollFormulasPage,
 });
 
 // Admin Reports
@@ -765,6 +773,7 @@ const routeTree = rootRoute.addChildren([
     adminPayrollRoute,
     adminPayrollShowRoute,
     adminPayrollEditRoute,
+    adminPayrollFormulasRoute,
     adminReportsRoute,
     adminReportBuilderRoute,
     adminFaceRecognitionRoute,

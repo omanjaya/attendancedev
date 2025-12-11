@@ -87,7 +87,7 @@ export function ExcelImportDialog({
     onOpenChange,
     title,
     description,
-    templateUrl,
+    templateUrl: _templateUrl, // kept for backwards compatibility but not used
     templateName = 'template.xlsx',
     expectedColumns,
     onImport,
@@ -417,14 +417,9 @@ export function ExcelImportDialog({
         }
     };
 
-    // Download template
+    // Download template - always generate locally to avoid auth issues
     const handleDownloadTemplate = async () => {
-        if (templateUrl) {
-            window.open(templateUrl, '_blank');
-            return;
-        }
-
-        // Generate template from columns using ExcelJS
+        // Generate template from columns using ExcelJS (no backend needed)
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Template');
 

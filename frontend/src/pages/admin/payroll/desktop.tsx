@@ -9,7 +9,8 @@ import {
     FileText,
     Printer,
     TrendingUp,
-    Users
+    Users,
+    Calculator
 } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
@@ -68,6 +69,12 @@ export function DesktopPayrollPage() {
                 icon={DollarSign}
                 actions={
                     <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" asChild>
+                            <Link to="/admin/payroll/formulas">
+                                <Calculator className="mr-2 h-4 w-4" />
+                                Formula Gaji
+                            </Link>
+                        </Button>
                         <Button variant="outline" size="sm">
                             <Download className="mr-2 h-4 w-4" />
                             Export Laporan

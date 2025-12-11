@@ -246,3 +246,268 @@ export async function downloadMyPayslip(payrollId: number): Promise<Blob> {
   });
   return response.data;
 }
+
+// ============================================
+// Payroll Item Types and API (A1 & A2)
+// ============================================
+
+export type PayrollItemType = 'earning' | 'deduction' | 'bonus';
+export type PayrollItemCategory =
+  | 'basic_salary'
+  | 'overtime'
+  | 'allowance'
+  | 'commission'
+  | 'holiday_pay'
+  | 'sick_leave'
+  | 'vacation_pay'
+  | 'bonus'
+  | 'tax'
+  | 'insurance'
+  | 'retirement'
+  | 'loan_deduction'
+  | 'unpaid_leave'
+  | 'garnishment'
+  | 'other';
+export type CalculationMethod = 'fixed' | 'percentage' | 'hourly' | 'daily' | 'computed';
+
+export interface PayrollItem {
+  id: string;
+  type: PayrollItemType;
+  category: PayrollItemCategory;
+  category_label: string;
+  description: string;
+  amount: number;
+  quantity?: number | null;
+  rate?: number | null;
+  is_taxable: boolean;
+  is_statutory: boolean;
+  calculation_method: CalculationMethod;
+  notes?: string | null;
+  can_edit: boolean;
+  can_delete: boolean;
+}
+
+export interface PayrollItemInput {
+  type: PayrollItemType;
+  category: string;
+  description: string;
+  amount: number;
+  quantity?: number | null;
+  rate?: number | null;
+  is_taxable?: boolean;
+  is_statutory?: boolean;
+  calculation_method?: CalculationMethod;
+  notes?: string | null;
+}
+
+export interface PayrollItemUpdateInput {
+  id?: string;
+  type: PayrollItemType;
+  category: string;
+  description: string;
+  amount: number;
+  quantity?: number | null;
+  rate?: number | null;
+  is_taxable?: boolean;
+  is_statutory?: boolean;
+  calculation_method?: CalculationMethod;
+  notes?: string | null;
+  action?: 'create' | 'update' | 'delete';
+}
+
+export interface PayrollTotals {
+  gross_salary: number;
+  total_deductions: number;
+  total_bonuses: number;
+  net_salary: number;
+}
+
+export interface EmployeePayrollDetail {
+  id: string;
+  employee: {
+    id: string;
+    employee_code: string;
+    name: string;
+    department?: string;
+    position?: string;
+    base_salary?: number;
+  };
+  period: {
+    id: string;
+    name: string;
+    start_date: string;
+    end_date: string;
+    pay_date?: string;
+  };
+  gross_salary: number;
+  total_deductions: number;
+  total_bonuses: number;
+  net_salary: number;
+  worked_hours?: number;
+  overtime_hours?: number;
+  status: string;
+  notes?: string;
+  earnings: PayrollItem[];
+  deductions: PayrollItem[];
+  bonuses: PayrollItem[];
+}
+
+export interface PayrollItemCategories {
+  earning: { value: string; label: string }[];
+  deduction: { value: string; label: string }[];
+  bonus: { value: string; label: string }[];
+  calculation_methods: { value: string; label: string }[];
+}
+
+export interface PeriodEmployeesResponse {
+  period: {
+    id: string;
+    name: string;
+    start_date: string;
+    end_date: string;
+    pay_date?: string;
+    status: string;
+  };
+  employees: {
+    id: string;
+    employee_id: string;
+    employee: {
+      id: string;
+      employee_code: string;
+      name: string;
+      department?: string;
+      position?: string;
+    };
+    gross_salary: number;
+    total_deductions: number;
+    total_bonuses: number;
+    net_salary: number;
+    status: string;
+    items: PayrollItem[];
+  }[];
+}
+
+// Get all employees with payroll for a period
+export async function getPeriodEmployees(
+  periodId: string,
+  filters?: { search?: string; department?: string }
+): Promise<PeriodEmployeesResponse> {
+  const response = await apiClient.get<{ data: PeriodEmployeesResponse }>(
+    `/payroll/periods/${periodId}/employees`,
+    { params: filters }
+  );
+  return response.data.data;
+}
+
+// Get detailed employee payroll within a period
+export async function getEmployeePayrollDetail(
+  periodId: string,
+  employeeId: string
+): Promise<EmployeePayrollDetail> {
+  const response = await apiClient.get<{ data: EmployeePayrollDetail }>(
+    `/payroll/periods/${periodId}/employees/${employeeId}`
+  );
+  return response.data.data;
+}
+
+// Update employee payroll with items
+export async function updateEmployeePayrollItems(
+  periodId: string,
+  employeeId: string,
+  data: {
+    notes?: string;
+    items?: PayrollItemUpdateInput[];
+  }
+): Promise<{
+  id: string;
+  gross_salary: number;
+  total_deductions: number;
+  total_bonuses: number;
+  net_salary: number;
+  items_count: number;
+}> {
+  const response = await apiClient.put<{ data: {
+    id: string;
+    gross_salary: number;
+    total_deductions: number;
+    total_bonuses: number;
+    net_salary: number;
+    items_count: number;
+  } }>(
+    `/payroll/periods/${periodId}/employees/${employeeId}`,
+    data
+  );
+  return response.data.data;
+}
+
+// Get payroll items for a specific payroll
+export async function getPayrollItems(payrollId: string): Promise<{
+  payroll_id: string;
+  items: PayrollItem[];
+  summary: {
+    earnings_count: number;
+    deductions_count: number;
+    bonuses_count: number;
+    total_earnings: number;
+    total_deductions: number;
+    total_bonuses: number;
+    net_salary: number;
+  };
+}> {
+  const response = await apiClient.get<{ data: {
+    payroll_id: string;
+    items: PayrollItem[];
+    summary: {
+      earnings_count: number;
+      deductions_count: number;
+      bonuses_count: number;
+      total_earnings: number;
+      total_deductions: number;
+      total_bonuses: number;
+      net_salary: number;
+    };
+  } }>(`/payroll/${payrollId}/items`);
+  return response.data.data;
+}
+
+// Add a new payroll item
+export async function createPayrollItem(
+  payrollId: string,
+  data: PayrollItemInput
+): Promise<{ item: PayrollItem; payroll_totals: PayrollTotals }> {
+  const response = await apiClient.post<{ data: { item: PayrollItem; payroll_totals: PayrollTotals } }>(
+    `/payroll/${payrollId}/items`,
+    data
+  );
+  return response.data.data;
+}
+
+// Update a payroll item
+export async function updatePayrollItem(
+  payrollId: string,
+  itemId: string,
+  data: Partial<PayrollItemInput>
+): Promise<{ item: PayrollItem; payroll_totals: PayrollTotals }> {
+  const response = await apiClient.put<{ data: { item: PayrollItem; payroll_totals: PayrollTotals } }>(
+    `/payroll/${payrollId}/items/${itemId}`,
+    data
+  );
+  return response.data.data;
+}
+
+// Delete a payroll item
+export async function deletePayrollItem(
+  payrollId: string,
+  itemId: string
+): Promise<{ payroll_totals: PayrollTotals }> {
+  const response = await apiClient.delete<{ data: { payroll_totals: PayrollTotals } }>(
+    `/payroll/${payrollId}/items/${itemId}`
+  );
+  return response.data.data;
+}
+
+// Get available item categories
+export async function getPayrollItemCategories(): Promise<PayrollItemCategories> {
+  const response = await apiClient.get<{ data: PayrollItemCategories }>('/payroll/item-categories');
+  return response.data.data;
+}

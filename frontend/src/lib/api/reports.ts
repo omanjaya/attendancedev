@@ -27,6 +27,8 @@ const ENDPOINTS = {
   departmentStats: '/reports/departments',
   leaveStats: '/reports/leave',
   monthlyRecap: '/reports/monthly-recap',
+  teachingSchedules: '/reports/teaching-schedules',
+  teachingSubjects: '/reports/teaching-subjects',
   generate: '/reports/generate',
   templates: '/reports/templates',
   templateDetail: (id: string) => `/reports/templates/${id}`,
@@ -87,10 +89,86 @@ export async function getLeaveStats(filters?: ReportFilters): Promise<LeaveStats
 }
 
 // Get monthly recap with A/I/S/D/C breakdown
-export async function getMonthlyRecap(filters?: { month?: number; year?: number; department?: string }): Promise<MonthlyRecapData> {
+export async function getMonthlyRecap(filters?: {
+  month?: number;
+  year?: number;
+  department?: string;
+  employee_type?: 'guru' | 'pegawai' | null;
+}): Promise<MonthlyRecapData> {
   const response = await apiClient.get<{ data: MonthlyRecapData }>(ENDPOINTS.monthlyRecap, {
     params: filters,
   });
+  return response.data.data;
+}
+
+// Teaching Schedule Report Types
+export interface TeachingScheduleReportData {
+  period: {
+    month: number;
+    year: number;
+    month_name: string;
+    start_date: string;
+    end_date: string;
+  };
+  filters: {
+    subject: string | null;
+  };
+  summary: {
+    total_teachers: number;
+    total_sessions_per_week: number;
+    total_hours_per_week: number;
+    avg_hours_per_teacher: number;
+    avg_attendance_rate: number;
+    total_sessions_scheduled: number;
+    total_sessions_taught: number;
+    total_sessions_missed: number;
+  };
+  data: TeachingScheduleTeacher[];
+}
+
+export interface TeachingScheduleTeacher {
+  employee_id: string;
+  employee_code: string;
+  name: string;
+  department: string;
+  sessions_per_week: number;
+  hours_per_week: number;
+  subjects: string[];
+  subjects_count: number;
+  classes: string[];
+  classes_count: number;
+  scheduled_sessions: number;
+  sessions_taught: number;
+  sessions_missed: number;
+  attendance_rate: number;
+  attendance_details: {
+    present: number;
+    late: number;
+    absent: number;
+  };
+}
+
+export interface TeachingSubject {
+  id: string;
+  name: string;
+  code: string | null;
+}
+
+// Get teaching schedule report
+export async function getTeachingScheduleReport(filters?: {
+  month?: number;
+  year?: number;
+  subject?: string;
+}): Promise<TeachingScheduleReportData> {
+  const response = await apiClient.get<{ data: TeachingScheduleReportData }>(ENDPOINTS.teachingSchedules, {
+    params: filters,
+  });
+  return response.data.data;
+}
+
+// Get teaching subjects for filter dropdown
+export async function getTeachingSubjects(): Promise<TeachingSubject[]> {
+  const response = await apiClient.get<{ data: TeachingSubject[] }>(ENDPOINTS.teachingSubjects);
   return response.data.data;
 }
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import {
   Calendar,
@@ -7,6 +7,7 @@ import {
   Search,
   Plus,
   Loader2,
+  BookOpen,
 } from 'lucide-react';
 import { MobilePageHeader } from '@/components/mobile';
 import { Button } from '@/components/ui/button';
@@ -28,11 +29,13 @@ import {
   useLeaveRequests,
 } from '@/hooks';
 import { useAdminLeavePage } from '@/hooks/use-admin-leave-page';
+import { getAffectedSchedules, type AffectedSchedulesResponse } from '@/lib/api/leave';
 import {
   leaveTypeLabels,
   leaveStatusLabels,
   leaveTypeColors,
   type LeaveStatus,
+  type LeaveRequest,
 } from '@/types/leave';
 import { LoadingState } from '@/components/states';
 import { format } from 'date-fns';
@@ -100,6 +103,100 @@ function RejectDrawer({
   );
 }
 
+// Approve Drawer Component with Affected Schedules
+function ApproveDrawer({
+  open,
+  onOpenChange,
+  onConfirm,
+  isLoading,
+  employeeName,
+  daysRequested,
+  affectedSchedules,
+  loadingSchedules,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+  isLoading: boolean;
+  employeeName: string;
+  daysRequested: number;
+  affectedSchedules: AffectedSchedulesResponse | null;
+  loadingSchedules: boolean;
+}) {
+  return (
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerContent>
+        <div className="mx-auto w-full max-w-sm">
+          <DrawerHeader>
+            <DrawerTitle>Setujui Pengajuan Cuti?</DrawerTitle>
+            <DrawerDescription>
+              Anda akan menyetujui cuti {employeeName} selama {daysRequested} hari.
+            </DrawerDescription>
+          </DrawerHeader>
+
+          <div className="p-4">
+            {/* Affected Schedules Section */}
+            {loadingSchedules ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                <span className="text-sm text-muted-foreground">Mengecek jadwal...</span>
+              </div>
+            ) : affectedSchedules?.is_teacher && affectedSchedules.affected_count > 0 ? (
+              <div className="border rounded-lg p-3 bg-yellow-50 dark:bg-yellow-900/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <BookOpen className="h-4 w-4 text-yellow-600" />
+                  <span className="font-medium text-sm text-yellow-800 dark:text-yellow-200">
+                    {affectedSchedules.affected_count} Jadwal Terdampak
+                  </span>
+                </div>
+                <div className="space-y-2 max-h-32 overflow-y-auto">
+                  {affectedSchedules.affected_schedules.slice(0, 5).map((schedule, idx) => (
+                    <div
+                      key={`${schedule.schedule_id}-${idx}`}
+                      className="text-xs p-2 bg-white dark:bg-gray-800 rounded border"
+                    >
+                      <div className="font-medium">{schedule.subject}</div>
+                      <div className="text-muted-foreground">
+                        {schedule.day}, {schedule.date} • {schedule.class}
+                      </div>
+                    </div>
+                  ))}
+                  {affectedSchedules.affected_count > 5 && (
+                    <p className="text-xs text-muted-foreground">
+                      +{affectedSchedules.affected_count - 5} jadwal lainnya
+                    </p>
+                  )}
+                </div>
+                <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-2">
+                  Jadwal akan ditandai "Guru Cuti"
+                </p>
+              </div>
+            ) : affectedSchedules?.is_teacher ? (
+              <p className="text-sm text-muted-foreground text-center py-2">
+                Tidak ada jadwal mengajar yang terdampak.
+              </p>
+            ) : null}
+          </div>
+
+          <DrawerFooter>
+            <Button
+              onClick={onConfirm}
+              className="bg-green-600 hover:bg-green-700"
+              disabled={isLoading}
+            >
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+              Setujui
+            </Button>
+            <DrawerClose asChild>
+              <Button variant="outline">Batal</Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </div>
+      </DrawerContent>
+    </Drawer>
+  );
+}
+
 export function MobileAdminLeavePage() {
   const navigate = useNavigate();
   const { hasPermission } = useAuthStore();
@@ -109,12 +206,43 @@ export function MobileAdminLeavePage() {
   const [showRejectDrawer, setShowRejectDrawer] = useState(false);
   const [filterStatus, setFilterStatus] = useState<'all' | LeaveStatus>('all');
 
+  // Approve drawer state
+  const [showApproveDrawer, setShowApproveDrawer] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
+  const [affectedSchedules, setAffectedSchedules] = useState<AffectedSchedulesResponse | null>(null);
+  const [loadingSchedules, setLoadingSchedules] = useState(false);
+
   // Fetch leave requests (mobile uses filterStatus)
   const { data: leaveRequestsData, isLoading } = useLeaveRequests({
     status: filterStatus === 'all' ? undefined : (filterStatus as LeaveStatus),
   });
 
   const leaveRequests = leaveRequestsData?.data || [];
+
+  // Handle opening approve drawer with affected schedules
+  const handleOpenApproveDrawer = useCallback(async (request: LeaveRequest) => {
+    setSelectedRequest(request);
+    setShowApproveDrawer(true);
+    setLoadingSchedules(true);
+    try {
+      const schedules = await getAffectedSchedules(request.id);
+      setAffectedSchedules(schedules);
+    } catch {
+      setAffectedSchedules(null);
+    } finally {
+      setLoadingSchedules(false);
+    }
+  }, []);
+
+  // Handle confirm approve
+  const handleApproveConfirm = async () => {
+    if (selectedRequest) {
+      await logic.handleApprove(selectedRequest.id);
+      setShowApproveDrawer(false);
+      setSelectedRequest(null);
+      setAffectedSchedules(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -219,7 +347,10 @@ export function MobileAdminLeavePage() {
                             variant="outline"
                             size="sm"
                             className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive h-9"
-                            onClick={() => logic.onRejectClick(request.id)}
+                            onClick={() => {
+                              logic.onRejectClick(request.id);
+                              setShowRejectDrawer(true);
+                            }}
                             disabled={logic.rejectLeaveRequestMutation.isPending}
                           >
                             <XCircle className="mr-2 h-4 w-4" />
@@ -230,7 +361,7 @@ export function MobileAdminLeavePage() {
                           <Button
                             size="sm"
                             className="flex-1 bg-green-600 hover:bg-green-700 text-white h-9"
-                            onClick={() => logic.handleApprove(request.id)}
+                            onClick={() => handleOpenApproveDrawer(request)}
                             disabled={logic.approveLeaveRequestMutation.isPending}
                           >
                             <CheckCircle2 className="mr-2 h-4 w-4" />
@@ -263,9 +394,35 @@ export function MobileAdminLeavePage() {
       {/* Reject Drawer */}
       <RejectDrawer
         open={showRejectDrawer}
-        onOpenChange={setShowRejectDrawer}
-        onConfirm={logic.handleRejectConfirm}
+        onOpenChange={(open) => {
+          setShowRejectDrawer(open);
+          if (!open) {
+            logic.setSelectedRequestId(null);
+          }
+        }}
+        onConfirm={async (reason) => {
+          await logic.handleRejectConfirm(reason);
+          setShowRejectDrawer(false);
+        }}
         isLoading={logic.rejectLeaveRequestMutation.isPending}
+      />
+
+      {/* Approve Drawer */}
+      <ApproveDrawer
+        open={showApproveDrawer}
+        onOpenChange={(open) => {
+          setShowApproveDrawer(open);
+          if (!open) {
+            setSelectedRequest(null);
+            setAffectedSchedules(null);
+          }
+        }}
+        onConfirm={handleApproveConfirm}
+        isLoading={logic.approveLeaveRequestMutation.isPending}
+        employeeName={selectedRequest?.employee_name || 'Karyawan'}
+        daysRequested={selectedRequest?.days_requested || 0}
+        affectedSchedules={affectedSchedules}
+        loadingSchedules={loadingSchedules}
       />
     </div>
   );

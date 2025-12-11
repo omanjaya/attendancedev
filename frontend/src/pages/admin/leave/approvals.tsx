@@ -10,6 +10,7 @@ import {
   Calendar,
   Eye,
   Loader2,
+  BookOpen,
 } from 'lucide-react';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -36,7 +37,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { getPendingApprovals } from '@/lib/api/leave';
+import { getPendingApprovals, getAffectedSchedules, type AffectedSchedulesResponse } from '@/lib/api/leave';
 import { useApproveLeaveRequest, useRejectLeaveRequest } from '@/hooks/use-leave';
 import { leaveTypeLabels, leaveTypeColors } from '@/types/leave';
 
@@ -45,6 +46,10 @@ export default function LeaveApprovalsPage() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [rejectReason, setRejectReason] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
+  const [approveId, setApproveId] = useState<string | null>(null);
+  const [affectedSchedules, setAffectedSchedules] = useState<AffectedSchedulesResponse | null>(null);
+  const [loadingSchedules, setLoadingSchedules] = useState(false);
 
   const { data: approvals = [], isLoading } = useQuery({
     queryKey: ['leave-approvals'],
@@ -54,8 +59,30 @@ export default function LeaveApprovalsPage() {
   const approveMutation = useApproveLeaveRequest();
   const rejectMutation = useRejectLeaveRequest();
 
-  const handleApprove = (id: string) => {
-    approveMutation.mutate({ id });
+  const handleOpenApproveDialog = async (id: string) => {
+    setApproveId(id);
+    setApproveDialogOpen(true);
+    setLoadingSchedules(true);
+    try {
+      const schedules = await getAffectedSchedules(id);
+      setAffectedSchedules(schedules);
+    } catch {
+      setAffectedSchedules(null);
+    } finally {
+      setLoadingSchedules(false);
+    }
+  };
+
+  const handleApprove = () => {
+    if (approveId) {
+      approveMutation.mutate({ id: approveId }, {
+        onSuccess: () => {
+          setApproveDialogOpen(false);
+          setApproveId(null);
+          setAffectedSchedules(null);
+        }
+      });
+    }
   };
 
   const handleReject = () => {
@@ -251,31 +278,9 @@ export default function LeaveApprovalsPage() {
                       </AlertDialogContent>
                     </AlertDialog>
 
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button size="sm">
-                          <CheckCircle className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Setujui Pengajuan Cuti?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Anda akan menyetujui pengajuan cuti dari {employeeName}
-                            selama {approval.days_requested} hari.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Batal</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleApprove(approval.id)}
-                            disabled={approveMutation.isPending}
-                          >
-                            {approveMutation.isPending ? 'Memproses...' : 'Setujui'}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <Button size="sm" onClick={() => handleOpenApproveDialog(approval.id)}>
+                      <CheckCircle className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -295,6 +300,74 @@ export default function LeaveApprovalsPage() {
           </Card>
         )}
       </div>
+
+      {/* Approve Dialog with Affected Schedules */}
+      <AlertDialog open={approveDialogOpen} onOpenChange={setApproveDialogOpen}>
+        <AlertDialogContent className="max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Setujui Pengajuan Cuti?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {approveId && (() => {
+                const approval = approvals.find(a => a.id === approveId);
+                const employeeName = (approval as any)?.employee?.full_name || approval?.employee_name || 'Karyawan';
+                return `Anda akan menyetujui pengajuan cuti dari ${employeeName} selama ${approval?.days_requested} hari.`;
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {/* Affected Schedules Section */}
+          {loadingSchedules ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-5 w-5 animate-spin mr-2" />
+              <span className="text-sm text-muted-foreground">Mengecek jadwal mengajar...</span>
+            </div>
+          ) : affectedSchedules?.is_teacher && affectedSchedules.affected_count > 0 ? (
+            <div className="border rounded-lg p-4 bg-yellow-50 dark:bg-yellow-900/20">
+              <div className="flex items-center gap-2 mb-3">
+                <BookOpen className="h-5 w-5 text-yellow-600" />
+                <span className="font-medium text-yellow-800 dark:text-yellow-200">
+                  {affectedSchedules.affected_count} Jadwal Mengajar Terdampak
+                </span>
+              </div>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {affectedSchedules.affected_schedules.map((schedule, idx) => (
+                  <div
+                    key={`${schedule.schedule_id}-${schedule.date}-${idx}`}
+                    className="text-sm p-2 bg-white dark:bg-gray-800 rounded border"
+                  >
+                    <div className="font-medium">{schedule.subject}</div>
+                    <div className="text-muted-foreground">
+                      {schedule.day}, {schedule.date} • {schedule.time} • {schedule.class}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-3">
+                Jadwal di atas akan ditandai sebagai "Guru Cuti" jika disetujui.
+              </p>
+            </div>
+          ) : affectedSchedules?.is_teacher ? (
+            <div className="text-sm text-muted-foreground py-2">
+              Tidak ada jadwal mengajar yang terdampak.
+            </div>
+          ) : null}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setApproveId(null);
+              setAffectedSchedules(null);
+            }}>
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleApprove}
+              disabled={approveMutation.isPending}
+            >
+              {approveMutation.isPending ? 'Memproses...' : 'Setujui'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

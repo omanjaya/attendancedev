@@ -10,6 +10,8 @@ import {
   getLeaveBalanceByEmployee,
   getLeaveStatistics,
   getPendingApprovals,
+  getAffectedSchedules,
+  previewWorkingDays,
   type LeaveFilters,
 } from '@/lib/api/leave';
 import type { LeaveRequestFormData } from '@/types/leave';
@@ -26,6 +28,9 @@ export const leaveKeys = {
   balanceByEmployee: (employeeId: string) => [...leaveKeys.balance(), employeeId] as const,
   statistics: () => [...leaveKeys.all, 'statistics'] as const,
   pending: () => [...leaveKeys.all, 'pending'] as const,
+  affectedSchedules: (id: string) => [...leaveKeys.all, 'affected-schedules', id] as const,
+  workingDaysPreview: (startDate: string, endDate: string) =>
+    [...leaveKeys.all, 'working-days-preview', startDate, endDate] as const,
 };
 
 // Get leave requests list
@@ -154,5 +159,23 @@ export function useRejectLeaveRequest() {
       success('Berhasil', 'Pengajuan cuti berhasil ditolak');
     },
     // onError removed - global error handler will catch it
+  });
+}
+
+// Get affected teaching schedules for a leave request
+export function useAffectedSchedules(id: string, enabled = true) {
+  return useQuery({
+    queryKey: leaveKeys.affectedSchedules(id),
+    queryFn: () => getAffectedSchedules(id),
+    enabled: !!id && enabled,
+  });
+}
+
+// Preview working days calculation
+export function useWorkingDaysPreview(startDate: string, endDate: string) {
+  return useQuery({
+    queryKey: leaveKeys.workingDaysPreview(startDate, endDate),
+    queryFn: () => previewWorkingDays(startDate, endDate),
+    enabled: !!startDate && !!endDate && startDate <= endDate,
   });
 }

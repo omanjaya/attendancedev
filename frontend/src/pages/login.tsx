@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate, Link } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, Eye, EyeOff, LogIn, Clock, Fingerprint, MapPin } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,11 +23,15 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
+const TURNSTILE_SITE_KEY = '0x4AAAAAACGDmeZdHpqwVQJX';
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login, isLoading, error } = useAuthStore();
   const { error: showError } = useNotificationStore();
   const [showPassword, setShowPassword] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
   const {
     register,
@@ -42,8 +47,14 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (data: LoginForm) => {
+    // Validate turnstile token
+    if (!turnstileToken) {
+      showError('Verifikasi Gagal', 'Silakan selesaikan verifikasi keamanan');
+      return;
+    }
+
     try {
-      await login(data);
+      await login({ ...data, turnstile_token: turnstileToken });
 
       // Double check security: Force password change if EITHER condition is true
       const user = useAuthStore.getState().user;
@@ -57,166 +68,199 @@ export default function LoginPage() {
         navigate({ to: getDefaultRedirect(user) });
       }
     } catch (err) {
+      // Reset turnstile on error
+      turnstileRef.current?.reset();
+      setTurnstileToken(null);
+
       const message = err instanceof Error ? err.message : 'Login gagal';
       showError('Login Gagal', message);
     }
   };
 
   return (
-    <section className="bg-muted min-h-screen">
-      <div className="flex min-h-screen">
-        {/* Left Panel - Features */}
-        <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-gradient-to-br from-primary/10 via-primary/5 to-background p-12">
-          <div className="max-w-md space-y-8">
-            <div>
-              <h2 className="text-3xl font-bold text-foreground mb-2">
-                Sistem Absensi Modern
-              </h2>
-              <p className="text-muted-foreground">
-                Kelola kehadiran karyawan dengan mudah menggunakan teknologi terkini
-              </p>
+    <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden">
+      {/* Animated Gradient Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        {/* Animated Orbs */}
+        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-emerald-500/30 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-green-500/20 rounded-full blur-3xl animate-pulse delay-1000" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-3xl" />
+
+        {/* Grid Pattern Overlay */}
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)`,
+            backgroundSize: '50px 50px'
+          }}
+        />
+      </div>
+
+      {/* Glassmorphism Login Card */}
+      <div className="relative w-full max-w-md">
+        {/* Glow effect behind card */}
+        <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/20 via-green-500/20 to-emerald-500/20 rounded-3xl blur-xl opacity-70" />
+
+        <div className="relative backdrop-blur-xl bg-white/10 dark:bg-white/5 border border-white/20 rounded-2xl shadow-2xl p-8">
+          {/* Logo & Header */}
+          <div className="flex flex-col items-center mb-8">
+            <div className="relative">
+              {/* Logo glow */}
+              <div className="absolute inset-0 bg-emerald-400/30 rounded-full blur-xl" />
+              <img
+                src="/logo-school.png"
+                alt="Logo Sekolah"
+                className="relative h-24 w-24 object-contain drop-shadow-2xl"
+              />
             </div>
-
-            {/* Feature Cards */}
-            <div className="space-y-4">
-              <div className="flex items-start gap-4 p-4 rounded-xl bg-background/80 backdrop-blur border border-border/50">
-                <div className="p-2.5 rounded-lg bg-primary/10">
-                  <Fingerprint className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Face Recognition</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Verifikasi wajah otomatis untuk keamanan absensi
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4 p-4 rounded-xl bg-background/80 backdrop-blur border border-border/50">
-                <div className="p-2.5 rounded-lg bg-success/10">
-                  <MapPin className="h-5 w-5 text-success" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">GPS Verification</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Validasi lokasi untuk memastikan kehadiran di tempat
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4 p-4 rounded-xl bg-background/80 backdrop-blur border border-border/50">
-                <div className="p-2.5 rounded-lg bg-warning/10">
-                  <Clock className="h-5 w-5 text-warning" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Real-time Tracking</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Monitor kehadiran secara langsung dan akurat
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Panel - Login Form */}
-        <div className="flex w-full lg:w-1/2 items-center justify-center p-6">
-          <div className="flex flex-col items-center gap-6 w-full max-w-sm">
-            {/* Logo */}
-            <div className="flex flex-col items-center gap-2">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-lg">
-                <LogIn className="h-7 w-7 text-primary-foreground" />
-              </div>
-              <div className="text-center">
-                <h1 className="text-2xl font-bold text-foreground">Attendance System</h1>
-                <p className="text-sm text-muted-foreground">Masuk ke akun Anda</p>
-              </div>
-            </div>
-
-            {/* Login Card */}
-            <div className="w-full border border-border bg-background rounded-xl px-6 py-8 shadow-lg">
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-                {/* Error message */}
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-
-                {/* Email field */}
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    placeholder="nama@email.com"
-                    className="h-11"
-                    {...register('email')}
-                  />
-                  {errors.email && (
-                    <p className="text-xs text-destructive">{errors.email.message}</p>
-                  )}
-                </div>
-
-                {/* Password field */}
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      autoComplete="current-password"
-                      placeholder="Masukkan password"
-                      className="h-11 pr-11"
-                      {...register('password')}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                  {errors.password && (
-                    <p className="text-xs text-destructive">{errors.password.message}</p>
-                  )}
-                </div>
-
-                {/* Remember me & Forgot */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Checkbox id="remember" {...register('remember')} />
-                    <Label htmlFor="remember" className="text-sm font-normal text-muted-foreground cursor-pointer">
-                      Ingat saya
-                    </Label>
-                  </div>
-                  <Link to="/auth/forgot-password" className="text-sm text-primary font-medium hover:underline">
-                    Lupa password?
-                  </Link>
-                </div>
-
-                {/* Submit button */}
-                <Button type="submit" className="w-full h-11" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Memproses...
-                    </>
-                  ) : (
-                    'Masuk'
-                  )}
-                </Button>
-              </form>
-            </div>
-
-            {/* Footer */}
-            <p className="text-xs text-muted-foreground text-center">
-              &copy; {new Date().getFullYear()} Attendance System. All rights reserved.
+            <h1 className="mt-4 text-2xl font-bold text-white">
+              Sistem Absensi
+            </h1>
+            <p className="text-sm text-white/60">
+              Masuk ke akun Anda
             </p>
           </div>
+
+          {/* Login Form */}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            {/* Error message */}
+            {error && (
+              <Alert variant="destructive" className="bg-red-500/20 border-red-500/30 text-red-200">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Email field */}
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-white/80 text-sm font-medium">
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                placeholder="nama@email.com"
+                className="h-12 bg-white/10 border-white/20 text-white placeholder:text-white/40
+                           focus:bg-white/15 focus:border-emerald-400/50 focus:ring-emerald-400/20
+                           transition-all duration-300"
+                {...register('email')}
+              />
+              {errors.email && (
+                <p className="text-xs text-red-400">{errors.email.message}</p>
+              )}
+            </div>
+
+            {/* Password field */}
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-white/80 text-sm font-medium">
+                Password
+              </Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  placeholder="Masukkan password"
+                  className="h-12 bg-white/10 border-white/20 text-white placeholder:text-white/40
+                             focus:bg-white/15 focus:border-emerald-400/50 focus:ring-emerald-400/20
+                             transition-all duration-300 pr-12"
+                  {...register('password')}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+              {errors.password && (
+                <p className="text-xs text-red-400">{errors.password.message}</p>
+              )}
+            </div>
+
+            {/* Remember me & Forgot */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="remember"
+                  {...register('remember')}
+                  className="border-white/30 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                />
+                <Label htmlFor="remember" className="text-sm text-white/60 cursor-pointer">
+                  Ingat saya
+                </Label>
+              </div>
+              <Link
+                to="/auth/forgot-password"
+                className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors"
+              >
+                Lupa password?
+              </Link>
+            </div>
+
+            {/* Turnstile CAPTCHA */}
+            <div className="flex justify-center py-2">
+              <Turnstile
+                ref={turnstileRef}
+                siteKey={TURNSTILE_SITE_KEY}
+                onSuccess={(token: string) => setTurnstileToken(token)}
+                onError={() => {
+                  setTurnstileToken(null);
+                  showError('Verifikasi Gagal', 'Terjadi kesalahan saat verifikasi');
+                }}
+                onExpire={() => setTurnstileToken(null)}
+                options={{
+                  theme: 'dark',
+                  size: 'normal',
+                }}
+              />
+            </div>
+
+            {/* Submit button */}
+            <Button
+              type="submit"
+              className="w-full h-12 bg-gradient-to-r from-emerald-500 to-emerald-600
+                         hover:from-emerald-400 hover:to-emerald-500
+                         text-white font-semibold rounded-xl
+                         shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40
+                         transition-all duration-300 transform hover:scale-[1.02]"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Memproses...
+                </>
+              ) : (
+                'Masuk'
+              )}
+            </Button>
+          </form>
+
+          {/* Footer */}
+          <p className="mt-8 text-xs text-white/40 text-center">
+            &copy; {new Date().getFullYear()} SMP Saraswati. All rights reserved.
+          </p>
         </div>
       </div>
-    </section>
+
+      {/* Floating particles effect */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(20)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-1 h-1 bg-white/20 rounded-full animate-float"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 5}s`,
+              animationDuration: `${5 + Math.random() * 10}s`,
+            }}
+          />
+        ))}
+      </div>
+    </div>
   );
 }

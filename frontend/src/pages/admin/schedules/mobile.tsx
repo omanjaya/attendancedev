@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Badge } from '@/components/ui/badge';
 import type { Holiday } from '@/types/holiday';
 import { useNavigate } from '@tanstack/react-router';
@@ -12,10 +12,10 @@ import {
   Minus,
   Clock,
   Info,
-  Plus,
   Users,
-  Settings,
-  FileText
+  FileSpreadsheet,
+  FileText,
+  Loader2
 } from 'lucide-react';
 import { MobilePageHeader } from '@/components/mobile';
 import { useAuthStore } from '@/stores';
@@ -30,6 +30,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { LoadingState } from '@/components/states';
+import { useNotificationStore } from '@/stores/notification-store';
+import {
+  DAYS,
+  TIME_SLOTS,
+  DEFAULT_CLASSES,
+  GRADES,
+  EXCEL_SHEET_NAMES,
+} from './grade-builder/constants';
 
 export function MobileSchedulesPage() {
   const { user } = useAuthStore();
@@ -44,36 +52,171 @@ export function MobileSchedulesPage() {
 
 function AdminScheduleView() {
   const navigate = useNavigate();
+  const { success, error: showError } = useNotificationStore();
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Generate and download Excel template
+  const handleDownloadTemplate = useCallback(async () => {
+    setIsGenerating(true);
+    try {
+      const ExcelJS = await import('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'Attendance System';
+      workbook.created = new Date();
+
+      // ========== Sheet: KODE GURU ==========
+      const teacherSheet = workbook.addWorksheet(EXCEL_SHEET_NAMES.TEACHERS);
+
+      // Header
+      teacherSheet.columns = [
+        { header: 'No', key: 'no', width: 8 },
+        { header: 'Nama Guru', key: 'name', width: 30 },
+        { header: 'Mapel', key: 'subject', width: 25 },
+        { header: 'Jam Pelajaran', key: 'jp', width: 15 },
+        { header: 'Keterangan', key: 'note', width: 20 },
+      ];
+
+      // Style header
+      teacherSheet.getRow(1).font = { bold: true };
+      teacherSheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFE0E0E0' },
+      };
+
+      // Sample data
+      const sampleTeachers = [
+        { no: 1, name: 'Budi Santoso, S.Pd', subject: 'Matematika', jp: '24 JP', note: '' },
+        { no: 2, name: 'Siti Rahayu, S.Pd', subject: 'Bahasa Indonesia', jp: '24 JP', note: '' },
+        { no: 3, name: 'Ahmad Fauzi, S.Pd', subject: 'IPA', jp: '20 JP', note: '' },
+        { no: 4, name: 'Dewi Lestari, S.Pd', subject: 'IPS', jp: '20 JP', note: '' },
+        { no: 5, name: 'Eko Prasetyo, S.Pd', subject: 'Bahasa Inggris', jp: '24 JP', note: '' },
+      ];
+      sampleTeachers.forEach((t) => teacherSheet.addRow(t));
+
+      // Instructions
+      teacherSheet.addRow([]);
+      teacherSheet.addRow(['Petunjuk:']);
+      teacherSheet.addRow(['- Kolom "No" akan menjadi kode guru (contoh: 1, 2, 3)']);
+      teacherSheet.addRow(['- Format "Jam Pelajaran": angka diikuti " JP" (contoh: 24 JP)']);
+      teacherSheet.addRow(['- Kode guru digunakan di sheet jadwal dengan format: KODE-MAPEL']);
+
+      // ========== Sheet: Kelas 7, 8, 9 ==========
+      for (const grade of GRADES) {
+        const sheetName = grade === '7' ? EXCEL_SHEET_NAMES.GRADE_7
+          : grade === '8' ? EXCEL_SHEET_NAMES.GRADE_8
+          : EXCEL_SHEET_NAMES.GRADE_9;
+
+        const gradeSheet = workbook.addWorksheet(sheetName);
+        const classes = DEFAULT_CLASSES[grade];
+
+        // Build columns: Hari | Jam | Waktu | ClassA | ClassB | ClassC | ClassD
+        const columns = [
+          { header: 'Hari', key: 'day', width: 12 },
+          { header: 'Jam', key: 'period', width: 6 },
+          { header: 'Waktu', key: 'time', width: 14 },
+        ];
+        classes.forEach((cls) => {
+          columns.push({ header: cls, key: cls, width: 18 });
+        });
+        gradeSheet.columns = columns;
+
+        // Style header
+        gradeSheet.getRow(1).font = { bold: true };
+        gradeSheet.getRow(1).fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFD0E8FF' },
+        };
+        gradeSheet.getRow(1).alignment = { horizontal: 'center' };
+
+        // Add rows for each day and period
+        for (const day of DAYS) {
+          for (const slot of TIME_SLOTS) {
+            const row: Record<string, string | number> = {
+              day: day,
+              period: slot.period,
+              time: `${slot.start}-${slot.end}`,
+            };
+
+            if (slot.isBreak) {
+              // Mark break time
+              classes.forEach((cls) => {
+                row[cls] = 'Istirahat';
+              });
+            } else {
+              // Empty cells for schedule
+              classes.forEach((cls) => {
+                row[cls] = '';
+              });
+            }
+
+            const addedRow = gradeSheet.addRow(row);
+
+            // Style break rows
+            if (slot.isBreak) {
+              addedRow.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFFFF0CC' },
+              };
+              addedRow.font = { italic: true, color: { argb: 'FF666666' } };
+            }
+          }
+        }
+
+        // Add sample data instruction at bottom
+        gradeSheet.addRow([]);
+        gradeSheet.addRow(['Format isi jadwal: KODE_GURU-MAPEL']);
+        gradeSheet.addRow(['Contoh: 1-Matematika, 2-Bahasa Indonesia, 3-IPA']);
+        gradeSheet.addRow(['Kode guru sesuai dengan kolom "No" di sheet KODE GURU']);
+      }
+
+      // Generate and download
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `template-jadwal-mengajar-${new Date().toISOString().split('T')[0]}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      success('Berhasil', 'Template Excel berhasil diunduh');
+    } catch (err) {
+      console.error('Error generating template:', err);
+      showError('Gagal', 'Gagal membuat template Excel');
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [success, showError]);
 
   const menuItems = [
     {
-      title: 'Buat Jadwal',
-      description: 'Buat jadwal pelajaran baru',
-      icon: Plus,
-      color: 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400',
-      action: () => navigate({ to: '/admin/schedules/create' })
-    },
-    {
       title: 'Jadwal Bulanan',
-      description: 'Kelola jadwal bulanan',
+      description: 'Kelola jadwal bulanan pegawai',
       icon: CalendarIcon,
       color: 'bg-violet-50 text-violet-600 dark:bg-violet-900/20 dark:text-violet-400',
       action: () => navigate({ to: '/admin/schedules/monthly' })
     },
     {
-      title: 'Assign Jadwal',
-      description: 'Tetapkan jadwal ke guru',
+      title: 'Jadwal Mengajar',
+      description: 'Susun jadwal mengajar (Desktop)',
       icon: Users,
-      color: 'bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400',
-      action: () => navigate({ to: '/admin/schedules/assign' })
+      color: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400',
+      action: () => navigate({ to: '/admin/schedules' }),
+      badge: 'Desktop'
     },
     {
-      title: 'Builder',
-      description: 'Visual schedule builder',
-      icon: Settings,
-      color: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400',
-      action: () => navigate({ to: '/admin/schedules/builder' })
-    }
+      title: 'Template Excel',
+      description: 'Download template jadwal',
+      icon: FileSpreadsheet,
+      color: 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400',
+      action: handleDownloadTemplate,
+      loading: isGenerating
+    },
   ];
 
   return (
@@ -91,11 +234,23 @@ function AdminScheduleView() {
           {menuItems.map((item, index) => (
             <div
               key={index}
-              onClick={item.action}
-              className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-border/50 shadow-sm active:scale-[0.98] transition-transform cursor-pointer"
+              onClick={item.loading ? undefined : item.action}
+              className={cn(
+                "bg-white dark:bg-gray-900 p-4 rounded-2xl border border-border/50 shadow-sm transition-transform cursor-pointer relative",
+                item.loading ? "opacity-70" : "active:scale-[0.98]"
+              )}
             >
+              {item.badge && (
+                <Badge variant="secondary" className="absolute top-2 right-2 text-[10px] px-1.5 py-0.5">
+                  {item.badge}
+                </Badge>
+              )}
               <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center mb-3", item.color)}>
-                <item.icon className="h-5 w-5" />
+                {item.loading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <item.icon className="h-5 w-5" />
+                )}
               </div>
               <h3 className="font-bold text-sm mb-1">{item.title}</h3>
               <p className="text-xs text-muted-foreground">{item.description}</p>

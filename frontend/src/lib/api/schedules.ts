@@ -613,3 +613,85 @@ export async function getMyTeachingSchedule(): Promise<MyTeachingScheduleRespons
   return response.data.data;
 }
 
+// ====================================
+// Grade Schedule Builder API
+// ====================================
+
+export interface SaveGradeScheduleEntry {
+  class_name: string;
+  day: string;
+  period: number;
+  time_start: string;
+  time_end: string;
+  teacher_id?: string;
+  teacher_code?: string;
+  subject?: string;
+  is_locked?: boolean;
+}
+
+export interface SaveGradeScheduleRequest {
+  grade: string;
+  academic_year: string;
+  semester: 1 | 2;
+  effective_from: string;
+  effective_until?: string;
+  schedules: SaveGradeScheduleEntry[];
+}
+
+export interface SaveGradeScheduleResponse {
+  grade: string;
+  created: number;
+  deleted: number;
+  errors: Array<{ entry: SaveGradeScheduleEntry; error: string }>;
+  effective_from: string;
+  effective_until?: string;
+}
+
+export interface LoadGradeScheduleResponse {
+  grade: string;
+  grid: Record<string, Record<string, {
+    teacherCode: string;
+    teacherId: string;
+    teacherName: string;
+    subject: string | null;
+    isLocked: boolean;
+    scheduleId: string;
+  }>>;
+  teachers: Array<{
+    id: string;
+    code: string;
+    name: string;
+    position: string;
+  }>;
+  metadata: {
+    academic_year: string | null;
+    semester: number | null;
+    effective_from: string | null;
+    effective_until: string | null;
+  };
+  total_schedules: number;
+}
+
+// Save grade schedule to server
+export async function saveGradeSchedule(
+  data: SaveGradeScheduleRequest
+): Promise<SaveGradeScheduleResponse> {
+  const response = await apiClient.post<{ data: SaveGradeScheduleResponse }>(
+    '/schedules/teaching/save-grade',
+    data
+  );
+  return response.data.data;
+}
+
+// Load grade schedule from server
+export async function loadGradeSchedule(
+  grade: string,
+  effectiveFrom?: string
+): Promise<LoadGradeScheduleResponse> {
+  const response = await apiClient.get<{ data: LoadGradeScheduleResponse }>(
+    `/schedules/teaching/load-grade/${grade}`,
+    { params: { effective_from: effectiveFrom } }
+  );
+  return response.data.data;
+}
+

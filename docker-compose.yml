@@ -86,6 +86,17 @@ services:
       - SESSION_DRIVER=redis
       - QUEUE_CONNECTION=database
       - DEEPFACE_BASE_URL=http://deepface-1:8001
+      # Mail Configuration (Gmail SMTP)
+      - MAIL_MAILER=smtp
+      - MAIL_HOST=smtp.gmail.com
+      - MAIL_PORT=587
+      - MAIL_USERNAME=omanjaya47@gmail.com
+      - MAIL_PASSWORD=idfmgtoxesbhyske
+      - MAIL_ENCRYPTION=tls
+      - MAIL_FROM_ADDRESS=omanjaya47@gmail.com
+      - MAIL_FROM_NAME="Sistem Absensi Patra"
+      # Cloudflare Turnstile CAPTCHA
+      - TURNSTILE_SECRET_KEY=0x4AAAAAACGDmbnIp0_C-KWCH0LnbjGJcSg
     depends_on:
       postgres:
         condition: service_healthy

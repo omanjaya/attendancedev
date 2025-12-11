@@ -29,7 +29,36 @@ const ENDPOINTS = {
   reject: (id: string) => `/leave-requests/${id}/reject`,
   cancel: (id: string) => `/leave-requests/${id}/cancel`,
   pending: '/leave-requests/pending',
+  affectedSchedules: (id: string) => `/leave-requests/${id}/affected-schedules`,
+  previewWorkingDays: '/leave/preview-working-days',
 } as const;
+
+// Types for new endpoints
+export interface AffectedSchedule {
+  schedule_id: string;
+  date: string;
+  day: string;
+  subject: string;
+  class: string;
+  time: string;
+  room?: string;
+}
+
+export interface AffectedSchedulesResponse {
+  leave_id: string;
+  employee_name: string;
+  is_teacher: boolean;
+  affected_schedules: AffectedSchedule[];
+  affected_count: number;
+}
+
+export interface WorkingDaysPreview {
+  working_days: number;
+  working_dates: string[];
+  skipped_weekends: { date: string; day: string }[];
+  skipped_holidays: { date: string; holiday_name: string }[];
+  total_calendar_days: number;
+}
 
 // Get all leave requests with pagination and filters
 export async function getLeaveRequests(
@@ -113,5 +142,25 @@ export async function getLeaveStatistics(): Promise<LeaveStatistics> {
 // Get pending approvals
 export async function getPendingApprovals(): Promise<LeaveRequest[]> {
   const response = await apiClient.get<{ data: LeaveRequest[] }>(ENDPOINTS.pending);
+  return response.data.data;
+}
+
+// Get affected teaching schedules for a leave request (for teachers)
+export async function getAffectedSchedules(id: string): Promise<AffectedSchedulesResponse> {
+  const response = await apiClient.get<{ data: AffectedSchedulesResponse }>(
+    ENDPOINTS.affectedSchedules(id)
+  );
+  return response.data.data;
+}
+
+// Preview working days calculation (excludes weekends and holidays)
+export async function previewWorkingDays(
+  startDate: string,
+  endDate: string
+): Promise<WorkingDaysPreview> {
+  const response = await apiClient.get<{ data: WorkingDaysPreview }>(
+    ENDPOINTS.previewWorkingDays,
+    { params: { start_date: startDate, end_date: endDate } }
+  );
   return response.data.data;
 }

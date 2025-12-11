@@ -97,6 +97,7 @@ class EmployeesImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
         $columnMap = [
             'full_name' => ['full_name', 'nama_lengkap', 'nama', 'name', 'fullname'],
             'email' => ['email', 'e-mail', 'email_address'],
+            'password' => ['password', 'kata_sandi', 'pass', 'pwd'],
             'phone' => ['phone', 'telepon', 'no_telepon', 'phone_number', 'hp', 'no_hp'],
             'employee_id' => ['employee_id', 'nip', 'nik', 'id_pegawai', 'nomor_induk'],
             'employee_type' => ['employee_type', 'jenis_pegawai', 'tipe', 'type', 'jenis'],
@@ -216,15 +217,15 @@ class EmployeesImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
 
     protected function createEmployee(array $data): Employee
     {
-        // Generate temporary password
-        $tempPassword = Str::random(10);
+        // Use password from Excel if provided, otherwise generate random
+        $password = !empty($data['password']) ? $data['password'] : Str::random(10);
 
         // Create user
         $user = User::create([
             'name' => $data['full_name'],
             'email' => $data['email'],
-            'password' => Hash::make($tempPassword),
-            'force_password_change' => true,
+            'password' => Hash::make($password),
+            'force_password_change' => true, // Always force password change on first login
         ]);
 
         // Assign role based on employee type
@@ -260,7 +261,6 @@ class EmployeesImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
         Log::info('Employee imported', [
             'employee_id' => $employee->id,
             'email' => $employee->email,
-            'temp_password' => $tempPassword,
         ]);
 
         return $employee;

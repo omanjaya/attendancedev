@@ -1,18 +1,16 @@
 import { useState } from 'react';
 import {
   Calendar,
-  Layers,
   CalendarRange,
   Download,
-  Grid3X3,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/shared';
 
-import { ScheduleBuilderContent } from './tabs/ScheduleBuilderContent';
-import { TeacherScheduleGridContent } from './tabs/TeacherScheduleGridContent';
 import { MonthlyScheduleList } from './monthly/index';
+import GradeScheduleBuilder from './grade-builder';
 
 // Desktop version (original implementation)
 export function DesktopSchedulesPage() {
@@ -35,21 +33,16 @@ export function DesktopSchedulesPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:inline-flex">
           <TabsTrigger value="monthly" className="gap-2">
             <CalendarRange className="h-4 w-4" />
-            <span className="hidden sm:inline">Bulanan</span>
-            <span className="sm:hidden">Bulan</span>
+            <span className="hidden sm:inline">Jadwal Bulanan</span>
+            <span className="sm:hidden">Bulanan</span>
           </TabsTrigger>
-          <TabsTrigger value="builder" className="gap-2">
-            <Layers className="h-4 w-4" />
-            <span className="hidden sm:inline">Builder</span>
-            <span className="sm:hidden">Builder</span>
-          </TabsTrigger>
-          <TabsTrigger value="grid" className="gap-2">
-            <Grid3X3 className="h-4 w-4" />
-            <span className="hidden sm:inline">Susun Guru</span>
-            <span className="sm:hidden">Grid</span>
+          <TabsTrigger value="grade" className="gap-2">
+            <FileSpreadsheet className="h-4 w-4" />
+            <span className="hidden sm:inline">Susun Jadwal Mengajar</span>
+            <span className="sm:hidden">Mengajar</span>
           </TabsTrigger>
         </TabsList>
 
@@ -57,12 +50,8 @@ export function DesktopSchedulesPage() {
           <MonthlyScheduleList showHeader={false} />
         </TabsContent>
 
-        <TabsContent value="builder" className="mt-6">
-          <ScheduleBuilderContent />
-        </TabsContent>
-
-        <TabsContent value="grid" className="mt-6">
-          <TeacherScheduleGridContent />
+        <TabsContent value="grade" className="mt-6">
+          <GradeScheduleBuilder />
         </TabsContent>
       </Tabs>
     </div>

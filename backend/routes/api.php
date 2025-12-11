@@ -128,11 +128,38 @@ Route::prefix('v1')->group(function () {
 
         // Payroll management endpoints
         Route::prefix('payroll')->group(function () {
+            // Period management
             Route::get('/periods', [App\Http\Controllers\Api\PayrollApiController::class, 'periods']);
             Route::post('/periods', [App\Http\Controllers\Api\PayrollApiController::class, 'storePeriod']);
             Route::get('/periods/{id}', [App\Http\Controllers\Api\PayrollApiController::class, 'showPeriod']);
             Route::put('/periods/{id}', [App\Http\Controllers\Api\PayrollApiController::class, 'updatePeriod']);
             Route::delete('/periods/{id}', [App\Http\Controllers\Api\PayrollApiController::class, 'destroyPeriod']);
+
+            // Period employee payrolls (A1)
+            Route::get('/periods/{periodId}/employees', [App\Http\Controllers\Api\PayrollApiController::class, 'periodEmployees']);
+            Route::get('/periods/{periodId}/employees/{employeeId}', [App\Http\Controllers\Api\PayrollApiController::class, 'showEmployeePayroll']);
+            Route::put('/periods/{periodId}/employees/{employeeId}', [App\Http\Controllers\Api\PayrollApiController::class, 'updateEmployeePayroll']);
+
+            // Payroll item management (A2)
+            Route::get('/{payrollId}/items', [App\Http\Controllers\Api\PayrollApiController::class, 'getPayrollItems']);
+            Route::post('/{payrollId}/items', [App\Http\Controllers\Api\PayrollApiController::class, 'storePayrollItem']);
+            Route::put('/{payrollId}/items/{itemId}', [App\Http\Controllers\Api\PayrollApiController::class, 'updatePayrollItem']);
+            Route::delete('/{payrollId}/items/{itemId}', [App\Http\Controllers\Api\PayrollApiController::class, 'destroyPayrollItem']);
+
+            // Item categories/config
+            Route::get('/item-categories', [App\Http\Controllers\Api\PayrollApiController::class, 'itemCategories']);
+
+            // Formula management (A3)
+            Route::get('/formulas', [App\Http\Controllers\Api\PayrollApiController::class, 'getFormulas']);
+            Route::get('/formulas/config', [App\Http\Controllers\Api\PayrollApiController::class, 'formulaConfig']);
+            Route::post('/formulas', [App\Http\Controllers\Api\PayrollApiController::class, 'storeFormula']);
+            Route::get('/formulas/{id}', [App\Http\Controllers\Api\PayrollApiController::class, 'showFormula']);
+            Route::put('/formulas/{id}', [App\Http\Controllers\Api\PayrollApiController::class, 'updateFormula']);
+            Route::delete('/formulas/{id}', [App\Http\Controllers\Api\PayrollApiController::class, 'destroyFormula']);
+            Route::post('/formulas/{id}/toggle-status', [App\Http\Controllers\Api\PayrollApiController::class, 'toggleFormulaStatus']);
+            Route::post('/formulas/{id}/preview', [App\Http\Controllers\Api\PayrollApiController::class, 'previewFormula']);
+
+            // General endpoints
             Route::get('/statistics', [App\Http\Controllers\Api\PayrollApiController::class, 'statistics']);
             Route::get('/config', [App\Http\Controllers\Api\PayrollApiController::class, 'config']);
             Route::get('/employee', [App\Http\Controllers\Api\PayrollApiController::class, 'employeePayroll']);
@@ -149,6 +176,8 @@ Route::prefix('v1')->group(function () {
                 ->middleware('permission:approve_leave');
             Route::get('/{id}', [App\Http\Controllers\Api\LeaveApiController::class, 'show'])
                 ->middleware('permission:view_leave_own|view_leave_all');
+            Route::get('/{id}/affected-schedules', [App\Http\Controllers\Api\LeaveApiController::class, 'affectedSchedules'])
+                ->middleware('permission:approve_leave');
             Route::post('/{id}/approve', [App\Http\Controllers\Api\LeaveApiController::class, 'approve'])
                 ->middleware('permission:approve_leave');
             Route::post('/{id}/reject', [App\Http\Controllers\Api\LeaveApiController::class, 'reject'])
@@ -162,6 +191,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/balance/{employeeId}', [App\Http\Controllers\Api\LeaveApiController::class, 'balanceByEmployee']);
             Route::get('/statistics', [App\Http\Controllers\Api\LeaveApiController::class, 'statistics']);
             Route::get('/calendar', [App\Http\Controllers\Api\LeaveApiController::class, 'calendar']);
+            Route::get('/preview-working-days', [App\Http\Controllers\Api\LeaveApiController::class, 'previewWorkingDays']);
         });
 
         // Schedule management endpoints (Academic/Weekly Schedules)
@@ -183,6 +213,10 @@ Route::prefix('v1')->group(function () {
             Route::post('/teaching/bulk-import', [App\Http\Controllers\Api\ScheduleApiController::class, 'bulkImportTeachingSchedules']);
             Route::post('/teaching/match-teachers', [App\Http\Controllers\Api\ScheduleApiController::class, 'matchTeachers']);
             Route::delete('/teaching/clear', [App\Http\Controllers\Api\ScheduleApiController::class, 'clearTeachingSchedules']);
+
+            // Grade Schedule Builder routes (for Susun Jadwal Mengajar)
+            Route::post('/teaching/save-grade', [App\Http\Controllers\Api\ScheduleApiController::class, 'saveGradeSchedule']);
+            Route::get('/teaching/load-grade/{grade}', [App\Http\Controllers\Api\ScheduleApiController::class, 'loadGradeSchedule']);
             
             // Monthly schedule routes
             Route::get('/monthly', [App\Http\Controllers\Api\ScheduleApiController::class, 'monthlySchedules']);
@@ -244,7 +278,11 @@ Route::prefix('v1')->group(function () {
             
             // Monthly recap with A/I/S/D/C breakdown
             Route::get('/monthly-recap', [App\Http\Controllers\Api\ReportsApiController::class, 'monthlyRecap']);
-            
+
+            // Teaching schedule report (jadwal mengajar guru)
+            Route::get('/teaching-schedules', [App\Http\Controllers\Api\ReportsApiController::class, 'teachingScheduleReport']);
+            Route::get('/teaching-subjects', [App\Http\Controllers\Api\ReportsApiController::class, 'teachingSubjects']);
+
             // Admin-only: Export functionality
             Route::post('/generate', [App\Http\Controllers\Api\ReportsApiController::class, 'generate'])
                 ->middleware('throttle:report-export');

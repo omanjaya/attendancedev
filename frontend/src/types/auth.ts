@@ -24,6 +24,7 @@ export interface LoginCredentials {
   email: string;
   password: string;
   remember?: boolean;
+  turnstile_token?: string;
 }
 
 // Registration data

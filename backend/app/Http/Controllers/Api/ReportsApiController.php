@@ -8,6 +8,7 @@ use App\Services\Reports\EmployeeReportService;
 use App\Services\Reports\DepartmentReportService;
 use App\Services\Reports\LeaveReportService;
 use App\Services\Reports\ReportExportService;
+use App\Services\Reports\TeachingScheduleReportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -19,7 +20,8 @@ class ReportsApiController extends BaseApiController
         private EmployeeReportService $employeeService,
         private DepartmentReportService $departmentService,
         private LeaveReportService $leaveService,
-        private ReportExportService $exportService
+        private ReportExportService $exportService,
+        private TeachingScheduleReportService $teachingScheduleService
     ) {}
 
     /**
@@ -106,14 +108,25 @@ class ReportsApiController extends BaseApiController
 
     /**
      * Get monthly attendance recap with A/I/S/D/C breakdown
+     *
+     * @queryParam month int Month number (1-12). Defaults to current month.
+     * @queryParam year int Year. Defaults to current year.
+     * @queryParam department string Filter by department name.
+     * @queryParam employee_type string Filter by employee type: 'guru', 'pegawai', or null for all.
      */
     public function monthlyRecap(Request $request)
     {
         $month = $request->get('month', now()->month);
         $year = $request->get('year', now()->year);
         $departmentFilter = $request->get('department', null);
+        $employeeType = $request->get('employee_type', null);
 
-        $data = $this->attendanceService->getMonthlyRecap($month, $year, $departmentFilter);
+        // Validate employee_type parameter
+        if ($employeeType && !in_array($employeeType, ['guru', 'pegawai'])) {
+            return $this->errorResponse('Invalid employee_type. Must be "guru", "pegawai", or empty.', 422);
+        }
+
+        $data = $this->attendanceService->getMonthlyRecap($month, $year, $departmentFilter, $employeeType);
         return $this->apiResponse($data, 'Monthly attendance recap retrieved');
     }
 
@@ -218,5 +231,31 @@ class ReportsApiController extends BaseApiController
         ];
 
         return $this->apiResponse($data, 'Report data retrieved');
+    }
+
+    /**
+     * Get teaching schedule report (guru jadwal mengajar)
+     *
+     * @queryParam month int Month number (1-12). Defaults to current month.
+     * @queryParam year int Year. Defaults to current year.
+     * @queryParam subject string Filter by subject id or name.
+     */
+    public function teachingScheduleReport(Request $request)
+    {
+        $month = $request->get('month', now()->month);
+        $year = $request->get('year', now()->year);
+        $subjectFilter = $request->get('subject', null);
+
+        $data = $this->teachingScheduleService->getTeachingReport($month, $year, $subjectFilter);
+        return $this->apiResponse($data, 'Teaching schedule report retrieved');
+    }
+
+    /**
+     * Get available subjects with teaching schedules (for filter dropdown)
+     */
+    public function teachingSubjects()
+    {
+        $data = $this->teachingScheduleService->getSubjectsWithSchedules();
+        return $this->apiResponse($data, 'Teaching subjects retrieved');
     }
 }

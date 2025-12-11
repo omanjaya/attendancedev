@@ -6,6 +6,9 @@ import {
   getWeeklyTrend,
   getDepartmentStats,
   getLeaveStats,
+  getMonthlyRecap,
+  getTeachingScheduleReport,
+  getTeachingSubjects,
   generateReport,
   downloadReport,
   getGeneratedReports,
@@ -29,6 +32,11 @@ export const reportKeys = {
   departmentStats: (filters?: ReportFilters) =>
     [...reportKeys.all, 'department-stats', filters] as const,
   leaveStats: (filters?: ReportFilters) => [...reportKeys.all, 'leave-stats', filters] as const,
+  monthlyRecap: (filters?: { month?: number; year?: number; department?: string; employee_type?: 'guru' | 'pegawai' | null }) =>
+    [...reportKeys.all, 'monthly-recap', filters] as const,
+  teachingSchedules: (filters?: { month?: number; year?: number; subject?: string }) =>
+    [...reportKeys.all, 'teaching-schedules', filters] as const,
+  teachingSubjects: () => [...reportKeys.all, 'teaching-subjects'] as const,
   templates: () => [...reportKeys.all, 'templates'] as const,
   generatedReports: () => [...reportKeys.all, 'generated'] as const,
   generatedReport: (id: string) => [...reportKeys.all, 'generated', id] as const,
@@ -85,6 +93,42 @@ export function useLeaveStats(filters?: ReportFilters) {
     queryKey: reportKeys.leaveStats(filters),
     queryFn: () => getLeaveStats(filters),
     staleTime: 1000 * 60 * 5,
+  });
+}
+
+// Get monthly recap with employee type filter
+export function useMonthlyRecap(filters?: {
+  month?: number;
+  year?: number;
+  department?: string;
+  employee_type?: 'guru' | 'pegawai' | null;
+}) {
+  return useQuery({
+    queryKey: reportKeys.monthlyRecap(filters),
+    queryFn: () => getMonthlyRecap(filters),
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+// Get teaching schedule report
+export function useTeachingScheduleReport(filters?: {
+  month?: number;
+  year?: number;
+  subject?: string;
+}) {
+  return useQuery({
+    queryKey: reportKeys.teachingSchedules(filters),
+    queryFn: () => getTeachingScheduleReport(filters),
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+// Get teaching subjects for filter dropdown
+export function useTeachingSubjects() {
+  return useQuery({
+    queryKey: reportKeys.teachingSubjects(),
+    queryFn: getTeachingSubjects,
+    staleTime: 1000 * 60 * 30, // Cache for 30 minutes
   });
 }
 

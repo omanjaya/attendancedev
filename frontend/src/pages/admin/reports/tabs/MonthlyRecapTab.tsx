@@ -9,6 +9,8 @@ import {
     AlertCircle,
     FileText,
     FileSpreadsheet,
+    GraduationCap,
+    Briefcase,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,10 +37,13 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { getMonthlyRecap } from '@/lib/api/reports';
 import type { MonthlyRecapEmployee } from '@/types/reports';
 // jspdf imports are done dynamically in handleExportPDF
+
+type EmployeeTypeFilter = 'all' | 'guru' | 'pegawai';
 
 const MONTHS = [
     { value: 1, label: 'Januari' },
@@ -62,11 +67,16 @@ export function MonthlyRecapTab() {
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
     const [selectedYear, setSelectedYear] = useState(currentYear);
     const [searchQuery, setSearchQuery] = useState('');
+    const [employeeType, setEmployeeType] = useState<EmployeeTypeFilter>('all');
 
-    // Fetch monthly recap data
+    // Fetch monthly recap data with employee type filter
     const { data: recapData, isLoading, error, refetch } = useQuery({
-        queryKey: ['reports', 'monthly-recap', selectedMonth, selectedYear],
-        queryFn: () => getMonthlyRecap({ month: selectedMonth, year: selectedYear }),
+        queryKey: ['reports', 'monthly-recap', selectedMonth, selectedYear, employeeType],
+        queryFn: () => getMonthlyRecap({
+            month: selectedMonth,
+            year: selectedYear,
+            employee_type: employeeType === 'all' ? null : employeeType,
+        }),
     });
 
     // Filter data by search query
@@ -84,6 +94,7 @@ export function MonthlyRecapTab() {
         }
 
         const monthName = MONTHS.find(m => m.value === selectedMonth)?.label || '';
+        const typeLabel = employeeType === 'all' ? '' : `-${employeeType}`;
         const headers = ['No', 'NIK', 'Nama', 'Unit Kerja', 'H', 'T', 'A', 'I', 'S', 'D', 'C', 'HK', '% Hadir'];
         const rows = filteredData.map((emp: MonthlyRecapEmployee, idx: number) => [
             idx + 1,
@@ -127,7 +138,7 @@ export function MonthlyRecapTab() {
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = `rekap-kehadiran-${monthName}-${selectedYear}.csv`;
+        link.download = `rekap-kehadiran${typeLabel}-${monthName}-${selectedYear}.csv`;
         link.click();
         URL.revokeObjectURL(link.href);
 
@@ -149,11 +160,13 @@ export function MonthlyRecapTab() {
             const { default: autoTable } = await import('jspdf-autotable');
 
             const monthName = MONTHS.find(m => m.value === selectedMonth)?.label || '';
+            const typeLabel = employeeType === 'all' ? '' : `-${employeeType}`;
+            const typeLabelDisplay = employeeType === 'all' ? '' : ` (${getEmployeeTypeLabel()})`;
             const doc = new jsPDF('landscape');
 
             // Title
             doc.setFontSize(16);
-            doc.text(`Rekap Kehadiran Bulan ${monthName} ${selectedYear}`, 14, 15);
+            doc.text(`Rekap Kehadiran Bulan ${monthName} ${selectedYear}${typeLabelDisplay}`, 14, 15);
 
             // Summary info
             doc.setFontSize(10);
@@ -238,7 +251,7 @@ export function MonthlyRecapTab() {
             doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, 14, finalY + 15);
 
             // Save PDF
-            doc.save(`rekap-kehadiran-${monthName}-${selectedYear}.pdf`);
+            doc.save(`rekap-kehadiran${typeLabel}-${monthName}-${selectedYear}.pdf`);
             toast.dismiss();
             toast.success('Data berhasil di-export ke PDF!');
         } catch (error) {
@@ -273,8 +286,35 @@ export function MonthlyRecapTab() {
         );
     }
 
+    // Get employee type label for display
+    const getEmployeeTypeLabel = () => {
+        switch (employeeType) {
+            case 'guru': return 'Guru';
+            case 'pegawai': return 'Pegawai';
+            default: return 'Semua Karyawan';
+        }
+    };
+
     return (
         <div className="space-y-6">
+            {/* Employee Type Tabs */}
+            <Tabs value={employeeType} onValueChange={(v) => setEmployeeType(v as EmployeeTypeFilter)} className="w-full">
+                <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
+                    <TabsTrigger value="all" className="gap-2">
+                        <Users className="h-4 w-4" />
+                        <span className="hidden sm:inline">Semua</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="guru" className="gap-2">
+                        <GraduationCap className="h-4 w-4" />
+                        <span className="hidden sm:inline">Guru</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="pegawai" className="gap-2">
+                        <Briefcase className="h-4 w-4" />
+                        <span className="hidden sm:inline">Pegawai</span>
+                    </TabsTrigger>
+                </TabsList>
+            </Tabs>
+
             {/* Header & Filters */}
             <Card>
                 <CardHeader>
@@ -282,10 +322,10 @@ export function MonthlyRecapTab() {
                         <div>
                             <CardTitle className="flex items-center gap-2">
                                 <CalendarDays className="h-5 w-5" />
-                                Rekap Kehadiran Bulanan
+                                Rekap Kehadiran Bulanan - {getEmployeeTypeLabel()}
                             </CardTitle>
                             <CardDescription>
-                                Rekapitulasi kehadiran karyawan dengan status A/I/S/D/C
+                                Rekapitulasi kehadiran {employeeType === 'all' ? 'karyawan' : employeeType} dengan status A/I/S/D/C
                             </CardDescription>
                         </div>
                         <div className="flex flex-col sm:flex-row items-center gap-3">
