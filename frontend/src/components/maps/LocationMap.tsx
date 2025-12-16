@@ -34,6 +34,7 @@ interface LocationMapProps {
   userLocation: {
     latitude: number;
     longitude: number;
+    accuracy?: number; // GPS accuracy in meters
   };
   officeLocation?: {
     latitude: number;
@@ -93,6 +94,11 @@ export function LocationMap({ userLocation, officeLocation, isWithinRadius, dist
               <p className="text-xs text-gray-600">
                 {userLocation.latitude.toFixed(6)}, {userLocation.longitude.toFixed(6)}
               </p>
+              {userLocation.accuracy && (
+                <p className="text-xs text-gray-500">
+                  Akurasi: ±{userLocation.accuracy.toFixed(0)}m
+                </p>
+              )}
               {distance !== undefined && (
                 <p className="text-xs mt-2">
                   <span className="font-medium">Jarak ke kantor:</span>{' '}
@@ -122,14 +128,14 @@ export function LocationMap({ userLocation, officeLocation, isWithinRadius, dist
               </Popup>
             </Marker>
 
-            {/* Radius Circle */}
+            {/* Radius Circle - Always Blue */}
             <Circle
               center={officePos}
               radius={officeLocation.radius}
               pathOptions={{
-                color: isWithinRadius ? '#10b981' : '#ef4444',
-                fillColor: isWithinRadius ? '#10b981' : '#ef4444',
-                fillOpacity: 0.1,
+                color: '#3b82f6',
+                fillColor: '#3b82f6',
+                fillOpacity: 0.15,
                 weight: 2,
               }}
             />
@@ -139,24 +145,6 @@ export function LocationMap({ userLocation, officeLocation, isWithinRadius, dist
         <FitBounds userLocation={userPos} officeLocation={officePos} />
       </MapContainer>
 
-      {/* Status Badge Overlay */}
-      {isWithinRadius !== undefined && (
-        <div className="absolute top-4 left-4 z-[1000] bg-white dark:bg-gray-900 rounded-xl px-4 py-2 shadow-lg border border-border">
-          <p className="text-xs font-medium flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full ${isWithinRadius ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
-            {isWithinRadius ? '✓ Dalam Radius' : '✗ Di Luar Radius'}
-          </p>
-        </div>
-      )}
-
-      {/* Distance Badge */}
-      {distance !== undefined && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] bg-white dark:bg-gray-900 rounded-full px-4 py-2 shadow-lg border border-border">
-          <p className="text-sm font-bold">
-            {distance.toFixed(0)} meter
-          </p>
-        </div>
-      )}
     </div>
   );
 }

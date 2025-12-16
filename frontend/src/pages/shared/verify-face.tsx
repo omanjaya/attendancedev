@@ -62,10 +62,10 @@ export function VerifyFacePage() {
     });
   };
 
-  const onFaceCaptured = async (videoElement: HTMLVideoElement) => {
+  const onFaceCaptured = async (videoElement: HTMLVideoElement): Promise<void> => {
     setFaceState({
       status: 'verifying',
-      message: 'Memverifikasi wajah (DeepFace ArcFace)...',
+      message: 'Memverifikasi wajah...',
     });
 
     // Capture image from video
@@ -76,70 +76,73 @@ export function VerifyFacePage() {
 
     if (!ctx) {
       setFaceState({ status: 'failed', message: 'Gagal memproses gambar', error: 'Canvas context error' });
-      return;
+      throw new Error('Canvas context error');
     }
 
     ctx.drawImage(videoElement, 0, 0);
 
-    // Convert to file
-    canvas.toBlob(async (blob) => {
-      if (!blob) {
-        setFaceState({ status: 'failed', message: 'Gagal mengambil gambar', error: 'Blob conversion failed' });
-        return;
-      }
+    // Convert to file using Promise wrapper (so we properly await the backend call)
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.95);
+    });
 
-      const imageFile = new File([blob], "capture.jpg", { type: "image/jpeg" });
+    if (!blob) {
+      setFaceState({ status: 'failed', message: 'Gagal mengambil gambar', error: 'Blob conversion failed' });
+      throw new Error('Blob conversion failed');
+    }
 
-      try {
-        // Verify face with DeepFace (includes liveness detection)
-        const result = await verifyFaceDeepFace(imageFile);
+    const imageFile = new File([blob], "capture.jpg", { type: "image/jpeg" });
 
-        // Extract data from nested response or top-level (fallback)
-        const resultData = result.data || result;
-        const employee = result.employee || resultData.employee || resultData.employee_data;
-        const confidence = result.confidence || resultData.confidence;
-        const distance = result.distance || resultData.distance;
-        const similarity = result.similarity || resultData.similarity;
-        const livenessPassed = result.liveness_passed || resultData.liveness_passed;
-        const isMatched = result.matched || resultData.matched;
+    try {
+      // Verify face with DeepFace (includes liveness detection)
+      const result = await verifyFaceDeepFace(imageFile);
 
-        if (result.success && isMatched && employee) {
-          setFaceState({
-            status: 'verified',
-            message: 'Wajah terverifikasi dengan DeepFace!',
-            employeeName: employee.name || employee.full_name,
-            employeeCode: employee.employee_code || employee.employee_id,
-            similarity: similarity,
-            distance: distance,
-            confidence: confidence,
-            liveness_passed: livenessPassed,
-          });
-        } else {
-          let errorMessage = result.message || 'Silakan coba lagi atau hubungi admin untuk registrasi wajah';
-          let statusMessage = 'Wajah tidak dikenali';
+      // Extract data from nested response or top-level (fallback)
+      const resultData = result.data || result;
+      const employee = result.employee || resultData.employee || resultData.employee_data;
+      const confidence = result.confidence || resultData.confidence;
+      const distance = result.distance || resultData.distance;
+      const similarity = result.similarity || resultData.similarity;
+      const livenessPassed = result.liveness_passed || resultData.liveness_passed;
+      const isMatched = result.matched || resultData.matched;
 
-          // Handle case where face is matched but employee data is missing in response
-          if (isMatched && !employee) {
-            statusMessage = 'Data Karyawan Tidak Ditemukan';
-            errorMessage = 'Wajah dikenali di sistem tetapi data karyawan terkait tidak ditemukan.';
-          }
+      if (result.success && isMatched && employee) {
+        setFaceState({
+          status: 'verified',
+          message: 'Wajah terverifikasi!',
+          employeeName: employee.name || employee.full_name,
+          employeeCode: employee.employee_code || employee.employee_id,
+          similarity: similarity,
+          distance: distance,
+          confidence: confidence,
+          liveness_passed: livenessPassed,
+        });
+      } else {
+        let errorMessage = result.message || 'Silakan coba lagi atau hubungi admin untuk registrasi wajah';
+        let statusMessage = 'Wajah tidak dikenali';
 
-          setFaceState({
-            status: 'failed',
-            message: statusMessage,
-            error: errorMessage,
-          });
+        // Handle case where face is matched but employee data is missing in response
+        if (isMatched && !employee) {
+          statusMessage = 'Data Karyawan Tidak Ditemukan';
+          errorMessage = 'Wajah dikenali di sistem tetapi data karyawan terkait tidak ditemukan.';
         }
-      } catch (error: any) {
-        console.error('DeepFace verification error:', error);
+
         setFaceState({
           status: 'failed',
-          message: 'Gagal memverifikasi wajah',
-          error: error.response?.data?.message || error.message || 'Terjadi kesalahan saat verifikasi',
+          message: statusMessage,
+          error: errorMessage,
         });
+        throw new Error(errorMessage);
       }
-
-    }, 'image/jpeg', 0.95);
+    } catch (error: any) {
+      console.error('DeepFace verification error:', error);
+      setFaceState({
+        status: 'failed',
+        message: 'Gagal memverifikasi wajah',
+        error: error.response?.data?.message || error.message || 'Terjadi kesalahan saat verifikasi',
+      });
+      throw error;
+    }
   };
 
   const getCurrentLocation = (): Promise<{ latitude: number; longitude: number }> => {

@@ -1,4 +1,5 @@
 import { ChevronLeft } from 'lucide-react';
+import { useNavigate } from '@tanstack/react-router';
 import { cn } from '@/lib/utils';
 
 interface MobilePageHeaderProps {
@@ -8,9 +9,14 @@ interface MobilePageHeaderProps {
   title: string;
 
   /**
-   * Callback when back button is clicked
+   * Callback when back button is clicked (optional if backTo is provided)
    */
-  onBack: () => void;
+  onBack?: () => void;
+
+  /**
+   * Path to navigate back to (alternative to onBack)
+   */
+  backTo?: string;
 
   /**
    * Gradient color scheme
@@ -19,9 +25,19 @@ interface MobilePageHeaderProps {
   gradient?: 'blue' | 'violet' | 'indigo' | 'emerald' | 'pink' | 'amber' | 'gray' | 'green' | 'teal' | 'cyan' | 'rose' | 'orange';
 
   /**
-   * Optional action buttons displayed on the right
+   * Optional action buttons displayed on the right (legacy prop)
    */
   actions?: React.ReactNode;
+
+  /**
+   * Optional action displayed on the right side (alias for actions)
+   */
+  rightAction?: React.ReactNode;
+
+  /**
+   * Optional subtitle content displayed below the title
+   */
+  subtitle?: React.ReactNode;
 
   /**
    * Optional className for the wrapper
@@ -70,31 +86,52 @@ const gradientClasses = {
 export function MobilePageHeader({
   title,
   onBack,
+  backTo,
   gradient = 'blue',
   actions,
+  rightAction,
+  subtitle,
   className,
 }: MobilePageHeaderProps) {
+  const navigate = useNavigate();
+
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else if (backTo) {
+      navigate({ to: backTo });
+    } else {
+      window.history.back();
+    }
+  };
+
+  // Use rightAction if provided, otherwise fall back to actions
+  const actionContent = rightAction || actions;
+
   return (
     <div className={cn('px-4 pt-3 pb-3 sticky top-0 z-20', className)}>
       <div className="bg-card/80 dark:bg-card/60 backdrop-blur-md rounded-3xl p-1.5 shadow-xl border border-border/40 dark:border-border/30">
         <div
           className={cn(
-            'px-4 py-3 rounded-[20px] flex items-center gap-3 shadow-lg bg-gradient-to-r',
+            'px-4 py-3 rounded-[20px] shadow-lg bg-gradient-to-r',
             gradientClasses[gradient]
           )}
         >
-          <button
-            onClick={onBack}
-            className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
-            title="Kembali"
-            aria-label="Kembali"
-          >
-            <ChevronLeft className="h-5 w-5 text-white" />
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleBack}
+              className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
+              title="Kembali"
+              aria-label="Kembali"
+            >
+              <ChevronLeft className="h-5 w-5 text-white" />
+            </button>
 
-          <h1 className="text-base font-bold text-white flex-1">{title}</h1>
+            <h1 className="text-base font-bold text-white flex-1">{title}</h1>
 
-          {actions}
+            {actionContent}
+          </div>
+          {subtitle && <div className="mt-1 ml-10">{subtitle}</div>}
         </div>
       </div>
     </div>

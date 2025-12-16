@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Contracts\Services\AttendanceServiceInterface;
+use App\Models\AuditLog;
 use App\Models\Employee;
 use App\Models\Attendance;
 use App\Models\Location;
@@ -195,6 +196,21 @@ class AttendanceService implements AttendanceServiceInterface
             // Send email notification (queued)
             $this->emailService->sendCheckInEmail($employee, $attendance);
 
+            // Log check-in to audit log
+            if ($employee->user) {
+                AuditLog::createAuthLog('check_in', $employee->user, [
+                    'employee_id' => $employee->id,
+                    'employee_name' => $employee->name,
+                    'time' => $attendanceTime['formatted']['time'],
+                    'date' => $attendanceTime['formatted']['date'],
+                    'status' => $attendance->status,
+                    'location' => [
+                        'latitude' => $locationData['latitude'] ?? null,
+                        'longitude' => $locationData['longitude'] ?? null,
+                    ],
+                ]);
+            }
+
             return $attendance;
         });
     }
@@ -281,9 +297,9 @@ class AttendanceService implements AttendanceServiceInterface
                 'metadata' => $metadata,
             ];
 
-            // Update status if early leave
-            if ($checkOutStatus === 'early_leave') {
-                $updateData['status'] = 'early_leave';
+            // Update status if early departure
+            if ($checkOutStatus === 'early_departure') {
+                $updateData['status'] = 'early_departure';
             }
 
             $attendance->update($updateData);
@@ -300,6 +316,21 @@ class AttendanceService implements AttendanceServiceInterface
 
             // Send email notification (queued)
             $this->emailService->sendCheckOutEmail($employee, $attendance);
+
+            // Log check-out to audit log
+            if ($employee->user) {
+                AuditLog::createAuthLog('check_out', $employee->user, [
+                    'employee_id' => $employee->id,
+                    'employee_name' => $employee->name,
+                    'time' => Carbon::now()->format('H:i'),
+                    'total_hours' => $totalHours,
+                    'status' => $attendance->status,
+                    'location' => [
+                        'latitude' => $locationData['latitude'] ?? null,
+                        'longitude' => $locationData['longitude'] ?? null,
+                    ],
+                ]);
+            }
 
             return $attendance->fresh();
         });
@@ -354,7 +385,7 @@ class AttendanceService implements AttendanceServiceInterface
             'present_days' => $attendances->whereNotNull('check_in')->count(),
             'absent_days' => $attendances->whereNull('check_in')->count(),
             'late_days' => $attendances->where('status', 'late')->count(),
-            'early_leave_days' => $attendances->where('status', 'early_leave')->count(),
+            'early_leave_days' => $attendances->where('status', 'early_departure')->count(),
             'total_working_hours' => $attendances->sum('working_hours'),
             'total_overtime_hours' => $attendances->sum('overtime_hours'),
             'attendance_rate' => $attendances->count() > 0
@@ -478,14 +509,15 @@ class AttendanceService implements AttendanceServiceInterface
         $checkOut = Carbon::parse($attendance->check_out_time);
 
         // Subtract break time if configured
-        $workingMinutes = $checkOut->diffInMinutes($checkIn);
+        // Use absolute difference to avoid negative values from timezone issues
+        $workingMinutes = abs($checkIn->diffInMinutes($checkOut));
         $breakMinutes = config('attendance.break_duration_minutes', 60);
 
         if ($workingMinutes > config('attendance.minimum_hours_for_break', 240)) {
             $workingMinutes -= $breakMinutes;
         }
 
-        return round($workingMinutes / 60, 2);
+        return max(0, round($workingMinutes / 60, 2));
     }
 
     /**
@@ -595,7 +627,7 @@ class AttendanceService implements AttendanceServiceInterface
             if ($defaultEndTime) {
                 $endTimeThreshold = Carbon::parse($time->format('Y-m-d') . ' ' . $defaultEndTime);
                 if ($time->lt($endTimeThreshold)) {
-                    return 'early_leave';
+                    return 'early_departure';
                 }
             }
         }
@@ -612,9 +644,9 @@ class AttendanceService implements AttendanceServiceInterface
         $boundaries = $employee->getGuruHonorerCheckOutBoundaries($time);
 
         if ($boundaries['has_schedule'] && $boundaries['early_leave_before']) {
-            // Early leave if check-out before teaching_end_time (last session)
+            // Early departure if check-out before teaching_end_time (last session)
             if ($time->lt($boundaries['early_leave_before'])) {
-                return 'early_leave';
+                return 'early_departure';
             }
         }
 

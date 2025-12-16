@@ -38,7 +38,7 @@ Semua halaman mobile **WAJIB** menggunakan component `MobilePageHeader` untuk ko
 | Keuangan | `amber` | Payroll |
 | Pengguna | `violet` | Users, Profile, Employees |
 | Lokasi | `cyan` | Locations |
-| Pengaturan | `slate` | Settings, Master Data |
+| Pengaturan | `gray` | Settings, Master Data |
 | Laporan | `rose` | Reports |
 | Hari Libur | `pink` | Holidays |
 
@@ -71,7 +71,7 @@ Semua halaman mobile **WAJIB** menggunakan component `MobilePageHeader` untuk ko
 ```tsx
 interface MobilePageHeaderProps {
   title: string;
-  gradient: 'blue' | 'emerald' | 'indigo' | 'teal' | 'amber' | 'violet' | 'cyan' | 'slate' | 'rose' | 'pink';
+  gradient: 'blue' | 'emerald' | 'indigo' | 'teal' | 'amber' | 'violet' | 'cyan' | 'gray' | 'rose' | 'pink' | 'green' | 'orange';
   backTo?: string;
   onBack?: () => void;
   showSearch?: boolean;
@@ -484,43 +484,47 @@ Gunakan checklist ini saat membuat/memperbaiki halaman mobile:
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Update `MobilePageHeader` component | [ ] Pending | Add gradient system, rightAction, subtitle props |
-| Create `MobileEmptyState` component | [ ] Pending | Reusable empty state |
-| Create `MobileStatusBadge` component | [ ] Pending | Centralized status colors |
-| Create `statusColors` utility | [ ] Pending | Shared color definitions |
+| Update `MobilePageHeader` component | [x] Done | Gradient system, rightAction, subtitle, fallback to history.back() |
+| Create `MobileEmptyState` component | [x] Done | Reusable empty state with card wrapper |
+| Create `MobileStatusBadge` component | [x] Done | Centralized status colors (inline config) |
+| Create `statusColors` utility | [x] Done | `/lib/status-colors.ts` with helper functions |
 
 ### Phase 2: Employee Pages
 
 | Page | Status | File Path |
 |------|--------|-----------|
-| Employee Dashboard | [ ] Pending | `/pages/employee/dashboard/mobile.tsx` |
-| Employee Attendance | [ ] Pending | `/pages/employee/attendance/mobile.tsx` |
-| Employee Leave | [ ] Pending | `/pages/employee/leave/mobile.tsx` |
-| Employee Corrections | [ ] Pending | `/pages/employee/corrections/mobile.tsx` |
-| Employee Profile | [ ] Pending | `/pages/employee/profile/mobile.tsx` |
-| Employee Schedule | [ ] Pending | `/pages/employee/schedule/mobile.tsx` |
-| Employee Teaching Schedule | [ ] Pending | `/pages/employee/teaching-schedule/mobile.tsx` |
-| Employee Payroll | [ ] Pending | `/pages/employee/payroll/mobile.tsx` |
-| Employee Reports | [ ] Pending | `/pages/employee/reports/mobile.tsx` |
+| Employee Dashboard | [x] Done | `/pages/employee/dashboard/mobile.tsx` |
+| Employee Attendance | [x] Done | `/pages/employee/attendance/mobile.tsx` |
+| Employee Leave | [x] Done | `/pages/employee/leave/mobile.tsx` |
+| Employee Corrections | [x] Done | `/pages/employee/corrections/mobile.tsx` |
+| Employee Profile | [x] Done | `/pages/employee/profile/mobile.tsx` |
+| Employee Schedule | [x] Done | `/pages/employee/schedule/mobile.tsx` |
+| Employee Teaching Schedule | [x] Done | `/pages/employee/teaching-schedule/mobile.tsx` |
+| Employee Payroll | [x] Done | `/pages/employee/payroll/mobile.tsx` |
+| Employee Reports | [x] Done | `/pages/employee/reports/mobile.tsx` |
 
 ### Phase 3: Admin Pages
 
 | Page | Status | File Path |
 |------|--------|-----------|
-| Admin Dashboard | [ ] Pending | `/pages/admin/dashboard/mobile.tsx` |
-| Admin Attendance | [ ] Pending | `/pages/admin/attendance/mobile.tsx` |
-| Admin Leave | [ ] Pending | `/pages/admin/leave/mobile.tsx` |
-| Admin Corrections | [ ] Pending | `/pages/admin/corrections/mobile.tsx` |
-| Admin Schedules | [ ] Pending | `/pages/admin/schedules/mobile.tsx` |
-| Admin Employees | [ ] Pending | `/pages/admin/employees/mobile.tsx` |
-| Admin Users | [ ] Pending | `/pages/admin/users/mobile.tsx` |
-| Admin Locations | [ ] Pending | `/pages/admin/locations/mobile.tsx` |
-| Admin Holidays | [ ] Pending | `/pages/admin/holidays/mobile.tsx` |
-| Admin Payroll | [ ] Pending | `/pages/admin/payroll/mobile.tsx` |
-| Admin Settings | [ ] Pending | `/pages/admin/settings/mobile.tsx` |
-| Admin Reports | [ ] Pending | `/pages/admin/reports/mobile.tsx` |
-| Admin Face Recognition | [ ] Pending | `/pages/admin/face-recognition/mobile.tsx` |
-| Admin Security | [ ] Pending | `/pages/admin/security/mobile.tsx` |
+| Admin Dashboard | [x] Done | `/pages/admin/dashboard/mobile.tsx` |
+| Admin Attendance | [x] Done | `/pages/admin/attendance/mobile.tsx` |
+| Admin Leave | [x] Done | `/pages/admin/leave/mobile.tsx` |
+| Admin Corrections | [x] Done | `/pages/admin/corrections/mobile.tsx` |
+| Admin Schedules | [x] Already OK | `/pages/admin/schedules/mobile.tsx` |
+| Admin Employees | [x] Already OK | `/pages/admin/employees/mobile.tsx` |
+| Admin Users | [x] Done | `/pages/admin/users/mobile.tsx` |
+| Admin Locations | [x] Done | `/pages/admin/locations/mobile.tsx` |
+| Admin Holidays | [x] Done | `/pages/admin/holidays/mobile.tsx` |
+| Admin Payroll | [x] Done | `/pages/admin/payroll/mobile.tsx` |
+| Admin Settings | [x] Done | `/pages/admin/settings/mobile.tsx` |
+| Admin Reports | [x] Done | `/pages/admin/reports/mobile.tsx` |
+
+### Special Pages
+
+| Page | Status | Notes |
+|------|--------|-------|
+| Main Attendance | [x] Custom | `/pages/attendance/mobile.tsx` - Custom header with greeting, real-time clock, and check-in/out buttons. Intentionally unique design.
 
 ---
 
@@ -548,7 +552,7 @@ Gunakan checklist ini saat membuat/memperbaiki halaman mobile:
 │ HEADER GRADIENTS                                            │
 │ Dashboard: blue    │ Attendance: emerald │ Schedule: indigo │
 │ Leave: teal        │ Payroll: amber      │ Users: violet    │
-│ Locations: cyan    │ Settings: slate     │ Reports: rose    │
+│ Locations: cyan    │ Settings: gray      │ Reports: rose    │
 │ Holidays: pink     │                     │                  │
 └─────────────────────────────────────────────────────────────┘
 ```

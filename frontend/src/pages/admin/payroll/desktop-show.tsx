@@ -3,24 +3,23 @@ import {
     ArrowLeft,
     Download,
     Printer,
-    DollarSign,
-    Calendar,
     User,
     Building,
     Clock,
     TrendingUp,
     TrendingDown,
     Loader2,
+    Calendar,
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { payrollStatusLabels, payrollStatusColors, type PayrollEmployee } from '@/types/payroll';
+import { payrollStatusLabels, payrollStatusColors, type PayrollEmployeeDetail } from '@/types/payroll';
 
 interface DesktopPayrollShowPageProps {
-    payroll: PayrollEmployee | null;
+    payroll: PayrollEmployeeDetail | null;
     isLoading: boolean;
     error: Error | null;
 }
@@ -31,7 +30,7 @@ export function DesktopPayrollShowPage({ payroll, isLoading, error }: DesktopPay
             style: 'currency',
             currency: 'IDR',
             minimumFractionDigits: 0,
-        }).format(amount);
+        }).format(amount || 0);
     };
 
     if (isLoading) {
@@ -63,14 +62,8 @@ export function DesktopPayrollShowPage({ payroll, isLoading, error }: DesktopPay
         );
     }
 
-    const totalEarnings =
-        payroll.base_salary +
-        payroll.position_allowance +
-        payroll.transport_allowance +
-        payroll.meal_allowance +
-        payroll.overtime_pay +
-        payroll.bonus +
-        payroll.other_allowances;
+    // Calculate bonus total from itemized data
+    const totalBonuses = payroll.bonuses?.reduce((sum, item) => sum + (item.amount || 0), 0) || 0;
 
     return (
         <div className="p-4 sm:p-6 max-w-4xl mx-auto">
@@ -87,7 +80,7 @@ export function DesktopPayrollShowPage({ payroll, isLoading, error }: DesktopPay
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-foreground">Slip Gaji</h1>
-                        <p className="text-sm text-muted-foreground">{payroll.employee_name}</p>
+                        <p className="text-sm text-muted-foreground">{payroll.employee?.name}</p>
                     </div>
                     <div className="flex items-center gap-2">
                         <Button variant="outline" size="sm">
@@ -112,59 +105,79 @@ export function DesktopPayrollShowPage({ payroll, isLoading, error }: DesktopPay
                                     <User className="h-8 w-8 text-primary" />
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-bold">{payroll.employee_name}</h2>
+                                    <h2 className="text-xl font-bold">{payroll.employee?.name}</h2>
                                     <p className="text-sm text-muted-foreground">
-                                        {payroll.employee_nip} | {payroll.position}
+                                        {payroll.employee?.employee_code} {payroll.employee?.position && `| ${payroll.employee.position}`}
                                     </p>
-                                    <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-                                        <Building className="h-3 w-3" />
-                                        {payroll.department}
-                                    </div>
+                                    {payroll.employee?.department && (
+                                        <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                                            <Building className="h-3 w-3" />
+                                            {payroll.employee.department}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <Badge
                                 variant="outline"
                                 style={{
-                                    backgroundColor: `${payrollStatusColors[payroll.status]}20`,
-                                    borderColor: payrollStatusColors[payroll.status],
-                                    color: payrollStatusColors[payroll.status],
+                                    backgroundColor: `${payrollStatusColors[payroll.status] || '#9CA3AF'}20`,
+                                    borderColor: payrollStatusColors[payroll.status] || '#9CA3AF',
+                                    color: payrollStatusColors[payroll.status] || '#9CA3AF',
                                 }}
                             >
-                                {payrollStatusLabels[payroll.status]}
+                                {payrollStatusLabels[payroll.status] || payroll.status}
                             </Badge>
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* Attendance Summary */}
+                {/* Period Info */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                            <Calendar className="h-5 w-5 text-primary" />
+                            Periode Gaji
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                            <div className="text-center p-3 rounded-lg bg-muted">
+                                <p className="text-sm font-medium">{payroll.period?.name}</p>
+                                <p className="text-xs text-muted-foreground">Periode</p>
+                            </div>
+                            <div className="text-center p-3 rounded-lg bg-muted">
+                                <p className="text-sm font-medium">{payroll.period?.start_date}</p>
+                                <p className="text-xs text-muted-foreground">Mulai</p>
+                            </div>
+                            <div className="text-center p-3 rounded-lg bg-muted">
+                                <p className="text-sm font-medium">{payroll.period?.end_date}</p>
+                                <p className="text-xs text-muted-foreground">Selesai</p>
+                            </div>
+                            <div className="text-center p-3 rounded-lg bg-muted">
+                                <p className="text-sm font-medium">{payroll.period?.pay_date || '-'}</p>
+                                <p className="text-xs text-muted-foreground">Tanggal Bayar</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Work Summary */}
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-lg">
                             <Clock className="h-5 w-5 text-primary" />
-                            Rekap Kehadiran
+                            Rekap Kerja
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
                             <div className="text-center p-3 rounded-lg bg-muted">
-                                <p className="text-2xl font-bold">{payroll.working_days}</p>
-                                <p className="text-xs text-muted-foreground">Hari Kerja</p>
-                            </div>
-                            <div className="text-center p-3 rounded-lg bg-success/10">
-                                <p className="text-2xl font-bold text-success">{payroll.present_days}</p>
-                                <p className="text-xs text-muted-foreground">Hadir</p>
-                            </div>
-                            <div className="text-center p-3 rounded-lg bg-warning/10">
-                                <p className="text-2xl font-bold text-warning">{payroll.late_days}</p>
-                                <p className="text-xs text-muted-foreground">Terlambat</p>
-                            </div>
-                            <div className="text-center p-3 rounded-lg bg-destructive/10">
-                                <p className="text-2xl font-bold text-destructive">{payroll.absent_days}</p>
-                                <p className="text-xs text-muted-foreground">Tidak Hadir</p>
+                                <p className="text-2xl font-bold">{payroll.worked_hours || 0}h</p>
+                                <p className="text-xs text-muted-foreground">Jam Kerja</p>
                             </div>
                             <div className="text-center p-3 rounded-lg bg-primary/10">
-                                <p className="text-2xl font-bold text-primary">{payroll.overtime_hours}h</p>
-                                <p className="text-xs text-muted-foreground">Lembur</p>
+                                <p className="text-2xl font-bold text-primary">{payroll.overtime_hours || 0}h</p>
+                                <p className="text-xs text-muted-foreground">Jam Lembur</p>
                             </div>
                         </div>
                     </CardContent>
@@ -181,42 +194,32 @@ export function DesktopPayrollShowPage({ payroll, isLoading, error }: DesktopPay
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                            <div className="flex justify-between">
-                                <span className="text-sm">Gaji Pokok</span>
-                                <span className="font-medium">{formatCurrency(payroll.base_salary)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-sm">Tunjangan Jabatan</span>
-                                <span className="font-medium">{formatCurrency(payroll.position_allowance)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-sm">Tunjangan Transport</span>
-                                <span className="font-medium">{formatCurrency(payroll.transport_allowance)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-sm">Tunjangan Makan</span>
-                                <span className="font-medium">{formatCurrency(payroll.meal_allowance)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-sm">Lembur</span>
-                                <span className="font-medium">{formatCurrency(payroll.overtime_pay)}</span>
-                            </div>
-                            {payroll.bonus > 0 && (
-                                <div className="flex justify-between">
-                                    <span className="text-sm">Bonus</span>
-                                    <span className="font-medium">{formatCurrency(payroll.bonus)}</span>
-                                </div>
+                            {payroll.earnings?.length > 0 ? (
+                                payroll.earnings.map((item, index) => (
+                                    <div key={item.id || index} className="flex justify-between">
+                                        <span className="text-sm">{item.name || 'Item'}</span>
+                                        <span className="font-medium">{formatCurrency(item.amount)}</span>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-sm text-muted-foreground">Tidak ada data pendapatan</p>
                             )}
-                            {payroll.other_allowances > 0 && (
-                                <div className="flex justify-between">
-                                    <span className="text-sm">Tunjangan Lainnya</span>
-                                    <span className="font-medium">{formatCurrency(payroll.other_allowances)}</span>
-                                </div>
+                            {totalBonuses > 0 && (
+                                <>
+                                    <Separator />
+                                    <p className="text-xs text-muted-foreground font-medium">Bonus</p>
+                                    {payroll.bonuses?.map((item, index) => (
+                                        <div key={item.id || index} className="flex justify-between">
+                                            <span className="text-sm">{item.name || 'Bonus'}</span>
+                                            <span className="font-medium">{formatCurrency(item.amount)}</span>
+                                        </div>
+                                    ))}
+                                </>
                             )}
                             <Separator />
                             <div className="flex justify-between font-bold">
                                 <span>Total Pendapatan</span>
-                                <span className="text-success">{formatCurrency(totalEarnings)}</span>
+                                <span className="text-success">{formatCurrency(payroll.gross_salary)}</span>
                             </div>
                         </CardContent>
                     </Card>
@@ -230,41 +233,15 @@ export function DesktopPayrollShowPage({ payroll, isLoading, error }: DesktopPay
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                            <div className="flex justify-between">
-                                <span className="text-sm">BPJS Kesehatan</span>
-                                <span className="font-medium">{formatCurrency(payroll.bpjs_kesehatan)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-sm">BPJS Ketenagakerjaan</span>
-                                <span className="font-medium">{formatCurrency(payroll.bpjs_ketenagakerjaan)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-sm">PPh 21</span>
-                                <span className="font-medium">{formatCurrency(payroll.tax)}</span>
-                            </div>
-                            {payroll.late_deduction > 0 && (
-                                <div className="flex justify-between">
-                                    <span className="text-sm">Denda Terlambat</span>
-                                    <span className="font-medium">{formatCurrency(payroll.late_deduction)}</span>
-                                </div>
-                            )}
-                            {payroll.absence_deduction > 0 && (
-                                <div className="flex justify-between">
-                                    <span className="text-sm">Potongan Tidak Hadir</span>
-                                    <span className="font-medium">{formatCurrency(payroll.absence_deduction)}</span>
-                                </div>
-                            )}
-                            {payroll.loan_deduction > 0 && (
-                                <div className="flex justify-between">
-                                    <span className="text-sm">Potongan Pinjaman</span>
-                                    <span className="font-medium">{formatCurrency(payroll.loan_deduction)}</span>
-                                </div>
-                            )}
-                            {payroll.other_deductions > 0 && (
-                                <div className="flex justify-between">
-                                    <span className="text-sm">Potongan Lainnya</span>
-                                    <span className="font-medium">{formatCurrency(payroll.other_deductions)}</span>
-                                </div>
+                            {payroll.deductions?.length > 0 ? (
+                                payroll.deductions.map((item, index) => (
+                                    <div key={item.id || index} className="flex justify-between">
+                                        <span className="text-sm">{item.name || 'Potongan'}</span>
+                                        <span className="font-medium">{formatCurrency(item.amount)}</span>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-sm text-muted-foreground">Tidak ada potongan</p>
                             )}
                             <Separator />
                             <div className="flex justify-between font-bold">
@@ -276,27 +253,34 @@ export function DesktopPayrollShowPage({ payroll, isLoading, error }: DesktopPay
                 </div>
 
                 {/* Net Salary */}
-                <Card className="bg-primary/5 border-primary/20">
-                    <CardContent className="p-4 sm:p-6">
+                <Card className="border-primary">
+                    <CardContent className="p-6">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div className="flex items-center gap-3">
-                                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                                    <DollarSign className="h-6 w-6 text-primary" />
-                                </div>
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Gaji Bersih</p>
-                                    <p className="text-3xl font-bold text-primary">
-                                        {formatCurrency(payroll.net_salary)}
-                                    </p>
-                                </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">Gaji Bersih (Take Home Pay)</p>
+                                <p className="text-3xl font-bold text-primary">
+                                    {formatCurrency(payroll.net_salary)}
+                                </p>
                             </div>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Calendar className="h-4 w-4" />
-                                Dibuat: {new Date(payroll.created_at).toLocaleDateString('id-ID')}
+                            <div className="text-sm text-muted-foreground text-right">
+                                <p>Pendapatan: {formatCurrency(payroll.gross_salary)}</p>
+                                <p>Potongan: -{formatCurrency(payroll.total_deductions)}</p>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
+
+                {/* Notes */}
+                {payroll.notes && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg">Catatan</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-sm text-muted-foreground">{payroll.notes}</p>
+                        </CardContent>
+                    </Card>
+                )}
             </div>
         </div>
     );

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { CameraOff, CheckCircle2, XCircle, Loader2, Smile } from 'lucide-react';
+import { CameraOff, XCircle, Loader2, Smile } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
@@ -265,25 +265,14 @@ export function AutoCaptureFace({
                                 {/* Smile Prompt */}
                                 {livenessStep === 'smile_prompt' && (
                                     <div className="flex flex-col items-center gap-3 animate-in fade-in slide-in-from-bottom-3">
-                                        <div className={cn(
-                                            "p-3 rounded-full border-2",
-                                            isSmiling
-                                                ? "bg-green-500/20 border-green-500"
-                                                : "bg-yellow-500/20 border-yellow-500 animate-bounce"
-                                        )}>
-                                            <Smile className={cn(
-                                                "w-8 h-8",
-                                                isSmiling ? "text-green-400" : "text-yellow-400"
-                                            )} />
+                                        <div className="p-3 rounded-full border-2 bg-yellow-500/20 border-yellow-500 animate-bounce">
+                                            <Smile className="w-8 h-8 text-yellow-400" />
                                         </div>
                                         <Badge
                                             variant="default"
-                                            className={cn(
-                                                "px-4 py-1 text-sm",
-                                                isSmiling ? "bg-green-600" : "bg-yellow-600"
-                                            )}
+                                            className="px-4 py-1 text-sm bg-yellow-600"
                                         >
-                                            {isSmiling ? '😊 Senyum terdeteksi!' : '😊 Silakan Senyum!'}
+                                            😊 Silakan Tersenyum
                                         </Badge>
                                         {/* Smile progress */}
                                         <div className="w-32">
@@ -301,19 +290,14 @@ export function AutoCaptureFace({
                             </div>
                         )}
 
-                        {/* Processing */}
-                        {livenessStep === 'capturing' && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm z-40">
-                                <Loader2 className="h-12 w-12 text-primary animate-spin" />
-                                <p className="mt-4 text-lg font-medium text-white">Memproses...</p>
-                            </div>
-                        )}
-
-                        {/* Success */}
-                        {livenessStep === 'success' && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-green-600/80 backdrop-blur-sm z-40 animate-in fade-in zoom-in">
-                                <CheckCircle2 className="h-20 w-20 text-white drop-shadow-lg" />
-                                <p className="mt-4 text-xl font-bold text-white">Berhasil!</p>
+                        {/* Processing / Verifying */}
+                        {(livenessStep === 'capturing' || livenessStep === 'success') && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm z-40">
+                                <Loader2 className="h-12 w-12 text-blue-400 animate-spin" />
+                                <p className="mt-4 text-lg font-medium text-white">Memverifikasi wajah...</p>
+                                <p className="mt-2 text-sm text-white/70 text-center px-6">
+                                    Pastikan wajah tetap berada di area frame
+                                </p>
                             </div>
                         )}
                     </>

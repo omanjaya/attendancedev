@@ -41,7 +41,7 @@ export interface TodayAttendance {
 
 // Attendance filters
 export interface AttendanceFilters {
-  employee_id?: number;
+  employee_id?: string | number; // UUID string or legacy number
   date_from?: string;
   date_to?: string;
   month?: string;

@@ -249,9 +249,9 @@ export function MobileAdminLeavePage() {
       {/* Header */}
       <MobilePageHeader
         title="Kelola Cuti"
-        onBack={() => navigate({ to: '/admin/dashboard' })}
-        gradient="indigo"
-        actions={
+        backTo="/admin/dashboard"
+        gradient="teal"
+        rightAction={
           <button className="p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95">
             <Search className="h-5 w-5 text-white" />
           </button>
@@ -380,15 +380,13 @@ export function MobileAdminLeavePage() {
 
       {/* FAB - Create Request */}
       {hasPermission('create_leave_requests') && (
-        <div className="fixed bottom-6 right-6 z-50">
-          <Button
-            size="icon"
-            className="h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90"
-            onClick={() => navigate({ to: '/admin/leave/create' })}
-          >
-            <Plus className="h-6 w-6" />
-          </Button>
-        </div>
+        <Button
+          size="icon"
+          className="fixed bottom-24 right-4 h-14 w-14 rounded-full shadow-lg z-50 bg-teal-600 hover:bg-teal-700"
+          onClick={() => navigate({ to: '/admin/leave/create' })}
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
       )}
 
       {/* Reject Drawer */}

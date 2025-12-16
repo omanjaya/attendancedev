@@ -16,11 +16,18 @@ class AttendanceApiController extends BaseApiController
     ) {}
     public function index(Request $request)
     {
+        $user = $request->user();
         $query = Attendance::query()
             ->with(['employee:id,employee_id,full_name']);
 
-        // Apply filters
-        if ($employeeId = $request->get('employee_id')) {
+        // SECURITY: Employee/Guru role can only see their own attendance
+        if ($user->hasRole(['pegawai', 'guru'])) {
+            if (!$user->employee) {
+                return $this->apiResponse([], 'No employee data');
+            }
+            $query->where('employee_id', $user->employee->id);
+        } elseif ($employeeId = $request->get('employee_id')) {
+            // Admin/Super Admin can filter by specific employee
             $query->where('employee_id', $employeeId);
         }
 
@@ -227,14 +234,14 @@ class AttendanceApiController extends BaseApiController
             $boundaries = $employee->getGuruHonorerCheckInBoundaries($now);
 
             if (!$boundaries['has_schedule']) {
-                // No teaching schedule, but still allow check-in (will be recorded without schedule reference)
+                // No teaching schedule - BLOCK check-in for guru honorer
                 return $this->apiResponse([
-                    'allowed' => true,
-                    'message' => 'Tidak ada jadwal mengajar hari ini, namun Anda tetap dapat melakukan absensi',
+                    'allowed' => false,
+                    'message' => 'Tidak ada jadwal mengajar hari ini. Anda tidak dapat melakukan absensi.',
                     'server_time' => $now->format('H:i:s'),
                     'schedule_type' => 'no_teaching',
                     'has_teaching_schedule' => false,
-                ], 'Validation passed');
+                ], 'Tidak dapat absen', 403);
             }
 
             // Check if will be late (after first session start)
@@ -257,14 +264,14 @@ class AttendanceApiController extends BaseApiController
             $boundaries = $employee->getGuruHonorerCheckOutBoundaries($now);
 
             if (!$boundaries['has_schedule']) {
-                // No teaching schedule, but still allow check-out
+                // No teaching schedule - BLOCK check-out for guru honorer
                 return $this->apiResponse([
-                    'allowed' => true,
-                    'message' => 'Tidak ada jadwal mengajar hari ini, namun Anda tetap dapat melakukan absensi pulang',
+                    'allowed' => false,
+                    'message' => 'Tidak ada jadwal mengajar hari ini. Anda tidak dapat melakukan absensi pulang.',
                     'server_time' => $now->format('H:i:s'),
                     'schedule_type' => 'no_teaching',
                     'has_teaching_schedule' => false,
-                ], 'Validation passed');
+                ], 'Tidak dapat absen', 403);
             }
 
             // Check if will be early leave (before last session ends)

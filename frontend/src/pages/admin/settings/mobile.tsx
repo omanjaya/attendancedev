@@ -21,9 +21,8 @@ import {
     MapPin,
     Users,
     Settings,
-    ChevronLeft,
 } from 'lucide-react';
-import { useNavigate } from '@tanstack/react-router';
+import { MobilePageHeader } from '@/components/mobile';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -66,7 +65,6 @@ import {
 import { cn } from '@/lib/utils';
 
 export function MobileSettingsPage() {
-    const navigate = useNavigate();
     const { data: settings, isLoading } = useSettings();
     const updateAppearance = useUpdateAppearance();
     const updateNotifications = useUpdateNotifications();
@@ -170,46 +168,37 @@ export function MobileSettingsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-muted/30 via-background to-background dark:from-gray-950 dark:via-gray-900 dark:to-gray-900 pb-24">
-            {/* Header Wrapper */}
-            <div className="px-4 pt-3 pb-3 sticky top-0 z-20">
-                <div className="bg-card/80 dark:bg-card/60 backdrop-blur-md rounded-3xl p-1.5 shadow-xl border border-border/40 dark:border-border/30">
-                    <div className="bg-gradient-to-r from-gray-800 to-gray-900 dark:from-gray-900 dark:to-black px-4 py-3 rounded-[20px] flex items-center gap-3 shadow-lg">
+        <div className="min-h-screen bg-background pb-24">
+            <MobilePageHeader
+                title="Pengaturan"
+                backTo="/admin/dashboard"
+                gradient="gray"
+                rightAction={
+                    <div className="flex gap-1">
                         <button
-                            onClick={() => navigate({ to: '/admin/dashboard' })}
-                            className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
-                            title="Kembali ke Dashboard"
-                            aria-label="Kembali ke Dashboard"
+                            onClick={handleExportSettings}
+                            disabled={exportSettings.isPending}
+                            className="p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
+                            title="Ekspor Pengaturan"
+                            aria-label="Ekspor Pengaturan"
                         >
-                            <ChevronLeft className="h-5 w-5 text-white" />
+                            {exportSettings.isPending ? (
+                                <Loader2 className="h-5 w-5 text-white animate-spin" />
+                            ) : (
+                                <Download className="h-5 w-5 text-white" />
+                            )}
                         </button>
-                        <h1 className="text-base font-bold text-white flex-1">Pengaturan</h1>
-                        <div className="flex gap-1">
-                            <button
-                                onClick={handleExportSettings}
-                                disabled={exportSettings.isPending}
-                                className="p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
-                                title="Ekspor Pengaturan"
-                                aria-label="Ekspor Pengaturan"
-                            >
-                                {exportSettings.isPending ? (
-                                    <Loader2 className="h-5 w-5 text-white animate-spin" />
-                                ) : (
-                                    <Download className="h-5 w-5 text-white" />
-                                )}
-                            </button>
-                            <button
-                                onClick={() => setResetDialog(true)}
-                                className="p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
-                                title="Reset Pengaturan"
-                                aria-label="Reset Pengaturan"
-                            >
-                                <RotateCcw className="h-5 w-5 text-white" />
-                            </button>
-                        </div>
+                        <button
+                            onClick={() => setResetDialog(true)}
+                            className="p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
+                            title="Reset Pengaturan"
+                            aria-label="Reset Pengaturan"
+                        >
+                            <RotateCcw className="h-5 w-5 text-white" />
+                        </button>
                     </div>
-                </div>
-            </div>
+                }
+            />
 
             {/* Success Message */}
             {successMessage && (
@@ -242,7 +231,7 @@ export function MobileSettingsPage() {
 
                 {/* Appearance Tab */}
                 <TabsContent value="appearance" className="px-4 space-y-4 mt-0">
-                    <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 shadow-sm border border-border/50">
+                    <div className="bg-card rounded-2xl shadow-sm dark:border dark:border-border/50 p-4">
                         <h3 className="text-sm font-bold text-foreground mb-4">Tema Aplikasi</h3>
                         <div className="grid grid-cols-3 gap-3">
                             {(['light', 'dark', 'system'] as Theme[]).map((theme) => (

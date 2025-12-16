@@ -9,11 +9,13 @@ import {
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { MobilePageHeader, MobileEmptyState } from '@/components/mobile';
 import { SearchBar } from '@/components/shared';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useNotificationStore } from '@/stores';
 import {
     getAdminAttendanceStats,
@@ -75,33 +77,47 @@ export function MobileAdminAttendancePage() {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'present': return 'bg-green-100 text-green-700 border-green-200';
-            case 'late': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-            case 'absent': return 'bg-red-100 text-red-700 border-red-200';
-            case 'leave': return 'bg-blue-100 text-blue-700 border-blue-200';
-            case 'pending': return 'bg-orange-100 text-orange-700 border-orange-200';
-            default: return 'bg-gray-100 text-gray-700 border-gray-200';
+            case 'present': return 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800';
+            case 'late': return 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800';
+            case 'absent': return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800';
+            case 'leave': return 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800';
+            case 'pending': return 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800';
+            default: return 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700';
         }
     };
 
     const isLoading = statsLoading || recordsLoading;
 
-    return (
-        <div className="min-h-screen bg-background pb-20">
-            {/* Header */}
-            <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b p-4">
-                <div className="flex items-center justify-between mb-4">
-                    <div>
-                        <h1 className="text-lg font-bold">Kelola Absensi</h1>
-                        <p className="text-xs text-muted-foreground">
-                            {format(selectedDate, 'EEEE, d MMMM yyyy', { locale: id })}
-                        </p>
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-background pb-24">
+                <MobilePageHeader title="Kelola Absensi" gradient="emerald" backTo="/admin/dashboard" />
+                <div className="px-4 space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                        <Skeleton className="h-20 rounded-2xl" />
+                        <Skeleton className="h-20 rounded-2xl" />
                     </div>
+                    {[1, 2, 3].map((i) => (
+                        <Skeleton key={i} className="h-32 rounded-2xl" />
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-background pb-24">
+            <MobilePageHeader
+                title="Kelola Absensi"
+                gradient="emerald"
+                backTo="/admin/dashboard"
+                subtitle={format(selectedDate, 'EEEE, d MMMM yyyy', { locale: id })}
+                rightAction={
                     <Sheet>
                         <SheetTrigger asChild>
-                            <Button variant="outline" size="icon">
-                                <Filter className="h-4 w-4" />
-                            </Button>
+                            <button className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                                <Filter className="h-5 w-5 text-white" />
+                            </button>
                         </SheetTrigger>
                         <SheetContent>
                             <SheetHeader>
@@ -111,7 +127,7 @@ export function MobileAdminAttendancePage() {
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Status</label>
                                     <select
-                                        className="w-full p-2 border rounded-md"
+                                        className="w-full p-2 border rounded-md bg-background"
                                         value={filterStatus}
                                         onChange={(e) => setFilterStatus(e.target.value)}
                                     >
@@ -133,53 +149,51 @@ export function MobileAdminAttendancePage() {
                             </div>
                         </SheetContent>
                     </Sheet>
-                </div>
+                }
+            />
 
+            <div className="px-4 space-y-4">
                 {/* Search */}
                 <SearchBar
                     value={searchQuery}
                     onChange={setSearchQuery}
                     placeholder="Cari karyawan..."
                 />
-            </div>
 
-            {/* Quick Stats */}
-            <div className="grid grid-cols-2 gap-3 p-4">
-                <div className="p-3 rounded-xl bg-green-50 border border-green-100">
-                    <div className="flex items-center gap-2 mb-1">
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                        <span className="text-xs font-medium text-green-700">Hadir</span>
+                {/* Quick Stats */}
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 shadow-sm dark:border dark:border-border/50">
+                        <div className="flex items-center gap-2 mb-1">
+                            <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                            <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Hadir</span>
+                        </div>
+                        <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{stats?.presentToday || 0}</p>
                     </div>
-                    <p className="text-2xl font-bold text-green-700">{stats?.presentToday || 0}</p>
-                </div>
-                <div className="p-3 rounded-xl bg-orange-50 border border-orange-100">
-                    <div className="flex items-center gap-2 mb-1">
-                        <AlertCircle className="h-4 w-4 text-orange-600" />
-                        <span className="text-xs font-medium text-orange-700">Terlambat</span>
+                    <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 shadow-sm dark:border dark:border-border/50">
+                        <div className="flex items-center gap-2 mb-1">
+                            <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                            <span className="text-xs font-medium text-amber-700 dark:text-amber-400">Terlambat</span>
+                        </div>
+                        <p className="text-2xl font-bold text-amber-700 dark:text-amber-300">{stats?.lateToday || 0}</p>
                     </div>
-                    <p className="text-2xl font-bold text-orange-700">{stats?.lateToday || 0}</p>
                 </div>
-            </div>
 
             {/* List */}
-            <div className="px-4 space-y-3">
-                {isLoading ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                        <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                        Memuat data...
-                    </div>
-                ) : !attendanceRecords?.length ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                        Tidak ada data absensi untuk tanggal ini
-                    </div>
+            <div className="space-y-3">
+                {!attendanceRecords?.length ? (
+                    <MobileEmptyState
+                        icon={Clock}
+                        title="Tidak Ada Data"
+                        description="Tidak ada data absensi untuk tanggal ini"
+                    />
                 ) : attendanceRecords?.map((record) => (
                     <div
                         key={record.id}
-                        className="bg-card border rounded-xl p-4 shadow-sm space-y-3"
+                        className="bg-card rounded-2xl shadow-sm dark:border dark:border-border/50 p-4 space-y-3"
                     >
                         <div className="flex items-start justify-between">
                             <div>
-                                <h3 className="font-semibold">{record.employee.name}</h3>
+                                <h3 className="font-semibold text-sm">{record.employee.name}</h3>
                                 <p className="text-xs text-muted-foreground">#{record.employee.employeeId}</p>
                             </div>
                             <Badge variant="outline" className={getStatusColor(record.status)}>
@@ -202,9 +216,9 @@ export function MobileAdminAttendancePage() {
                         </div>
 
                         {record.status === 'pending' && (
-                            <div className="pt-2 border-t flex gap-2">
+                            <div className="pt-2 border-t border-border/50 flex gap-2">
                                 <Button
-                                    className="flex-1 h-8 text-xs bg-green-600 hover:bg-green-700"
+                                    className="flex-1 h-8 text-xs bg-emerald-600 hover:bg-emerald-700"
                                     onClick={() => approveMutation.mutate(record.id)}
                                     disabled={approveMutation.isPending}
                                 >
@@ -212,7 +226,7 @@ export function MobileAdminAttendancePage() {
                                 </Button>
                                 <Button
                                     variant="outline"
-                                    className="flex-1 h-8 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                                    className="flex-1 h-8 text-xs text-red-600 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
                                     onClick={() => rejectMutation.mutate(record.id)}
                                     disabled={rejectMutation.isPending}
                                 >
@@ -222,6 +236,7 @@ export function MobileAdminAttendancePage() {
                         )}
                     </div>
                 ))}
+            </div>
             </div>
         </div>
     );

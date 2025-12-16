@@ -214,6 +214,8 @@ export default function LoginPage() {
                 options={{
                   theme: 'dark',
                   size: 'normal',
+                  execution: 'render',
+                  refreshExpired: 'auto',
                 }}
               />
             </div>

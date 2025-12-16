@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -70,7 +71,14 @@ class AuthController extends Controller
         if (! Hash::check($request->password, $user->password)) {
             // Increment failed attempts and potentially lock account
             $user->incrementFailedLogins($request->ip());
-            
+
+            // Log failed login attempt
+            AuditLog::createAuthLog('login_failed', $user, [
+                'reason' => 'Invalid password',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
             throw ValidationException::withMessages([
                 'email' => ['Kredensial yang diberikan tidak cocok dengan catatan kami.'],
             ]);
@@ -78,9 +86,16 @@ class AuthController extends Controller
 
         // 5. Login successful - Update stats
         $user->updateLastLogin($request->ip());
-        
+
         // 6. Create token
         $token = $user->createToken($request->device_name ?? 'web')->plainTextToken;
+
+        // Log successful login
+        AuditLog::createAuthLog('login', $user, [
+            'device_name' => $request->device_name ?? 'web',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
 
         return response()->json([
             'token' => $token,
@@ -91,7 +106,15 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        $user = $request->user();
+
+        // Log logout
+        AuditLog::createAuthLog('logout', $user, [
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        $user->currentAccessToken()->delete();
 
         return response()->json(['message' => 'Logged out successfully']);
     }
@@ -126,6 +149,13 @@ class AuthController extends Controller
         $user->force_password_change = false;
         $user->password_changed_at = now(); // Track when password was changed
         $user->save();
+
+        // Log password change
+        AuditLog::createAuthLog('password_change', $user, [
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'method' => 'manual_change',
+        ]);
 
         // Revoke all tokens to force re-login
         $user->tokens()->delete();
@@ -220,7 +250,25 @@ class AuthController extends Controller
     {
         $request->validate([
             'email' => ['required', 'email'],
+            'turnstile_token' => ['nullable', 'string'],
         ]);
+
+        // Verify Cloudflare Turnstile token if provided
+        $turnstileSecret = env('TURNSTILE_SECRET_KEY');
+        if ($turnstileSecret && $request->turnstile_token) {
+            $response = Http::asForm()->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
+                'secret' => $turnstileSecret,
+                'response' => $request->turnstile_token,
+                'remoteip' => $request->ip(),
+            ]);
+
+            if (!$response->successful() || !$response->json('success')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Verifikasi keamanan gagal. Silakan coba lagi.',
+                ], 422);
+            }
+        }
 
         // We will send the password reset link to this user.
         $status = Password::sendResetLink(
@@ -277,6 +325,16 @@ class AuthController extends Controller
         );
 
         if ($status === Password::PASSWORD_RESET) {
+            // Log password reset success
+            $user = User::where('email', $request->email)->first();
+            if ($user) {
+                AuditLog::createAuthLog('password_reset', $user, [
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'method' => 'email_reset',
+                ]);
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Password berhasil direset. Silakan login dengan password baru Anda.',

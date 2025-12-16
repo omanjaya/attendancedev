@@ -13,7 +13,6 @@ import {
     Key,
     Filter,
 } from 'lucide-react';
-import { useNavigate } from '@tanstack/react-router';
 import { MobilePageHeader } from '@/components/mobile';
 import { SearchBar } from '@/components/shared';
 import { Button } from '@/components/ui/button';
@@ -249,7 +248,6 @@ function UserFormDialog({
 }
 
 export function MobileUsersPage() {
-    const navigate = useNavigate();
     const {
         isLoading,
         users,
@@ -312,20 +310,20 @@ export function MobileUsersPage() {
     const activeFiltersCount = (roleFilter !== 'all' ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0);
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-muted/30 via-background to-background dark:from-gray-950 dark:via-gray-900 dark:to-gray-900 pb-24">
+        <div className="min-h-screen bg-background pb-24">
             {/* Header */}
             <MobilePageHeader
                 title="Manajemen Pengguna"
-                onBack={() => navigate({ to: '/admin/dashboard' })}
+                backTo="/admin/dashboard"
                 gradient="violet"
-                actions={
+                rightAction={
                     <button
                         onClick={() => setIsFilterOpen(true)}
                         className="relative p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
                     >
                         <Filter className="h-5 w-5 text-white" />
                         {activeFiltersCount > 0 && (
-                            <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-indigo-600" />
+                            <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-violet-600" />
                         )}
                     </button>
                 }
@@ -363,11 +361,11 @@ export function MobileUsersPage() {
                     filteredUsers.map((user) => (
                         <div
                             key={user.id}
-                            className="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-border/50 flex flex-col gap-3"
+                            className="bg-card rounded-2xl shadow-sm dark:border dark:border-border/50 p-4 flex flex-col gap-3"
                         >
                             <div className="flex items-start justify-between gap-3">
                                 <div className="flex items-center gap-3">
-                                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                                    <div className="h-10 w-10 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-violet-600 dark:text-violet-400 font-bold text-sm">
                                         {user.name.charAt(0).toUpperCase()}
                                     </div>
                                     <div>
@@ -460,7 +458,7 @@ export function MobileUsersPage() {
                     setEditingUser(null);
                     setIsFormOpen(true);
                 }}
-                className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-xl bg-violet-600 hover:bg-violet-700 text-white z-50"
+                className="fixed bottom-24 right-4 h-14 w-14 rounded-full shadow-lg bg-violet-600 hover:bg-violet-700 text-white z-50"
             >
                 <Plus className="h-6 w-6" />
             </Button>

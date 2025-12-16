@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { MapPin, Loader2, CheckCircle2, XCircle, Navigation, ArrowLeft } from 'lucide-react';
+import { MapPin, Loader2, CheckCircle2, XCircle, Navigation, ArrowLeft, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { verifyLocation, type LocationVerificationResponse } from '@/lib/api/attendance';
 import { useAuthStore } from '@/stores';
@@ -11,8 +11,10 @@ import { Card } from '@/components/ui/card';
 interface LocationState {
   latitude: number | null;
   longitude: number | null;
+  accuracy: number | null;
   error: string | null;
   loading: boolean;
+  lastUpdate: Date | null;
 }
 
 export function VerifyLocationPage() {
@@ -24,74 +26,118 @@ export function VerifyLocationPage() {
   const [locationState, setLocationState] = useState<LocationState>({
     latitude: null,
     longitude: null,
+    accuracy: null,
     error: null,
     loading: true,
+    lastUpdate: null,
   });
 
   const [verification, setVerification] = useState<LocationVerificationResponse | null>(null);
   const [verifying, setVerifying] = useState(false);
 
-  // Get user's current location
-  useEffect(() => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLocationState({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            error: null,
-            loading: false,
-          });
-        },
-        (_error) => {
-          console.error("GPS Error", _error);
-          setLocationState({
-            latitude: null,
-            longitude: null,
-            error: 'Tidak dapat mengakses lokasi. Pastikan GPS dan izin lokasi aktif.',
-            loading: false,
-          });
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0,
-        }
-      );
-    } else {
-      setLocationState({
-        latitude: null,
-        longitude: null,
-        error: 'Browser tidak mendukung GPS',
-        loading: false,
-      });
-    }
-  }, []);
+  const watchIdRef = useRef<number | null>(null);
+  const lastVerifyRef = useRef<{ lat: number; lng: number } | null>(null);
 
-  // Auto-verify location when GPS is ready
-  useEffect(() => {
-    if (locationState.latitude && locationState.longitude && !verification && !verifying) {
-      handleVerifyLocation();
+  // Verify location function
+  const doVerifyLocation = useCallback(async (lat: number, lng: number) => {
+    // Skip if same location (within 5m threshold)
+    if (lastVerifyRef.current) {
+      const latDiff = Math.abs(lat - lastVerifyRef.current.lat);
+      const lngDiff = Math.abs(lng - lastVerifyRef.current.lng);
+      // Roughly 5 meters threshold
+      if (latDiff < 0.00005 && lngDiff < 0.00005) {
+        return;
+      }
     }
-  }, [locationState.latitude, locationState.longitude]);
-
-  const handleVerifyLocation = async () => {
-    if (!locationState.latitude || !locationState.longitude) return;
 
     setVerifying(true);
     try {
-      const result = await verifyLocation({
-        latitude: locationState.latitude,
-        longitude: locationState.longitude,
-      });
+      const result = await verifyLocation({ latitude: lat, longitude: lng });
       setVerification(result);
+      lastVerifyRef.current = { lat, lng };
     } catch (error: any) {
-      setLocationState({
-        ...locationState,
-        error: error.response?.data?.message || 'Gagal memverifikasi lokasi',
-      });
+      console.error('Location verification error:', error);
     } finally {
       setVerifying(false);
+    }
+  }, []);
+
+  // Watch user's location continuously
+  useEffect(() => {
+    if (!('geolocation' in navigator)) {
+      setLocationState({
+        latitude: null,
+        longitude: null,
+        accuracy: null,
+        error: 'Browser tidak mendukung GPS',
+        loading: false,
+        lastUpdate: null,
+      });
+      return;
+    }
+
+    const startWatching = () => {
+      watchIdRef.current = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude, accuracy } = position.coords;
+
+          setLocationState({
+            latitude,
+            longitude,
+            accuracy,
+            error: null,
+            loading: false,
+            lastUpdate: new Date(),
+          });
+
+          // Auto-verify location
+          doVerifyLocation(latitude, longitude);
+        },
+        (error) => {
+          console.error("GPS Watch Error", error);
+          let errorMessage = 'Tidak dapat mengakses lokasi.';
+
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = 'Izin lokasi ditolak. Aktifkan di pengaturan browser.';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = 'Informasi lokasi tidak tersedia. Coba pindah ke area terbuka.';
+              break;
+            case error.TIMEOUT:
+              errorMessage = 'Timeout mendapatkan lokasi. Coba lagi.';
+              break;
+          }
+
+          setLocationState(prev => ({
+            ...prev,
+            error: errorMessage,
+            loading: false,
+          }));
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0,
+        }
+      );
+    };
+
+    startWatching();
+
+    // Cleanup on unmount
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+    };
+  }, [doVerifyLocation]);
+
+  // Manual refresh
+  const handleRefresh = () => {
+    if (locationState.latitude && locationState.longitude) {
+      lastVerifyRef.current = null; // Force re-verify
+      doVerifyLocation(locationState.latitude, locationState.longitude);
     }
   };
 
@@ -119,20 +165,33 @@ export function VerifyLocationPage() {
     <div className="relative h-screen w-full bg-background overflow-hidden flex flex-col">
       {/* Header Overlay */}
       <div className="absolute top-0 left-0 right-0 z-20 p-4 bg-gradient-to-b from-black/50 to-transparent pointer-events-none">
-        <div className="flex items-center gap-3 pointer-events-auto">
+        <div className="flex items-center justify-between pointer-events-auto">
+          <div className="flex items-center gap-3">
+            <Button
+              size="icon"
+              variant="secondary"
+              className="h-10 w-10 rounded-full bg-white/90 shadow-sm hover:bg-white"
+              onClick={handleCancel}
+            >
+              <ArrowLeft className="h-5 w-5 text-foreground" />
+            </Button>
+            <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-full shadow-sm">
+              <h1 className="text-sm font-bold text-foreground">
+                {type === 'check-in' ? 'Absensi Datang' : 'Absensi Pulang'}
+              </h1>
+            </div>
+          </div>
+
+          {/* Refresh Button */}
           <Button
             size="icon"
             variant="secondary"
             className="h-10 w-10 rounded-full bg-white/90 shadow-sm hover:bg-white"
-            onClick={handleCancel}
+            onClick={handleRefresh}
+            disabled={verifying}
           >
-            <ArrowLeft className="h-5 w-5 text-foreground" />
+            <RefreshCw className={cn("h-4 w-4", verifying && "animate-spin")} />
           </Button>
-          <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-full shadow-sm">
-            <h1 className="text-sm font-bold text-foreground">
-              {type === 'check-in' ? 'Absensi Datang' : 'Absensi Pulang'}
-            </h1>
-          </div>
         </div>
       </div>
 
@@ -249,7 +308,7 @@ export function VerifyLocationPage() {
                     Lanjut ke Foto Wajah
                   </Button>
                 ) : (
-                  <Button className="w-full bg-destructive hover:bg-destructive/90 text-white shadow-lg shadow-destructive/20" size="lg" onClick={handleVerifyLocation}>
+                  <Button className="w-full bg-destructive hover:bg-destructive/90 text-white shadow-lg shadow-destructive/20" size="lg" onClick={handleRefresh}>
                     <Navigation className="h-4 w-4 mr-2" />
                     Cek Lokasi Lagi
                   </Button>

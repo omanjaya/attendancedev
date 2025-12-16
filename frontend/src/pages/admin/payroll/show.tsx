@@ -3,6 +3,7 @@ import { usePayrollEmployee } from '@/hooks/use-payroll';
 import { useIsMobile } from '@/lib/utils/device';
 import { MobilePayrollShowPage } from './mobile-show';
 import { DesktopPayrollShowPage } from './desktop-show';
+import type { PayrollEmployeeDetail } from '@/types/payroll';
 
 export default function PayrollShowPage() {
   const isMobile = useIsMobile();
@@ -18,10 +19,13 @@ export default function PayrollShowPage() {
     params.employeeId
   );
 
+  // Cast to PayrollEmployeeDetail since that's what the API returns
+  const payrollData = payroll as PayrollEmployeeDetail | undefined;
+
   if (isMobile) {
     return (
       <MobilePayrollShowPage
-        payroll={payroll || null}
+        payroll={payrollData || null}
         isLoading={isLoading}
         error={error}
       />
@@ -30,7 +34,7 @@ export default function PayrollShowPage() {
 
   return (
     <DesktopPayrollShowPage
-      payroll={payroll || null}
+      payroll={payrollData || null}
       isLoading={isLoading}
       error={error}
     />

@@ -2,6 +2,7 @@ import apiClient from './client';
 import type {
   PayrollPeriod,
   PayrollEmployee,
+  PayrollEmployeeDetail,
   PayrollSummary,
   PayrollStatistics,
   PayrollConfig,
@@ -108,8 +109,8 @@ export async function getPayrollEmployees(
 export async function getPayrollEmployee(
   periodId: string,
   employeeId: string
-): Promise<PayrollEmployee> {
-  const response = await apiClient.get<{ data: PayrollEmployee }>(
+): Promise<PayrollEmployeeDetail> {
+  const response = await apiClient.get<{ data: PayrollEmployeeDetail }>(
     ENDPOINTS.employeePayroll(periodId, employeeId)
   );
   return response.data.data;

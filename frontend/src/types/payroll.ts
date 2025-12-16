@@ -139,3 +139,44 @@ export const payrollStatusColors: Record<PayrollStatus, string> = {
   paid: '#8B5CF6',
   cancelled: '#EF4444',
 };
+
+// Backend API response types (itemized payroll system)
+export interface PayrollItem {
+  id: string;
+  name: string;
+  amount: number;
+  type: 'earning' | 'deduction' | 'bonus';
+  category?: string;
+  description?: string;
+  is_taxable?: boolean;
+}
+
+export interface PayrollEmployeeDetail {
+  id: string;
+  employee: {
+    id: string;
+    employee_code: string;
+    name: string;
+    department?: string;
+    position?: string;
+    base_salary: number;
+  };
+  period: {
+    id: string;
+    name: string;
+    start_date: string;
+    end_date: string;
+    pay_date?: string;
+  };
+  gross_salary: number;
+  total_deductions: number;
+  total_bonuses: number;
+  net_salary: number;
+  worked_hours: number;
+  overtime_hours: number;
+  status: PayrollStatus;
+  notes?: string;
+  earnings: PayrollItem[];
+  deductions: PayrollItem[];
+  bonuses: PayrollItem[];
+}

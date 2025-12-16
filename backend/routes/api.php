@@ -769,12 +769,14 @@ Route::prefix('academic-schedules')
         ])->middleware('permission:view_schedules');
     });
 
-// Security Monitoring API routes
+// Security Monitoring API routes (Admin - requires permission)
 Route::prefix('security')
     ->middleware(['auth', 'verified', 'permission:view_security_dashboard'])
     ->group(function () {
         Route::get('/metrics', [App\Http\Controllers\SecurityController::class, 'getMetrics']);
+        Route::get('/overview', [App\Http\Controllers\SecurityController::class, 'getOverview']);
         Route::get('/events', [App\Http\Controllers\SecurityController::class, 'getEvents']);
+        Route::get('/audit-logs', [App\Http\Controllers\SecurityController::class, 'getAuditLogs']);
         Route::get('/2fa-report', [App\Http\Controllers\SecurityController::class, 'get2FAReport']);
         Route::get('/alerts', [App\Http\Controllers\SecurityController::class, 'getAlerts']);
         Route::get('/statistics', [App\Http\Controllers\SecurityController::class, 'getStatistics']);
@@ -786,6 +788,46 @@ Route::prefix('security')
             App\Http\Controllers\SecurityController::class,
             'acknowledgeAlert',
         ]);
+    });
+
+// Security User API routes (Personal security settings - no special permission)
+Route::prefix('security/user')
+    ->middleware(['auth', 'verified'])
+    ->group(function () {
+        // Device management
+        Route::get('/devices', [App\Http\Controllers\SecurityController::class, 'getDevices']);
+        Route::post('/devices/{deviceId}/trust', [App\Http\Controllers\SecurityController::class, 'toggleDeviceTrust']);
+        Route::delete('/devices/{deviceId}', [App\Http\Controllers\SecurityController::class, 'deleteDevice']);
+
+        // Session management
+        Route::get('/sessions', [App\Http\Controllers\SecurityController::class, 'getSessions']);
+        Route::delete('/sessions/{sessionId}', [App\Http\Controllers\SecurityController::class, 'terminateSession']);
+        Route::delete('/sessions', [App\Http\Controllers\SecurityController::class, 'terminateAllSessions']);
+
+        // Personal activity log
+        Route::get('/activity-log', [App\Http\Controllers\SecurityController::class, 'getMyActivityLog']);
+    });
+
+// Employee activity log (Admin only)
+Route::middleware(['auth', 'verified', 'permission:view_employees'])
+    ->get('/employees/{employeeId}/activity-log', [App\Http\Controllers\SecurityController::class, 'getEmployeeActivityLog']);
+
+// Bug Reports API routes
+Route::prefix('bug-reports')
+    ->middleware(['auth', 'verified'])
+    ->group(function () {
+        // User endpoints
+        Route::post('/', [App\Http\Controllers\Api\BugReportController::class, 'store']);
+        Route::get('/my-reports', [App\Http\Controllers\Api\BugReportController::class, 'myReports']);
+
+        // Admin endpoints
+        Route::middleware('permission:manage_settings')->group(function () {
+            Route::get('/', [App\Http\Controllers\Api\BugReportController::class, 'index']);
+            Route::get('/statistics', [App\Http\Controllers\Api\BugReportController::class, 'statistics']);
+            Route::get('/{id}', [App\Http\Controllers\Api\BugReportController::class, 'show']);
+            Route::patch('/{id}/status', [App\Http\Controllers\Api\BugReportController::class, 'updateStatus']);
+            Route::delete('/{id}', [App\Http\Controllers\Api\BugReportController::class, 'destroy']);
+        });
     });
 
 // Device Management API routes

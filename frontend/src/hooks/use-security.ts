@@ -8,232 +8,64 @@ import type {
   SecurityOverview,
   SecurityAlert,
 } from '@/types/security';
-
-// Mock data
-const mockDevices: SecurityDevice[] = [
-  {
-    id: '1',
-    name: 'MacBook Pro',
-    type: 'desktop',
-    browser: 'Chrome 122',
-    os: 'macOS 14.3',
-    ip_address: '192.168.1.100',
-    location: 'Jakarta, Indonesia',
-    last_used_at: new Date().toISOString(),
-    is_current: true,
-    is_trusted: true,
-    created_at: '2024-01-01T00:00:00',
-  },
-  {
-    id: '2',
-    name: 'iPhone 15 Pro',
-    type: 'mobile',
-    browser: 'Safari',
-    os: 'iOS 17.3',
-    ip_address: '192.168.1.150',
-    location: 'Jakarta, Indonesia',
-    last_used_at: '2024-03-27T20:00:00',
-    is_current: false,
-    is_trusted: true,
-    created_at: '2024-02-15T00:00:00',
-  },
-  {
-    id: '3',
-    name: 'Windows PC',
-    type: 'desktop',
-    browser: 'Firefox 123',
-    os: 'Windows 11',
-    ip_address: '192.168.1.200',
-    location: 'Bandung, Indonesia',
-    last_used_at: '2024-03-25T10:00:00',
-    is_current: false,
-    is_trusted: false,
-    created_at: '2024-03-20T00:00:00',
-  },
-];
-
-const mockSessions: SecuritySession[] = [
-  {
-    id: '1',
-    device_name: 'MacBook Pro - Chrome',
-    ip_address: '192.168.1.100',
-    location: 'Jakarta, Indonesia',
-    started_at: new Date(Date.now() - 3600000).toISOString(),
-    last_activity: new Date().toISOString(),
-    is_current: true,
-  },
-  {
-    id: '2',
-    device_name: 'iPhone - Safari',
-    ip_address: '192.168.1.150',
-    location: 'Jakarta, Indonesia',
-    started_at: new Date(Date.now() - 86400000).toISOString(),
-    last_activity: new Date(Date.now() - 7200000).toISOString(),
-    is_current: false,
-  },
-];
-
-const mockAuditLogs: AuditLog[] = [
-  {
-    id: '1',
-    user_id: '1',
-    user_name: 'Super Admin',
-    user_email: 'superadmin@school.id',
-    action: 'login',
-    resource_type: 'auth',
-    description: 'Login berhasil',
-    ip_address: '192.168.1.100',
-    user_agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    user_id: '2',
-    user_name: 'Admin Sekolah',
-    user_email: 'admin@school.id',
-    action: 'create',
-    resource_type: 'employee',
-    resource_id: 'emp-123',
-    description: 'Membuat data karyawan baru: Ahmad Rizki',
-    ip_address: '192.168.1.101',
-    created_at: new Date(Date.now() - 1800000).toISOString(),
-  },
-  {
-    id: '3',
-    user_id: '3',
-    user_name: 'Manager HR',
-    user_email: 'hr@school.id',
-    action: 'approve',
-    resource_type: 'leave',
-    resource_id: 'leave-456',
-    description: 'Menyetujui cuti: Siti Nurhaliza',
-    ip_address: '192.168.1.102',
-    created_at: new Date(Date.now() - 3600000).toISOString(),
-  },
-  {
-    id: '4',
-    user_id: '1',
-    user_name: 'Super Admin',
-    user_email: 'superadmin@school.id',
-    action: '2fa_enabled',
-    resource_type: 'security',
-    description: 'Mengaktifkan 2FA',
-    ip_address: '192.168.1.100',
-    created_at: new Date(Date.now() - 7200000).toISOString(),
-  },
-  {
-    id: '5',
-    user_id: '5',
-    user_name: 'Budi Santoso',
-    user_email: 'budi@school.id',
-    action: 'login_failed',
-    resource_type: 'auth',
-    description: 'Login gagal: password salah',
-    ip_address: '192.168.1.200',
-    created_at: new Date(Date.now() - 10800000).toISOString(),
-  },
-  {
-    id: '6',
-    user_id: '2',
-    user_name: 'Admin Sekolah',
-    user_email: 'admin@school.id',
-    action: 'update',
-    resource_type: 'schedule',
-    resource_id: 'sch-789',
-    description: 'Mengupdate jadwal pelajaran kelas 10A',
-    ip_address: '192.168.1.101',
-    created_at: new Date(Date.now() - 14400000).toISOString(),
-  },
-  {
-    id: '7',
-    user_id: '1',
-    user_name: 'Super Admin',
-    user_email: 'superadmin@school.id',
-    action: 'export',
-    resource_type: 'report',
-    description: 'Export laporan absensi bulan Maret',
-    ip_address: '192.168.1.100',
-    created_at: new Date(Date.now() - 86400000).toISOString(),
-  },
-  {
-    id: '8',
-    user_id: '4',
-    user_name: 'Dewi Anggraini',
-    user_email: 'dewi@school.id',
-    action: 'password_change',
-    resource_type: 'security',
-    description: 'Mengganti password',
-    ip_address: '192.168.1.103',
-    created_at: new Date(Date.now() - 172800000).toISOString(),
-  },
-];
-
-const mockAlerts: SecurityAlert[] = [
-  {
-    id: '1',
-    type: 'warning',
-    title: 'Multiple Failed Logins',
-    message: '5 percobaan login gagal dari IP 192.168.1.200 dalam 10 menit terakhir',
-    action_required: true,
-    created_at: new Date(Date.now() - 600000).toISOString(),
-  },
-  {
-    id: '2',
-    type: 'info',
-    title: 'New Device Login',
-    message: 'Login dari perangkat baru terdeteksi untuk user admin@school.id',
-    action_required: false,
-    created_at: new Date(Date.now() - 3600000).toISOString(),
-  },
-];
+import * as securityApi from '@/lib/api/security';
 
 export function useSecurity() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [devices, setDevices] = useState<SecurityDevice[]>(mockDevices);
-  const [sessions, setSessions] = useState<SecuritySession[]>(mockSessions);
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(mockAuditLogs);
-  const [alerts, setAlerts] = useState<SecurityAlert[]>(mockAlerts);
+  const [devices, setDevices] = useState<SecurityDevice[]>([]);
+  const [sessions, setSessions] = useState<SecuritySession[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [alerts, setAlerts] = useState<SecurityAlert[]>([]);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
 
   // Get security overview
   const getOverview = useCallback(async (): Promise<SecurityOverview> => {
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await securityApi.getSecurityOverview();
+      return data;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Gagal memuat overview keamanan';
+      setError(message);
+      // Return default values on error
+      return {
+        total_users: 0,
+        users_with_2fa: 0,
+        users_without_2fa: 0,
+        locked_accounts: 0,
+        active_sessions: 0,
+        failed_logins_today: 0,
+        suspicious_activities: 0,
+      };
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-    return {
-      total_users: 45,
-      users_with_2fa: 12,
-      users_without_2fa: 33,
-      locked_accounts: 2,
-      active_sessions: sessions.length,
-      failed_logins_today: 5,
-      suspicious_activities: 1,
-      last_security_scan: new Date(Date.now() - 86400000).toISOString(),
-    };
-  }, [sessions]);
+  // Check 2FA status
+  const check2FAStatus = useCallback(async () => {
+    try {
+      const status = await securityApi.get2FAStatus();
+      setTwoFactorEnabled(status.enabled);
+      return status;
+    } catch (err) {
+      console.error('Failed to check 2FA status:', err);
+      return null;
+    }
+  }, []);
 
   // Enable 2FA - Step 1: Generate secret
   const initiate2FA = useCallback(async (): Promise<TwoFactorSetup> => {
     setIsLoading(true);
+    setError(null);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      return {
-        secret: 'JBSWY3DPEHPK3PXP',
-        qr_code_url: 'otpauth://totp/AttendanceSystem:user@example.com?secret=JBSWY3DPEHPK3PXP&issuer=AttendanceSystem',
-        recovery_codes: [
-          'A1B2C3D4',
-          'E5F6G7H8',
-          'I9J0K1L2',
-          'M3N4O5P6',
-          'Q7R8S9T0',
-          'U1V2W3X4',
-          'Y5Z6A7B8',
-          'C9D0E1F2',
-        ],
-      };
+      const data = await securityApi.initialize2FA();
+      return data;
     } catch (err) {
-      setError('Gagal menginisialisasi 2FA');
+      const message = err instanceof Error ? err.message : 'Gagal menginisialisasi 2FA';
+      setError(message);
       throw err;
     } finally {
       setIsLoading(false);
@@ -243,17 +75,17 @@ export function useSecurity() {
   // Enable 2FA - Step 2: Verify and enable
   const enable2FA = useCallback(async (code: string): Promise<boolean> => {
     setIsLoading(true);
+    setError(null);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Mock verification - in real app, verify the TOTP code
-      if (code.length === 6) {
+      const result = await securityApi.enable2FA(code);
+      if (result.success) {
         setTwoFactorEnabled(true);
         return true;
       }
       throw new Error('Kode tidak valid');
     } catch (err) {
-      setError('Gagal mengaktifkan 2FA');
+      const message = err instanceof Error ? err.message : 'Gagal mengaktifkan 2FA';
+      setError(message);
       throw err;
     } finally {
       setIsLoading(false);
@@ -263,16 +95,33 @@ export function useSecurity() {
   // Disable 2FA
   const disable2FA = useCallback(async (password: string): Promise<boolean> => {
     setIsLoading(true);
+    setError(null);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      if (password.length > 0) {
+      const result = await securityApi.disable2FA(password);
+      if (result.success) {
         setTwoFactorEnabled(false);
         return true;
       }
       throw new Error('Password tidak valid');
     } catch (err) {
-      setError('Gagal menonaktifkan 2FA');
+      const message = err instanceof Error ? err.message : 'Gagal menonaktifkan 2FA';
+      setError(message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Regenerate recovery codes
+  const regenerateRecoveryCodes = useCallback(async (password: string): Promise<string[]> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await securityApi.regenerateRecoveryCodes(password);
+      return result.recovery_codes;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Gagal regenerate recovery codes';
+      setError(message);
       throw err;
     } finally {
       setIsLoading(false);
@@ -282,11 +131,15 @@ export function useSecurity() {
   // Fetch devices
   const fetchDevices = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setDevices(mockDevices);
+      const data = await securityApi.getDevices();
+      setDevices(data);
+      return data;
     } catch (err) {
-      setError('Gagal memuat daftar perangkat');
+      const message = err instanceof Error ? err.message : 'Gagal memuat daftar perangkat';
+      setError(message);
+      return [];
     } finally {
       setIsLoading(false);
     }
@@ -295,11 +148,13 @@ export function useSecurity() {
   // Remove device
   const removeDevice = useCallback(async (deviceId: string) => {
     setIsLoading(true);
+    setError(null);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await securityApi.removeDevice(deviceId);
       setDevices((prev) => prev.filter((d) => d.id !== deviceId));
     } catch (err) {
-      setError('Gagal menghapus perangkat');
+      const message = err instanceof Error ? err.message : 'Gagal menghapus perangkat';
+      setError(message);
       throw err;
     } finally {
       setIsLoading(false);
@@ -309,15 +164,17 @@ export function useSecurity() {
   // Trust/untrust device
   const toggleDeviceTrust = useCallback(async (deviceId: string) => {
     setIsLoading(true);
+    setError(null);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      const result = await securityApi.toggleDeviceTrust(deviceId);
       setDevices((prev) =>
         prev.map((d) =>
-          d.id === deviceId ? { ...d, is_trusted: !d.is_trusted } : d
+          d.id === deviceId ? { ...d, is_trusted: result.is_trusted } : d
         )
       );
     } catch (err) {
-      setError('Gagal mengubah status kepercayaan perangkat');
+      const message = err instanceof Error ? err.message : 'Gagal mengubah status kepercayaan perangkat';
+      setError(message);
       throw err;
     } finally {
       setIsLoading(false);
@@ -327,11 +184,15 @@ export function useSecurity() {
   // Fetch sessions
   const fetchSessions = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setSessions(mockSessions);
+      const data = await securityApi.getSessions();
+      setSessions(data);
+      return data;
     } catch (err) {
-      setError('Gagal memuat daftar sesi');
+      const message = err instanceof Error ? err.message : 'Gagal memuat daftar sesi';
+      setError(message);
+      return [];
     } finally {
       setIsLoading(false);
     }
@@ -340,11 +201,13 @@ export function useSecurity() {
   // Terminate session
   const terminateSession = useCallback(async (sessionId: string) => {
     setIsLoading(true);
+    setError(null);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await securityApi.terminateSession(sessionId);
       setSessions((prev) => prev.filter((s) => s.id !== sessionId));
     } catch (err) {
-      setError('Gagal mengakhiri sesi');
+      const message = err instanceof Error ? err.message : 'Gagal mengakhiri sesi';
+      setError(message);
       throw err;
     } finally {
       setIsLoading(false);
@@ -354,11 +217,13 @@ export function useSecurity() {
   // Terminate all sessions except current
   const terminateAllSessions = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await securityApi.terminateAllSessions();
       setSessions((prev) => prev.filter((s) => s.is_current));
     } catch (err) {
-      setError('Gagal mengakhiri semua sesi');
+      const message = err instanceof Error ? err.message : 'Gagal mengakhiri semua sesi';
+      setError(message);
       throw err;
     } finally {
       setIsLoading(false);
@@ -374,24 +239,15 @@ export function useSecurity() {
     limit?: number;
   }) => {
     setIsLoading(true);
+    setError(null);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      let filtered = [...mockAuditLogs];
-
-      if (filters?.action) {
-        filtered = filtered.filter((l) => l.action === filters.action);
-      }
-      if (filters?.user_id) {
-        filtered = filtered.filter((l) => l.user_id === filters.user_id);
-      }
-      if (filters?.limit) {
-        filtered = filtered.slice(0, filters.limit);
-      }
-
-      setAuditLogs(filtered);
+      const data = await securityApi.getAuditLogs(filters);
+      setAuditLogs(data);
+      return data;
     } catch (err) {
-      setError('Gagal memuat log audit');
+      const message = err instanceof Error ? err.message : 'Gagal memuat log audit';
+      setError(message);
+      return [];
     } finally {
       setIsLoading(false);
     }
@@ -400,23 +256,62 @@ export function useSecurity() {
   // Fetch alerts
   const fetchAlerts = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      setAlerts(mockAlerts);
+      const data = await securityApi.getSecurityAlerts();
+      setAlerts(data);
+      return data;
     } catch (err) {
-      setError('Gagal memuat peringatan keamanan');
+      const message = err instanceof Error ? err.message : 'Gagal memuat peringatan keamanan';
+      setError(message);
+      return [];
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  // Dismiss alert
+  // Dismiss/acknowledge alert
   const dismissAlert = useCallback(async (alertId: string) => {
-    setAlerts((prev) =>
-      prev.map((a) =>
-        a.id === alertId ? { ...a, resolved_at: new Date().toISOString() } : a
-      )
-    );
+    try {
+      await securityApi.acknowledgeAlert(alertId);
+      setAlerts((prev) =>
+        prev.map((a) =>
+          a.id === alertId ? { ...a, resolved_at: new Date().toISOString() } : a
+        )
+      );
+    } catch (err) {
+      console.error('Failed to acknowledge alert:', err);
+    }
+  }, []);
+
+  // Get 2FA report (admin)
+  const get2FAReport = useCallback(async () => {
+    try {
+      return await securityApi.get2FAReport();
+    } catch (err) {
+      console.error('Failed to get 2FA report:', err);
+      return null;
+    }
+  }, []);
+
+  // Get statistics (admin)
+  const getStatistics = useCallback(async () => {
+    try {
+      return await securityApi.getSecurityStatistics();
+    } catch (err) {
+      console.error('Failed to get security statistics:', err);
+      return null;
+    }
+  }, []);
+
+  // Download security report
+  const downloadReport = useCallback(async () => {
+    try {
+      return await securityApi.downloadSecurityReport();
+    } catch (err) {
+      console.error('Failed to download security report:', err);
+      return null;
+    }
   }, []);
 
   return {
@@ -431,9 +326,11 @@ export function useSecurity() {
 
     // Actions
     getOverview,
+    check2FAStatus,
     initiate2FA,
     enable2FA,
     disable2FA,
+    regenerateRecoveryCodes,
     fetchDevices,
     removeDevice,
     toggleDeviceTrust,
@@ -443,6 +340,9 @@ export function useSecurity() {
     fetchAuditLogs,
     fetchAlerts,
     dismissAlert,
+    get2FAReport,
+    getStatistics,
+    downloadReport,
     clearError: () => setError(null),
   };
 }

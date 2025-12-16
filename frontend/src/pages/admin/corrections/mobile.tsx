@@ -7,13 +7,13 @@ import {
     FileText,
     AlertCircle,
     ChevronRight,
-    Search,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { MobilePageHeader, MobileEmptyState } from '@/components/mobile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
     Select,
     SelectContent,
@@ -128,79 +128,86 @@ export default function MobileCorrectionsPage() {
 
     const pendingCorrections = corrections.filter((c) => c.status === 'pending');
 
-    return (
-        <div className="p-4 pb-24 space-y-4">
-            {/* Header */}
-            <div className="space-y-2">
-                <h1 className="text-xl font-bold">Manajemen Koreksi</h1>
-                <p className="text-sm text-muted-foreground">
-                    Kelola permintaan koreksi absensi karyawan
-                </p>
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-background pb-24">
+                <MobilePageHeader title="Manajemen Koreksi" gradient="blue" backTo="/admin/dashboard" />
+                <div className="px-4 space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                        <Skeleton className="h-16 rounded-2xl" />
+                        <Skeleton className="h-16 rounded-2xl" />
+                    </div>
+                    <Skeleton className="h-24 rounded-2xl" />
+                    {[1, 2, 3].map((i) => (
+                        <Skeleton key={i} className="h-20 rounded-2xl" />
+                    ))}
+                </div>
             </div>
+        );
+    }
 
+    return (
+        <div className="min-h-screen bg-background pb-24">
+            <MobilePageHeader title="Manajemen Koreksi" gradient="blue" backTo="/admin/dashboard" />
+
+            <div className="px-4 space-y-4">
             {/* Statistics */}
             <div className="grid grid-cols-2 gap-3">
-                <Card className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
+                <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 shadow-sm dark:border dark:border-border/50">
                     <div className="flex items-center gap-2">
-                        <Clock className="h-5 w-5 text-yellow-500 flex-shrink-0" />
+                        <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
                         <div className="min-w-0">
                             <p className="text-xs text-muted-foreground">Pending</p>
-                            <p className="text-lg font-bold">{stats?.pending || 0}</p>
+                            <p className="text-lg font-bold text-foreground">{stats?.pending || 0}</p>
                         </div>
                     </div>
-                </Card>
-                <Card className="p-3">
+                </div>
+                <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-900/20 shadow-sm dark:border dark:border-border/50">
                     <div className="flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-blue-500 flex-shrink-0" />
+                        <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
                         <div className="min-w-0">
                             <p className="text-xs text-muted-foreground">Total</p>
-                            <p className="text-lg font-bold">{stats?.total || 0}</p>
+                            <p className="text-lg font-bold text-foreground">{stats?.total || 0}</p>
                         </div>
                     </div>
-                </Card>
+                </div>
             </div>
 
             {/* Search and Filter */}
-            <Card>
-                <CardContent className="p-4 space-y-3">
-                    <div className="relative">
-                        <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                            placeholder="Cari nama karyawan..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9"
-                        />
-                    </div>
-                    <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Filter Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Semua Status</SelectItem>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="approved">Disetujui</SelectItem>
-                            <SelectItem value="rejected">Ditolak</SelectItem>
-                            <SelectItem value="cancelled">Dibatalkan</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </CardContent>
-            </Card>
+            <div className="bg-card rounded-2xl shadow-sm dark:border dark:border-border/50 p-4 space-y-3">
+                <Input
+                    placeholder="Cari nama karyawan..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Filter Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Semua Status</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="approved">Disetujui</SelectItem>
+                        <SelectItem value="rejected">Ditolak</SelectItem>
+                        <SelectItem value="cancelled">Dibatalkan</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
 
             {/* Pending Corrections */}
             {pendingCorrections.length > 0 && (
-                <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-base flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-yellow-500" />
+                <div className="bg-card rounded-2xl shadow-sm dark:border dark:border-border/50">
+                    <div className="p-4 border-b border-border/50">
+                        <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                             Pending ({pendingCorrections.length})
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
+                        </h3>
+                    </div>
+                    <div className="p-4 space-y-2">
                         {pendingCorrections.map((correction) => (
                             <div
                                 key={correction.id}
-                                className="flex items-center justify-between p-3 border rounded-lg active:bg-muted/50"
+                                className="flex items-center justify-between p-3 border border-border/50 rounded-xl active:bg-muted/50"
                                 onClick={() => {
                                     setSelectedCorrection(correction);
                                     setIsDetailSheetOpen(true);
@@ -224,31 +231,28 @@ export default function MobileCorrectionsPage() {
                                 </div>
                             </div>
                         ))}
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
             )}
 
             {/* All Corrections */}
-            <Card>
-                <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Semua Koreksi</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {isLoading ? (
-                        <div className="flex justify-center py-8">
-                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                        </div>
-                    ) : corrections.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                            <FileText className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                            <p className="text-sm">Belum ada permintaan koreksi</p>
-                        </div>
+            <div className="bg-card rounded-2xl shadow-sm dark:border dark:border-border/50">
+                <div className="p-4 border-b border-border/50">
+                    <h3 className="text-sm font-bold text-foreground">Semua Koreksi</h3>
+                </div>
+                <div className="p-4">
+                    {corrections.length === 0 ? (
+                        <MobileEmptyState
+                            icon={FileText}
+                            title="Belum Ada Koreksi"
+                            description="Belum ada permintaan koreksi absensi"
+                        />
                     ) : (
                         <div className="space-y-2">
                             {corrections.map((correction) => (
                                 <div
                                     key={correction.id}
-                                    className="flex items-center justify-between p-3 border rounded-lg active:bg-muted/50"
+                                    className="flex items-center justify-between p-3 border border-border/50 rounded-xl active:bg-muted/50"
                                     onClick={() => {
                                         setSelectedCorrection(correction);
                                         setIsDetailSheetOpen(true);
@@ -274,8 +278,9 @@ export default function MobileCorrectionsPage() {
                             ))}
                         </div>
                     )}
-                </CardContent>
-            </Card>
+                </div>
+            </div>
+            </div>
 
             {/* Detail Sheet */}
             <Sheet open={isDetailSheetOpen} onOpenChange={setIsDetailSheetOpen}>

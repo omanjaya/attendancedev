@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import * as Sentry from '@sentry/react';
 import type { User, LoginCredentials, Permission } from '@/types/auth';
 import * as authApi from '@/lib/api/auth';
 
@@ -47,6 +48,12 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
             error: null,
           });
+          // Set Sentry user context for error tracking
+          Sentry.setUser({
+            id: response.user.id,
+            email: response.user.email,
+            username: response.user.name,
+          });
           // Clear PWA install dismissal flag on successful login
           sessionStorage.removeItem('pwa-install-dismissed');
         } catch (error: any) {
@@ -67,6 +74,8 @@ export const useAuthStore = create<AuthState>()(
         try {
           await authApi.logout();
         } finally {
+          // Clear Sentry user context
+          Sentry.setUser(null);
           set({
             ...initialState,
             isLoading: false,
@@ -83,7 +92,14 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             isLoading: false,
           });
+          // Set Sentry user context for error tracking
+          Sentry.setUser({
+            id: user.id,
+            email: user.email,
+            username: user.name,
+          });
         } catch {
+          Sentry.setUser(null);
           set({
             ...initialState,
             isLoading: false,

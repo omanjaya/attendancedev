@@ -5,15 +5,15 @@ import {
     Download,
     TrendingUp,
     TrendingDown,
-    ArrowLeft,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { LoadingState } from '@/components/states';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { getMyPayroll, downloadMyPayslip, type EmployeePayrollItem } from '@/lib/api/payroll';
+import { MobilePageHeader, MobileEmptyState } from '@/components/mobile';
 
 interface PayrollItem {
     id: number;
@@ -96,86 +96,82 @@ export function MobileEmployeePayrollPage() {
 
     const latestPayroll = payrollData?.[0];
 
-    return (
-        <div className="min-h-screen bg-background pb-20">
-            {/* Header */}
-            <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <Button variant="ghost" size="icon" onClick={() => window.history.back()}>
-                        <ArrowLeft className="h-5 w-5" />
-                    </Button>
-                    <div>
-                        <h1 className="text-lg font-bold">Slip Gaji</h1>
-                        <p className="text-xs text-muted-foreground">Riwayat pembayaran gaji</p>
-                    </div>
-                </div>
-                <Button size="icon" variant="ghost">
-                    <DollarSign className="h-5 w-5" />
-                </Button>
-            </div>
-
-            {/* Year Selector */}
-            <div className="px-4 py-4 flex items-center justify-between">
-                <h2 className="text-base font-semibold">Tahun {selectedYear}</h2>
-                <select
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                    className="px-3 py-1.5 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                    {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((year) => (
-                        <option key={year} value={year}>
-                            {year}
-                        </option>
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-background pb-24">
+                <MobilePageHeader title="Slip Gaji" gradient="amber" backTo="/employee/dashboard" />
+                <div className="px-4 space-y-4">
+                    <Skeleton className="h-32 rounded-2xl" />
+                    <Skeleton className="h-8 w-48" />
+                    {[1, 2, 3].map((i) => (
+                        <Skeleton key={i} className="h-24 rounded-xl" />
                     ))}
-                </select>
+                </div>
             </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-background pb-24">
+            <MobilePageHeader title="Slip Gaji" gradient="amber" backTo="/employee/dashboard" />
+
+            <div className="px-4 space-y-4">
+                {/* Year Selector */}
+                <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-bold text-foreground">Tahun {selectedYear}</h2>
+                    <select
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                        className="px-3 py-1.5 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                        {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                            <option key={year} value={year}>
+                                {year}
+                            </option>
+                        ))}
+                    </select>
+                </div>
 
             {/* Latest Payroll Card */}
             {latestPayroll && (
-                <div className="px-4 mb-6">
-                    <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-5 text-primary-foreground shadow-lg">
-                        <div className="flex justify-between items-start mb-4">
-                            <div>
-                                <p className="text-xs font-medium opacity-80">Gaji Bersih Terakhir</p>
-                                <h3 className="text-2xl font-bold mt-1">{formatCurrency(latestPayroll.netSalary)}</h3>
-                            </div>
-                            <Badge variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-none">
-                                {format(parseISO(latestPayroll.period + '-01'), 'MMM yyyy', { locale: id })}
-                            </Badge>
+                <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl p-5 text-white shadow-lg">
+                    <div className="flex justify-between items-start mb-4">
+                        <div>
+                            <p className="text-xs font-medium opacity-80">Gaji Bersih Terakhir</p>
+                            <h3 className="text-2xl font-bold mt-1">{formatCurrency(latestPayroll.netSalary)}</h3>
                         </div>
+                        <Badge variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-none">
+                            {format(parseISO(latestPayroll.period + '-01'), 'MMM yyyy', { locale: id })}
+                        </Badge>
+                    </div>
 
-                        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/20">
-                            <div>
-                                <p className="text-xs opacity-80 mb-1">Pendapatan</p>
-                                <p className="font-semibold">{formatCurrency(latestPayroll.grossSalary)}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs opacity-80 mb-1">Potongan</p>
-                                <p className="font-semibold">-{formatCurrency(latestPayroll.totalDeductions)}</p>
-                            </div>
+                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/20">
+                        <div>
+                            <p className="text-xs opacity-80 mb-1">Pendapatan</p>
+                            <p className="font-semibold">{formatCurrency(latestPayroll.grossSalary)}</p>
+                        </div>
+                        <div>
+                            <p className="text-xs opacity-80 mb-1">Potongan</p>
+                            <p className="font-semibold">-{formatCurrency(latestPayroll.totalDeductions)}</p>
                         </div>
                     </div>
                 </div>
             )}
 
             {/* List */}
-            <div className="px-4 space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground mb-2">Riwayat Pembayaran</h3>
+            <div className="space-y-3">
+                <h3 className="text-sm font-bold text-foreground">Riwayat Pembayaran</h3>
 
-                {isLoading ? (
-                    <div className="flex justify-center py-8">
-                        <LoadingState message="Memuat data..." size="sm" />
-                    </div>
-                ) : payrollData && payrollData.length > 0 ? (
+                {payrollData && payrollData.length > 0 ? (
                     payrollData.map((payroll) => (
                         <div
                             key={payroll.id}
                             onClick={() => setSelectedPayroll(payroll)}
-                            className="bg-card border rounded-xl p-4 shadow-sm active:scale-[0.99] transition-transform"
+                            className="bg-card rounded-2xl shadow-sm dark:border dark:border-border/50 p-4 active:scale-[0.99] transition-transform"
                         >
                             <div className="flex justify-between items-start mb-3">
                                 <div className="flex items-center gap-3">
-                                    <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400">
+                                    <div className="h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
                                         <DollarSign className="h-5 w-5" />
                                     </div>
                                     <div>
@@ -194,17 +190,18 @@ export function MobileEmployeePayrollPage() {
 
                             <div className="flex justify-between items-center pt-2 border-t border-border/50">
                                 <span className="text-sm text-muted-foreground">Total Terima</span>
-                                <span className="font-bold text-primary">{formatCurrency(payroll.netSalary)}</span>
+                                <span className="font-bold text-amber-600 dark:text-amber-400">{formatCurrency(payroll.netSalary)}</span>
                             </div>
                         </div>
                     ))
                 ) : (
-                    <div className="text-center py-12 bg-muted/20 rounded-xl border border-dashed">
-                        <DollarSign className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-30" />
-                        <p className="text-sm font-medium">Tidak ada data</p>
-                        <p className="text-xs text-muted-foreground">Belum ada slip gaji untuk tahun ini</p>
-                    </div>
+                    <MobileEmptyState
+                        icon={DollarSign}
+                        title="Tidak Ada Data"
+                        description="Belum ada slip gaji untuk tahun ini"
+                    />
                 )}
+            </div>
             </div>
 
             {/* Detail Sheet */}

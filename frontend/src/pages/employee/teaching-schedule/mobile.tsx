@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getMyTeachingSchedule, type TeachingSession } from '@/lib/api/schedules';
 import { Clock, BookOpen, Users, Calendar, AlertCircle, Info, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
+import { MobilePageHeader, MobileEmptyState } from '@/components/mobile';
 
 const DAY_LABELS: Record<string, string> = {
   monday: 'Senin',
@@ -26,8 +26,8 @@ function formatTime(timeString: string): string {
 function SessionItem({ session, isToday }: { session: TeachingSession; isToday: boolean }) {
   return (
     <div
-      className={`p-3 rounded-lg border ${
-        isToday ? 'border-primary bg-primary/5' : 'border-border bg-card'
+      className={`p-3 rounded-xl ${
+        isToday ? 'bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800' : 'bg-muted/30 border border-border/50'
       }`}
     >
       <div className="flex items-center justify-between mb-1">
@@ -69,7 +69,7 @@ function DayAccordion({
   const totalHours = sessions.reduce((sum, s) => sum + (s.teaching_duration_hours || 0), 0);
 
   return (
-    <div className={`border rounded-lg ${isToday ? 'ring-2 ring-primary' : ''}`}>
+    <div className={`bg-card rounded-2xl shadow-sm dark:border dark:border-border/50 ${isToday ? 'ring-2 ring-indigo-500 dark:ring-indigo-400' : ''}`}>
       <button
         className="w-full p-4 flex items-center justify-between text-left"
         onClick={() => setIsOpen(!isOpen)}
@@ -115,9 +115,9 @@ function StatBadge({
   label: string;
 }) {
   return (
-    <div className="flex flex-col items-center p-3 bg-muted/50 rounded-lg">
-      <Icon className="h-5 w-5 text-primary mb-1" />
-      <span className="text-lg font-bold">{value}</span>
+    <div className="flex flex-col items-center p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl">
+      <Icon className="h-5 w-5 text-indigo-600 dark:text-indigo-400 mb-1" />
+      <span className="text-lg font-bold text-foreground">{value}</span>
       <span className="text-xs text-muted-foreground">{label}</span>
     </div>
   );
@@ -131,27 +131,33 @@ export function MobileTeachingSchedulePage() {
 
   if (isLoading) {
     return (
-      <div className="p-4 space-y-4">
-        <Skeleton className="h-8 w-48" />
-        <div className="grid grid-cols-4 gap-2">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-20" />
+      <div className="min-h-screen bg-background pb-24">
+        <MobilePageHeader title="Jadwal Mengajar" gradient="indigo" backTo="/employee/dashboard" />
+        <div className="px-4 space-y-4">
+          <Skeleton className="h-8 w-48" />
+          <div className="grid grid-cols-4 gap-2">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-20 rounded-xl" />
+            ))}
+          </div>
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-24 rounded-2xl" />
           ))}
         </div>
-        {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-24" />
-        ))}
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>Gagal memuat jadwal mengajar.</AlertDescription>
-        </Alert>
+      <div className="min-h-screen bg-background pb-24">
+        <MobilePageHeader title="Jadwal Mengajar" gradient="indigo" backTo="/employee/dashboard" />
+        <div className="px-4">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>Gagal memuat jadwal mengajar.</AlertDescription>
+          </Alert>
+        </div>
       </div>
     );
   }
@@ -164,19 +170,19 @@ export function MobileTeachingSchedulePage() {
   const hasSchedules = Object.keys(schedules).length > 0;
 
   return (
-    <div className="p-4 pb-24 space-y-4">
-      {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold">Jadwal Mengajar</h1>
-        <p className="text-sm text-muted-foreground">
-          {employee?.name}
-          {employee?.is_guru_honorer && (
-            <Badge variant="secondary" className="ml-2 text-xs">
-              Guru Honor
-            </Badge>
-          )}
-        </p>
-      </div>
+    <div className="min-h-screen bg-background pb-24">
+      <MobilePageHeader
+        title="Jadwal Mengajar"
+        gradient="indigo"
+        backTo="/employee/dashboard"
+        subtitle={
+          employee?.is_guru_honorer && (
+            <Badge className="bg-white/20 text-white border-0 text-xs">Guru Honor</Badge>
+          )
+        }
+      />
+
+      <div className="px-4 space-y-4">
 
       {/* Info for Guru Honorer */}
       {employee?.is_guru_honorer && (
@@ -200,22 +206,20 @@ export function MobileTeachingSchedulePage() {
 
       {/* Today's Schedule */}
       {today && today.schedules.length > 0 && (
-        <Card className="bg-primary/5 border-primary">
-          <CardHeader className="pb-2 pt-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Hari Ini ({DAY_LABELS[today.day_of_week]})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 pt-0">
+        <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-4 border border-indigo-200 dark:border-indigo-800">
+          <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
+            <Clock className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+            Hari Ini ({DAY_LABELS[today.day_of_week]})
+          </h3>
+          <div className="space-y-2">
             {today.schedules.map((session) => (
               <SessionItem key={session.id} session={session} isToday={true} />
             ))}
-            <p className="text-xs text-muted-foreground text-center">
+            <p className="text-xs text-muted-foreground text-center pt-2">
               Total: {today.total_hours} jam hari ini
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* No schedule today */}
@@ -230,18 +234,17 @@ export function MobileTeachingSchedulePage() {
 
       {/* No schedules at all */}
       {!hasSchedules && (
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertDescription className="text-sm">
-            Belum ada jadwal mengajar. Hubungi administrator.
-          </AlertDescription>
-        </Alert>
+        <MobileEmptyState
+          icon={BookOpen}
+          title="Belum Ada Jadwal"
+          description="Belum ada jadwal mengajar. Hubungi administrator."
+        />
       )}
 
       {/* Weekly Schedule */}
       {hasSchedules && (
-        <div className="space-y-2">
-          <h2 className="font-semibold">Jadwal Mingguan</h2>
+        <div className="space-y-3">
+          <h2 className="text-sm font-bold text-foreground">Jadwal Mingguan</h2>
           {Object.entries(schedules).map(([day, sessions]) => (
             <DayAccordion
               key={day}
@@ -253,6 +256,7 @@ export function MobileTeachingSchedulePage() {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

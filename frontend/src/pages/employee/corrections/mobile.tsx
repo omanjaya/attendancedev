@@ -4,21 +4,17 @@ import { id } from 'date-fns/locale';
 import {
     Plus,
     Clock,
-    CheckCircle,
-    XCircle,
+    FileText,
     AlertCircle,
     Loader2,
     Calendar,
-    FileText,
     Upload,
     X,
     ChevronRight,
 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import {
     Select,
@@ -35,6 +31,7 @@ import {
     SheetHeader,
     SheetTitle,
 } from '@/components/ui/sheet';
+import { MobilePageHeader, MobileStatusBadge, MobileEmptyState } from '@/components/mobile';
 import { toast } from 'sonner';
 import {
     useAttendanceCorrections,
@@ -42,7 +39,6 @@ import {
     useCancelCorrection,
 } from '@/hooks/use-attendance-corrections';
 import {
-    CORRECTION_STATUS_LABELS,
     CORRECTION_TYPE_LABELS,
     type AttendanceCorrection,
 } from '@/lib/api/attendance-corrections';
@@ -122,176 +118,159 @@ export default function MobileCorrectionsPage() {
         }
     };
 
-    const getStatusBadge = (status: string) => {
-        const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-            pending: 'secondary',
-            approved: 'default',
-            rejected: 'destructive',
-            cancelled: 'outline',
-        };
-        const icons: Record<string, React.ReactNode> = {
-            pending: <Clock className="h-3 w-3 mr-1" />,
-            approved: <CheckCircle className="h-3 w-3 mr-1" />,
-            rejected: <XCircle className="h-3 w-3 mr-1" />,
-            cancelled: <X className="h-3 w-3 mr-1" />,
-        };
-        return (
-            <Badge variant={variants[status] || 'outline'} className="flex items-center w-fit">
-                {icons[status]}
-                <span className="text-xs">{CORRECTION_STATUS_LABELS[status] || status}</span>
-            </Badge>
-        );
-    };
-
     // Group corrections by status
     const pendingCorrections = corrections.filter((c) => c.status === 'pending');
     const processedCorrections = corrections.filter((c) => c.status !== 'pending');
 
     return (
-        <div className="p-4 pb-24 space-y-4">
-            {/* Header */}
-            <div className="space-y-2">
-                <h1 className="text-xl font-bold">Koreksi Absensi</h1>
-                <p className="text-sm text-muted-foreground">
-                    Ajukan koreksi jika ada kesalahan pada absensi Anda
-                </p>
-            </div>
+        <div className="min-h-screen bg-background pb-24">
+            <MobilePageHeader
+                title="Koreksi Absensi"
+                gradient="emerald"
+                subtitle={
+                    <p className="text-white/80 text-xs">
+                        Ajukan koreksi jika ada kesalahan pada absensi
+                    </p>
+                }
+                rightAction={
+                    <button
+                        onClick={() => setIsCreateSheetOpen(true)}
+                        className="p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
+                    >
+                        <Plus className="h-5 w-5 text-white" />
+                    </button>
+                }
+            />
 
-            {/* Quick Stats */}
-            <div className="grid grid-cols-2 gap-3">
-                <Card className="p-3">
-                    <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-yellow-500 flex-shrink-0" />
-                        <div className="min-w-0">
-                            <p className="text-xs text-muted-foreground">Menunggu</p>
-                            <p className="text-lg font-bold">{pendingCorrections.length}</p>
-                        </div>
-                    </div>
-                </Card>
-                <Card className="p-3">
-                    <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-blue-500 flex-shrink-0" />
-                        <div className="min-w-0">
-                            <p className="text-xs text-muted-foreground">Total</p>
-                            <p className="text-lg font-bold">{corrections.length}</p>
-                        </div>
-                    </div>
-                </Card>
-            </div>
-
-            {/* Pending Corrections */}
-            {pendingCorrections.length > 0 && (
-                <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-base flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-yellow-500" />
-                            Menunggu Persetujuan
-                        </CardTitle>
-                        <CardDescription className="text-sm">
-                            Permintaan yang sedang diproses
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                        {pendingCorrections.map((correction) => (
-                            <div
-                                key={correction.id}
-                                className="flex items-center justify-between p-3 border rounded-lg active:bg-muted/50"
-                                onClick={() => {
-                                    setSelectedCorrection(correction);
-                                    setIsDetailSheetOpen(true);
-                                }}
-                            >
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-1.5 mb-1">
-                                        <Calendar className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                                        <span className="font-medium text-sm truncate">
-                                            {format(new Date(correction.correction_date), 'd MMM yyyy', { locale: id })}
-                                        </span>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground truncate">
-                                        {CORRECTION_TYPE_LABELS[correction.correction_type]}
-                                    </p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    {getStatusBadge(correction.status)}
-                                </div>
+            <div className="px-4 space-y-4">
+                {/* Quick Stats */}
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-card rounded-2xl shadow-sm dark:border dark:border-border/50 p-4">
+                        <div className="flex flex-col items-center text-center">
+                            <div className="h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-2">
+                                <Clock className="h-6 w-6 text-amber-600 dark:text-amber-400" />
                             </div>
-                        ))}
-                    </CardContent>
-                </Card>
-            )}
+                            <p className="text-xs font-medium text-muted-foreground mb-1">Menunggu</p>
+                            <p className="text-2xl font-bold text-foreground">{pendingCorrections.length}</p>
+                        </div>
+                    </div>
+                    <div className="bg-card rounded-2xl shadow-sm dark:border dark:border-border/50 p-4">
+                        <div className="flex flex-col items-center text-center">
+                            <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-2">
+                                <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <p className="text-xs font-medium text-muted-foreground mb-1">Total</p>
+                            <p className="text-2xl font-bold text-foreground">{corrections.length}</p>
+                        </div>
+                    </div>
+                </div>
 
-            {/* History */}
-            <Card>
-                <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Riwayat Koreksi</CardTitle>
-                    <CardDescription className="text-sm">
-                        Semua permintaan koreksi yang pernah diajukan
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {isLoading ? (
-                        <div className="flex justify-center py-8">
-                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                {/* Pending Corrections */}
+                {pendingCorrections.length > 0 && (
+                    <div className="bg-card rounded-2xl shadow-sm dark:border dark:border-border/50 p-4 space-y-3">
+                        <div className="flex items-center gap-2 mb-3">
+                            <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                            <h3 className="text-sm font-bold text-foreground">Menunggu Persetujuan</h3>
                         </div>
-                    ) : corrections.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                            <FileText className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                            <p className="text-sm">Belum ada permintaan koreksi</p>
-                        </div>
-                    ) : (
                         <div className="space-y-2">
-                            {processedCorrections.map((correction) => (
+                            {pendingCorrections.map((correction) => (
                                 <div
                                     key={correction.id}
-                                    className="flex items-center justify-between p-3 border rounded-lg active:bg-muted/50"
+                                    className="bg-muted/30 rounded-xl p-3 border border-border/50 active:bg-muted/50 cursor-pointer transition-colors"
                                     onClick={() => {
                                         setSelectedCorrection(correction);
                                         setIsDetailSheetOpen(true);
                                     }}
                                 >
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-1.5 mb-1">
-                                            <Calendar className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                                            <span className="font-medium text-sm truncate">
-                                                {format(new Date(correction.correction_date), 'd MMM yyyy', { locale: id })}
-                                            </span>
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Calendar className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                                                <span className="text-sm font-semibold text-foreground truncate">
+                                                    {format(new Date(correction.correction_date), 'd MMM yyyy', { locale: id })}
+                                                </span>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground truncate">
+                                                {CORRECTION_TYPE_LABELS[correction.correction_type]}
+                                            </p>
                                         </div>
-                                        <p className="text-xs text-muted-foreground truncate">
-                                            {CORRECTION_TYPE_LABELS[correction.correction_type]}
-                                        </p>
+                                        <MobileStatusBadge status={correction.status as any} />
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        {getStatusBadge(correction.status)}
-                                        <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* History */}
+                <div className="bg-card rounded-2xl shadow-sm dark:border dark:border-border/50 p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        <h3 className="text-sm font-bold text-foreground">Riwayat Koreksi</h3>
+                    </div>
+                    {isLoading ? (
+                        <div className="text-center py-8">
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mx-auto" />
+                            <p className="text-sm text-muted-foreground mt-2">Memuat data...</p>
+                        </div>
+                    ) : corrections.length === 0 ? (
+                        <MobileEmptyState
+                            icon={FileText}
+                            title="Belum Ada Permintaan Koreksi"
+                            description="Mulai dengan mengajukan koreksi absensi"
+                            action={{
+                                label: "Ajukan Koreksi",
+                                onClick: () => setIsCreateSheetOpen(true),
+                                icon: Plus
+                            }}
+                        />
+                    ) : (
+                        <div className="space-y-2">
+                            {processedCorrections.map((correction) => (
+                                <div
+                                    key={correction.id}
+                                    className="bg-muted/30 rounded-xl p-3 border border-border/50 active:bg-muted/50 cursor-pointer transition-colors"
+                                    onClick={() => {
+                                        setSelectedCorrection(correction);
+                                        setIsDetailSheetOpen(true);
+                                    }}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Calendar className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                                                <span className="text-sm font-semibold text-foreground truncate">
+                                                    {format(new Date(correction.correction_date), 'd MMM yyyy', { locale: id })}
+                                                </span>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground truncate">
+                                                {CORRECTION_TYPE_LABELS[correction.correction_type]}
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <MobileStatusBadge status={correction.status as any} />
+                                            <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                        </div>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     )}
-                </CardContent>
-            </Card>
-
-            {/* FAB */}
-            <Button
-                className="fixed bottom-20 right-4 h-14 w-14 rounded-full shadow-lg"
-                onClick={() => setIsCreateSheetOpen(true)}
-            >
-                <Plus className="h-6 w-6" />
-            </Button>
+                </div>
+            </div>
 
             {/* Create Sheet */}
             <Sheet open={isCreateSheetOpen} onOpenChange={setIsCreateSheetOpen}>
-                <SheetContent side="bottom" className="h-[90vh]">
+                <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl">
                     <SheetHeader>
                         <SheetTitle>Ajukan Koreksi Absensi</SheetTitle>
                         <SheetDescription>
                             Isi form di bawah untuk mengajukan koreksi absensi
                         </SheetDescription>
                     </SheetHeader>
-                    <div className="mt-6 space-y-4 overflow-y-auto max-h-[calc(90vh-180px)]">
+                    <div className="mt-6 space-y-4 overflow-y-auto">
                         <div className="space-y-2">
-                            <Label htmlFor="correction_date">Tanggal yang Dikoreksi *</Label>
+                            <Label htmlFor="correction_date" className="text-sm font-medium text-foreground">Tanggal yang Dikoreksi *</Label>
                             <Input
                                 id="correction_date"
                                 type="date"
@@ -302,7 +281,7 @@ export default function MobileCorrectionsPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="correction_type">Jenis Koreksi *</Label>
+                            <Label htmlFor="correction_type" className="text-sm font-medium text-foreground">Jenis Koreksi *</Label>
                             <Select
                                 value={formData.correction_type}
                                 onValueChange={(value) => setFormData({ ...formData, correction_type: value as typeof formData.correction_type })}
@@ -324,7 +303,7 @@ export default function MobileCorrectionsPage() {
                             <div className="space-y-4">
                                 {['check_in', 'both', 'add_missing'].includes(formData.correction_type) && (
                                     <div className="space-y-2">
-                                        <Label htmlFor="requested_check_in">Jam Masuk</Label>
+                                        <Label htmlFor="requested_check_in" className="text-sm font-medium text-foreground">Jam Masuk</Label>
                                         <Input
                                             id="requested_check_in"
                                             type="time"
@@ -335,7 +314,7 @@ export default function MobileCorrectionsPage() {
                                 )}
                                 {['check_out', 'both', 'add_missing'].includes(formData.correction_type) && (
                                     <div className="space-y-2">
-                                        <Label htmlFor="requested_check_out">Jam Keluar</Label>
+                                        <Label htmlFor="requested_check_out" className="text-sm font-medium text-foreground">Jam Keluar</Label>
                                         <Input
                                             id="requested_check_out"
                                             type="time"
@@ -348,7 +327,7 @@ export default function MobileCorrectionsPage() {
                         )}
 
                         <div className="space-y-2">
-                            <Label htmlFor="reason">Alasan Koreksi * (min. 10 karakter)</Label>
+                            <Label htmlFor="reason" className="text-sm font-medium text-foreground">Alasan Koreksi * (min. 10 karakter)</Label>
                             <Textarea
                                 id="reason"
                                 placeholder="Jelaskan alasan mengapa Anda mengajukan koreksi..."
@@ -362,15 +341,16 @@ export default function MobileCorrectionsPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label>Dokumen Pendukung (Opsional)</Label>
-                            <div className="border-2 border-dashed rounded-lg p-4 text-center">
+                            <Label className="text-sm font-medium text-foreground">Dokumen Pendukung (Opsional)</Label>
+                            <div className="border-2 border-dashed rounded-xl p-4 text-center border-border">
                                 {documentFile ? (
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm truncate">{documentFile.name}</span>
+                                    <div className="flex items-center justify-between bg-muted/30 rounded-lg p-2">
+                                        <span className="text-sm truncate flex-1">{documentFile.name}</span>
                                         <Button
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => setDocumentFile(null)}
+                                            className="hover:bg-destructive/10"
                                         >
                                             <X className="h-4 w-4" />
                                         </Button>
@@ -383,7 +363,7 @@ export default function MobileCorrectionsPage() {
                                             className="hidden"
                                             onChange={(e) => setDocumentFile(e.target.files?.[0] || null)}
                                         />
-                                        <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+                                        <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                                         <p className="text-xs text-muted-foreground">
                                             Klik untuk upload (PDF, JPG, PNG, max 5MB)
                                         </p>
@@ -409,40 +389,40 @@ export default function MobileCorrectionsPage() {
 
             {/* Detail Sheet */}
             <Sheet open={isDetailSheetOpen} onOpenChange={setIsDetailSheetOpen}>
-                <SheetContent side="bottom" className="h-[80vh]">
+                <SheetContent side="bottom" className="h-[80vh] rounded-t-3xl">
                     <SheetHeader>
                         <SheetTitle>Detail Koreksi</SheetTitle>
                     </SheetHeader>
                     {selectedCorrection && (
-                        <div className="mt-6 space-y-4 overflow-y-auto max-h-[calc(80vh-120px)]">
+                        <div className="mt-6 space-y-4 overflow-y-auto">
                             <div className="flex justify-between items-start">
                                 <div>
-                                    <p className="text-sm text-muted-foreground">Tanggal</p>
-                                    <p className="font-medium">
+                                    <p className="text-xs text-muted-foreground">Tanggal</p>
+                                    <p className="text-sm font-semibold text-foreground">
                                         {format(new Date(selectedCorrection.correction_date), 'EEEE, d MMMM yyyy', { locale: id })}
                                     </p>
                                 </div>
-                                {getStatusBadge(selectedCorrection.status)}
+                                <MobileStatusBadge status={selectedCorrection.status as any} />
                             </div>
 
                             <div>
-                                <p className="text-sm text-muted-foreground">Jenis Koreksi</p>
-                                <p className="font-medium">
+                                <p className="text-xs text-muted-foreground">Jenis Koreksi</p>
+                                <p className="text-sm font-semibold text-foreground">
                                     {CORRECTION_TYPE_LABELS[selectedCorrection.correction_type]}
                                 </p>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <p className="text-sm text-muted-foreground">Jam Asli</p>
-                                    <p className="text-sm">
+                                    <p className="text-xs text-muted-foreground">Jam Asli</p>
+                                    <p className="text-sm text-foreground">
                                         Masuk: {selectedCorrection.original_check_in || '-'}<br />
                                         Keluar: {selectedCorrection.original_check_out || '-'}
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-sm text-muted-foreground">Jam yang Diminta</p>
-                                    <p className="text-sm">
+                                    <p className="text-xs text-muted-foreground">Jam yang Diminta</p>
+                                    <p className="text-sm text-foreground">
                                         Masuk: {selectedCorrection.requested_check_in || '-'}<br />
                                         Keluar: {selectedCorrection.requested_check_out || '-'}
                                     </p>
@@ -450,27 +430,29 @@ export default function MobileCorrectionsPage() {
                             </div>
 
                             <div>
-                                <p className="text-sm text-muted-foreground">Alasan</p>
-                                <p className="text-sm bg-muted p-3 rounded-md mt-1">
-                                    {selectedCorrection.reason}
-                                </p>
+                                <p className="text-xs text-muted-foreground">Alasan</p>
+                                <div className="bg-muted/30 rounded-xl p-3 border border-border/50 mt-1">
+                                    <p className="text-sm text-foreground">
+                                        {selectedCorrection.reason}
+                                    </p>
+                                </div>
                             </div>
 
                             {selectedCorrection.review_notes && (
-                                <div className="p-3 rounded-md border-l-4 border-primary bg-primary/5">
-                                    <p className="text-sm font-medium flex items-center gap-2">
+                                <div className="p-3 rounded-xl border-l-4 border-primary bg-primary/5">
+                                    <p className="text-sm font-semibold flex items-center gap-2 text-foreground">
                                         <AlertCircle className="h-4 w-4" />
                                         Catatan dari Admin
                                     </p>
-                                    <p className="text-sm mt-1">{selectedCorrection.review_notes}</p>
+                                    <p className="text-sm mt-1 text-muted-foreground">{selectedCorrection.review_notes}</p>
                                 </div>
                             )}
 
                             {selectedCorrection.supporting_document && (
                                 <div>
-                                    <p className="text-sm text-muted-foreground">Dokumen Pendukung</p>
-                                    <div className="bg-muted p-2 rounded-md mt-1">
-                                        <p className="text-xs text-blue-600">
+                                    <p className="text-xs text-muted-foreground">Dokumen Pendukung</p>
+                                    <div className="bg-muted/30 rounded-xl p-3 border border-border/50 mt-1">
+                                        <p className="text-xs text-blue-600 dark:text-blue-400">
                                             📎 {selectedCorrection.supporting_document}
                                         </p>
                                     </div>
@@ -484,7 +466,7 @@ export default function MobileCorrectionsPage() {
                                 variant="outline"
                                 onClick={() => handleCancel(selectedCorrection)}
                                 disabled={cancelMutation.isPending}
-                                className="w-full"
+                                className="w-full text-red-600 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950/30"
                             >
                                 {cancelMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                                 Batalkan Permintaan

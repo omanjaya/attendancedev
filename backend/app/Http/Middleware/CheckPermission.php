@@ -30,12 +30,21 @@ class CheckPermission
         $user->load('roles.permissions');
 
         // SUPER ADMIN BYPASS: Super admin has access to everything
-        if ($user->hasRole('superadmin') || $user->hasRole('Super Admin')) {
+        if ($user->hasRole('super-admin') || $user->hasRole('superadmin') || $user->hasRole('Super Admin')) {
             return $next($request);
         }
 
-        // Simple permission check - no complex OR logic
-        $hasPermission = $user->can($permission);
+        // Handle OR logic in permission string (e.g., "view_leave_own|view_leave_all")
+        $permissions = explode('|', $permission);
+        $hasPermission = false;
+
+        foreach ($permissions as $perm) {
+            $perm = trim($perm);
+            if ($user->can($perm)) {
+                $hasPermission = true;
+                break;
+            }
+        }
 
         if (! $hasPermission) {
             // Log permission denied for security audit

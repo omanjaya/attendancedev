@@ -78,29 +78,28 @@ export function MobileProfilePage() {
     if (!logic.profile) return null;
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-muted/30 via-background to-background dark:from-gray-950 dark:via-gray-900 dark:to-gray-900 pb-20">
-            {/* Header */}
+        <div className="min-h-screen bg-background pb-24">
             <MobilePageHeader
                 title="Profil Saya"
-                onBack={() => navigate({ to: '/employee/dashboard' })}
                 gradient="violet"
+                backTo="/employee/dashboard"
             />
 
-            <div className="px-4 space-y-5 mt-2">
+            <div className="px-4 space-y-4">
                 {/* Profile Card */}
-                <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-border/50 flex flex-col items-center text-center relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-violet-50 to-transparent dark:from-violet-900/20 dark:to-transparent" />
+                <div className="bg-card rounded-2xl shadow-sm dark:border dark:border-border/50 p-6 flex flex-col items-center text-center relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-20 bg-gradient-to-b from-violet-100/50 to-transparent dark:from-violet-900/30 dark:to-transparent" />
 
                     <div className="relative mb-4">
-                        <Avatar className="h-24 w-24 border-4 border-white dark:border-gray-900 shadow-lg">
+                        <Avatar className="h-20 w-20 border-4 border-white dark:border-gray-900 shadow-lg">
                             <AvatarImage src={logic.profile.avatar || undefined} alt={logic.profile.name} />
-                            <AvatarFallback className="text-2xl bg-violet-100 text-violet-600">
+                            <AvatarFallback className="text-2xl bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400">
                                 {logic.getInitials(logic.profile.name)}
                             </AvatarFallback>
                         </Avatar>
                         <button
                             onClick={() => logic.fileInputRef.current?.click()}
-                            className="absolute bottom-0 right-0 p-2 bg-primary text-primary-foreground rounded-full shadow-md hover:bg-primary/90 transition-colors"
+                            className="absolute bottom-0 right-0 p-2.5 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 transition-colors active:scale-95"
                             aria-label="Ubah Foto Profil"
                         >
                             <Camera className="h-4 w-4" />
@@ -116,11 +115,11 @@ export function MobileProfilePage() {
                         />
                     </div>
 
-                    <h2 className="text-xl font-bold text-foreground">{logic.profile.name}</h2>
+                    <h2 className="text-lg font-bold text-foreground mb-1">{logic.profile.name}</h2>
                     <p className="text-sm text-muted-foreground mb-3">{logic.profile.email}</p>
 
                     <div className="flex flex-wrap justify-center gap-2">
-                        <Badge variant="secondary" className="bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 border-0">
+                        <Badge variant="secondary" className="bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400">
                             {logic.profile.role}
                         </Badge>
                         {logic.profile.department && (
@@ -170,18 +169,18 @@ export function MobileProfilePage() {
                 )}
 
                 {/* Menu List */}
-                <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-border/50 overflow-hidden">
+                <div className="bg-card rounded-2xl shadow-sm dark:border dark:border-border/50 p-4 space-y-2">
                     <div
                         onClick={logic.handleEditClick}
-                        className="p-4 flex items-center justify-between border-b border-border/50 active:bg-muted/50 transition-colors cursor-pointer"
+                        className="p-3 flex items-center justify-between border border-border/50 rounded-xl active:bg-muted/50 cursor-pointer transition-all"
                     >
                         <div className="flex items-center gap-3">
-                            <div className="h-9 w-9 rounded-full bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center text-violet-600 dark:text-violet-400">
-                                <User className="h-5 w-5" />
+                            <div className="h-8 w-8 rounded-full bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center text-violet-600 dark:text-violet-400">
+                                <User className="h-4 w-4" />
                             </div>
-                            <span className="font-medium text-sm">Edit Profil</span>
+                            <span className="text-sm font-medium text-foreground">Edit Profil</span>
                         </div>
-                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
 
                     <div className="p-4 border-b border-border/50">

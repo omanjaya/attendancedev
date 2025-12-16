@@ -54,8 +54,11 @@ export async function getUser(): Promise<User> {
 }
 
 // Forgot password
-export async function forgotPassword(email: string): Promise<ApiResponse> {
-  const response = await apiClient.post<ApiResponse>(AUTH_ENDPOINTS.forgotPassword, { email });
+export async function forgotPassword(email: string, turnstileToken?: string): Promise<ApiResponse> {
+  const response = await apiClient.post<ApiResponse>(AUTH_ENDPOINTS.forgotPassword, {
+    email,
+    turnstile_token: turnstileToken,
+  });
   return response.data;
 }
 

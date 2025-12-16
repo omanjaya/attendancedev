@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
 import {
     FileText,
     BarChart2,
@@ -16,7 +15,6 @@ import type { ReportType } from '@/types/reports';
 import { format, subMonths } from 'date-fns';
 
 export function MobileReportsPage() {
-    const navigate = useNavigate();
     const [isExporting, setIsExporting] = useState(false);
 
     const reports = [
@@ -94,34 +92,32 @@ export function MobileReportsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-muted/30 via-background to-background dark:from-gray-950 dark:via-gray-900 dark:to-gray-900 pb-20">
-            {/* Header */}
+        <div className="min-h-screen bg-background pb-24">
             <MobilePageHeader
                 title="Laporan"
-                onBack={() => navigate({ to: '/admin/dashboard' })}
-                gradient="indigo"
+                backTo="/admin/dashboard"
+                gradient="rose"
             />
 
-            {/* Report Cards - 2x2 Grid (Touch-Friendly) */}
-            <div className="px-4 mt-4 space-y-3">
+            <div className="px-4 space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                     {reports.map((report) => (
                         <button
                             key={report.id}
                             onClick={() => handleExport(report.reportType, report.title)}
                             disabled={isExporting}
-                            className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 p-5 rounded-3xl border border-border/50 shadow-lg active:scale-95 transition-all disabled:opacity-60 min-h-[160px] flex flex-col items-start text-left"
+                            className="bg-card rounded-2xl shadow-sm dark:border dark:border-border/50 p-4 active:scale-95 transition-all disabled:opacity-60 min-h-[140px] flex flex-col items-start text-left"
                         >
-                            <div className={`h-12 w-12 rounded-2xl ${report.color} flex items-center justify-center mb-4 shadow-sm`}>
-                                <report.icon className="h-6 w-6" />
+                            <div className={`h-10 w-10 rounded-xl ${report.color} flex items-center justify-center mb-3`}>
+                                <report.icon className="h-5 w-5" />
                             </div>
                             <h3 className="font-bold text-sm mb-1 text-foreground">{report.title}</h3>
                             <p className="text-xs text-muted-foreground mb-auto">30 hari terakhir</p>
-                            <div className="w-full flex items-center justify-center gap-2 mt-3 pt-3 border-t border-border/30">
+                            <div className="w-full flex items-center justify-center gap-2 mt-3 pt-3 border-t border-border/50">
                                 {isExporting ? (
                                     <>
-                                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                                        <span className="text-xs font-medium text-primary">Memproses...</span>
+                                        <Loader2 className="h-4 w-4 animate-spin text-rose-600" />
+                                        <span className="text-xs font-medium text-rose-600">Memproses...</span>
                                     </>
                                 ) : (
                                     <>

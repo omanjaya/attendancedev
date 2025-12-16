@@ -448,4 +448,13 @@ class User extends Authenticatable
 
         return "{$this->name} ({$role})";
     }
+
+    /**
+     * Send the password reset notification.
+     * Override default Laravel notification with custom template.
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new \App\Notifications\ResetPasswordNotification($token));
+    }
 }

@@ -3,19 +3,19 @@ import {
     ChevronLeft,
     Download,
     DollarSign,
-
     Clock,
     TrendingUp,
     TrendingDown,
-    Share2
+    Share2,
+    Calendar
 } from 'lucide-react';
 import { LoadingState } from '@/components/states';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { payrollStatusLabels, type PayrollEmployee } from '@/types/payroll';
+import { payrollStatusLabels, type PayrollEmployeeDetail } from '@/types/payroll';
 
 interface MobilePayrollShowPageProps {
-    payroll: PayrollEmployee | null;
+    payroll: PayrollEmployeeDetail | null;
     isLoading: boolean;
     error: Error | null;
 }
@@ -28,7 +28,7 @@ export function MobilePayrollShowPage({ payroll, isLoading, error }: MobilePayro
             style: 'currency',
             currency: 'IDR',
             minimumFractionDigits: 0,
-        }).format(amount);
+        }).format(amount || 0);
     };
 
     if (isLoading) {
@@ -55,15 +55,6 @@ export function MobilePayrollShowPage({ payroll, isLoading, error }: MobilePayro
             </div>
         );
     }
-
-    const totalEarnings =
-        payroll.base_salary +
-        payroll.position_allowance +
-        payroll.transport_allowance +
-        payroll.meal_allowance +
-        payroll.overtime_pay +
-        payroll.bonus +
-        payroll.other_allowances;
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-muted/30 via-background to-background dark:from-gray-950 dark:via-gray-900 dark:to-gray-900 pb-24">
@@ -110,11 +101,8 @@ export function MobilePayrollShowPage({ payroll, isLoading, error }: MobilePayro
                                 variant="outline"
                                 className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400"
                             >
-                                {payrollStatusLabels[payroll.status]}
+                                {payrollStatusLabels[payroll.status] || payroll.status}
                             </Badge>
-                            <span className="text-xs text-muted-foreground">
-                                {new Date(payroll.created_at).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
-                            </span>
                         </div>
                     </div>
                 </div>
@@ -123,34 +111,48 @@ export function MobilePayrollShowPage({ payroll, isLoading, error }: MobilePayro
                 <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 shadow-sm border border-border/50">
                     <div className="flex items-center gap-4">
                         <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-primary/20">
-                            {payroll.employee_name.charAt(0).toUpperCase()}
+                            {payroll.employee?.name?.charAt(0).toUpperCase() || 'E'}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="font-bold text-foreground text-sm truncate">{payroll.employee_name}</p>
-                            <p className="text-xs text-muted-foreground truncate">{payroll.position}</p>
-                            <p className="text-xs text-muted-foreground truncate">{payroll.department}</p>
+                            <p className="font-bold text-foreground text-sm truncate">{payroll.employee?.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{payroll.employee?.position || '-'}</p>
+                            <p className="text-xs text-muted-foreground truncate">{payroll.employee?.department || '-'}</p>
                         </div>
                     </div>
                 </div>
 
-                {/* Attendance Summary */}
+                {/* Period Info */}
+                <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 shadow-sm border border-border/50">
+                    <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-primary" />
+                        Periode Gaji
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-muted/30 rounded-2xl p-3 text-center">
+                            <p className="text-xs font-medium text-foreground">{payroll.period?.name}</p>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Periode</p>
+                        </div>
+                        <div className="bg-muted/30 rounded-2xl p-3 text-center">
+                            <p className="text-xs font-medium text-foreground">{payroll.period?.pay_date || '-'}</p>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Tanggal Bayar</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Work Summary */}
                 <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 shadow-sm border border-border/50">
                     <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
                         <Clock className="h-4 w-4 text-primary" />
-                        Ringkasan Kehadiran
+                        Ringkasan Kerja
                     </h3>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 gap-3">
                         <div className="bg-muted/30 rounded-2xl p-3 text-center">
-                            <p className="text-lg font-bold text-foreground">{payroll.present_days}</p>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Hadir</p>
+                            <p className="text-lg font-bold text-foreground">{payroll.worked_hours || 0}h</p>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Jam Kerja</p>
                         </div>
                         <div className="bg-muted/30 rounded-2xl p-3 text-center">
-                            <p className="text-lg font-bold text-rose-500">{payroll.absent_days}</p>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Alpha</p>
-                        </div>
-                        <div className="bg-muted/30 rounded-2xl p-3 text-center">
-                            <p className="text-lg font-bold text-orange-500">{payroll.late_days}</p>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Telat</p>
+                            <p className="text-lg font-bold text-primary">{payroll.overtime_hours || 0}h</p>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Lembur</p>
                         </div>
                     </div>
                 </div>
@@ -162,17 +164,26 @@ export function MobilePayrollShowPage({ payroll, isLoading, error }: MobilePayro
                         Pendapatan
                     </h3>
                     <div className="space-y-3">
-                        <DetailRow label="Gaji Pokok" value={payroll.base_salary} />
-                        <DetailRow label="Tunjangan Jabatan" value={payroll.position_allowance} />
-                        <DetailRow label="Tunjangan Transport" value={payroll.transport_allowance} />
-                        <DetailRow label="Tunjangan Makan" value={payroll.meal_allowance} />
-                        <DetailRow label="Lembur" value={payroll.overtime_pay} />
-                        {payroll.bonus > 0 && <DetailRow label="Bonus" value={payroll.bonus} />}
-                        {payroll.other_allowances > 0 && <DetailRow label="Lainnya" value={payroll.other_allowances} />}
+                        {payroll.earnings?.length > 0 ? (
+                            payroll.earnings.map((item, index) => (
+                                <DetailRow key={item.id || index} label={item.name || 'Item'} value={item.amount} />
+                            ))
+                        ) : (
+                            <p className="text-sm text-muted-foreground">Tidak ada data pendapatan</p>
+                        )}
+                        {payroll.bonuses?.length > 0 && (
+                            <>
+                                <div className="h-px bg-border/50 my-2" />
+                                <p className="text-xs text-muted-foreground font-medium">Bonus</p>
+                                {payroll.bonuses.map((item, index) => (
+                                    <DetailRow key={item.id || index} label={item.name || 'Bonus'} value={item.amount} />
+                                ))}
+                            </>
+                        )}
                         <div className="h-px bg-border/50 my-2" />
                         <div className="flex justify-between items-center">
                             <span className="text-sm font-bold text-foreground">Total Pendapatan</span>
-                            <span className="text-sm font-bold text-emerald-600">{formatCurrency(totalEarnings)}</span>
+                            <span className="text-sm font-bold text-emerald-600">{formatCurrency(payroll.gross_salary)}</span>
                         </div>
                     </div>
                 </div>
@@ -184,13 +195,13 @@ export function MobilePayrollShowPage({ payroll, isLoading, error }: MobilePayro
                         Potongan
                     </h3>
                     <div className="space-y-3">
-                        <DetailRow label="BPJS Kesehatan" value={payroll.bpjs_kesehatan} />
-                        <DetailRow label="BPJS Ketenagakerjaan" value={payroll.bpjs_ketenagakerjaan} />
-                        <DetailRow label="PPh 21" value={payroll.tax} />
-                        {payroll.late_deduction > 0 && <DetailRow label="Denda Terlambat" value={payroll.late_deduction} />}
-                        {payroll.absence_deduction > 0 && <DetailRow label="Potongan Absen" value={payroll.absence_deduction} />}
-                        {payroll.loan_deduction > 0 && <DetailRow label="Pinjaman" value={payroll.loan_deduction} />}
-                        {payroll.other_deductions > 0 && <DetailRow label="Lainnya" value={payroll.other_deductions} />}
+                        {payroll.deductions?.length > 0 ? (
+                            payroll.deductions.map((item, index) => (
+                                <DetailRow key={item.id || index} label={item.name || 'Potongan'} value={item.amount} />
+                            ))
+                        ) : (
+                            <p className="text-sm text-muted-foreground">Tidak ada potongan</p>
+                        )}
                         <div className="h-px bg-border/50 my-2" />
                         <div className="flex justify-between items-center">
                             <span className="text-sm font-bold text-foreground">Total Potongan</span>
@@ -198,6 +209,14 @@ export function MobilePayrollShowPage({ payroll, isLoading, error }: MobilePayro
                         </div>
                     </div>
                 </div>
+
+                {/* Notes */}
+                {payroll.notes && (
+                    <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 shadow-sm border border-border/50">
+                        <h3 className="text-sm font-bold text-foreground mb-2">Catatan</h3>
+                        <p className="text-sm text-muted-foreground">{payroll.notes}</p>
+                    </div>
+                )}
             </div>
 
             {/* Floating Download Button */}
@@ -224,13 +243,13 @@ function DetailRow({ label, value }: { label: string, value: number }) {
             style: 'currency',
             currency: 'IDR',
             minimumFractionDigits: 0,
-        }).format(amount);
+        }).format(amount || 0);
     };
 
     return (
-        <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground">{label}</span>
-            <span className="font-medium text-foreground">{formatCurrency(value)}</span>
+        <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">{label}</span>
+            <span className="text-sm font-medium text-foreground">{formatCurrency(value)}</span>
         </div>
     );
 }

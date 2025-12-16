@@ -10,7 +10,7 @@ import {
     X,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores';
-import { useNavigate } from '@tanstack/react-router';
+import { MobilePageHeader } from '@/components/mobile';
 import {
     format,
     startOfMonth,
@@ -56,7 +56,6 @@ interface RahinaEvent {
 
 export function MobileEmployeeSchedulePage() {
     const { user } = useAuthStore();
-    const navigate = useNavigate();
     const [selectedMonth, setSelectedMonth] = useState(new Date());
     const [showMonthPicker, setShowMonthPicker] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -81,10 +80,11 @@ export function MobileEmployeeSchedulePage() {
             const monthEnd = endOfMonth(selectedMonth);
 
             // Fetch attendance records for the month
+            // Note: Backend now auto-filters by authenticated user for employee/guru roles
             const response = await getAttendance({
                 date_from: format(monthStart, 'yyyy-MM-dd'),
                 date_to: format(monthEnd, 'yyyy-MM-dd'),
-                employee_id: user?.employee_id,
+                employee_id: user?.employee?.id, // Use employee UUID, not user.employee_id
                 per_page: 100, // Fetch all records for the month
             });
 
@@ -188,35 +188,27 @@ export function MobileEmployeeSchedulePage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-muted/20 via-background to-background pb-20">
-            {/* Header */}
-            <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-lg border-b border-border/50 shadow-sm">
-                <div className="flex items-center justify-center py-4 relative px-4">
-                    <button
-                        onClick={() => navigate({ to: '/employee/attendance' })}
-                        className="absolute left-4 p-2 hover:bg-muted rounded-xl transition-all active:scale-95"
-                        aria-label="Kembali"
-                    >
-                        <ChevronLeft className="h-5 w-5" />
-                    </button>
-                    <h1 className="text-lg font-bold">Jadwal Saya</h1>
-                </div>
-            </div>
+        <div className="min-h-screen bg-background pb-24">
+            <MobilePageHeader
+                title="Jadwal Saya"
+                gradient="indigo"
+                backTo="/employee/dashboard"
+            />
 
             {/* Content */}
-            <div className="px-4 py-5 space-y-5">
+            <div className="px-4 space-y-4">
                 {/* Month Selector - Symmetrical */}
                 <div className="flex items-center justify-center gap-3">
                     <button
                         onClick={handlePreviousMonth}
-                        className="bg-card border border-border/50 rounded-2xl p-3.5 hover:bg-muted/50 transition-all active:scale-95 shadow-sm w-12 h-12 flex items-center justify-center"
+                        className="bg-card rounded-2xl shadow-sm dark:border dark:border-border/50 p-3.5 hover:bg-muted/50 transition-all active:scale-95 w-12 h-12 flex items-center justify-center"
                         aria-label="Bulan Sebelumnya"
                     >
                         <ChevronLeft className="h-5 w-5" />
                     </button>
                     <button
                         onClick={() => setShowMonthPicker(true)}
-                        className="flex-1 bg-card border border-border/50 rounded-2xl px-6 py-3.5 flex items-center justify-center gap-2 shadow-sm hover:bg-muted/50 hover:border-border transition-all active:scale-[0.98] cursor-pointer max-w-xs"
+                        className="flex-1 bg-card rounded-2xl shadow-sm dark:border dark:border-border/50 px-6 py-3.5 flex items-center justify-center gap-2 hover:bg-muted/50 transition-all active:scale-[0.98] cursor-pointer max-w-xs"
                     >
                         <span className="text-base font-semibold capitalize">
                             {format(selectedMonth, 'MMMM yyyy', { locale: id })}
@@ -225,7 +217,7 @@ export function MobileEmployeeSchedulePage() {
                     </button>
                     <button
                         onClick={handleNextMonth}
-                        className="bg-card border border-border/50 rounded-2xl p-3.5 hover:bg-muted/50 transition-all active:scale-95 shadow-sm w-12 h-12 flex items-center justify-center"
+                        className="bg-card rounded-2xl shadow-sm dark:border dark:border-border/50 p-3.5 hover:bg-muted/50 transition-all active:scale-95 w-12 h-12 flex items-center justify-center"
                         aria-label="Bulan Berikutnya"
                     >
                         <ChevronRight className="h-5 w-5" />
@@ -233,7 +225,7 @@ export function MobileEmployeeSchedulePage() {
                 </div>
 
                 {/* Employee Info */}
-                <div className="bg-card border border-border/50 rounded-2xl px-5 py-4 shadow-sm">
+                <div className="bg-card rounded-2xl shadow-sm dark:border dark:border-border/50 px-5 py-4">
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
                             <span className="text-sm text-muted-foreground">Nama</span>
@@ -248,7 +240,7 @@ export function MobileEmployeeSchedulePage() {
                 </div>
 
                 {/* Calendar Grid */}
-                <div className="bg-card border border-border/50 rounded-2xl px-4 py-5 shadow-sm">
+                <div className="bg-card rounded-2xl shadow-sm dark:border dark:border-border/50 px-4 py-5">
                     {/* Day Headers */}
                     <div className="grid grid-cols-7 gap-2 mb-4">
                         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
@@ -317,7 +309,7 @@ export function MobileEmployeeSchedulePage() {
                 </div>
 
                 {/* Legend */}
-                <div className="bg-card border border-border/50 rounded-2xl px-4 py-3 shadow-sm">
+                <div className="bg-card rounded-2xl shadow-sm dark:border dark:border-border/50 px-4 py-3">
                     <div className="grid grid-cols-2 gap-2 text-xs">
                         <div className="flex items-center gap-2">
                             <div className="bg-sky-400 rounded-full p-1 shadow-sm">
@@ -360,12 +352,12 @@ export function MobileEmployeeSchedulePage() {
 
                 {/* Daftar Rahina */}
                 <div className="space-y-3 pb-2">
-                    <h2 className="text-base font-bold px-1">Daftar Rahina</h2>
-                    <div className="space-y-2.5">
+                    <h2 className="text-sm font-bold text-foreground px-1">Daftar Rahina</h2>
+                    <div className="space-y-3">
                         {attendanceData?.rahina.map((event, idx) => (
                             <div
                                 key={idx}
-                                className="flex items-center gap-3.5 bg-card border border-border/50 rounded-2xl px-4 py-3.5 shadow-sm hover:shadow-md transition-shadow"
+                                className="flex items-center gap-3.5 bg-card rounded-2xl shadow-sm dark:border dark:border-border/50 px-4 py-3.5 hover:shadow-md transition-shadow"
                             >
                                 <div
                                     className={cn(

@@ -20,7 +20,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { getEmployees } from '@/lib/api/employees';
 import type { Employee } from '@/types';
 import { toast } from 'sonner';
-import { useNavigate } from '@tanstack/react-router';
 import { MobilePageHeader } from '@/components/mobile';
 import { SearchBar } from '@/components/shared';
 import { Button } from '@/components/ui/button';
@@ -491,8 +490,6 @@ function AssignEmployeesDialog({
 }
 
 export function MobileLocationsPage() {
-    const navigate = useNavigate();
-
     // Use shared hook for common logic
     const logic = useLocationsPage();
 
@@ -502,13 +499,13 @@ export function MobileLocationsPage() {
     const activeFiltersCount = logic.statusFilter !== 'all' ? 1 : 0;
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-muted/30 via-background to-background dark:from-gray-950 dark:via-gray-900 dark:to-gray-900 pb-24">
+        <div className="min-h-screen bg-background pb-24">
             {/* Header */}
             <MobilePageHeader
                 title="Manajemen Lokasi"
-                onBack={() => navigate({ to: '/admin/dashboard' })}
-                gradient="emerald"
-                actions={
+                backTo="/admin/dashboard"
+                gradient="cyan"
+                rightAction={
                     <button
                         onClick={() => setIsFilterOpen(true)}
                         className="relative p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
@@ -516,7 +513,7 @@ export function MobileLocationsPage() {
                     >
                         <Filter className="h-5 w-5 text-white" />
                         {activeFiltersCount > 0 && (
-                            <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-emerald-600" />
+                            <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-cyan-600" />
                         )}
                     </button>
                 }
@@ -555,15 +552,15 @@ export function MobileLocationsPage() {
                         <div
                             key={location.id}
                             className={cn(
-                                "bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-border/50 flex flex-col gap-3 transition-opacity",
+                                "bg-card rounded-2xl shadow-sm dark:border dark:border-border/50 p-4 flex flex-col gap-3 transition-opacity",
                                 !location.is_active && "opacity-75"
                             )}
                         >
                             <div className="flex items-start justify-between gap-3">
                                 <div className="flex items-center gap-3">
                                     <div className={cn(
-                                        "h-10 w-10 rounded-xl flex items-center justify-center shadow-sm",
-                                        location.is_active ? "bg-gradient-to-br from-emerald-500 to-teal-600 text-white" : "bg-muted text-muted-foreground"
+                                        "h-10 w-10 rounded-xl flex items-center justify-center",
+                                        location.is_active ? "bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400" : "bg-muted text-muted-foreground"
                                     )}>
                                         <MapPin className="h-5 w-5" />
                                     </div>
@@ -652,7 +649,7 @@ export function MobileLocationsPage() {
                     logic.setEditingLocation(null);
                     logic.setIsFormOpen(true);
                 }}
-                className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-xl bg-emerald-600 hover:bg-emerald-700 text-white z-50"
+                className="fixed bottom-24 right-4 h-14 w-14 rounded-full shadow-lg bg-cyan-600 hover:bg-cyan-700 text-white z-50"
             >
                 <Plus className="h-6 w-6" />
             </Button>

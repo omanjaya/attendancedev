@@ -63,7 +63,7 @@ export function DesktopEmployeeAttendancePage() {
       const [attendanceResponse, statsResponse] = await Promise.all([
         getAttendance({
           month: format(selectedMonth, 'yyyy-MM'),
-          employee_id: user?.employee_id ? Number(user.employee_id) : undefined,
+          employee_id: user?.employee?.id, // Use employee UUID - backend auto-filters for employee/guru roles
         }),
         getAttendanceStatistics(format(selectedMonth, 'yyyy-MM-01')),
       ]);
