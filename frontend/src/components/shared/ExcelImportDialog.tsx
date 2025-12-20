@@ -1,5 +1,4 @@
-import { useState, useCallback, useRef, lazy } from 'react';
-import type ExcelJS from 'exceljs';
+import { useState, useCallback, useRef } from 'react';
 import {
     Upload,
     FileSpreadsheet,
@@ -196,16 +195,16 @@ export function ExcelImportDialog({
         const jsonData: Record<string, any>[] = [];
         const headers: string[] = [];
 
-        worksheet.eachRow((row, rowNumber) => {
+        worksheet.eachRow((row: any, rowNumber: number) => {
             if (rowNumber === 1) {
                 // First row is headers
-                row.eachCell((cell, colNumber) => {
+                row.eachCell((cell: any, colNumber: number) => {
                     headers[colNumber - 1] = String(cell.value || '');
                 });
             } else {
                 // Data rows
                 const rowData: Record<string, any> = {};
-                row.eachCell((cell, colNumber) => {
+                row.eachCell((cell: any, colNumber: number) => {
                     const header = headers[colNumber - 1];
                     if (header) {
                         let value = cell.value;
