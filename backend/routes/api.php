@@ -31,9 +31,13 @@ Route::middleware('auth')->group(function () {
 // API v1 routes
 Route::prefix('v1')->group(function () {
     // Auth routes (public - no authentication required)
-    Route::post('/auth/login', [App\Http\Controllers\Api\AuthController::class, 'login']);
-    Route::post('/auth/forgot-password', [App\Http\Controllers\Api\AuthController::class, 'forgotPassword']);
-    Route::post('/auth/reset-password', [App\Http\Controllers\Api\AuthController::class, 'resetPassword']);
+    // SECURITY: Rate limited to 5 attempts per minute to prevent brute force attacks
+    Route::post('/auth/login', [App\Http\Controllers\Api\AuthController::class, 'login'])
+        ->middleware('throttle:5,1');
+    Route::post('/auth/forgot-password', [App\Http\Controllers\Api\AuthController::class, 'forgotPassword'])
+        ->middleware('throttle:5,1');
+    Route::post('/auth/reset-password', [App\Http\Controllers\Api\AuthController::class, 'resetPassword'])
+        ->middleware('throttle:5,1');
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/auth/logout', [App\Http\Controllers\Api\AuthController::class, 'logout']);
@@ -383,14 +387,15 @@ Route::prefix('v1')->group(function () {
                 App\Http\Controllers\AttendanceController::class,
                 'getStatus',
             ])->middleware('permission:view_attendance_own');
+            // SECURITY: Rate limited to 30 check-ins per hour to prevent abuse
             Route::post('/check-in', [
                 App\Http\Controllers\AttendanceController::class,
                 'processCheckIn',
-            ])->middleware('permission:manage_attendance_own');
+            ])->middleware(['permission:manage_attendance_own', 'throttle:30,60']);
             Route::post('/check-out', [
                 App\Http\Controllers\AttendanceController::class,
                 'processCheckOut',
-            ])->middleware('permission:manage_attendance_own');
+            ])->middleware(['permission:manage_attendance_own', 'throttle:30,60']);
             Route::get('/data', [
                 App\Http\Controllers\AttendanceController::class,
                 'getAttendanceData',
@@ -415,14 +420,15 @@ Route::prefix('v1')->group(function () {
 
         // Enhanced Attendance with Face Recognition endpoints
         Route::prefix('attendance-face')->group(function () {
+            // SECURITY: Rate limited to 30 check-ins per hour to prevent abuse
             Route::post('/check-in', [
                 App\Http\Controllers\Api\AttendanceController::class,
                 'checkIn',
-            ])->middleware('permission:manage_attendance_own');
+            ])->middleware(['permission:manage_attendance_own', 'throttle:30,60']);
             Route::post('/check-out', [
                 App\Http\Controllers\Api\AttendanceController::class,
                 'checkOut',
-            ])->middleware('permission:manage_attendance_own');
+            ])->middleware(['permission:manage_attendance_own', 'throttle:30,60']);
             Route::post('/status', [
                 App\Http\Controllers\Api\AttendanceController::class,
                 'getStatus',
@@ -439,14 +445,15 @@ Route::prefix('v1')->group(function () {
 
         // Face detection endpoints
         Route::prefix('face-detection')->group(function () {
+            // SECURITY: Rate limited to 10 operations per minute (expensive CPU/GPU operations)
             Route::post('/register', [
                 App\Http\Controllers\FaceDetectionController::class,
                 'registerFace',
-            ])->middleware('permission:manage_employees');
+            ])->middleware(['permission:manage_employees', 'throttle:10,1']);
             Route::post('/verify', [
                 App\Http\Controllers\FaceDetectionController::class,
                 'verifyFace',
-            ])->middleware('permission:manage_attendance_own');
+            ])->middleware(['permission:manage_attendance_own', 'throttle:10,1']);
             Route::get('/faces', [
                 App\Http\Controllers\FaceDetectionController::class,
                 'getRegisteredFaces',
@@ -489,14 +496,15 @@ Route::prefix('v1')->group(function () {
 
         // Enhanced Face Recognition Service endpoints
         Route::prefix('face-recognition')->group(function () {
+            // SECURITY: Rate limited to 10 operations per minute (expensive CPU/GPU operations)
             Route::post('/register', [
                 App\Http\Controllers\Api\FaceRecognitionController::class,
                 'registerFace',
-            ])->middleware('permission:manage_attendance_own');
+            ])->middleware(['permission:manage_attendance_own', 'throttle:10,1']);
             Route::post('/verify', [
                 App\Http\Controllers\Api\FaceRecognitionController::class,
                 'verifyFace',
-            ])->middleware('permission:manage_attendance_own');
+            ])->middleware(['permission:manage_attendance_own', 'throttle:10,1']);
             Route::post('/update', [
                 App\Http\Controllers\Api\FaceRecognitionController::class,
                 'updateFaceData',
@@ -541,23 +549,24 @@ Route::prefix('v1')->group(function () {
                 'healthDeepFace',
             ]);
 
+            // SECURITY: Rate limited to 10 operations per minute (expensive CPU/GPU operations)
             // Extract 512-d embedding
             Route::post('/extract-embedding', [
                 App\Http\Controllers\Api\FaceRecognitionController::class,
                 'extractEmbeddingDeepFace',
-            ])->middleware('permission:manage_attendance_own');
+            ])->middleware(['permission:manage_attendance_own', 'throttle:10,1']);
 
             // Check liveness (anti-spoofing)
             Route::post('/check-liveness', [
                 App\Http\Controllers\Api\FaceRecognitionController::class,
                 'checkLivenessDeepFace',
-            ])->middleware('permission:manage_attendance_own');
+            ])->middleware(['permission:manage_attendance_own', 'throttle:10,1']);
 
             // Verify face with DeepFace
             Route::post('/verify', [
                 App\Http\Controllers\Api\FaceRecognitionController::class,
                 'verifyFaceDeepFace',
-            ])->middleware('permission:manage_attendance_own');
+            ])->middleware(['permission:manage_attendance_own', 'throttle:10,1']);
 
             // Analyze emotion (for liveness check)
             Route::post('/analyze-emotion', [

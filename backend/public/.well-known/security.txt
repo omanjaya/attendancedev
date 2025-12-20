@@ -1,0 +1,11 @@
+# Security Policy for Attendance System
+# https://securitytxt.org/
+
+Contact: mailto:security@patra.co.id
+Expires: 2026-12-31T23:59:59.000Z
+Preferred-Languages: id, en
+Canonical: https://absensi.patra.co.id/.well-known/security.txt
+Policy: https://absensi.patra.co.id/security-policy
+
+# If you discover a security vulnerability, please report it to us.
+# We appreciate your help in keeping our system secure.

@@ -62,6 +62,7 @@ import { ExcelImportDialog } from './ExcelImportDialog';
 import { StatusBar } from './StatusBar';
 import { GRADES, TIME_SLOTS, DAY_MAPPING, parseRowKey } from './constants';
 import { saveGradeSchedule, loadGradeSchedule } from '@/lib/api/schedules';
+import { logError } from '@/lib/utils/error';
 
 export default function GradeScheduleBuilder() {
   const { success, error: showError, warning } = useNotificationStore();
@@ -174,7 +175,7 @@ export default function GradeScheduleBuilder() {
     retryDelayMs: 1000,
     onSave: performAutoSave,
     onError: (error) => {
-      console.error('Auto-save error:', error);
+      logError(error, 'Grade Schedule Auto-Save');
     },
   });
 
@@ -286,6 +287,7 @@ export default function GradeScheduleBuilder() {
         success('Berhasil', `${totalCreated} jadwal tersimpan ke server`);
       }
     } catch (err: unknown) {
+      logError(err, 'Grade Schedule Manual Save');
       const message = err instanceof Error ? err.message : 'Gagal menyimpan ke server';
       showError('Gagal', message);
     }
@@ -352,6 +354,7 @@ export default function GradeScheduleBuilder() {
         }
       }
     } catch (err: unknown) {
+      logError(err, 'Grade Schedule Load');
       if (!silent) {
         const message = err instanceof Error ? err.message : 'Gagal memuat dari server';
         showError('Gagal', message);

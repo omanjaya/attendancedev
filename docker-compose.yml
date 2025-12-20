@@ -26,8 +26,9 @@ services:
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    # SECURITY: Port commented out for production - use docker-compose.override.yml for dev
+    # ports:
+    #   - "5432:5432"
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${DB_USERNAME:-attendance_user} -d ${DB_DATABASE:-attendance_system}" ]
       interval: 10s
@@ -43,13 +44,13 @@ services:
     image: redis:7-alpine
     container_name: attendancedev-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD:-redis_secure_password_change_me}
     volumes:
       - redis_data:/data
     ports:
       - "6379:6379"
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: [ "CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD:-redis_secure_password_change_me}", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -81,22 +82,24 @@ services:
       - DB_USERNAME=${DB_USERNAME:-attendance_user}
       - DB_PASSWORD=${DB_PASSWORD:-attendance123}
       - REDIS_HOST=redis
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_secure_password_change_me}
       - REDIS_PORT=6379
       - CACHE_DRIVER=redis
       - SESSION_DRIVER=redis
       - QUEUE_CONNECTION=database
       - DEEPFACE_BASE_URL=http://deepface-1:8001
       # Mail Configuration (Gmail SMTP)
-      - MAIL_MAILER=smtp
-      - MAIL_HOST=smtp.gmail.com
-      - MAIL_PORT=587
-      - MAIL_USERNAME=omanjaya47@gmail.com
-      - MAIL_PASSWORD=idfmgtoxesbhyske
-      - MAIL_ENCRYPTION=tls
-      - MAIL_FROM_ADDRESS=omanjaya47@gmail.com
-      - MAIL_FROM_NAME="Sistem Absensi Patra"
+      # SECURITY: Credentials moved to .env file - never commit secrets!
+      - MAIL_MAILER=${MAIL_MAILER:-smtp}
+      - MAIL_HOST=${MAIL_HOST:-smtp.gmail.com}
+      - MAIL_PORT=${MAIL_PORT:-587}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_ENCRYPTION=${MAIL_ENCRYPTION:-tls}
+      - MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS}
+      - MAIL_FROM_NAME=${MAIL_FROM_NAME:-"Sistem Absensi Patra"}
       # Cloudflare Turnstile CAPTCHA
-      - TURNSTILE_SECRET_KEY=0x4AAAAAACGDmbnIp0_C-KWCH0LnbjGJcSg
+      - TURNSTILE_SECRET_KEY=${TURNSTILE_SECRET_KEY}
     depends_on:
       postgres:
         condition: service_healthy

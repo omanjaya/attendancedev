@@ -480,8 +480,10 @@ class ScheduleApiController extends BaseApiController
                 ->values()
                 ->toArray();
 
-            // Delete existing schedules for this grade's classes in the effective period
-            $existingQuery = \App\Models\TeachingSchedule::whereIn('class_name', $classNames)
+            // Force delete existing schedules for this grade's classes in the effective period
+            // Using forceDelete() to avoid unique constraint conflicts with soft-deleted records
+            $existingQuery = \App\Models\TeachingSchedule::withTrashed()
+                ->whereIn('class_name', $classNames)
                 ->where('effective_from', $effectiveFrom);
 
             if ($effectiveUntil) {
@@ -489,7 +491,10 @@ class ScheduleApiController extends BaseApiController
             }
 
             $deleted = $existingQuery->count();
-            $existingQuery->delete();
+            $existingQuery->forceDelete();
+
+            // Track unique teacher-time combinations to prevent duplicates within the same request
+            $processedSlots = [];
 
             // Process each schedule entry
             foreach ($validated['schedules'] as $entry) {
@@ -513,6 +518,20 @@ class ScheduleApiController extends BaseApiController
                     continue;
                 }
 
+                // Create unique key for this teacher's time slot
+                $slotKey = "{$teacherId}|" . strtolower($entry['day']) . "|{$entry['time_start']}|{$effectiveFrom}";
+
+                // Check if this teacher already has a schedule at this time slot
+                if (isset($processedSlots[$slotKey])) {
+                    // Teacher already has a schedule at this time - skip or log as warning
+                    $errors[] = [
+                        'entry' => $entry,
+                        'error' => "Teacher already scheduled at this time slot (duplicate in request)",
+                        'existing_class' => $processedSlots[$slotKey],
+                    ];
+                    continue;
+                }
+
                 // Find or create subject
                 $subjectId = null;
                 if (!empty($entry['subject'])) {
@@ -526,34 +545,73 @@ class ScheduleApiController extends BaseApiController
                     $subjectId = $subject->id;
                 }
 
-                // Create the teaching schedule
-                $schedule = \App\Models\TeachingSchedule::create([
-                    'teacher_id' => $teacherId,
-                    'subject_id' => $subjectId,
-                    'day_of_week' => strtolower($entry['day']),
-                    'teaching_start_time' => $entry['time_start'],
-                    'teaching_end_time' => $entry['time_end'],
-                    'class_name' => $entry['class_name'],
-                    'effective_from' => $effectiveFrom,
-                    'effective_until' => $effectiveUntil,
-                    'is_active' => true,
-                    'status' => 'scheduled',
-                    'override_attendance' => true, // This enables Guru Honorer attendance
-                    'strict_timing' => true,
-                    'late_threshold_minutes' => 15,
-                    'metadata' => [
-                        'grade' => $grade,
-                        'academic_year' => $validated['academic_year'],
-                        'semester' => $validated['semester'],
-                        'period' => $entry['period'],
-                        'is_locked' => $entry['is_locked'] ?? false,
-                        'teacher_code' => $entry['teacher_code'] ?? null,
-                    ],
-                    'created_by' => $userId,
-                    'updated_by' => $userId,
-                ]);
+                // Check for existing schedule with same unique key (including from other grades)
+                $existingSchedule = \App\Models\TeachingSchedule::withTrashed()
+                    ->where('teacher_id', $teacherId)
+                    ->where('day_of_week', strtolower($entry['day']))
+                    ->where('teaching_start_time', $entry['time_start'])
+                    ->where('effective_from', $effectiveFrom)
+                    ->first();
 
-                $created++;
+                if ($existingSchedule) {
+                    // Update existing or restore and update if soft-deleted
+                    if ($existingSchedule->trashed()) {
+                        $existingSchedule->restore();
+                    }
+
+                    $existingSchedule->update([
+                        'subject_id' => $subjectId,
+                        'teaching_end_time' => $entry['time_end'],
+                        'class_name' => $entry['class_name'],
+                        'effective_until' => $effectiveUntil,
+                        'is_active' => true,
+                        'status' => 'scheduled',
+                        'override_attendance' => true,
+                        'strict_timing' => true,
+                        'late_threshold_minutes' => 15,
+                        'metadata' => [
+                            'grade' => $grade,
+                            'academic_year' => $validated['academic_year'],
+                            'semester' => $validated['semester'],
+                            'period' => $entry['period'],
+                            'is_locked' => $entry['is_locked'] ?? false,
+                            'teacher_code' => $entry['teacher_code'] ?? null,
+                        ],
+                        'updated_by' => $userId,
+                    ]);
+                    $updated++;
+                } else {
+                    // Create new teaching schedule
+                    \App\Models\TeachingSchedule::create([
+                        'teacher_id' => $teacherId,
+                        'subject_id' => $subjectId,
+                        'day_of_week' => strtolower($entry['day']),
+                        'teaching_start_time' => $entry['time_start'],
+                        'teaching_end_time' => $entry['time_end'],
+                        'class_name' => $entry['class_name'],
+                        'effective_from' => $effectiveFrom,
+                        'effective_until' => $effectiveUntil,
+                        'is_active' => true,
+                        'status' => 'scheduled',
+                        'override_attendance' => true,
+                        'strict_timing' => true,
+                        'late_threshold_minutes' => 15,
+                        'metadata' => [
+                            'grade' => $grade,
+                            'academic_year' => $validated['academic_year'],
+                            'semester' => $validated['semester'],
+                            'period' => $entry['period'],
+                            'is_locked' => $entry['is_locked'] ?? false,
+                            'teacher_code' => $entry['teacher_code'] ?? null,
+                        ],
+                        'created_by' => $userId,
+                        'updated_by' => $userId,
+                    ]);
+                    $created++;
+                }
+
+                // Mark this slot as processed
+                $processedSlots[$slotKey] = $entry['class_name'];
             }
 
             \DB::commit();
@@ -561,11 +619,12 @@ class ScheduleApiController extends BaseApiController
             return $this->apiResponse([
                 'grade' => $grade,
                 'created' => $created,
+                'updated' => $updated,
                 'deleted' => $deleted,
                 'errors' => $errors,
                 'effective_from' => $effectiveFrom,
                 'effective_until' => $effectiveUntil,
-            ], "Grade {$grade} schedule saved successfully. Created: {$created}, Replaced: {$deleted}");
+            ], "Grade {$grade} schedule saved successfully. Created: {$created}, Updated: {$updated}, Replaced: {$deleted}");
 
         } catch (\Exception $e) {
             \DB::rollBack();

@@ -41,6 +41,36 @@ import os
 model_name = os.environ.get("DEEPFACE_MODEL", "ArcFace")
 detector_backend = os.environ.get("DEEPFACE_DETECTOR", "retinaface")
 
+# Pre-load models at startup for better performance (caching)
+@app.on_event("startup")
+async def startup_event():
+    """Pre-load DeepFace models at startup to avoid loading on each request"""
+    logger.info("=" * 60)
+    logger.info("🚀 Starting Face Recognition Service...")
+    logger.info(f"📦 Pre-loading models: {model_name} with {detector_backend} detector")
+    logger.info("=" * 60)
+
+    try:
+        # Pre-build recognition model (ArcFace)
+        logger.info(f"Loading recognition model: {model_name}...")
+        DeepFace.build_model(model_name)
+        logger.info(f"✅ Recognition model '{model_name}' loaded successfully!")
+
+        # Pre-build detector model (RetinaFace)
+        logger.info(f"Loading detector backend: {detector_backend}...")
+        from deepface.detectors import FaceDetector
+        FaceDetector.build_model(detector_backend)
+        logger.info(f"✅ Detector backend '{detector_backend}' loaded successfully!")
+
+        logger.info("=" * 60)
+        logger.info("🎯 All models cached and ready for inference!")
+        logger.info(f"📊 Model: {model_name} | Detector: {detector_backend}")
+        logger.info("=" * 60)
+
+    except Exception as e:
+        logger.error(f"❌ Failed to pre-load models: {e}")
+        logger.warning("⚠️  Models will be loaded on first request (slower initial response)")
+
 # Model configurations (Dimension, Threshold)
 MODEL_CONFIGS = {
     "VGG-Face": {"dim": 2622, "threshold": 0.40},

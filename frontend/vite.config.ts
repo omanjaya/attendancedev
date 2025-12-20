@@ -34,6 +34,16 @@ export default defineConfig({
     },
   },
   build: {
+    // Optimize chunk size
+    chunkSizeWarningLimit: 1000,
+    // Enable minification
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true, // Remove console.logs in production
+        drop_debugger: true,
+      },
+    },
     rollupOptions: {
       output: {
         manualChunks: {
@@ -41,6 +51,7 @@ export default defineConfig({
           'router': ['@tanstack/react-router'],
           'query': ['@tanstack/react-query'],
           'charts': ['recharts'],
+          'excel': ['exceljs'], // Separate ExcelJS into its own chunk (lazy loaded)
           'ui': [
             '@radix-ui/react-dialog',
             '@radix-ui/react-dropdown-menu',

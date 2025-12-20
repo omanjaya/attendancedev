@@ -275,8 +275,9 @@ class EmployeeRepository extends BaseRepository
         $cacheKey = $this->getCacheKey('birthdays_this_month', [now()->format('Y-m')]);
 
         return cache()->remember($cacheKey, 86400, function () {
+            // Use whereMonth and orderBy instead of raw SQL to prevent injection
             return $this->model
-                ->whereRaw('MONTH(hire_date) = ?', [now()->month])
+                ->whereMonth('hire_date', now()->month)
                 ->where('is_active', true)
                 ->with(['user', 'location'])
                 ->orderByRaw('DAY(hire_date)')

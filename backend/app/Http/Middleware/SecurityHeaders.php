@@ -21,7 +21,11 @@ class SecurityHeaders
 
         // Security headers
         $response->headers->set('X-Content-Type-Options', 'nosniff');
-        $response->headers->set('X-Frame-Options', 'DENY');
+
+        // X-Frame-Options (configurable)
+        $xFrameOptions = config('security.headers.x_frame_options', 'DENY');
+        $response->headers->set('X-Frame-Options', $xFrameOptions);
+
         $response->headers->set('X-XSS-Protection', '1; mode=block');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', $this->buildPermissionsPolicy());
@@ -55,7 +59,7 @@ class SecurityHeaders
     {
         $policies = [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://code.jquery.com https://cdnjs.cloudflare.com",
+            "script-src 'self' https://cdn.jsdelivr.net https://code.jquery.com https://cdnjs.cloudflare.com https://challenges.cloudflare.com",
             "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
             "img-src 'self' data: https: blob:",
             "font-src 'self' https://cdn.jsdelivr.net",
@@ -68,11 +72,21 @@ class SecurityHeaders
             'upgrade-insecure-requests',
         ];
 
-        // Add development exceptions
+        // Add development exceptions - only in local/development environments
         if (app()->environment('local', 'development')) {
-            $policies[] =
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:* ws://localhost:* https://cdn.jsdelivr.net";
-            $policies[] = "connect-src 'self' ws://localhost:* http://localhost:* https:";
+            $policies = [
+                "default-src 'self'",
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:* ws://localhost:* https://cdn.jsdelivr.net https://challenges.cloudflare.com",
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
+                "img-src 'self' data: https: blob: http://localhost:*",
+                "font-src 'self' https://cdn.jsdelivr.net",
+                "connect-src 'self' ws://localhost:* http://localhost:* https:",
+                "media-src 'self' blob:",
+                "object-src 'none'",
+                "base-uri 'self'",
+                "form-action 'self'",
+                "frame-ancestors 'none'",
+            ];
         }
 
         return implode('; ', $policies);

@@ -32,13 +32,22 @@ class User extends Authenticatable
         'last_login_ip',
         'password_changed_at',
         'failed_login_attempts',
-        'locked_until',
         'security_preferences',
         'force_password_change',
-        'account_locked',
         'two_factor_enabled',
+    ];
+
+    /**
+     * The attributes that are NOT mass assignable (protected fields).
+     *
+     * @var list<string>
+     */
+    protected $guarded = [
+        'id',
         'two_factor_secret',
         'two_factor_recovery_codes',
+        'account_locked',
+        'locked_until',
     ];
 
     /**

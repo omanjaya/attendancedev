@@ -60,13 +60,14 @@ return Application::configure(basePath: dirname(__DIR__))
                 $requestId = $request->attributes->get('request_id', 'unknown');
                 $statusCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
 
-                // Base error response
+                // Base error response (safe for production)
                 $error = [
                     'message' => $e->getMessage() ?: 'Server error occurred',
                     'request_id' => $requestId,
                 ];
 
-                // Add detailed information in development
+                // Add detailed information ONLY in development
+                // SECURITY: Never expose file paths in production
                 if (config('app.debug')) {
                     $error['debug'] = [
                         'exception' => get_class($e),
@@ -80,6 +81,9 @@ return Application::configure(basePath: dirname(__DIR__))
                             ];
                         })->toArray(),
                     ];
+                } else {
+                    // Production: Only show exception class name (not full path)
+                    $error['type'] = class_basename($e);
                 }
 
                 return response()->json($error, $statusCode);

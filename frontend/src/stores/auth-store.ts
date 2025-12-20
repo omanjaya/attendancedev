@@ -4,6 +4,27 @@ import * as Sentry from '@sentry/react';
 import type { User, LoginCredentials, Permission } from '@/types/auth';
 import * as authApi from '@/lib/api/auth';
 
+/**
+ * SECURITY NOTE: Token Storage
+ *
+ * Tokens are stored in localStorage for persistence across sessions.
+ *
+ * Security considerations:
+ * 1. Current implementation is acceptable for internal corporate applications with:
+ *    - Short token expiration (7 days - configured in backend)
+ *    - HTTPS only
+ *    - XSS protection via CSP (Content Security Policy)
+ *
+ * For higher security requirements, consider:
+ * 1. Using httpOnly cookies (requires backend changes)
+ * 2. Using sessionStorage (clears on tab close)
+ * 3. Implementing token refresh mechanism with short-lived access tokens
+ *
+ * Trade-offs:
+ * - localStorage: Vulnerable to XSS but persists across sessions
+ * - sessionStorage: More secure but less convenient (user needs to login per tab)
+ * - httpOnly cookies: Most secure but requires backend session management
+ */
 interface AuthState {
   // State
   user: User | null;
@@ -74,8 +95,14 @@ export const useAuthStore = create<AuthState>()(
         try {
           await authApi.logout();
         } finally {
+          // Clear all sensitive data from storage
+          localStorage.removeItem('auth-storage');
+          sessionStorage.removeItem('pwa-install-dismissed');
+
           // Clear Sentry user context
           Sentry.setUser(null);
+
+          // Reset state
           set({
             ...initialState,
             isLoading: false,

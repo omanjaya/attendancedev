@@ -27,7 +27,8 @@ class Employee extends Model
     ];
 
     protected $hidden = [
-        'sensitive_data'
+        'sensitive_data',
+        // Note: metadata contains face_descriptor which is filtered in accessor
     ];
 
     protected $casts = [
@@ -42,14 +43,16 @@ class Employee extends Model
     /**
      * Accessor to merge metadata and sensitive_data seamlessly.
      * Use getRawOriginal('metadata') to get raw DB value if needed.
+     *
+     * SECURITY: Removes sensitive face descriptor data from API responses.
      */
     public function getMetadataAttribute($value)
     {
         // Get public metadata (decoded)
-        $publicData = isset($this->attributes['metadata']) 
-            ? json_decode($this->attributes['metadata'], true) 
+        $publicData = isset($this->attributes['metadata'])
+            ? json_decode($this->attributes['metadata'], true)
             : [];
-            
+
         // Handle double-encoding edge case
         if (is_string($publicData)) {
             $publicData = json_decode($publicData, true) ?? [];
@@ -62,7 +65,15 @@ class Employee extends Model
         if (!is_array($publicData)) $publicData = [];
         if (!is_array($sensitiveData)) $sensitiveData = [];
 
-        return array_merge($publicData, $sensitiveData);
+        $mergedData = array_merge($publicData, $sensitiveData);
+
+        // SECURITY: Remove sensitive face descriptor from API responses
+        // Face descriptors should only be used server-side for verification
+        if (isset($mergedData['face_recognition']['descriptor'])) {
+            unset($mergedData['face_recognition']['descriptor']);
+        }
+
+        return $mergedData;
     }
 
     // Attributes to append when serializing to JSON (from accessors)
@@ -81,7 +92,9 @@ class Employee extends Model
         'roles',
     ];
 
-    protected $with = ['user', 'user.roles']; // Always eager load user and roles
+    // REMOVED: Default eager loading - too aggressive and causes N+1 issues
+    // Use selective eager loading in queries where needed: Employee::with(['user', 'user.roles'])->get()
+    // protected $with = ['user', 'user.roles'];
 
     // ========== MODEL EVENTS ==========
     

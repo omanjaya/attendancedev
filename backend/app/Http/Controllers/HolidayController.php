@@ -41,8 +41,12 @@ class HolidayController extends Controller
         }
 
         if ($request->filled('year')) {
-            $year = $request->year;
-            // SQLite compatible year filtering
+            // Validate and sanitize year input to prevent SQL injection
+            $year = (int) $request->input('year', now()->year);
+            if ($year < 2000 || $year > 2100) {
+                $year = now()->year;
+            }
+            // SQLite compatible year filtering with validated input
             $query->whereRaw("strftime('%Y', date) = ?", [$year]);
         }
 
@@ -360,8 +364,13 @@ class HolidayController extends Controller
             $query = Holiday::active();
 
             if ($request->filled('year')) {
-                // SQLite compatible year filtering
-                $query->whereRaw("strftime('%Y', date) = ?", [$request->year]);
+                // Validate and sanitize year input to prevent SQL injection
+                $year = (int) $request->input('year', now()->year);
+                if ($year < 2000 || $year > 2100) {
+                    $year = now()->year;
+                }
+                // SQLite compatible year filtering with validated input
+                $query->whereRaw("strftime('%Y', date) = ?", [$year]);
             }
 
             if ($request->filled('type')) {

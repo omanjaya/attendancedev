@@ -1,4 +1,5 @@
 import { AxiosError } from 'axios';
+import * as Sentry from '@sentry/react';
 
 interface ApiErrorResponse {
   message?: string;
@@ -193,20 +194,26 @@ export function logError(error: unknown, context?: string): void {
 
   // Production - send to error tracking service
   if (import.meta.env.PROD) {
-    // TODO: Integrate Sentry atau LogRocket
-    // Sentry.captureException(error, {
-    //   contexts: {
-    //     error_details: details,
-    //   },
-    //   tags: {
-    //     context: context || 'unknown',
-    //     status_code: details.statusCode?.toString(),
-    //     endpoint: details.endpoint,
-    //   },
-    //   fingerprint: [details.requestId || details.message],
-    // });
+    // Report to Sentry
+    Sentry.captureException(error, {
+      contexts: {
+        error_details: {
+          userMessage: details.userMessage,
+          technicalMessage: details.technicalMessage,
+          endpoint: details.endpoint,
+          requestId: details.requestId,
+          timestamp: details.timestamp,
+        },
+      },
+      tags: {
+        context: context || 'unknown',
+        status_code: details.statusCode?.toString() || 'unknown',
+        endpoint: details.endpoint || 'unknown',
+      },
+      fingerprint: [details.requestId || details.message],
+    });
 
-    // For now, just log minimal info
+    // Also log minimal info to console
     console.error('[Error]', {
       context,
       message: details.userMessage,

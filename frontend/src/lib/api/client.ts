@@ -4,6 +4,14 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 // Using relative path to leverage Vite proxy in development
 const API_URL = '/api/v1';
 
+// TanStack Query default options for performance optimization
+export const defaultQueryOptions = {
+  staleTime: 5 * 60 * 1000, // 5 minutes - data is considered fresh
+  gcTime: 10 * 60 * 1000,   // 10 minutes - cache time (formerly cacheTime)
+  retry: 1,                  // Only retry once on failure
+  refetchOnWindowFocus: false, // Don't refetch when window regains focus
+};
+
 // Create axios instance
 export const apiClient = axios.create({
   baseURL: API_URL,

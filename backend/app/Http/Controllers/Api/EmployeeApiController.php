@@ -314,9 +314,10 @@ class EmployeeApiController extends BaseApiController
         }
 
         $data = $this->statisticsService->getDashboard($employee);
-        
-        // Add recent attendance records
-        $data['recent_attendance'] = \App\Models\Attendance::where('employee_id', $employee->id)
+
+        // Add recent attendance records with eager loading to prevent N+1
+        $data['recent_attendance'] = \App\Models\Attendance::with(['employee'])
+            ->where('employee_id', $employee->id)
             ->orderBy('date', 'desc')
             ->limit(10)
             ->get()

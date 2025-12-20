@@ -1,5 +1,5 @@
-import { useState, useCallback, useRef } from 'react';
-import ExcelJS from 'exceljs';
+import { useState, useCallback, useRef, lazy } from 'react';
+import type ExcelJS from 'exceljs';
 import {
     Upload,
     FileSpreadsheet,
@@ -192,7 +192,7 @@ export function ExcelImportDialog({
     };
 
     // Helper function to convert ExcelJS worksheet to JSON
-    const worksheetToJson = (worksheet: ExcelJS.Worksheet): Record<string, any>[] => {
+    const worksheetToJson = (worksheet: any): Record<string, any>[] => {
         const jsonData: Record<string, any>[] = [];
         const headers: string[] = [];
 
@@ -234,6 +234,9 @@ export function ExcelImportDialog({
         setParseError(null);
 
         try {
+            // Lazy load ExcelJS only when needed
+            const { default: ExcelJS } = await import('exceljs');
+
             const data = await file.arrayBuffer();
             const workbook = new ExcelJS.Workbook();
             await workbook.xlsx.load(data);
@@ -419,6 +422,9 @@ export function ExcelImportDialog({
 
     // Download template - always generate locally to avoid auth issues
     const handleDownloadTemplate = async () => {
+        // Lazy load ExcelJS only when needed
+        const { default: ExcelJS } = await import('exceljs');
+
         // Generate template from columns using ExcelJS (no backend needed)
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Template');
