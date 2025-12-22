@@ -11,6 +11,89 @@ interface ApiErrorResponse {
   line?: number; // Line number (dev mode)
 }
 
+/**
+ * Error Translation Map - Translasi error backend ke bahasa user-friendly
+ */
+const ERROR_TRANSLATION_MAP: Record<string, string> = {
+  // Database errors
+  'SQLSTATE[23505]': 'Data sudah ada, silakan gunakan data lain',
+  'SQLSTATE[23000]': 'Data sudah ada atau terjadi duplikasi',
+  'SQLSTATE[42S02]': 'Tabel database tidak ditemukan',
+  'SQLSTATE[HY000]': 'Terjadi kesalahan database, silakan coba lagi',
+  'Duplicate entry': 'Data sudah ada dalam sistem',
+  'foreign key constraint': 'Data tidak dapat dihapus karena masih terkait dengan data lain',
+  'unique constraint': 'Data sudah ada, silakan gunakan data yang berbeda',
+
+  // Authentication errors
+  'Unauthenticated': 'Sesi Anda telah berakhir, silakan login kembali',
+  'Unauthorized': 'Sesi Anda telah berakhir, silakan login kembali',
+  'Token expired': 'Sesi Anda telah berakhir, silakan login kembali',
+  'Invalid token': 'Sesi tidak valid, silakan login kembali',
+  'Token has expired': 'Sesi Anda telah berakhir, silakan login kembali',
+
+  // Authorization errors
+  'Forbidden': 'Anda tidak memiliki akses untuk melakukan tindakan ini',
+  'Access denied': 'Akses ditolak, Anda tidak memiliki izin',
+  'Insufficient permissions': 'Anda tidak memiliki izin yang cukup',
+
+  // Network errors
+  'Network Error': 'Tidak dapat terhubung ke server, periksa koneksi internet Anda',
+  'ERR_NETWORK': 'Tidak dapat terhubung ke server, periksa koneksi internet Anda',
+  'ERR_CONNECTION_REFUSED': 'Server tidak dapat dihubungi, silakan coba lagi nanti',
+  'ERR_INTERNET_DISCONNECTED': 'Tidak ada koneksi internet, silakan periksa koneksi Anda',
+  'timeout': 'Permintaan memakan waktu terlalu lama, silakan coba lagi',
+  'ECONNABORTED': 'Koneksi terputus, silakan coba lagi',
+  'ETIMEDOUT': 'Waktu permintaan habis, silakan coba lagi',
+
+  // Validation errors
+  'The given data was invalid': 'Data yang Anda masukkan tidak valid',
+  'Validation failed': 'Validasi gagal, periksa kembali data Anda',
+  'required': 'Field ini wajib diisi',
+  'email': 'Format email tidak valid',
+  'min': 'Nilai terlalu kecil',
+  'max': 'Nilai terlalu besar',
+
+  // Business logic errors
+  'Not found': 'Data tidak ditemukan',
+  'Resource not found': 'Data yang Anda cari tidak ditemukan',
+  'already exists': 'Data sudah ada dalam sistem',
+  'Invalid credentials': 'Email atau password salah',
+  'Wrong password': 'Password salah',
+  'User not found': 'Pengguna tidak ditemukan',
+
+  // Face recognition errors
+  'Face not detected': 'Wajah tidak terdeteksi, pastikan wajah Anda terlihat jelas',
+  'Multiple faces detected': 'Terdeteksi lebih dari satu wajah, pastikan hanya ada satu wajah',
+  'Face not recognized': 'Wajah tidak dikenali dalam sistem',
+  'Low confidence': 'Kualitas deteksi wajah kurang baik, silakan coba lagi',
+  'Poor image quality': 'Kualitas gambar kurang baik, pastikan pencahayaan cukup',
+  'Face too far': 'Wajah terlalu jauh dari kamera',
+  'Face too close': 'Wajah terlalu dekat dengan kamera',
+
+  // Location errors
+  'Location not verified': 'Lokasi tidak dapat diverifikasi',
+  'Outside attendance area': 'Anda berada di luar area absensi',
+  'GPS permission denied': 'Izin lokasi ditolak, mohon aktifkan izin lokasi',
+  'GPS not available': 'GPS tidak tersedia di browser ini',
+  'Location unavailable': 'Lokasi tidak tersedia',
+
+  // Attendance errors
+  'Already checked in': 'Anda sudah melakukan check-in hari ini',
+  'Already checked out': 'Anda sudah melakukan check-out hari ini',
+  'Must check in first': 'Anda harus check-in terlebih dahulu',
+  'Outside work hours': 'Di luar jam kerja',
+
+  // Server errors
+  'Internal Server Error': 'Terjadi kesalahan di server, silakan coba lagi',
+  'Service Unavailable': 'Layanan sedang tidak tersedia, silakan coba lagi nanti',
+  'Gateway Timeout': 'Server tidak merespons, silakan coba lagi',
+  'Bad Gateway': 'Terjadi kesalahan pada server, silakan coba lagi',
+
+  // Rate limiting
+  'Too Many Requests': 'Terlalu banyak permintaan, silakan tunggu sebentar',
+  'Rate limit exceeded': 'Terlalu banyak permintaan, silakan coba lagi nanti',
+};
+
 interface DetailedError {
   message: string;
   userMessage: string; // User-friendly message
@@ -20,6 +103,29 @@ interface DetailedError {
   endpoint?: string;
   timestamp: string;
   stack?: string;
+}
+
+/**
+ * Translate error message ke bahasa user-friendly
+ * Checks ERROR_TRANSLATION_MAP untuk match (case-insensitive, partial match)
+ */
+function translateErrorMessage(message: string): string {
+  if (!message) return 'Terjadi kesalahan yang tidak diketahui';
+
+  // Exact match (case-insensitive)
+  const exactMatch = Object.entries(ERROR_TRANSLATION_MAP).find(
+    ([key]) => message.toLowerCase() === key.toLowerCase()
+  );
+  if (exactMatch) return exactMatch[1];
+
+  // Partial match (contains)
+  const partialMatch = Object.entries(ERROR_TRANSLATION_MAP).find(
+    ([key]) => message.toLowerCase().includes(key.toLowerCase())
+  );
+  if (partialMatch) return partialMatch[1];
+
+  // No match found, return original message
+  return message;
 }
 
 /**
@@ -44,9 +150,11 @@ export function getDetailedError(error: unknown): DetailedError {
         .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
         .join('\n');
 
+      const translatedError = firstError ? translateErrorMessage(firstError) : 'Data yang Anda masukkan tidak valid';
+
       return {
         message: firstError || 'Validation failed',
-        userMessage: firstError || 'Data yang Anda masukkan tidak valid',
+        userMessage: translatedError,
         technicalMessage: `Validation failed:\n${allErrors}`,
         statusCode,
         requestId: data?.request_id,
@@ -76,9 +184,10 @@ export function getDetailedError(error: unknown): DetailedError {
 
     // Business logic error (400, 403, etc.)
     if (data?.message) {
+      const translatedMessage = translateErrorMessage(data.message);
       return {
         message: data.message,
-        userMessage: data.message,
+        userMessage: translatedMessage,
         technicalMessage: data.message,
         statusCode,
         requestId: data?.request_id,
@@ -133,9 +242,10 @@ export function getDetailedError(error: unknown): DetailedError {
 
   // Generic Error object
   if (error instanceof Error) {
+    const translatedMessage = translateErrorMessage(error.message);
     return {
       message: error.message,
-      userMessage: 'Terjadi kesalahan. Silakan coba lagi.',
+      userMessage: translatedMessage,
       technicalMessage: error.message,
       timestamp,
       stack: error.stack,

@@ -23,8 +23,8 @@ export function LoadingState({ message, size = 'md', className }: LoadingStatePr
   const styles = sizeStyles[size];
 
   return (
-    <div className={cn('flex flex-col items-center justify-center', styles.container, className)}>
-      <Loader2 className={cn('animate-spin text-primary', styles.icon)} />
+    <div className={cn('flex flex-col items-center justify-center', styles.container, className)} role="status" aria-live="polite" aria-label={message || 'Memuat'}>
+      <Loader2 className={cn('animate-spin text-primary', styles.icon)} aria-hidden="true" />
       {message && (
         <p className={cn('text-muted-foreground mt-3', styles.text)}>{message}</p>
       )}
@@ -40,9 +40,9 @@ export function LoadingState({ message, size = 'md', className }: LoadingStatePr
  */
 export function LoadingOverlay({ message }: { message?: string }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" role="status" aria-live="polite" aria-label={message || 'Memuat'}>
       <div className="flex flex-col items-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <Loader2 className="h-10 w-10 animate-spin text-primary" aria-hidden="true" />
         {message && <p className="mt-4 text-sm text-muted-foreground">{message}</p>}
       </div>
     </div>

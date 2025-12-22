@@ -201,3 +201,25 @@ export async function bulkEmployeeAction(
   );
   return response.data.data;
 }
+
+// Check unique field (email or employee_code) - for async form validation
+export interface CheckUniqueParams {
+  field: 'email' | 'employee_code';
+  value: string;
+  employee_id?: string; // For updates, exclude current employee
+}
+
+export interface CheckUniqueResponse {
+  field: string;
+  value: string;
+  is_available: boolean;
+  message: string;
+}
+
+export async function checkUnique(params: CheckUniqueParams): Promise<CheckUniqueResponse> {
+  const response = await apiClient.post<{ data: CheckUniqueResponse }>(
+    '/employees/check-unique',
+    params
+  );
+  return response.data.data;
+}

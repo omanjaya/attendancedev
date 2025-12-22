@@ -23,7 +23,11 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
-const TURNSTILE_SITE_KEY = '0x4AAAAAACGDmeZdHpqwVQJX';
+// Use test key in test/development mode (always passes)
+// Production key: 0x4AAAAAACGDmeZdHpqwVQJX
+// Test key (always passes): 1x00000000000000000000AA
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY ||
+  (import.meta.env.MODE === 'test' ? '1x00000000000000000000AA' : '0x4AAAAAACGDmeZdHpqwVQJX');
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -117,13 +121,13 @@ export default function LoginPage() {
             <h1 className="mt-4 text-2xl font-bold text-white">
               Sistem Absensi
             </h1>
-            <p className="text-sm text-white/60">
+            <p className="text-sm text-white/70">
               Masuk ke akun Anda
             </p>
           </div>
 
           {/* Login Form */}
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <form noValidate onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {/* Error message */}
             {error && (
               <Alert variant="destructive" className="bg-red-500/20 border-red-500/30 text-red-200">
@@ -141,7 +145,7 @@ export default function LoginPage() {
                 type="email"
                 autoComplete="email"
                 placeholder="nama@email.com"
-                className="h-12 bg-white/10 border-white/20 text-white placeholder:text-white/40
+                className="h-12 bg-white/10 border-white/20 text-white placeholder:text-white/50
                            focus:bg-white/15 focus:border-emerald-400/50 focus:ring-emerald-400/20
                            transition-all duration-300"
                 {...register('email')}
@@ -162,7 +166,7 @@ export default function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   placeholder="Masukkan password"
-                  className="h-12 bg-white/10 border-white/20 text-white placeholder:text-white/40
+                  className="h-12 bg-white/10 border-white/20 text-white placeholder:text-white/50
                              focus:bg-white/15 focus:border-emerald-400/50 focus:ring-emerald-400/20
                              transition-all duration-300 pr-12"
                   {...register('password')}
@@ -171,8 +175,9 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 transition-colors"
+                  aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showPassword ? <EyeOff className="h-5 w-5" aria-hidden="true" /> : <Eye className="h-5 w-5" aria-hidden="true" />}
                 </button>
               </div>
               {errors.password && (
@@ -188,7 +193,7 @@ export default function LoginPage() {
                   {...register('remember')}
                   className="border-white/30 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
                 />
-                <Label htmlFor="remember" className="text-sm text-white/60 cursor-pointer">
+                <Label htmlFor="remember" className="text-sm text-white/70 cursor-pointer">
                   Ingat saya
                 </Label>
               </div>
@@ -232,7 +237,7 @@ export default function LoginPage() {
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" />
                   Memproses...
                 </>
               ) : (
@@ -242,7 +247,7 @@ export default function LoginPage() {
           </form>
 
           {/* Footer */}
-          <p className="mt-8 text-xs text-white/40 text-center">
+          <p className="mt-8 text-xs text-white/60 text-center">
             &copy; {new Date().getFullYear()} SMP Saraswati. All rights reserved.
           </p>
         </div>

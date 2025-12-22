@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, Link } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,6 +17,7 @@ import {
   Key,
   Zap,
   BookOpen,
+  AlertCircle,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -46,6 +47,7 @@ import { useLocations } from '@/hooks/use-locations';
 import type { Location } from '@/types/location';
 import { useNotificationStore } from '@/stores';
 import { useEmployeeTypes, useDepartments, usePositions, useSubjects } from '@/hooks/use-master-data';
+import { checkUnique } from '@/lib/api/employees';
 
 // Quick mode schema - minimal required fields
 const quickEmployeeSchema = z.object({
@@ -122,6 +124,23 @@ export default function EmployeeCreatePage() {
   const [createdEmployeeData, setCreatedEmployeeData] = useState<{ name: string; email: string } | null>(null);
   const [passwordCopied, setPasswordCopied] = useState(false);
 
+  // Async validation states
+  const [emailValidation, setEmailValidation] = useState<{
+    checking: boolean;
+    message: string;
+    isValid: boolean | null;
+  }>({ checking: false, message: '', isValid: null });
+
+  const [nipValidation, setNipValidation] = useState<{
+    checking: boolean;
+    message: string;
+    isValid: boolean | null;
+  }>({ checking: false, message: '', isValid: null });
+
+  // Debounce timers
+  const emailDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const nipDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Use create employee mutation
   const createEmployeeMutation = useCreateEmployee();
 
@@ -175,7 +194,80 @@ export default function EmployeeCreatePage() {
   // Staff type is explicitly NOT a teacher type, but has a selected type
   const isStaffType = !!selectedEmployeeType && !isTeacherType;
 
+  // Debounced email validation
+  const validateEmailUnique = useCallback((email: string) => {
+    if (!email || email.length < 3) {
+      setEmailValidation({ checking: false, message: '', isValid: null });
+      return;
+    }
+
+    // Clear previous timer
+    if (emailDebounceTimer.current) {
+      clearTimeout(emailDebounceTimer.current);
+    }
+
+    setEmailValidation({ checking: true, message: 'Memeriksa email...', isValid: null });
+
+    // Debounce 500ms
+    emailDebounceTimer.current = setTimeout(async () => {
+      try {
+        const result = await checkUnique({ field: 'email', value: email });
+        setEmailValidation({
+          checking: false,
+          message: result.message,
+          isValid: result.is_available,
+        });
+      } catch (error) {
+        setEmailValidation({
+          checking: false,
+          message: 'Gagal memeriksa email',
+          isValid: null,
+        });
+      }
+    }, 500);
+  }, []);
+
+  // Debounced NIP validation
+  const validateNipUnique = useCallback((nip: string) => {
+    if (!nip || nip.length < 3) {
+      setNipValidation({ checking: false, message: '', isValid: null });
+      return;
+    }
+
+    // Clear previous timer
+    if (nipDebounceTimer.current) {
+      clearTimeout(nipDebounceTimer.current);
+    }
+
+    setNipValidation({ checking: true, message: 'Memeriksa NIP...', isValid: null });
+
+    // Debounce 500ms
+    nipDebounceTimer.current = setTimeout(async () => {
+      try {
+        const result = await checkUnique({ field: 'employee_code', value: nip });
+        setNipValidation({
+          checking: false,
+          message: result.message,
+          isValid: result.is_available,
+        });
+      } catch (error) {
+        setNipValidation({
+          checking: false,
+          message: 'Gagal memeriksa NIP',
+          isValid: null,
+        });
+      }
+    }, 500);
+  }, []);
+
   const onSubmit = async (data: QuickEmployeeForm | FullEmployeeForm) => {
+    // Check async validations before submit
+    if (emailValidation.isValid === false) {
+      return; // Prevent submit if email is not available
+    }
+    if (isFullMode && 'nip' in data && data.nip && nipValidation.isValid === false) {
+      return; // Prevent submit if NIP is not available
+    }
     // Map form data to API format
     // Generate password
     const password = generatePassword();
@@ -230,7 +322,10 @@ export default function EmployeeCreatePage() {
   const generateNIP = () => {
     const year = new Date().getFullYear();
     const random = Math.floor(Math.random() * 9000) + 1000;
-    setValue('nip', `EMP${year}${random}`);
+    const newNip = `EMP${year}${random}`;
+    setValue('nip', newNip);
+    // Trigger validation for the generated NIP
+    validateNipUnique(newNip);
   };
 
   const copyPassword = async () => {
@@ -389,12 +484,57 @@ Password harus diganti saat login pertama kali.`;
                         <label htmlFor="nip">NIP / ID Karyawan *</label>
                       </div>
                       <div className="flex gap-2">
-                        <Input id="nip" placeholder="EMP2024XXXX" {...register('nip')} className="flex-1" />
+                        <div className="relative flex-1">
+                          <Input
+                            id="nip"
+                            placeholder="EMP2024XXXX"
+                            {...register('nip')}
+                            onChange={(e) => {
+                              register('nip').onChange(e);
+                              validateNipUnique(e.target.value);
+                            }}
+                            className={
+                              nipValidation.isValid === false
+                                ? 'border-destructive pr-10'
+                                : nipValidation.isValid === true
+                                ? 'border-green-500 pr-10'
+                                : ''
+                            }
+                          />
+                          {nipValidation.checking && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                            </div>
+                          )}
+                          {!nipValidation.checking && nipValidation.isValid === true && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                              <Check className="h-4 w-4 text-green-500" />
+                            </div>
+                          )}
+                          {!nipValidation.checking && nipValidation.isValid === false && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                              <AlertCircle className="h-4 w-4 text-destructive" />
+                            </div>
+                          )}
+                        </div>
                         <Button type="button" variant="outline" size="sm" onClick={generateNIP}>
                           Auto
                         </Button>
                       </div>
                       {(errors as any).nip && <p className="text-xs text-destructive mt-1">{(errors as any).nip.message}</p>}
+                      {!(errors as any).nip && nipValidation.message && (
+                        <p
+                          className={`text-xs mt-1 ${
+                            nipValidation.isValid === false
+                              ? 'text-destructive'
+                              : nipValidation.isValid === true
+                              ? 'text-green-600'
+                              : 'text-muted-foreground'
+                          }`}
+                        >
+                          {nipValidation.message}
+                        </p>
+                      )}
                     </div>
                   )}
 
@@ -412,8 +552,54 @@ Password harus diganti saat login pertama kali.`;
                     <div className="mb-2.5 text-sm font-medium">
                       <label htmlFor="email">Email *</label>
                     </div>
-                    <Input id="email" type="email" placeholder="email@contoh.com" {...register('email')} />
+                    <div className="relative">
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="email@contoh.com"
+                        {...register('email')}
+                        onChange={(e) => {
+                          register('email').onChange(e);
+                          validateEmailUnique(e.target.value);
+                        }}
+                        className={
+                          emailValidation.isValid === false
+                            ? 'border-destructive pr-10'
+                            : emailValidation.isValid === true
+                            ? 'border-green-500 pr-10'
+                            : ''
+                        }
+                      />
+                      {emailValidation.checking && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        </div>
+                      )}
+                      {!emailValidation.checking && emailValidation.isValid === true && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <Check className="h-4 w-4 text-green-500" />
+                        </div>
+                      )}
+                      {!emailValidation.checking && emailValidation.isValid === false && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <AlertCircle className="h-4 w-4 text-destructive" />
+                        </div>
+                      )}
+                    </div>
                     {errors.email && <p className="text-xs text-destructive mt-1">{errors.email.message}</p>}
+                    {!errors.email && emailValidation.message && (
+                      <p
+                        className={`text-xs mt-1 ${
+                          emailValidation.isValid === false
+                            ? 'text-destructive'
+                            : emailValidation.isValid === true
+                            ? 'text-green-600'
+                            : 'text-muted-foreground'
+                        }`}
+                      >
+                        {emailValidation.message}
+                      </p>
+                    )}
                   </div>
 
                   {/* Role - Always Required */}

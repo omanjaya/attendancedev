@@ -59,6 +59,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/statistics', [App\Http\Controllers\Api\EmployeeApiController::class, 'statistics']);
             Route::get('/dashboard', [App\Http\Controllers\Api\EmployeeApiController::class, 'dashboard']);
             Route::get('/with-face-data', [App\Http\Controllers\Api\EmployeeApiController::class, 'withFaceData']); // Added route
+            Route::post('/check-unique', [App\Http\Controllers\Api\EmployeeApiController::class, 'checkUnique']); // Async validation
             Route::get('/{id}', [App\Http\Controllers\Api\EmployeeApiController::class, 'show']);
             Route::get('/{id}/dashboard', [App\Http\Controllers\Api\EmployeeApiController::class, 'dashboardById']);
             Route::put('/{id}', [App\Http\Controllers\Api\EmployeeApiController::class, 'update']);
@@ -68,7 +69,7 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{id}/avatar', [App\Http\Controllers\Api\EmployeeApiController::class, 'deleteAvatar']);
             // Admin password reset for employee users
             Route::post('/{id}/reset-password', [App\Http\Controllers\Api\EmployeeApiController::class, 'resetPassword']);
-            
+
             // Bulk actions (delete, reset password, etc.)
             Route::post('/bulk', [App\Http\Controllers\Api\EmployeeApiController::class, 'bulk']);
         });

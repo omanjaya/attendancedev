@@ -108,8 +108,8 @@ export function DataTable<T>({
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-32 text-center">
-                  <div className="flex items-center justify-center gap-2">
-                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <div className="flex items-center justify-center gap-2" role="status" aria-live="polite" aria-label="Memuat data">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden="true" />
                     <span className="text-muted-foreground">Memuat data...</span>
                   </div>
                 </TableCell>
@@ -171,6 +171,7 @@ export function DataTable<T>({
                 size="icon"
                 onClick={() => onPageChange(1)}
                 disabled={page === 1}
+                aria-label="Halaman pertama"
               >
                 <ChevronsLeft className="h-4 w-4" />
               </Button>
@@ -179,10 +180,11 @@ export function DataTable<T>({
                 size="icon"
                 onClick={() => onPageChange(page - 1)}
                 disabled={page === 1}
+                aria-label="Halaman sebelumnya"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="px-4 text-sm">
+              <span className="px-4 text-sm" aria-current="page" aria-label={`Halaman ${page} dari ${totalPages}`}>
                 {page} / {totalPages}
               </span>
               <Button
@@ -190,6 +192,7 @@ export function DataTable<T>({
                 size="icon"
                 onClick={() => onPageChange(page + 1)}
                 disabled={page === totalPages}
+                aria-label="Halaman berikutnya"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -198,6 +201,7 @@ export function DataTable<T>({
                 size="icon"
                 onClick={() => onPageChange(totalPages)}
                 disabled={page === totalPages}
+                aria-label="Halaman terakhir"
               >
                 <ChevronsRight className="h-4 w-4" />
               </Button>

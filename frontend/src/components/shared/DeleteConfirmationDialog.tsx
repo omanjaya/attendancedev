@@ -120,8 +120,9 @@ export function DeleteConfirmationDialog({
             }}
             disabled={loading}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90 sm:w-auto"
+            aria-label={loading ? 'Menghapus data' : `Hapus ${entityName}`}
           >
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
             {loading ? 'Menghapus...' : confirmText}
           </AlertDialogAction>
         </AlertDialogFooter>

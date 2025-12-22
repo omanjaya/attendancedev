@@ -373,4 +373,60 @@ class EmployeeApiController extends BaseApiController
             return $this->errorResponse('Bulk action failed: ' . $e->getMessage(), 500);
         }
     }
+
+    /**
+     * Check if email or employee_code (NIP) is unique
+     * Used for async form validation
+     */
+    public function checkUnique(Request $request)
+    {
+        $validated = $request->validate([
+            'field' => 'required|string|in:email,employee_code',
+            'value' => 'required|string',
+            'employee_id' => 'nullable|exists:employees,id', // For updates, exclude current employee
+        ]);
+
+        $field = $validated['field'];
+        $value = $validated['value'];
+        $employeeId = $validated['employee_id'] ?? null;
+
+        try {
+            $isAvailable = false;
+
+            if ($field === 'email') {
+                // Check in users table
+                $query = \App\Models\User::where('email', $value);
+                if ($employeeId) {
+                    // Exclude current employee's user
+                    $employee = \App\Models\Employee::find($employeeId);
+                    if ($employee && $employee->user_id) {
+                        $query->where('id', '!=', $employee->user_id);
+                    }
+                }
+                $isAvailable = !$query->exists();
+            } elseif ($field === 'employee_code') {
+                // Check in employees table (employee_id field)
+                $query = \App\Models\Employee::where('employee_id', $value);
+                if ($employeeId) {
+                    $query->where('id', '!=', $employeeId);
+                }
+                $isAvailable = !$query->exists();
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'field' => $field,
+                    'value' => $value,
+                    'is_available' => $isAvailable,
+                    'message' => $isAvailable
+                        ? ($field === 'email' ? 'Email tersedia' : 'NIP tersedia')
+                        : ($field === 'email' ? 'Email sudah terdaftar' : 'NIP sudah digunakan'),
+                ],
+                'timestamp' => now()->toISOString(),
+            ]);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to check uniqueness: ' . $e->getMessage(), 500);
+        }
+    }
 }

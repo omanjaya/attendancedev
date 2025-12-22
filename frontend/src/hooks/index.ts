@@ -7,3 +7,4 @@ export * from './use-schedules';
 export * from './use-payroll';
 export * from './use-reports';
 export * from './use-settings';
+export * from './useErrorHandler';

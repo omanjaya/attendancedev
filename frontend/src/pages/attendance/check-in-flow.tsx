@@ -10,6 +10,7 @@ import {
     MapPinOff,
     UserCheck,
     AlertTriangle,
+    RefreshCw,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ import {
 } from '@/components/ui/dialog';
 import { AutoCaptureFace } from '@/components/attendance/auto-capture-face';
 import { useCheckIn, useCheckOut, useTodayAttendance } from '@/hooks';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { verifyLocation, type LocationVerificationResponse } from '@/lib/api/attendance';
 import { faceDetectionService } from '@/lib/services/face-detection';
 import { findBestMatch } from '@/lib/api/face-recognition';
@@ -56,6 +58,7 @@ export function CheckInFlow() {
     const [processingProgress, setProcessingProgress] = useState(0);
     const [existingAttendance, setExistingAttendance] = useState<TodayAttendance | null>(null);
     const [shouldOverwrite, setShouldOverwrite] = useState(false);
+    const [retryCountdown, setRetryCountdown] = useState(0);
 
     const [currentTime, setCurrentTime] = useState('');
     const [currentDate, setCurrentDate] = useState('');
@@ -67,6 +70,7 @@ export function CheckInFlow() {
     const checkInMutation = useCheckIn();
     const checkOutMutation = useCheckOut();
     const { data: todayAttendanceData, refetch: refetchTodayAttendance } = useTodayAttendance();
+    const { getErrorMessage } = useErrorHandler();
 
     // Update time
     useEffect(() => {
@@ -93,6 +97,16 @@ export function CheckInFlow() {
         const interval = setInterval(updateTime, 1000);
         return () => clearInterval(interval);
     }, []);
+
+    // Retry countdown timer
+    useEffect(() => {
+        if (retryCountdown > 0) {
+            const timer = setTimeout(() => {
+                setRetryCountdown(retryCountdown - 1);
+            }, 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [retryCountdown]);
 
     // Helper to format time
     const formatTime = (timeString?: string) => {
@@ -161,7 +175,9 @@ export function CheckInFlow() {
             await proceedWithLocationVerification();
         } catch (err) {
             console.error('Error checking attendance:', err);
-            setErrorMessage(err instanceof Error ? err.message : 'Gagal mengecek data absensi');
+            const friendlyMessage = getErrorMessage(err);
+            setErrorMessage(friendlyMessage);
+            setRetryCountdown(5); // Start 5-second countdown
             setCurrentStep('error');
         }
     };
@@ -193,7 +209,9 @@ export function CheckInFlow() {
             setCurrentStep('face');
         } catch (err) {
             console.error('Location error:', err);
-            setErrorMessage(err instanceof Error ? err.message : 'Gagal memverifikasi lokasi');
+            const friendlyMessage = getErrorMessage(err);
+            setErrorMessage(friendlyMessage);
+            setRetryCountdown(5); // Start 5-second countdown
             setCurrentStep('error');
         }
     };
@@ -323,7 +341,9 @@ export function CheckInFlow() {
             }, 3000);
         } catch (err) {
             console.error('Face verification error:', err);
-            setErrorMessage(err instanceof Error ? err.message : 'Gagal memverifikasi wajah');
+            const friendlyMessage = getErrorMessage(err);
+            setErrorMessage(friendlyMessage);
+            setRetryCountdown(5); // Start 5-second countdown
             setCurrentStep('error');
         }
     };
@@ -348,6 +368,7 @@ export function CheckInFlow() {
         setProcessingProgress(0);
         setExistingAttendance(null);
         setShouldOverwrite(false);
+        setRetryCountdown(0);
     };
 
     const handleRetry = () => {
@@ -439,9 +460,9 @@ export function CheckInFlow() {
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="space-y-4">
+                    <div className="space-y-4" role="status" aria-live="polite" aria-label="Memverifikasi lokasi GPS">
                         <div className="flex items-center justify-center py-8">
-                            <Loader2 className="h-12 w-12 text-primary animate-spin" />
+                            <Loader2 className="h-12 w-12 text-primary animate-spin" aria-hidden="true" />
                         </div>
 
                         <div className="space-y-2">
@@ -449,7 +470,7 @@ export function CheckInFlow() {
                                 <span className="text-muted-foreground">Mendapatkan lokasi GPS...</span>
                                 <span className="font-medium">{processingProgress}%</span>
                             </div>
-                            <Progress value={processingProgress} className="h-2" />
+                            <Progress value={processingProgress} className="h-2" aria-valuenow={processingProgress} aria-valuemin={0} aria-valuemax={100} />
                         </div>
                     </div>
                 </DialogContent>
@@ -503,9 +524,9 @@ export function CheckInFlow() {
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="space-y-4 py-4">
+                    <div className="space-y-4 py-4" role="status" aria-live="polite" aria-label="Memproses absensi">
                         <div className="flex items-center justify-center">
-                            <Loader2 className="h-16 w-16 text-primary animate-spin" />
+                            <Loader2 className="h-16 w-16 text-primary animate-spin" aria-hidden="true" />
                         </div>
 
                         <div className="space-y-2">
@@ -515,7 +536,7 @@ export function CheckInFlow() {
                                 </span>
                                 <span className="font-medium">{processingProgress}%</span>
                             </div>
-                            <Progress value={processingProgress} className="h-2" />
+                            <Progress value={processingProgress} className="h-2" aria-valuenow={processingProgress} aria-valuemin={0} aria-valuemax={100} />
                         </div>
                     </div>
                 </DialogContent>
@@ -524,10 +545,10 @@ export function CheckInFlow() {
             {/* Success Dialog */}
             <Dialog open={currentStep === 'success'} onOpenChange={() => { }}>
                 <DialogContent className="sm:max-w-md">
-                    <div className="space-y-4 py-4">
+                    <div className="space-y-4 py-4" role="status" aria-live="polite" aria-label="Absensi berhasil">
                         <div className="flex items-center justify-center">
                             <div className="rounded-full bg-success/10 p-4">
-                                <CheckCircle2 className="h-16 w-16 text-success" />
+                                <CheckCircle2 className="h-16 w-16 text-success" aria-hidden="true" />
                             </div>
                         </div>
 
@@ -619,13 +640,13 @@ export function CheckInFlow() {
             {/* Error Dialog */}
             <Dialog open={currentStep === 'error'} onOpenChange={handleReset}>
                 <DialogContent className="sm:max-w-md">
-                    <div className="space-y-4 py-4">
+                    <div className="space-y-4 py-4" role="alert" aria-live="assertive" aria-label="Absensi gagal">
                         <div className="flex items-center justify-center">
                             <div className="rounded-full bg-destructive/10 p-4">
                                 {errorMessage.includes('lokasi') ? (
-                                    <MapPinOff className="h-16 w-16 text-destructive" />
+                                    <MapPinOff className="h-16 w-16 text-destructive" aria-hidden="true" />
                                 ) : (
-                                    <XCircle className="h-16 w-16 text-destructive" />
+                                    <XCircle className="h-16 w-16 text-destructive" aria-hidden="true" />
                                 )}
                             </div>
                         </div>
@@ -642,13 +663,27 @@ export function CheckInFlow() {
                         </Alert>
 
                         <div className="flex gap-2">
-                            <Button onClick={handleRetry} className="flex-1">
-                                Coba Lagi
+                            <Button
+                                onClick={handleRetry}
+                                className="flex-1 gap-2"
+                                disabled={retryCountdown > 0}
+                            >
+                                <RefreshCw className={`h-4 w-4 ${retryCountdown > 0 ? 'animate-spin' : ''}`} />
+                                {retryCountdown > 0 ? `Tunggu ${retryCountdown}s` : 'Coba Lagi'}
                             </Button>
                             <Button variant="outline" onClick={handleReset} className="flex-1">
                                 Batal
                             </Button>
                         </div>
+
+                        {retryCountdown > 0 && (
+                            <div className="space-y-2">
+                                <Progress value={(5 - retryCountdown) * 20} className="h-1" />
+                                <p className="text-xs text-center text-muted-foreground">
+                                    Anda dapat mencoba lagi dalam {retryCountdown} detik
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </DialogContent>
             </Dialog>
