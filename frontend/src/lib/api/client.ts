@@ -1,4 +1,5 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
+import { getStoredToken } from './auth';
 
 // API base URL from environment or default to localhost
 // Using relative path to leverage Vite proxy in development
@@ -22,10 +23,10 @@ export const apiClient = axios.create({
   },
 });
 
-// Request interceptor - Add auth token
+// Request interceptor - Add auth token from sessionStorage
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('auth_token');
+    const token = getStoredToken();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -46,11 +47,8 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      // Clear auth data and redirect to login
-      // Clear auth data and redirect to login
-      localStorage.removeItem('auth-storage'); // Clear Zustand persist storage
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth_user');
+      // Clear auth data from sessionStorage
+      sessionStorage.removeItem('auth-storage');
 
       // Only redirect if not already on login page
       if (window.location.pathname !== '/login') {

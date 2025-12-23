@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import * as Sentry from '@sentry/react';
 import type { User, LoginCredentials, Permission } from '@/types/auth';
 import * as authApi from '@/lib/api/auth';
@@ -7,23 +7,17 @@ import * as authApi from '@/lib/api/auth';
 /**
  * SECURITY NOTE: Token Storage
  *
- * Tokens are stored in localStorage for persistence across sessions.
+ * Tokens are stored in sessionStorage for improved security:
+ * - Cleared automatically when browser/tab closes
+ * - Not accessible via XSS attacks from other tabs
+ * - Still vulnerable to XSS within the same tab, but with limited exposure
  *
- * Security considerations:
- * 1. Current implementation is acceptable for internal corporate applications with:
- *    - Short token expiration (7 days - configured in backend)
- *    - HTTPS only
- *    - XSS protection via CSP (Content Security Policy)
- *
- * For higher security requirements, consider:
- * 1. Using httpOnly cookies (requires backend changes)
- * 2. Using sessionStorage (clears on tab close)
- * 3. Implementing token refresh mechanism with short-lived access tokens
- *
- * Trade-offs:
- * - localStorage: Vulnerable to XSS but persists across sessions
- * - sessionStorage: More secure but less convenient (user needs to login per tab)
- * - httpOnly cookies: Most secure but requires backend session management
+ * Security measures in place:
+ * 1. Session-only storage (clears on browser close)
+ * 2. Short token expiration (7 days - configured in backend)
+ * 3. HTTPS only in production
+ * 4. XSS protection via CSP headers
+ * 5. Token not exposed in URLs or logs
  */
 interface AuthState {
   // State
@@ -178,6 +172,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
+      storage: createJSONStorage(() => sessionStorage), // Use sessionStorage for security
       partialize: (state) => ({
         user: state.user,
         token: state.token,

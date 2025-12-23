@@ -628,6 +628,12 @@ class ScheduleApiController extends BaseApiController
 
         } catch (\Exception $e) {
             \DB::rollBack();
+            \Log::error('Failed to save grade schedule', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'grade' => $grade ?? null,
+                'effective_from' => $effectiveFrom ?? null,
+            ]);
             return $this->errorResponse('Failed to save grade schedule: ' . $e->getMessage(), 500);
         }
     }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\AttendanceService;
 use App\Services\FaceRecognitionService;
+use App\Models\AuditLog;
 use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -26,15 +27,16 @@ class AttendanceController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'employee_id' => 'required|exists:employees,id',
-            'face_descriptor' => 'nullable|array',
-            'face_descriptor.*' => 'required_with:face_descriptor|numeric',
+            // Face descriptor validation - ArcFace uses 512 dimensions
+            'face_descriptor' => 'nullable|array|min:128|max:512',
+            'face_descriptor.*' => 'required_with:face_descriptor|numeric|between:-1,1',
             'face_image' => 'nullable|string', // Base64 image
-            'face_confidence' => 'required|numeric',
+            'face_confidence' => 'required|numeric|between:0,1',
             'location' => 'required|array',
-            'location.latitude' => 'required|numeric',
-            'location.longitude' => 'required|numeric',
-            'location.accuracy' => 'nullable|numeric',
-            'location.address' => 'nullable|string',
+            'location.latitude' => 'required|numeric|between:-90,90',
+            'location.longitude' => 'required|numeric|between:-180,180',
+            'location.accuracy' => 'nullable|numeric|min:0',
+            'location.address' => 'nullable|string|max:500',
             'photo' => 'nullable|image|max:2048',
             'liveness_data' => 'nullable|array',
             'device_info' => 'nullable|array',
@@ -54,6 +56,15 @@ class AttendanceController extends Controller
             
             // Check if user has permission to check in for this employee
             if (!$this->canAccessEmployee($employee)) {
+                // Log unauthorized access attempt
+                AuditLog::createSecurityLog('unauthorized_access_attempt', [
+                    'target_employee_id' => $employee->id,
+                    'target_employee_name' => $employee->full_name,
+                    'action' => 'check_in',
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ]);
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized access to employee data'
@@ -79,6 +90,17 @@ class AttendanceController extends Controller
                 );
 
                 if (!$faceVerification['success']) {
+                    // Log face verification failure as security event
+                    AuditLog::createSecurityLog('face_verification_failed', [
+                        'employee_id' => $employee->id,
+                        'employee_name' => $employee->full_name,
+                        'confidence' => $faceVerification['confidence'] ?? 0,
+                        'threshold' => 0.6,
+                        'action' => 'check_in',
+                        'ip_address' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                    ]);
+
                     return response()->json([
                         'success' => false,
                         'message' => 'Face verification failed',
@@ -155,15 +177,16 @@ class AttendanceController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'employee_id' => 'required|exists:employees,id',
-            'face_descriptor' => 'nullable|array',
-            'face_descriptor.*' => 'required_with:face_descriptor|numeric',
+            // Face descriptor validation - ArcFace uses 512 dimensions
+            'face_descriptor' => 'nullable|array|min:128|max:512',
+            'face_descriptor.*' => 'required_with:face_descriptor|numeric|between:-1,1',
             'face_image' => 'nullable|string', // Base64 image
-            'face_confidence' => 'required|numeric',
+            'face_confidence' => 'required|numeric|between:0,1',
             'location' => 'required|array',
-            'location.latitude' => 'required|numeric',
-            'location.longitude' => 'required|numeric',
-            'location.accuracy' => 'nullable|numeric',
-            'location.address' => 'nullable|string',
+            'location.latitude' => 'required|numeric|between:-90,90',
+            'location.longitude' => 'required|numeric|between:-180,180',
+            'location.accuracy' => 'nullable|numeric|min:0',
+            'location.address' => 'nullable|string|max:500',
             'photo' => 'nullable|image|max:2048',
             'liveness_data' => 'nullable|array',
             'device_info' => 'nullable|array',
@@ -183,6 +206,15 @@ class AttendanceController extends Controller
             
             // Check if user has permission to check out for this employee
             if (!$this->canAccessEmployee($employee)) {
+                // Log unauthorized access attempt
+                AuditLog::createSecurityLog('unauthorized_access_attempt', [
+                    'target_employee_id' => $employee->id,
+                    'target_employee_name' => $employee->full_name,
+                    'action' => 'check_out',
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ]);
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized access to employee data'
@@ -208,6 +240,17 @@ class AttendanceController extends Controller
                 );
 
                 if (!$faceVerification['success']) {
+                    // Log face verification failure as security event
+                    AuditLog::createSecurityLog('face_verification_failed', [
+                        'employee_id' => $employee->id,
+                        'employee_name' => $employee->full_name,
+                        'confidence' => $faceVerification['confidence'] ?? 0,
+                        'threshold' => 0.6,
+                        'action' => 'check_out',
+                        'ip_address' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                    ]);
+
                     return response()->json([
                         'success' => false,
                         'message' => 'Face verification failed',

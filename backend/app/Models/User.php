@@ -27,27 +27,28 @@ class User extends Authenticatable
         'password',
         'phone',
         'role',
-        'is_active',
         'last_login_at',
         'last_login_ip',
         'password_changed_at',
-        'failed_login_attempts',
         'security_preferences',
-        'force_password_change',
-        'two_factor_enabled',
     ];
 
     /**
      * The attributes that are NOT mass assignable (protected fields).
+     * SECURITY: These fields require explicit assignment via secure methods.
      *
      * @var list<string>
      */
     protected $guarded = [
         'id',
+        'is_active',                  // Must be changed via admin action only
+        'force_password_change',       // Must be set via forcePasswordChange() method
+        'two_factor_enabled',          // Must be enabled via 2FA setup flow
         'two_factor_secret',
         'two_factor_recovery_codes',
         'account_locked',
         'locked_until',
+        'failed_login_attempts',       // Must be modified via incrementFailedLogins()
     ];
 
     /**

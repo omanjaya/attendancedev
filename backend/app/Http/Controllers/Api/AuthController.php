@@ -24,22 +24,35 @@ class AuthController extends Controller
             'email' => 'required|email',
             'password' => 'required',
             'device_name' => 'nullable',
-            'turnstile_token' => 'required|string',
+            'turnstile_token' => config('services.turnstile.enabled') ? 'required|string' : 'nullable|string',
         ]);
 
         // Verify Cloudflare Turnstile token
-        $turnstileSecret = env('TURNSTILE_SECRET_KEY');
-        if ($turnstileSecret) {
-            $response = Http::asForm()->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
-                'secret' => $turnstileSecret,
-                'response' => $request->turnstile_token,
-                'remoteip' => $request->ip(),
-            ]);
-
-            if (!$response->successful() || !$response->json('success')) {
-                throw ValidationException::withMessages([
-                    'turnstile' => ['Verifikasi keamanan gagal. Silakan coba lagi.'],
+        if (config('services.turnstile.enabled')) {
+            $turnstileSecret = config('services.turnstile.secret_key');
+            if ($turnstileSecret && $request->turnstile_token) {
+                $response = Http::asForm()->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
+                    'secret' => $turnstileSecret,
+                    'response' => $request->turnstile_token,
+                    'remoteip' => $request->ip(),
                 ]);
+
+                if (!$response->successful() || !$response->json('success')) {
+                    // Log failed turnstile verification
+                    AuditLog::create([
+                        'action' => 'turnstile_failed',
+                        'ip_address' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                        'metadata' => [
+                            'email' => $request->email,
+                            'response' => $response->json(),
+                        ],
+                    ]);
+
+                    throw ValidationException::withMessages([
+                        'turnstile' => ['Verifikasi keamanan gagal. Silakan coba lagi.'],
+                    ]);
+                }
             }
         }
 
@@ -253,23 +266,25 @@ class AuthController extends Controller
     {
         $request->validate([
             'email' => ['required', 'email'],
-            'turnstile_token' => ['nullable', 'string'],
+            'turnstile_token' => config('services.turnstile.enabled') ? 'required|string' : 'nullable|string',
         ]);
 
-        // Verify Cloudflare Turnstile token if provided
-        $turnstileSecret = env('TURNSTILE_SECRET_KEY');
-        if ($turnstileSecret && $request->turnstile_token) {
-            $response = Http::asForm()->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
-                'secret' => $turnstileSecret,
-                'response' => $request->turnstile_token,
-                'remoteip' => $request->ip(),
-            ]);
+        // Verify Cloudflare Turnstile token if enabled
+        if (config('services.turnstile.enabled')) {
+            $turnstileSecret = config('services.turnstile.secret_key');
+            if ($turnstileSecret && $request->turnstile_token) {
+                $response = Http::asForm()->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
+                    'secret' => $turnstileSecret,
+                    'response' => $request->turnstile_token,
+                    'remoteip' => $request->ip(),
+                ]);
 
-            if (!$response->successful() || !$response->json('success')) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Verifikasi keamanan gagal. Silakan coba lagi.',
-                ], 422);
+                if (!$response->successful() || !$response->json('success')) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Verifikasi keamanan gagal. Silakan coba lagi.',
+                    ], 422);
+                }
             }
         }
 
@@ -307,9 +322,13 @@ class AuthController extends Controller
     public function resetPassword(Request $request)
     {
         $request->validate([
-            'token' => ['required'],
-            'email' => ['required', 'email'],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'token' => ['required', 'string', 'size:64'], // Laravel reset tokens are 64 chars
+            'email' => ['required', 'email', 'max:255'],
+            'password' => ['required', 'confirmed', Rules\Password::min(8)
+                ->mixedCase()
+                ->numbers()
+                ->symbols()
+                ->uncompromised()],
         ]);
 
         // Attempt to reset the user's password

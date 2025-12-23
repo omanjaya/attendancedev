@@ -25,11 +25,8 @@ export interface UserResponse {
 export async function login(credentials: LoginCredentials): Promise<LoginResponse> {
   const response = await apiClient.post<LoginResponse>(AUTH_ENDPOINTS.login, { ...credentials, device_name: 'web' });
 
-  // Store token in localStorage
-  if (response.data.token) {
-    localStorage.setItem('auth_token', response.data.token);
-    localStorage.setItem('auth_user', JSON.stringify(response.data.user));
-  }
+  // Token is now stored in Zustand auth-store using sessionStorage
+  // No direct localStorage usage for security (XSS protection)
 
   return response.data;
 }
@@ -39,9 +36,8 @@ export async function logout(): Promise<void> {
   try {
     await apiClient.post(AUTH_ENDPOINTS.logout);
   } finally {
-    // Always clear local storage, even if API call fails
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_user');
+    // Clear auth data from sessionStorage (handled by Zustand store)
+    sessionStorage.removeItem('auth-storage');
   }
 }
 
@@ -76,21 +72,42 @@ export async function resetPassword(data: {
 // Refresh token
 export async function refreshToken(): Promise<{ token: string }> {
   const response = await apiClient.post<{ token: string }>(AUTH_ENDPOINTS.refresh);
-
-  if (response.data.token) {
-    localStorage.setItem('auth_token', response.data.token);
-  }
-
+  // Token update is handled by Zustand store
   return response.data;
 }
 
-// Check if user is authenticated
+// Check if user is authenticated (reads from sessionStorage)
 export function isAuthenticated(): boolean {
-  return !!localStorage.getItem('auth_token');
+  const authStorage = sessionStorage.getItem('auth-storage');
+  if (!authStorage) return false;
+  try {
+    const parsed = JSON.parse(authStorage);
+    return !!parsed.state?.token;
+  } catch {
+    return false;
+  }
 }
 
-// Get stored user data
+// Get stored user data (reads from sessionStorage)
 export function getStoredUser(): User | null {
-  const userData = localStorage.getItem('auth_user');
-  return userData ? JSON.parse(userData) : null;
+  const authStorage = sessionStorage.getItem('auth-storage');
+  if (!authStorage) return null;
+  try {
+    const parsed = JSON.parse(authStorage);
+    return parsed.state?.user || null;
+  } catch {
+    return null;
+  }
+}
+
+// Get token from sessionStorage (for API client)
+export function getStoredToken(): string | null {
+  const authStorage = sessionStorage.getItem('auth-storage');
+  if (!authStorage) return null;
+  try {
+    const parsed = JSON.parse(authStorage);
+    return parsed.state?.token || null;
+  } catch {
+    return null;
+  }
 }

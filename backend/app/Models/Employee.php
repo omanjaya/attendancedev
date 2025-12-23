@@ -22,8 +22,21 @@ class Employee extends Model
     protected $fillable = [
         'user_id', 'employee_id', 'full_name', 'phone',
         'photo_path', 'employee_type', 'employee_type_id', 'hire_date', 'salary_type',
-        'salary_amount', 'hourly_rate', 'location_id', 'metadata', 'sensitive_data', 'is_active',
+        'location_id', 'metadata', 'is_active',
         'subject_id', 'department_id', 'position_id',
+    ];
+
+    /**
+     * The attributes that are NOT mass assignable (protected fields).
+     * SECURITY: Financial and sensitive data must be set explicitly.
+     *
+     * @var list<string>
+     */
+    protected $guarded = [
+        'id',
+        'salary_amount',    // Financial data - admin only
+        'hourly_rate',      // Financial data - admin only
+        'sensitive_data',   // Contains encrypted sensitive info
     ];
 
     protected $hidden = [

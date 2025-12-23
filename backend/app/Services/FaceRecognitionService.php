@@ -982,8 +982,8 @@ class FaceRecognitionService implements FaceRecognitionServiceInterface
      */
     public function verifyFaceDeepFace(UploadedFile $image, ?string $employeeId = null): array
     {
-        // Get employees with face embeddings (PostgreSQL JSONB syntax)
-        $query = Employee::whereRaw("(metadata -> 'face_recognition' -> 'descriptor') IS NOT NULL")
+        // Get employees with face embeddings using Eloquent JSON syntax
+        $query = Employee::whereNotNull('metadata->face_recognition->descriptor')
             ->whereNotNull('metadata')
             ->select('id', 'employee_id', 'full_name', 'metadata', 'is_active', 'location_id');
 

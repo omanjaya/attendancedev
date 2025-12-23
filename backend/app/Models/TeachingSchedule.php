@@ -478,18 +478,34 @@ class TeachingSchedule extends Model
     protected static function boot()
     {
         parent::boot();
-        
+
         static::created(function ($model) {
             // Auto-apply to employee schedules if override is enabled
+            // Wrapped in try-catch to prevent transaction failures
             if ($model->override_attendance) {
-                $model->applyToEmployeeSchedules();
+                try {
+                    $model->applyToEmployeeSchedules();
+                } catch (\Exception $e) {
+                    \Log::warning('Failed to apply teaching schedule to employee schedules', [
+                        'schedule_id' => $model->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
         });
-        
+
         static::updated(function ($model) {
             // Re-apply if override settings changed
+            // Wrapped in try-catch to prevent transaction failures
             if ($model->wasChanged(['override_attendance', 'teaching_start_time', 'teaching_end_time'])) {
-                $model->applyToEmployeeSchedules();
+                try {
+                    $model->applyToEmployeeSchedules();
+                } catch (\Exception $e) {
+                    \Log::warning('Failed to re-apply teaching schedule to employee schedules', [
+                        'schedule_id' => $model->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
         });
     }
