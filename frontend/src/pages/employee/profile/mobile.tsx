@@ -20,6 +20,7 @@ import {
     CheckCircle2,
     XCircle,
     RefreshCw,
+    Pencil,
 } from 'lucide-react';
 import { MobilePageHeader } from '@/components/mobile';
 import { useAuthStore } from '@/stores';
@@ -27,6 +28,7 @@ import { useProfilePage } from '@/hooks/use-profile-page';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { AvatarUploadDialog } from '@/components/profile/AvatarUploadDialog';
 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -60,10 +62,19 @@ export function MobileProfilePage() {
     // All logic extracted to shared hook
     const logic = useProfilePage();
     const [isLogoutOpen, setIsLogoutOpen] = useState(false);
+    const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
 
     const handleLogout = () => {
         logout();
         navigate({ to: '/login' });
+    };
+
+    const handleAvatarUpload = async (file: File) => {
+        await logic.uploadAvatarMutation.mutateAsync(file);
+    };
+
+    const handleAvatarDelete = async () => {
+        await logic.deleteAvatarMutation.mutateAsync();
     };
 
 
@@ -90,29 +101,26 @@ export function MobileProfilePage() {
                 <div className="bg-card rounded-2xl shadow-sm dark:border dark:border-border/50 p-6 flex flex-col items-center text-center relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-20 bg-gradient-to-b from-violet-100/50 to-transparent dark:from-violet-900/30 dark:to-transparent" />
 
-                    <div className="relative mb-4">
-                        <Avatar className="h-20 w-20 border-4 border-white dark:border-gray-900 shadow-lg">
-                            <AvatarImage src={logic.profile.avatar || undefined} alt={logic.profile.name} />
-                            <AvatarFallback className="text-2xl bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400">
+                    <div
+                        className="relative mb-4 group cursor-pointer"
+                        onClick={() => setAvatarDialogOpen(true)}
+                    >
+                        <Avatar className="h-24 w-24 border-4 border-white dark:border-gray-900 shadow-xl ring-2 ring-violet-200/50 dark:ring-violet-800/30 transition-all duration-300 active:scale-95">
+                            <AvatarImage src={logic.profile.avatar || undefined} alt={logic.profile.name} className="object-cover" />
+                            <AvatarFallback className="text-2xl bg-gradient-to-br from-violet-100 to-purple-100 dark:from-violet-900/30 dark:to-purple-900/30 text-violet-600 dark:text-violet-400 font-semibold">
                                 {logic.getInitials(logic.profile.name)}
                             </AvatarFallback>
                         </Avatar>
-                        <button
-                            onClick={() => logic.fileInputRef.current?.click()}
-                            className="absolute bottom-0 right-0 p-2.5 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 transition-colors active:scale-95"
-                            aria-label="Ubah Foto Profil"
-                        >
-                            <Camera className="h-4 w-4" />
-                        </button>
-                        <input
-                            type="file"
-                            ref={logic.fileInputRef}
-                            className="hidden"
-                            accept="image/*"
-                            onChange={logic.handleAvatarUpload}
-                            title="Ubah Foto Profil"
-                            aria-label="Ubah Foto Profil"
-                        />
+
+                        {/* Hover/Touch Overlay */}
+                        <div className="absolute inset-0 rounded-full bg-black/0 active:bg-black/40 transition-all duration-200 flex items-center justify-center">
+                            <Camera className="h-6 w-6 text-white opacity-0 active:opacity-100 transition-opacity" />
+                        </div>
+
+                        {/* Edit Badge */}
+                        <div className="absolute -bottom-0.5 -right-0.5 bg-primary text-primary-foreground rounded-full p-2 shadow-lg ring-2 ring-white dark:ring-gray-900 transition-transform active:scale-90">
+                            <Pencil className="h-3.5 w-3.5" />
+                        </div>
                     </div>
 
                     <h2 className="text-lg font-bold text-foreground mb-1">{logic.profile.name}</h2>
@@ -602,6 +610,18 @@ export function MobileProfilePage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog >
+
+            {/* Avatar Upload Dialog */}
+            <AvatarUploadDialog
+                open={avatarDialogOpen}
+                onOpenChange={setAvatarDialogOpen}
+                currentAvatar={logic.profile.avatar}
+                userName={logic.profile.name}
+                onUpload={handleAvatarUpload}
+                onDelete={handleAvatarDelete}
+                isUploading={logic.uploadAvatarMutation.isPending}
+                isDeleting={logic.deleteAvatarMutation.isPending}
+            />
         </div >
     );
 }

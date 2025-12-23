@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import {
     User,
@@ -19,6 +20,7 @@ import {
     TrendingUp,
     UserCheck,
     AlertCircle,
+    Pencil,
 } from 'lucide-react';
 import { StatsGrid, type StatItem } from '@/components/shared';
 import { Button } from '@/components/ui/button';
@@ -49,10 +51,20 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useProfilePage } from '@/hooks/use-profile-page';
+import { AvatarUploadDialog } from '@/components/profile/AvatarUploadDialog';
 
 export function DesktopProfilePage() {
     // All logic extracted to shared hook
     const logic = useProfilePage();
+    const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
+
+    const handleAvatarUpload = async (file: File) => {
+        await logic.uploadAvatarMutation.mutateAsync(file);
+    };
+
+    const handleAvatarDelete = async () => {
+        await logic.deleteAvatarMutation.mutateAsync();
+    };
 
     const formatDate = (dateStr: string | null) => {
         if (!dateStr) return '-';
@@ -97,48 +109,33 @@ export function DesktopProfilePage() {
                 <Card className="flex-1">
                     <CardContent className="p-4 sm:p-6">
                         <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-                            {/* Avatar Section */}
-                            <div className="relative">
-                                <Avatar className="h-32 w-32">
-                                    <AvatarImage src={logic.profile.avatar || undefined} alt={logic.profile.name} />
-                                    <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+                            {/* Avatar Section - Enhanced */}
+                            <div
+                                className="relative group cursor-pointer"
+                                onClick={() => setAvatarDialogOpen(true)}
+                            >
+                                <Avatar className="h-32 w-32 ring-4 ring-background shadow-xl transition-all duration-300 group-hover:ring-primary/20 group-hover:shadow-2xl">
+                                    <AvatarImage
+                                        src={logic.profile.avatar || undefined}
+                                        alt={logic.profile.name}
+                                        className="object-cover"
+                                    />
+                                    <AvatarFallback className="text-3xl bg-gradient-to-br from-primary/20 via-primary/10 to-emerald-500/10 text-primary font-semibold">
                                         {logic.getInitials(logic.profile.name)}
                                     </AvatarFallback>
                                 </Avatar>
-                                <input
-                                    type="file"
-                                    ref={logic.fileInputRef}
-                                    className="hidden"
-                                    accept="image/*"
-                                    onChange={logic.handleAvatarUpload}
-                                    title="Upload Avatar"
-                                    aria-label="Upload Avatar"
-                                />
-                                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                                    <Button
-                                        size="icon"
-                                        variant="secondary"
-                                        className="h-8 w-8 rounded-full"
-                                        onClick={() => logic.fileInputRef.current?.click()}
-                                        disabled={logic.uploadAvatarMutation.isPending}
-                                    >
-                                        {logic.uploadAvatarMutation.isPending ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                            <Camera className="h-4 w-4" />
-                                        )}
-                                    </Button>
-                                    {logic.profile.avatar && (
-                                        <Button
-                                            size="icon"
-                                            variant="destructive"
-                                            className="h-8 w-8 rounded-full"
-                                            onClick={logic.handleDeleteAvatar}
-                                            disabled={logic.deleteAvatarMutation.isPending}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    )}
+
+                                {/* Hover Overlay */}
+                                <div className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                    <div className="flex flex-col items-center gap-1 text-white transform scale-90 group-hover:scale-100 transition-transform duration-300">
+                                        <Camera className="h-6 w-6" />
+                                        <span className="text-xs font-medium">Ubah Foto</span>
+                                    </div>
+                                </div>
+
+                                {/* Edit Badge */}
+                                <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground rounded-full p-2 shadow-lg ring-2 ring-background transition-transform duration-300 group-hover:scale-110">
+                                    <Pencil className="h-3.5 w-3.5" />
                                 </div>
                             </div>
 
@@ -756,6 +753,18 @@ export function DesktopProfilePage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Avatar Upload Dialog */}
+            <AvatarUploadDialog
+                open={avatarDialogOpen}
+                onOpenChange={setAvatarDialogOpen}
+                currentAvatar={logic.profile.avatar}
+                userName={logic.profile.name}
+                onUpload={handleAvatarUpload}
+                onDelete={handleAvatarDelete}
+                isUploading={logic.uploadAvatarMutation.isPending}
+                isDeleting={logic.deleteAvatarMutation.isPending}
+            />
         </div>
     );
 }
