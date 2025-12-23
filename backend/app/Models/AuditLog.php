@@ -41,6 +41,10 @@ class AuditLog extends Model
             if (empty($model->id)) {
                 $model->id = (string) Str::uuid();
             }
+            // Ensure event_type has a default value
+            if (empty($model->event_type)) {
+                $model->event_type = 'system.unknown';
+            }
         });
     }
 
