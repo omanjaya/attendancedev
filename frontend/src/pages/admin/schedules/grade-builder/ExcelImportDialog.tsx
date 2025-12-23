@@ -445,7 +445,7 @@ export function ExcelImportDialog({ open, onOpenChange }: ExcelImportDialogProps
       setProgress(100);
       setStep('done');
       success('Berhasil', `${parsedData.teachers.length} guru dan ${parsedData.schedules.length} jadwal diimport`);
-    } catch (err) {
+    } catch (_err) {
       showError('Gagal', 'Terjadi kesalahan saat import');
       setStep('preview');
     }

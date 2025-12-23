@@ -281,7 +281,7 @@ export function ExcelScheduleImporterIntegrated({ onImportComplete }: ExcelSched
                 const data = worksheetTo2DArray(sheet);
 
                 let currentDay = '';
-                let classColumns: { index: number; name: string }[] = [];
+                const classColumns: { index: number; name: string }[] = [];
 
                 // Find class header row and columns
                 for (let rowIdx = 0; rowIdx < Math.min(10, data.length); rowIdx++) {

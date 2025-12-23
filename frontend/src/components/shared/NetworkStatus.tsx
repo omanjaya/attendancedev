@@ -97,7 +97,7 @@ export function NetworkStatus({
         if (!isOnline) {
           handleOnline();
         }
-      } catch (error) {
+      } catch (_error) {
         if (isOnline) {
           handleOffline();
         }

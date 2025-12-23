@@ -104,7 +104,7 @@ export default function HolidayEditPage() {
           is_paid: data.is_paid,
           affected_roles: data.affected_roles || [],
         });
-      } catch (err) {
+      } catch (_err) {
         showError('Error', 'Gagal memuat data hari libur');
         navigate({ to: '/admin/holidays' });
       } finally {

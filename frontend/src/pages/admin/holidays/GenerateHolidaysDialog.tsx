@@ -91,7 +91,7 @@ export function GenerateHolidaysDialog({ open, onOpenChange }: GenerateHolidaysD
             const result = await bulkImport(previewData);
             success('Berhasil', `Berhasil mengimport ${result.imported} hari libur.`);
             onOpenChange(false);
-        } catch (err) {
+        } catch (_err) {
             setError('Gagal menyimpan data ke database.');
         } finally {
             setIsLoading(false);

@@ -43,7 +43,7 @@ function customRender(
   ui: ReactElement,
   options?: CustomRenderOptions
 ) {
-  const { queryClient, ...renderOptions } = options ?? {};
+  const { queryClient: _queryClient, ...renderOptions } = options ?? {};
 
   const Wrapper = createWrapper();
 

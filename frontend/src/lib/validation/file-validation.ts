@@ -182,7 +182,7 @@ export async function validateImage(
           height: dimensions.height,
         },
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         valid: false,
         error: 'Gagal membaca dimensi gambar',

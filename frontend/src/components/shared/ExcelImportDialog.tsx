@@ -140,7 +140,7 @@ export function ExcelImportDialog({
 
         // Type validation
         switch (column.type) {
-            case 'email':
+            case 'email': {
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                 if (!emailRegex.test(String(value))) {
                     return {
@@ -151,6 +151,7 @@ export function ExcelImportDialog({
                     };
                 }
                 break;
+            }
             case 'number':
                 if (isNaN(Number(value))) {
                     return {
@@ -161,7 +162,7 @@ export function ExcelImportDialog({
                     };
                 }
                 break;
-            case 'date':
+            case 'date': {
                 const dateValue = new Date(value);
                 if (isNaN(dateValue.getTime())) {
                     return {
@@ -172,6 +173,7 @@ export function ExcelImportDialog({
                     };
                 }
                 break;
+            }
         }
 
         // Custom validation

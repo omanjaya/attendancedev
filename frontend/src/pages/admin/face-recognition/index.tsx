@@ -125,7 +125,7 @@ export default function FaceRecognitionPage() {
     setError(null);
     try {
       await startCamera();
-    } catch (err) {
+    } catch (_err) {
       setError(errorMessage || 'Gagal mengaktifkan kamera');
     }
   };

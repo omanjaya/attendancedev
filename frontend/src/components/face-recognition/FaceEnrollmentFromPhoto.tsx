@@ -53,7 +53,7 @@ export function FaceEnrollmentFromPhoto({
     const init = async () => {
       try {
         await faceDetectionService.initialize();
-      } catch (err) {
+      } catch (_err) {
         setError('Gagal memuat model deteksi wajah');
         setState('error');
       }

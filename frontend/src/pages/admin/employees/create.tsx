@@ -217,7 +217,7 @@ export default function EmployeeCreatePage() {
           message: result.message,
           isValid: result.is_available,
         });
-      } catch (error) {
+      } catch (_error) {
         setEmailValidation({
           checking: false,
           message: 'Gagal memeriksa email',
@@ -250,7 +250,7 @@ export default function EmployeeCreatePage() {
           message: result.message,
           isValid: result.is_available,
         });
-      } catch (error) {
+      } catch (_error) {
         setNipValidation({
           checking: false,
           message: 'Gagal memeriksa NIP',

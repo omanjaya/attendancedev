@@ -175,7 +175,7 @@ export function MobileEmployeeAttendancePage() {
         second: '2-digit',
         hour12: false
       }).replace(/\./g, ':');
-    } catch (e) {
+    } catch (_e) {
       return '--:--:--';
     }
   };

@@ -114,7 +114,7 @@ export function useProfilePage() {
             setEditMode(false);
             setSuccessMessage('Profil berhasil diperbarui');
             setTimeout(() => setSuccessMessage(null), 3000);
-        } catch (error) {
+        } catch (_error) {
             // Error handled by mutation
         }
     };
@@ -152,7 +152,7 @@ export function useProfilePage() {
             await uploadAvatar.mutateAsync(file);
             setSuccessMessage('Foto profil berhasil diperbarui');
             setTimeout(() => setSuccessMessage(null), 3000);
-        } catch (error) {
+        } catch (_error) {
             // Error handled by mutation
         }
     };
@@ -162,7 +162,7 @@ export function useProfilePage() {
             await deleteAvatar.mutateAsync();
             setSuccessMessage('Foto profil berhasil dihapus');
             setTimeout(() => setSuccessMessage(null), 3000);
-        } catch (error) {
+        } catch (_error) {
             // Error handled by mutation
         }
     };
@@ -295,7 +295,7 @@ export function useProfilePage() {
             await refetchFaceData();
             setSuccessMessage('Data wajah berhasil dihapus');
             setTimeout(() => setSuccessMessage(null), 3000);
-        } catch (error) {
+        } catch (_error) {
             // Error handled by mutation
         }
     };
