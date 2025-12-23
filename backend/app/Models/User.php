@@ -27,10 +27,20 @@ class User extends Authenticatable
         'password',
         'phone',
         'role',
+        'avatar',
         'last_login_at',
         'last_login_ip',
         'password_changed_at',
         'security_preferences',
+    ];
+
+    /**
+     * The accessors to append to the model's array form.
+     *
+     * @var list<string>
+     */
+    protected $appends = [
+        'avatar_url',
     ];
 
     /**
@@ -166,10 +176,25 @@ class User extends Authenticatable
 
         $array['permissions'] = array_values(array_unique($frontendPermissions));
 
+        // Add avatar_url for frontend (appends may not work with custom toArray)
+        $array['avatar_url'] = $this->avatar_url;
+
         // Remove the roles and permissions relationships from the array to avoid confusion
         unset($array['roles']);
 
         return $array;
+    }
+
+    /**
+     * Get the full URL for the avatar.
+     */
+    public function getAvatarUrlAttribute(): ?string
+    {
+        if (empty($this->avatar)) {
+            return null;
+        }
+
+        return url('storage/' . $this->avatar);
     }
 
     /**

@@ -155,7 +155,7 @@ export function AppSidebar() {
                   className="data-[state=open]:bg-gradient-to-r data-[state=open]:from-primary/10 data-[state=open]:to-emerald-600/10 hover:bg-gradient-to-r hover:from-primary/5 hover:to-emerald-600/5 rounded-xl border border-border/40 hover:border-primary/20 transition-all duration-300 hover:scale-[1.02] group shadow-sm"
                 >
                   <Avatar className="h-10 w-10 rounded-xl border-2 border-background shadow-md ring-2 ring-primary/10 group-hover:ring-primary/20 transition-all duration-300">
-                    <AvatarImage src={user?.avatar} alt={user?.name} />
+                    <AvatarImage src={user?.avatar_url} alt={user?.name} />
                     <AvatarFallback className="rounded-xl bg-gradient-to-br from-primary via-emerald-500 to-emerald-600 text-primary-foreground font-bold text-sm">
                       {user?.name ? getInitials(user.name) : 'U'}
                     </AvatarFallback>
@@ -178,7 +178,7 @@ export function AppSidebar() {
                 <DropdownMenuLabel className="p-0 font-normal">
                   <div className="flex items-center gap-3 px-3 py-2.5 text-left text-sm bg-muted/30">
                     <Avatar className="h-9 w-9 rounded-lg border border-white/10">
-                      <AvatarImage src={user?.avatar} alt={user?.name} />
+                      <AvatarImage src={user?.avatar_url} alt={user?.name} />
                       <AvatarFallback className="rounded-lg bg-primary text-primary-foreground font-bold">
                         {user?.name ? getInitials(user.name) : 'U'}
                       </AvatarFallback>

@@ -252,7 +252,7 @@ export default function ProfileEditPage() {
             <CardContent className="pt-6 flex flex-col items-center text-center">
               <div className="relative mb-4">
                 <Avatar className="h-24 w-24">
-                  <AvatarImage src={user?.avatar || user?.employee?.avatar} />
+                  <AvatarImage src={user?.avatar_url || user?.employee?.avatar} />
                   <AvatarFallback className="text-2xl bg-primary/10 text-primary">
                     {user?.name?.split(' ').map(n => n[0]).join('') || 'U'}
                   </AvatarFallback>

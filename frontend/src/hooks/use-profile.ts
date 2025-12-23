@@ -10,7 +10,7 @@ function transformUserToProfile(user: any): UserProfile {
     name: user.name,
     email: user.email,
     phone: user.phone || null,
-    avatar: user.avatar || null,
+    avatar: user.avatar_url || null,
     role: user.roles?.[0]?.name || 'Employee',
     department: user.employee?.metadata?.department || null,
     position: user.employee?.metadata?.position || null,
