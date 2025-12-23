@@ -49,8 +49,10 @@ class EmployeeResource extends JsonResource
      */
     private function hasFaceData(): bool
     {
-        // Check if employee has face encodings in metadata or database
-        return !empty($this->metadata['face_encodings']) ||
+        // Check if employee has face data in metadata
+        // Face data is stored under 'face_recognition' key with 'registered_at' timestamp
+        return !empty($this->metadata['face_recognition']['registered_at']) ||
+               !empty($this->metadata['face_encodings']) ||
                !empty($this->metadata['face_descriptor']);
     }
 }
