@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Calendar, Clock, Download, ChevronLeft, ChevronRight, List, CalendarOff, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Calendar, Clock, Download, ChevronLeft, ChevronRight, List, CalendarOff, AlertCircle, CheckCircle2, GraduationCap } from 'lucide-react';
 import { PageLayout } from '@/components/shared/PageLayout';
 import { ContentCard } from '@/components/shared/ContentCard';
 import { Badge } from '@/components/ui/badge';
@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthStore, useNotificationStore } from '@/stores';
-import { getMySchedule } from '@/lib/api/schedules';
+import { getMySchedule, getMyTeachingSchedule, type TeachingSession } from '@/lib/api/schedules';
 import { getEmployeeDashboardData } from '@/lib/api/employees';
+import { ScheduleDayDetailDrawer } from '@/components/schedule/ScheduleDayDetailDrawer';
 import {
   format,
   startOfMonth,
@@ -21,8 +22,19 @@ import {
   startOfWeek,
   endOfWeek,
   isToday,
+  getDay,
 } from 'date-fns';
 import { id } from 'date-fns/locale';
+
+const DAY_INDEX_TO_NAME: Record<number, string> = {
+  0: 'sunday',
+  1: 'monday',
+  2: 'tuesday',
+  3: 'wednesday',
+  4: 'thursday',
+  5: 'friday',
+  6: 'saturday',
+};
 
 interface DaySchedule {
   date: Date;
@@ -32,6 +44,8 @@ interface DaySchedule {
   isToday: boolean;
   startTime?: string;
   endTime?: string;
+  teachingSessions: TeachingSession[];
+  totalTeachingHours: number;
 }
 
 /**
@@ -43,6 +57,8 @@ export function DesktopEmployeeSchedulePage() {
   const { error: showError } = useNotificationStore();
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   // Fetch employee's schedule data
   const { data: scheduleResponse, isLoading: isLoadingSchedule } = useQuery({
@@ -59,35 +75,65 @@ export function DesktopEmployeeSchedulePage() {
     queryFn: getEmployeeDashboardData,
   });
 
+  // Fetch teaching schedule for teachers
+  const { data: teachingData } = useQuery({
+    queryKey: ['my-teaching-schedule'],
+    queryFn: getMyTeachingSchedule,
+  });
+
   const schedule = scheduleResponse?.schedule;
   const effectiveSchedule = dashboardData?.schedule;
+  const isTeacher = !!teachingData?.employee;
+  const isGuruHonorer = teachingData?.employee?.is_guru_honorer ?? false;
+  const teachingSchedules = teachingData?.schedules || {};
 
   // Process schedule data to create day-by-day view
   const calendarData = useMemo(() => {
-    if (!schedule) return [];
-
     const monthStart = startOfMonth(selectedMonth);
     const monthEnd = endOfMonth(selectedMonth);
     const calendarStart = startOfWeek(monthStart, { weekStartsOn: 0 });
     const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
     const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
-    const workingDaysSet = new Set(schedule.working_days || []);
+    const workingDaysSet = new Set(schedule?.working_days || []);
 
     return days.map((day): DaySchedule => {
       const dateStr = format(day, 'yyyy-MM-dd');
+      const dayOfWeek = DAY_INDEX_TO_NAME[getDay(day)];
       const isWorkingDay = workingDaysSet.has(dateStr);
+
+      // Get teaching sessions for this day of week
+      const dayTeachingSessions = teachingSchedules[dayOfWeek] || [];
+      const totalTeachingHours = dayTeachingSessions.reduce(
+        (sum, s) => sum + (s.teaching_duration_hours || 0),
+        0
+      );
 
       return {
         date: day,
         isWorkingDay,
         isHoliday: false, // Will be handled by holiday_conflicts if available
         isToday: isToday(day),
-        startTime: isWorkingDay ? schedule.default_start_time : undefined,
-        endTime: isWorkingDay ? schedule.default_end_time : undefined,
+        startTime: isWorkingDay ? schedule?.default_start_time : undefined,
+        endTime: isWorkingDay ? schedule?.default_end_time : undefined,
+        teachingSessions: dayTeachingSessions,
+        totalTeachingHours,
       };
     });
-  }, [schedule, selectedMonth]);
+  }, [schedule, selectedMonth, teachingSchedules]);
+
+  // Get data for selected date in drawer
+  const selectedDayData = useMemo(() => {
+    if (!selectedDate) return null;
+    return calendarData.find(
+      (d) => format(d.date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
+    );
+  }, [selectedDate, calendarData]);
+
+  const handleDayClick = (day: DaySchedule) => {
+    setSelectedDate(day.date);
+    setDrawerOpen(true);
+  };
 
   const handleExport = () => {
     showError('Export', 'Fitur export akan segera tersedia');
@@ -108,7 +154,10 @@ export function DesktopEmployeeSchedulePage() {
   };
 
   const renderCalendarView = () => {
-    if (!schedule) {
+    // For guru honorer without regular schedule, still show calendar if they have teaching sessions
+    const hasTeachingSessions = isTeacher && Object.keys(teachingSchedules).length > 0;
+
+    if (!schedule && !hasTeachingSessions) {
       return (
         <ContentCard title="Kalender Jadwal">
           <div className="text-center py-12">
@@ -137,14 +186,18 @@ export function DesktopEmployeeSchedulePage() {
           {/* Calendar days */}
           {calendarData.map((dayData) => {
             const isCurrentMonth = dayData.date.getMonth() === selectedMonth.getMonth();
+            const hasTeaching = dayData.teachingSessions.length > 0;
 
             return (
               <div
                 key={dayData.date.toString()}
-                className={`min-h-[80px] md:min-h-[100px] p-1 md:p-2 rounded-lg border transition-colors ${dayData.isToday
+                onClick={() => isCurrentMonth && handleDayClick(dayData)}
+                className={`min-h-[80px] md:min-h-[100px] p-1 md:p-2 rounded-lg border transition-colors ${
+                  isCurrentMonth ? 'cursor-pointer hover:ring-2 hover:ring-primary/30' : ''
+                } ${dayData.isToday
                   ? 'border-primary bg-primary/5'
                   : isCurrentMonth
-                    ? dayData.isWorkingDay
+                    ? dayData.isWorkingDay || (isGuruHonorer && hasTeaching)
                       ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20'
                       : 'border-border bg-card hover:bg-muted/50'
                     : 'border-muted bg-muted/20 opacity-50'
@@ -161,12 +214,28 @@ export function DesktopEmployeeSchedulePage() {
                   {format(dayData.date, 'd')}
                 </div>
 
-                {dayData.isWorkingDay && isCurrentMonth && (
+                {/* Working hours for non-honorer */}
+                {dayData.isWorkingDay && isCurrentMonth && !isGuruHonorer && (
                   <div className="space-y-1">
                     <div className={`text-[10px] md:text-xs p-1 rounded ${getShiftColor(dayData.isWorkingDay, dayData.isToday)}`}>
                       <div className="font-medium truncate">Masuk</div>
                       <div className="truncate">{dayData.startTime}</div>
                     </div>
+                  </div>
+                )}
+
+                {/* Teaching sessions indicator for teachers */}
+                {hasTeaching && isCurrentMonth && (
+                  <div className={`text-[10px] md:text-xs p-1 rounded mt-1 ${
+                    isGuruHonorer
+                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                      : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                  }`}>
+                    <div className="flex items-center gap-1">
+                      <GraduationCap className="h-3 w-3" />
+                      <span className="font-medium">{dayData.teachingSessions.length} sesi</span>
+                    </div>
+                    <div className="truncate">{dayData.totalTeachingHours} jp</div>
                   </div>
                 )}
 
@@ -190,11 +259,25 @@ export function DesktopEmployeeSchedulePage() {
             <div className="w-4 h-4 rounded bg-primary/10 border border-primary" />
             <span>Hari Ini</span>
           </div>
+          {isTeacher && (
+            <div className="flex items-center gap-2">
+              <div className={`w-4 h-4 rounded ${
+                isGuruHonorer
+                  ? 'bg-purple-100 dark:bg-purple-900/30 border border-purple-200'
+                  : 'bg-blue-100 dark:bg-blue-900/30 border border-blue-200'
+              }`} />
+              <span>Jadwal Mengajar</span>
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded bg-muted border border-muted" />
             <span>Libur</span>
           </div>
         </div>
+
+        <p className="mt-3 text-xs text-muted-foreground text-center">
+          Klik tanggal untuk melihat detail jadwal
+        </p>
       </ContentCard>
     );
   };
@@ -462,6 +545,30 @@ export function DesktopEmployeeSchedulePage() {
           </div>
         </ContentCard>
       )}
+
+      {/* Day Detail Drawer */}
+      <ScheduleDayDetailDrawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        date={selectedDate}
+        isWorkingDay={selectedDayData?.isWorkingDay ?? false}
+        workingHours={
+          selectedDayData?.startTime && selectedDayData?.endTime
+            ? { start: selectedDayData.startTime, end: selectedDayData.endTime }
+            : undefined
+        }
+        teachingSessions={selectedDayData?.teachingSessions ?? []}
+        isTeacher={isTeacher}
+        isGuruHonorer={isGuruHonorer}
+        canCheckIn={
+          selectedDayData?.isToday &&
+          (selectedDayData?.isWorkingDay || (isGuruHonorer && (selectedDayData?.teachingSessions?.length ?? 0) > 0)) &&
+          effectiveSchedule?.can_attend
+        }
+        onCheckIn={() => {
+          window.location.href = '/shared/verify-location';
+        }}
+      />
     </PageLayout>
   );
 }

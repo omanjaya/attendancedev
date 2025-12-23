@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
     Calendar,
@@ -6,8 +6,7 @@ import {
     ChevronRight,
     Check,
     Minus,
-    Clock,
-    X,
+    GraduationCap,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores';
 import { MobilePageHeader } from '@/components/mobile';
@@ -23,9 +22,23 @@ import {
     startOfWeek,
     endOfWeek,
     isValid,
+    getDay,
+    isToday as isTodayFn,
 } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { ScheduleDayDetailDrawer } from '@/components/schedule/ScheduleDayDetailDrawer';
+import { getMyTeachingSchedule, type TeachingSession } from '@/lib/api/schedules';
+
+const DAY_INDEX_TO_NAME: Record<number, string> = {
+    0: 'sunday',
+    1: 'monday',
+    2: 'tuesday',
+    3: 'wednesday',
+    4: 'thursday',
+    5: 'friday',
+    6: 'saturday',
+};
 
 // Safe date formatting helper
 const safeFormatDate = (dateStr: string | null | undefined, formatStr: string, fallback: string = '-') => {
@@ -59,7 +72,7 @@ export function MobileEmployeeSchedulePage() {
     const [selectedMonth, setSelectedMonth] = useState(new Date());
     const [showMonthPicker, setShowMonthPicker] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-    const [showScheduleModal, setShowScheduleModal] = useState(false);
+    const [drawerOpen, setDrawerOpen] = useState(false);
 
     // Fetch employee's schedule
     const { data: scheduleData } = useQuery({
@@ -71,6 +84,16 @@ export function MobileEmployeeSchedulePage() {
             });
         },
     });
+
+    // Fetch teaching schedule for teachers
+    const { data: teachingData } = useQuery({
+        queryKey: ['my-teaching-schedule'],
+        queryFn: getMyTeachingSchedule,
+    });
+
+    const isTeacher = !!teachingData?.employee;
+    const isGuruHonorer = teachingData?.employee?.is_guru_honorer ?? false;
+    const teachingSchedules = teachingData?.schedules || {};
 
     // Fetch employee's attendance data for the calendar
     const { data: attendanceData, isLoading } = useQuery({
@@ -179,6 +202,40 @@ export function MobileEmployeeSchedulePage() {
     const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
     const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
+    // Helper to get teaching sessions for a specific date
+    const getTeachingSessionsForDate = (date: Date): TeachingSession[] => {
+        const dayOfWeek = DAY_INDEX_TO_NAME[getDay(date)];
+        return teachingSchedules[dayOfWeek] || [];
+    };
+
+    // Get data for selected date in drawer
+    const selectedDayData = useMemo(() => {
+        if (!selectedDate) return null;
+        const schedule = scheduleData?.schedule;
+        const isWorkingDay = schedule?.working_days?.some((d: string) =>
+            isSameDay(parseISO(d), selectedDate)
+        ) ?? false;
+        const teachingSessions = getTeachingSessionsForDate(selectedDate);
+
+        return {
+            date: selectedDate,
+            isWorkingDay,
+            workingHours: isWorkingDay && schedule ? {
+                start: schedule.default_start_time,
+                end: schedule.default_end_time
+            } : undefined,
+            teachingSessions,
+            isToday: isTodayFn(selectedDate),
+        };
+    }, [selectedDate, scheduleData, teachingSchedules]);
+
+    const handleDayClick = (day: Date, isCurrentMonth: boolean) => {
+        if (isCurrentMonth) {
+            setSelectedDate(day);
+            setDrawerOpen(true);
+        }
+    };
+
     if (isLoading) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
@@ -259,16 +316,16 @@ export function MobileEmployeeSchedulePage() {
                             const dayAttendance = attendanceData?.attendance.find((a) =>
                                 isSameDay(parseISO(a.date), day)
                             );
+                            const dayTeachingSessions = getTeachingSessionsForDate(day);
+                            const hasTeaching = dayTeachingSessions.length > 0;
+                            const isWorkingDay = scheduleData?.schedule?.working_days?.some((d: string) =>
+                                isSameDay(parseISO(d), day)
+                            );
 
                             return (
                                 <button
                                     key={idx}
-                                    onClick={() => {
-                                        if (isCurrentMonth) {
-                                            setSelectedDate(day);
-                                            setShowScheduleModal(true);
-                                        }
-                                    }}
+                                    onClick={() => handleDayClick(day, isCurrentMonth)}
                                     className={cn(
                                         "flex flex-col items-center justify-start min-h-[56px] py-2 rounded-lg transition-all",
                                         isCurrentMonth && "hover:bg-muted/50 active:scale-95 cursor-pointer",
@@ -293,15 +350,21 @@ export function MobileEmployeeSchedulePage() {
                                         >
                                             {getAttendanceIcon(dayAttendance.status)}
                                         </div>
-                                    ) : (
-                                        scheduleData?.schedule?.working_days?.some((d) =>
-                                            isSameDay(parseISO(d), day)
-                                        ) && (
-                                            <div className="rounded-full p-1.5 flex items-center justify-center shadow-md bg-gray-400">
-                                                <Check className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
-                                            </div>
-                                        )
-                                    )}
+                                    ) : isCurrentMonth && hasTeaching ? (
+                                        // Teaching sessions indicator for teachers
+                                        <div className={cn(
+                                            'rounded-full p-1.5 flex items-center justify-center shadow-md',
+                                            isGuruHonorer
+                                                ? 'bg-purple-500'
+                                                : 'bg-blue-500'
+                                        )}>
+                                            <GraduationCap className="h-3.5 w-3.5 text-white" strokeWidth={2} />
+                                        </div>
+                                    ) : isCurrentMonth && isWorkingDay ? (
+                                        <div className="rounded-full p-1.5 flex items-center justify-center shadow-md bg-gray-400">
+                                            <Check className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
+                                        </div>
+                                    ) : null}
                                 </button>
                             );
                         })}
@@ -341,13 +404,29 @@ export function MobileEmployeeSchedulePage() {
                             </div>
                             <span className="text-muted-foreground">Alpha</span>
                         </div>
-                        <div className="flex items-center gap-2 col-span-2">
+                        <div className="flex items-center gap-2">
                             <div className="bg-rose-400 rounded-full p-1 shadow-sm">
                                 <Minus className="h-3 w-3 text-white" strokeWidth={2.5} />
                             </div>
                             <span className="text-muted-foreground">Hari Raya/Libur</span>
                         </div>
+                        {isTeacher && (
+                            <div className="flex items-center gap-2 col-span-2">
+                                <div className={cn(
+                                    'rounded-full p-1 shadow-sm',
+                                    isGuruHonorer ? 'bg-purple-500' : 'bg-blue-500'
+                                )}>
+                                    <GraduationCap className="h-3 w-3 text-white" strokeWidth={2} />
+                                </div>
+                                <span className="text-muted-foreground">
+                                    Jadwal Mengajar {isGuruHonorer ? '(Honor)' : ''}
+                                </span>
+                            </div>
+                        )}
                     </div>
+                    <p className="mt-3 text-[11px] text-muted-foreground text-center">
+                        Ketuk tanggal untuk melihat detail
+                    </p>
                 </div>
 
                 {/* Daftar Rahina */}
@@ -383,176 +462,24 @@ export function MobileEmployeeSchedulePage() {
                 </div>
             </div>
 
-            {/* Schedule Detail Modal */}
-            {showScheduleModal && selectedDate && (
-                <div
-                    className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 backdrop-blur-sm"
-                    onClick={() => setShowScheduleModal(false)}
-                >
-                    <div
-                        className="bg-card rounded-t-3xl shadow-2xl border-t border-border/50 w-full max-h-[80vh] overflow-y-auto animate-in slide-in-from-bottom"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        {/* Modal Header */}
-                        <div className="sticky top-0 bg-card/95 backdrop-blur-md px-5 py-4 border-b border-border/50 flex items-center justify-between">
-                            <div>
-                                <h3 className="text-lg font-bold">Jadwal Kerja</h3>
-                                <p className="text-sm text-muted-foreground capitalize">
-                                    {format(selectedDate, 'EEEE, dd/MM/yyyy', { locale: id })}
-                                </p>
-                            </div>
-                            <button
-                                onClick={() => setShowScheduleModal(false)}
-                                className="p-2 hover:bg-muted rounded-full transition-colors"
-                                aria-label="Tutup"
-                            >
-                                <X className="h-5 w-5" />
-                            </button>
-                        </div>
-
-                        {/* Modal Content */}
-                        <div className="px-5 py-6 space-y-4">
-                            {(() => {
-                                const dayAttendance = attendanceData?.attendance.find((a) => {
-                                    if (!a.date || !selectedDate) return false;
-                                    try {
-                                        const recordDate = new Date(a.date);
-                                        const fmt = new Intl.DateTimeFormat('en-CA', { // YYYY-MM-DD
-                                            timeZone: 'Asia/Makassar',
-                                            year: 'numeric',
-                                            month: '2-digit',
-                                            day: '2-digit'
-                                        });
-                                        return fmt.format(recordDate) === fmt.format(selectedDate);
-                                    } catch (e) {
-                                        return false;
-                                    }
-                                });
-
-
-
-                                // Get schedule times from actual schedule data
-                                const schedule = scheduleData?.schedule;
-                                const scheduleStartTime = schedule?.default_start_time || '08:00:00';
-                                const scheduleEndTime = schedule?.default_end_time || '16:00:00';
-
-                                // Format attendance times to HH:MM:SS in WITA (UTC+8) manually
-                                const formatTime = (timeString: string | undefined) => {
-                                    if (!timeString) return '-';
-                                    try {
-                                        // Check if it's ISO timestamp (contains T)
-                                        if (timeString.includes('T')) {
-                                            const date = new Date(timeString);
-                                            // Get UTC parts
-                                            const utcHours = date.getUTCHours();
-                                            const utcMinutes = date.getUTCMinutes();
-                                            const utcSeconds = date.getUTCSeconds();
-
-                                            // Add 8 hours for WITA
-                                            let hours = utcHours + 8;
-
-                                            // Handle day overflow (simple modulo)
-                                            if (hours >= 24) hours -= 24;
-
-                                            const pad = (n: number) => n.toString().padStart(2, '0');
-                                            return `${pad(hours)}:${pad(utcMinutes)}:${pad(utcSeconds)}`;
-                                        }
-                                        // If it's already HH:MM:SS format, return as is
-                                        return timeString;
-                                    } catch (error) {
-                                        console.error('Error formatting time:', error);
-                                        return timeString;
-                                    }
-                                };
-
-                                const checkInTimeFormatted = formatTime(dayAttendance?.check_in_time);
-                                const checkOutTimeFormatted = formatTime(dayAttendance?.check_out_time);
-
-                                return (
-                                    <>
-                                        {/* Jadwal Kerja - Red Cards */}
-                                        <div className="space-y-2.5">
-                                            {/* Jam Masuk */}
-                                            <div className="bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl px-4 py-3.5 shadow-lg">
-                                                <div className="flex items-center justify-between text-white">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="bg-white/20 rounded-xl p-2">
-                                                            <Clock className="h-5 w-5" />
-                                                        </div>
-                                                        <span className="font-medium">Jam masuk</span>
-                                                    </div>
-                                                    <span className="text-lg font-bold">{scheduleStartTime} WITA</span>
-                                                </div>
-                                            </div>
-
-                                            {/* Jam Keluar */}
-                                            <div className="bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl px-4 py-3.5 shadow-lg">
-                                                <div className="flex items-center justify-between text-white">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="bg-white/20 rounded-xl p-2">
-                                                            <Clock className="h-5 w-5" />
-                                                        </div>
-                                                        <span className="font-medium">Jam keluar</span>
-                                                    </div>
-                                                    <span className="text-lg font-bold">{scheduleEndTime} WITA</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Separator */}
-                                        <div className="border-t border-border/30 my-6" />
-
-                                        {/* Kehadiran or Status */}
-                                        {dayAttendance && dayAttendance.check_in_time ? (
-                                            <div className="space-y-3">
-                                                <h4 className="font-bold text-base">Kehadiran</h4>
-                                                <div className="space-y-2.5">
-                                                    {/* Jam Masuk Actual */}
-                                                    <div className="bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl px-4 py-3.5 shadow-lg">
-                                                        <div className="flex items-center justify-between text-white">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="bg-white/20 rounded-xl p-2">
-                                                                    <Clock className="h-4 w-4" />
-                                                                </div>
-                                                                <span className="font-medium text-sm">Jam masuk</span>
-                                                            </div>
-                                                            <span className="text-base font-semibold">
-                                                                {checkInTimeFormatted}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Jam Keluar Actual */}
-                                                    <div className="bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl px-4 py-3.5 shadow-lg">
-                                                        <div className="flex items-center justify-between text-white">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="bg-white/20 rounded-xl p-2">
-                                                                    <Clock className="h-4 w-4" />
-                                                                </div>
-                                                                <span className="font-medium text-sm">Jam keluar</span>
-                                                            </div>
-                                                            <span className="text-base font-semibold">
-                                                                {checkOutTimeFormatted}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            /* Status: Belum Absen */
-                                            <div className="flex justify-center">
-                                                <button className="bg-gradient-to-br from-rose-500 to-rose-600 text-white px-8 py-3 rounded-2xl font-semibold shadow-lg">
-                                                    Status : Belum Absen
-                                                </button>
-                                            </div>
-                                        )}
-                                    </>
-                                );
-                            })()}
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Day Detail Drawer */}
+            <ScheduleDayDetailDrawer
+                open={drawerOpen}
+                onOpenChange={setDrawerOpen}
+                date={selectedDate}
+                isWorkingDay={selectedDayData?.isWorkingDay ?? false}
+                workingHours={selectedDayData?.workingHours}
+                teachingSessions={selectedDayData?.teachingSessions ?? []}
+                isTeacher={isTeacher}
+                isGuruHonorer={isGuruHonorer}
+                canCheckIn={
+                    selectedDayData?.isToday &&
+                    (selectedDayData?.isWorkingDay || (isGuruHonorer && (selectedDayData?.teachingSessions?.length ?? 0) > 0))
+                }
+                onCheckIn={() => {
+                    window.location.href = '/shared/verify-location';
+                }}
+            />
 
             {/* Month Picker Modal */}
             {showMonthPicker && (
